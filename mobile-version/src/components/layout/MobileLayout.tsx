@@ -1,4 +1,5 @@
 import BottomNav from "./BottomNav";
+import FloatingCartButton from "./FloatingCartButton";
 
 interface MobileLayoutProps {
   children: React.ReactNode;
@@ -11,6 +12,7 @@ const MobileLayout = ({ children }: MobileLayoutProps) => {
         {children}
       </main>
       <BottomNav />
+      <FloatingCartButton />
     </div>
   );
 };

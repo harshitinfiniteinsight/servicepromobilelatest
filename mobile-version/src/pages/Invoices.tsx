@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import InvoiceCard from "@/components/cards/InvoiceCard";
@@ -52,8 +52,24 @@ const Invoices = () => {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showInvoiceDueAlertModal, setShowInvoiceDueAlertModal] = useState(false);
 
+  // Get user role from localStorage
+  const userRole = localStorage.getItem("userType") || "merchant";
+  const isEmployee = userRole === "employee";
+
+  // Ensure employees don't start on deactivated tab
+  useEffect(() => {
+    if (isEmployee && activeTab === "deactivated") {
+      setActiveTab("single");
+    }
+  }, [isEmployee, activeTab]);
+
   const handleTabChange = (value: string) => {
     const tabValue = value as InvoiceTab;
+    // Prevent employees from accessing deactivated tab
+    if (isEmployee && tabValue === "deactivated") {
+      setActiveTab("single");
+      return;
+    }
     setActiveTab(tabValue);
     if (tabValue !== "deactivated") {
       return;
@@ -250,22 +266,33 @@ const Invoices = () => {
           icon: MessageSquare,
           action: () => handleMenuAction(invoice, "send-sms"),
         },
-        {
-          label: "Reassign Employee",
-          icon: UserCog,
-          action: () => handleMenuAction(invoice, "reassign"),
-        },
-        {
-          label: "Refund",
-          icon: RotateCcw,
-          action: () => handleMenuAction(invoice, "refund"),
-          separator: true,
-        },
       ];
+
+      // Employees should NOT see sensitive admin actions on paid invoices
+      if (!isEmployee) {
+        items.push(
+          {
+            label: "Reassign Employee",
+            icon: UserCog,
+            action: () => handleMenuAction(invoice, "reassign"),
+          },
+          {
+            label: "Refund",
+            icon: RotateCcw,
+            action: () => handleMenuAction(invoice, "refund"),
+            separator: true,
+          }
+        );
+      }
+
       return <KebabMenu items={items} menuWidth="w-48" />;
     }
 
-    if (invoice.status === "Open") {
+    if (invoice.status === "Open" || invoice.status === "Unpaid") {
+      // For employees on unpaid invoices, remove Edit, Reassign, and Deactivate
+      const isUnpaidInvoice = invoice.status === "Open" || invoice.status === "Unpaid";
+      const shouldRestrictActions = isEmployee && isUnpaidInvoice;
+
       const items: KebabMenuItem[] = [
         {
           label: "Preview",
@@ -282,28 +309,35 @@ const Invoices = () => {
           icon: MessageSquare,
           action: () => handleMenuAction(invoice, "send-sms"),
         },
-        {
-          label: "Edit Invoice",
-          icon: Edit,
-          action: () => handleMenuAction(invoice, "edit"),
-          separator: true,
-        },
-        {
-          label: "Doc History",
-          icon: History,
-          action: () => handleMenuAction(invoice, "doc-history"),
-        },
-        {
-          label: "Reassign Employee",
-          icon: UserCog,
-          action: () => handleMenuAction(invoice, "reassign"),
-        },
-        {
-          label: "Deactivate",
-          icon: XCircle,
-          action: () => handleMenuAction(invoice, "deactivate"),
-        },
       ];
+
+      // Only add restricted actions if user is not an employee or invoice is paid
+      if (!shouldRestrictActions) {
+        items.push(
+          {
+            label: "Edit Invoice",
+            icon: Edit,
+            action: () => handleMenuAction(invoice, "edit"),
+            separator: true,
+          },
+          {
+            label: "Doc History",
+            icon: History,
+            action: () => handleMenuAction(invoice, "doc-history"),
+          },
+          {
+            label: "Reassign Employee",
+            icon: UserCog,
+            action: () => handleMenuAction(invoice, "reassign"),
+          },
+          {
+            label: "Deactivate",
+            icon: XCircle,
+            action: () => handleMenuAction(invoice, "deactivate"),
+          }
+        );
+      }
+
       return <KebabMenu items={items} menuWidth="w-56" />;
     }
 
@@ -438,24 +472,30 @@ const Invoices = () => {
               className="pl-9 h-9 text-sm py-2"
             />
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowInvoiceDueAlertModal(true)}
-            className="h-9 px-2 sm:px-3 text-xs font-medium flex-shrink-0"
-          >
-            <Bell className="h-3.5 w-3.5 sm:mr-1.5" />
-            <span className="hidden sm:inline">Invoice Due Alert</span>
-            <span className="sm:hidden">Alert</span>
-          </Button>
+          {/* Hide Alert button for employees */}
+          {!isEmployee && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowInvoiceDueAlertModal(true)}
+              className="h-9 px-2 sm:px-3 text-xs font-medium flex-shrink-0"
+            >
+              <Bell className="h-3.5 w-3.5 sm:mr-1.5" />
+              <span className="hidden sm:inline">Invoice Due Alert</span>
+              <span className="sm:hidden">Alert</span>
+            </Button>
+          )}
         </div>
         
         {/* Invoice Type Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-3">
-          <TabsList className="w-full grid grid-cols-3 h-9">
+          <TabsList className={`w-full grid h-9 ${isEmployee ? 'grid-cols-2' : 'grid-cols-3'}`}>
             <TabsTrigger value="single" className="text-xs py-1.5 px-2">Single</TabsTrigger>
             <TabsTrigger value="recurring" className="text-xs py-1.5 px-2">Recurring</TabsTrigger>
-            <TabsTrigger value="deactivated" className="text-xs py-1.5 px-2">Deactivated</TabsTrigger>
+            {/* Hide Deactivated tab for employees */}
+            {!isEmployee && (
+              <TabsTrigger value="deactivated" className="text-xs py-1.5 px-2">Deactivated</TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="single" className="mt-1.5">
@@ -464,9 +504,12 @@ const Invoices = () => {
           <TabsContent value="recurring" className="mt-1.5">
             {renderInvoices("recurring")}
           </TabsContent>
-          <TabsContent value="deactivated" className="mt-1.5">
-            {renderInvoices("deactivated")}
-          </TabsContent>
+          {/* Hide Deactivated tab content for employees */}
+          {!isEmployee && (
+            <TabsContent value="deactivated" className="mt-1.5">
+              {renderInvoices("deactivated")}
+            </TabsContent>
+          )}
         </Tabs>
       </div>
 

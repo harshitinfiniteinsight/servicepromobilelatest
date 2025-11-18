@@ -1,20 +1,47 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import JobCard from "@/components/cards/JobCard";
 import EmptyState from "@/components/cards/EmptyState";
 import { mockJobs } from "@/data/mobileMockData";
+import { mockCustomers } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Search, Briefcase } from "lucide-react";
+import { toast } from "sonner";
+import SendFeedbackFormModal from "@/components/modals/SendFeedbackFormModal";
+import ViewFeedbackModal from "@/components/modals/ViewFeedbackModal";
+
+// Track job feedback status
+type JobFeedbackStatus = {
+  [jobId: string]: {
+    exists: boolean;
+    feedback?: {
+      rating: number;
+      comment: string;
+      submittedAt: string;
+    };
+  };
+};
 
 const Jobs = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   
-  const filteredJobs = mockJobs.filter(job => {
+  // Manage job statuses (initialize from mockJobs, but allow updates)
+  const [jobs, setJobs] = useState(mockJobs);
+  
+  // Track feedback status for completed jobs
+  const [jobFeedbackStatus, setJobFeedbackStatus] = useState<JobFeedbackStatus>({});
+  
+  // Modals state
+  const [showFeedbackFormModal, setShowFeedbackFormModal] = useState(false);
+  const [showViewFeedbackModal, setShowViewFeedbackModal] = useState(false);
+  const [selectedJobForFeedback, setSelectedJobForFeedback] = useState<typeof mockJobs[0] | null>(null);
+  
+  const filteredJobs = jobs.filter(job => {
     const matchesSearch = job.title.toLowerCase().includes(search.toLowerCase()) ||
                          job.customerName.toLowerCase().includes(search.toLowerCase()) ||
                          job.technicianName.toLowerCase().includes(search.toLowerCase());
@@ -22,11 +49,56 @@ const Jobs = () => {
     return matchesSearch && matchesStatus;
   });
 
-  const summary = {
-    total: mockJobs.length,
-    scheduled: mockJobs.filter(j => j.status === "Scheduled").length,
-    inProgress: mockJobs.filter(j => j.status === "In Progress").length,
-    completed: mockJobs.filter(j => j.status === "Completed").length,
+  const summary = useMemo(() => ({
+    total: jobs.length,
+    scheduled: jobs.filter(j => j.status === "Scheduled").length,
+    inProgress: jobs.filter(j => j.status === "In Progress").length,
+    completed: jobs.filter(j => j.status === "Completed").length,
+  }), [jobs]);
+
+  // Handle status change
+  const handleStatusChange = (jobId: string, newStatus: string) => {
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === jobId ? { ...job, status: newStatus } : job
+      )
+    );
+    toast.success(`Job status updated to ${newStatus}`);
+  };
+
+  // Handle feedback form send
+  const handleSendFeedbackForm = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      setSelectedJobForFeedback(job);
+      setShowFeedbackFormModal(true);
+    }
+  };
+
+  // Handle feedback form submission
+  const handleFeedbackFormSent = (jobId: string) => {
+    // Mark feedback as sent (but not yet received)
+    setJobFeedbackStatus(prev => ({
+      ...prev,
+      [jobId]: { exists: false } // Form sent, but feedback not yet received
+    }));
+    setShowFeedbackFormModal(false);
+    setSelectedJobForFeedback(null);
+    toast.success("Feedback form sent successfully");
+  };
+
+  // Handle view feedback
+  const handleViewFeedback = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      setSelectedJobForFeedback(job);
+      setShowViewFeedbackModal(true);
+    }
+  };
+
+  // Check if feedback exists for a job
+  const hasFeedback = (jobId: string) => {
+    return jobFeedbackStatus[jobId]?.exists === true;
   };
 
   return (
@@ -80,29 +152,38 @@ const Jobs = () => {
 
           <TabsContent value={statusFilter} className="mt-4 space-y-3">
             {filteredJobs.length > 0 ? (
-              filteredJobs.map(job => (
-                <JobCard 
-                  key={job.id} 
-                  job={job}
-                  onClick={() => navigate(`/jobs/${job.id}`)}
-                  onQuickAction={(action) => {
-                    switch (action) {
-                      case "view":
-                        navigate(`/jobs/${job.id}`);
-                        break;
-                      case "edit":
-                        navigate(`/jobs/${job.id}/edit`);
-                        break;
-                      case "share":
-                        // Handle share action
-                        break;
-                      case "cancel":
-                        // Handle cancel action
-                        break;
-                    }
-                  }}
-                />
-              ))
+              filteredJobs.map(job => {
+                const customer = mockCustomers.find(c => c.id === job.customerId);
+                return (
+                  <JobCard 
+                    key={job.id} 
+                    job={job}
+                    customerEmail={customer?.email}
+                    customerPhone={customer?.phone}
+                    hasFeedback={hasFeedback(job.id)}
+                    onClick={() => navigate(`/jobs/${job.id}`)}
+                    onStatusChange={(newStatus) => handleStatusChange(job.id, newStatus)}
+                    onSendFeedbackForm={() => handleSendFeedbackForm(job.id)}
+                    onViewFeedback={() => handleViewFeedback(job.id)}
+                    onQuickAction={(action) => {
+                      switch (action) {
+                        case "view":
+                          navigate(`/jobs/${job.id}`);
+                          break;
+                        case "edit":
+                          navigate(`/jobs/${job.id}/edit`);
+                          break;
+                        case "share":
+                          // Handle share action
+                          break;
+                        case "cancel":
+                          // Handle cancel action
+                          break;
+                      }
+                    }}
+                  />
+                );
+              })
             ) : (
               <EmptyState
                 icon={<Briefcase className="h-10 w-10 text-muted-foreground" />}
@@ -115,6 +196,33 @@ const Jobs = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Send Feedback Form Modal */}
+      {selectedJobForFeedback && (
+        <SendFeedbackFormModal
+          isOpen={showFeedbackFormModal}
+          onClose={() => {
+            setShowFeedbackFormModal(false);
+            setSelectedJobForFeedback(null);
+          }}
+          job={selectedJobForFeedback}
+          customerEmail={mockCustomers.find(c => c.id === selectedJobForFeedback.customerId)?.email || ""}
+          onSend={() => handleFeedbackFormSent(selectedJobForFeedback.id)}
+        />
+      )}
+
+      {/* View Feedback Modal */}
+      {selectedJobForFeedback && (
+        <ViewFeedbackModal
+          isOpen={showViewFeedbackModal}
+          onClose={() => {
+            setShowViewFeedbackModal(false);
+            setSelectedJobForFeedback(null);
+          }}
+          job={selectedJobForFeedback}
+          feedback={jobFeedbackStatus[selectedJobForFeedback.id]?.feedback}
+        />
+      )}
     </div>
   );
 };

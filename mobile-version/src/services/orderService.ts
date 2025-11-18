@@ -22,6 +22,9 @@ export interface Order {
   subtotal: number;
   tax: number;
   total: number;
+  discount?: number;
+  discountType?: "%" | "$";
+  notes?: string;
   employeeId?: string;
   employeeName?: string;
   createdAt: string;

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import EstimateCard from "@/components/cards/EstimateCard";
@@ -33,6 +33,17 @@ const Estimates = () => {
   const [selectedEstimateForAction, setSelectedEstimateForAction] = useState<any>(null);
   const [deactivatedEstimates, setDeactivatedEstimates] = useState<Set<string>>(new Set());
   const [statusFilterValue, setStatusFilterValue] = useState<string>("all");
+
+  // Get user role from localStorage
+  const userRole = localStorage.getItem("userType") || "merchant";
+  const isEmployee = userRole === "employee";
+
+  // Ensure employees always use "activate" filter (no tabs for employees)
+  useEffect(() => {
+    if (isEmployee) {
+      setStatusFilter("activate");
+    }
+  }, [isEmployee]);
   
   const filteredEstimates = mockEstimates.filter(est => {
     const matchesSearch = est.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -198,18 +209,25 @@ const Estimates = () => {
           icon: MessageSquare,
           action: () => handleMenuAction("send-sms", estimate.id),
         },
-        {
-          label: "Reassign Employee",
-          icon: UserCog,
-          action: () => handleMenuAction("reassign", estimate.id),
-        },
-        {
-          label: "Refund",
-          icon: RotateCcw,
-          action: () => handleMenuAction("refund", estimate.id),
-          separator: true,
-        },
       ];
+
+      // Employees should NOT see sensitive admin actions on paid estimates
+      if (!isEmployee) {
+        items.push(
+          {
+            label: "Reassign Employee",
+            icon: UserCog,
+            action: () => handleMenuAction("reassign", estimate.id),
+          },
+          {
+            label: "Refund",
+            icon: RotateCcw,
+            action: () => handleMenuAction("refund", estimate.id),
+            separator: true,
+          }
+        );
+      }
+
       return <KebabMenu items={items} menuWidth="w-48" />;
     }
 
@@ -230,33 +248,40 @@ const Estimates = () => {
           icon: MessageSquare,
           action: () => handleMenuAction("send-sms", estimate.id),
         },
-        {
-          label: "Edit Estimate",
-          icon: Edit,
-          action: () => handleMenuAction("edit", estimate.id),
-          separator: true,
-        },
-        {
-          label: "Doc History",
-          icon: History,
-          action: () => handleMenuAction("doc-history", estimate.id),
-        },
-        {
-          label: "Reassign Employee",
-          icon: UserCog,
-          action: () => handleMenuAction("reassign", estimate.id),
-        },
-        {
-          label: "Convert to Invoice",
-          icon: Receipt,
-          action: () => handleMenuAction("convert-to-invoice", estimate.id),
-        },
-        {
-          label: "Deactivate",
-          icon: XCircle,
-          action: () => handleMenuAction("deactivate", estimate.id),
-        },
       ];
+
+      // Employees should NOT see sensitive admin actions on unpaid estimates
+      if (!isEmployee) {
+        items.push(
+          {
+            label: "Edit Estimate",
+            icon: Edit,
+            action: () => handleMenuAction("edit", estimate.id),
+            separator: true,
+          },
+          {
+            label: "Doc History",
+            icon: History,
+            action: () => handleMenuAction("doc-history", estimate.id),
+          },
+          {
+            label: "Reassign Employee",
+            icon: UserCog,
+            action: () => handleMenuAction("reassign", estimate.id),
+          },
+          {
+            label: "Convert to Invoice",
+            icon: Receipt,
+            action: () => handleMenuAction("convert-to-invoice", estimate.id),
+          },
+          {
+            label: "Deactivate",
+            icon: XCircle,
+            action: () => handleMenuAction("deactivate", estimate.id),
+          }
+        );
+      }
+
       return <KebabMenu items={items} menuWidth="w-56" />;
     }
 
@@ -317,77 +342,139 @@ const Estimates = () => {
           </div>
         </div>
 
-        {/* Status Tabs */}
-        <Tabs value={statusFilter} onValueChange={setStatusFilter} className="space-y-3">
-          <TabsList className="w-full grid grid-cols-2 h-9">
-            <TabsTrigger value="activate" className="text-xs py-1.5 px-2">Activate</TabsTrigger>
-            <TabsTrigger value="deactivated" className="text-xs py-1.5 px-2">Deactivated</TabsTrigger>
-          </TabsList>
+        {/* Status Tabs - Hidden for employees */}
+        {!isEmployee ? (
+          <Tabs 
+            value={statusFilter} 
+            onValueChange={setStatusFilter} 
+            className="space-y-3"
+          >
+            <TabsList className="w-full grid grid-cols-2 h-9">
+              <TabsTrigger value="activate" className="text-xs py-1.5 px-2">Activate</TabsTrigger>
+              <TabsTrigger value="deactivated" className="text-xs py-1.5 px-2">Deactivated</TabsTrigger>
+            </TabsList>
 
-          <TabsContent value={statusFilter} className="mt-1.5">
-            {(() => {
-              const estimates = filteredEstimates;
-              const showFilters = statusFilter !== "deactivated";
+            <TabsContent value={statusFilter} className="mt-1.5">
+              {(() => {
+                const estimates = filteredEstimates;
+                const showFilters = statusFilter !== "deactivated";
 
-              return (
-                <div className="space-y-2.5">
-                  {showFilters && (
-                    <div className="flex gap-2">
-                      <div className="flex-1 min-w-0">
-                        <Select value={statusFilterValue} onValueChange={setStatusFilterValue}>
-                          <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
-                            <SelectValue placeholder="Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Statuses</SelectItem>
-                            <SelectItem value="Paid">Paid</SelectItem>
-                            <SelectItem value="Unpaid">Unpaid</SelectItem>
-                          </SelectContent>
-                        </Select>
+                return (
+                  <div className="space-y-2.5">
+                    {showFilters && (
+                      <div className="flex gap-2">
+                        <div className="flex-1 min-w-0">
+                          <Select value={statusFilterValue} onValueChange={setStatusFilterValue}>
+                            <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Statuses</SelectItem>
+                              <SelectItem value="Paid">Paid</SelectItem>
+                              <SelectItem value="Unpaid">Unpaid</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
-                  {estimates.length > 0 ? (
-                    <div className="space-y-2">
-                      {estimates.map(estimate => (
-                        <EstimateCard 
-                          key={estimate.id}
-                          estimate={estimate}
-                          onClick={() => navigate(`/estimates/${estimate.id}`)}
-                          payButton={
-                            statusFilter === "activate" && estimate.status === "Unpaid" ? (
-                              <Button
-                                size="sm"
-                                variant="default"
-                                className="h-auto min-h-0 px-2 py-1 text-xs font-semibold whitespace-nowrap bg-primary hover:bg-primary/90 rounded-xl shadow-sm hover:shadow-md transition-all leading-tight"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePayNow(estimate.id, e);
-                                }}
-                              >
-                                Pay
-                              </Button>
-                            ) : undefined
-                          }
-                          actionButtons={renderActionButtons(estimate, statusFilter)}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <EmptyState
-                      icon={<FileText className="h-8 w-8 text-muted-foreground" />}
-                      title="No estimates found"
-                      description="Try adjusting your search or filters"
-                      actionLabel="Create Estimate"
-                      onAction={() => navigate("/estimates/new")}
-                    />
-                  )}
-                </div>
-              );
-            })()}
-          </TabsContent>
-        </Tabs>
+                    {estimates.length > 0 ? (
+                      <div className="space-y-2">
+                        {estimates.map(estimate => (
+                          <EstimateCard 
+                            key={estimate.id}
+                            estimate={estimate}
+                            onClick={() => navigate(`/estimates/${estimate.id}`)}
+                            payButton={
+                              statusFilter === "activate" && estimate.status === "Unpaid" ? (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="h-auto min-h-0 px-2 py-1 text-xs font-semibold whitespace-nowrap bg-primary hover:bg-primary/90 rounded-xl shadow-sm hover:shadow-md transition-all leading-tight"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePayNow(estimate.id, e);
+                                  }}
+                                >
+                                  Pay
+                                </Button>
+                              ) : undefined
+                            }
+                            actionButtons={renderActionButtons(estimate, statusFilter)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState
+                        icon={<FileText className="h-8 w-8 text-muted-foreground" />}
+                        title="No estimates found"
+                        description="Try adjusting your search or filters"
+                        actionLabel="Create Estimate"
+                        onAction={() => navigate("/estimates/new")}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          // Employee view: No tabs, just the list with filters
+          <div className="space-y-2.5">
+            {/* Status Filter */}
+            <div className="flex gap-2">
+              <div className="flex-1 min-w-0">
+                <Select value={statusFilterValue} onValueChange={setStatusFilterValue}>
+                  <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Unpaid">Unpaid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Estimates List */}
+            {filteredEstimates.length > 0 ? (
+              <div className="space-y-2">
+                {filteredEstimates.map(estimate => (
+                  <EstimateCard 
+                    key={estimate.id}
+                    estimate={estimate}
+                    onClick={() => navigate(`/estimates/${estimate.id}`)}
+                    payButton={
+                      estimate.status === "Unpaid" ? (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="h-auto min-h-0 px-2 py-1 text-xs font-semibold whitespace-nowrap bg-primary hover:bg-primary/90 rounded-xl shadow-sm hover:shadow-md transition-all leading-tight"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePayNow(estimate.id, e);
+                          }}
+                        >
+                          Pay
+                        </Button>
+                      ) : undefined
+                    }
+                    actionButtons={renderActionButtons(estimate, "activate")}
+                  />
+                ))}
+              </div>
+            ) : (
+              <EmptyState
+                icon={<FileText className="h-8 w-8 text-muted-foreground" />}
+                title="No estimates found"
+                description="Try adjusting your search or filters"
+                actionLabel="Create Estimate"
+                onAction={() => navigate("/estimates/new")}
+              />
+            )}
+          </div>
+        )}
       </div>
 
       {/* Payment Modal */}

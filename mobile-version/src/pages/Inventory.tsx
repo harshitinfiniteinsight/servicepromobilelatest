@@ -1174,24 +1174,6 @@ const Inventory = () => {
           localStorage.setItem("inventory-view-mode", "grid");
         }}
       />
-
-      {/* Floating Cart Icon */}
-      {getTotalItems() > 0 && activeTab === "inventory-services" && (
-        <button
-          onClick={() => setCartViewModalOpen(true)}
-          className="fixed bottom-24 right-4 z-40 bg-orange-500 hover:bg-orange-600 text-white rounded-full p-4 shadow-lg touch-target transition-all duration-200 active:scale-95"
-          style={{ marginBottom: 'env(safe-area-inset-bottom)' }}
-        >
-          <div className="relative">
-            <ShoppingCart className="h-6 w-6" />
-            {getTotalItems() > 0 && (
-              <span className="absolute -top-2 -right-2 bg-white text-orange-500 text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                {getTotalItems() > 99 ? '99+' : getTotalItems()}
-              </span>
-            )}
-          </div>
-        </button>
-      )}
     </div>
   );
 };

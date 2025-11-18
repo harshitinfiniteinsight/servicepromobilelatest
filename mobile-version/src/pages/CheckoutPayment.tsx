@@ -11,11 +11,15 @@ const CheckoutPayment = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { items, getSubtotal } = useCart();
-  const { customer, total, subtotal, tax } = (location.state as { 
+  const { customer, total, subtotal, tax, taxRate, discount, discountType, notes } = (location.state as { 
     customer?: any; 
     total?: number; 
     subtotal?: number;
     tax?: number;
+    taxRate?: number;
+    discount?: number;
+    discountType?: "%" | "$";
+    notes?: string;
   }) || {};
   const [paymentModalOpen, setPaymentModalOpen] = useState(true);
   const [successModalOpen, setSuccessModalOpen] = useState(false);
@@ -42,9 +46,9 @@ const CheckoutPayment = () => {
     setPaymentMethod(methodName);
     
     try {
-      // Calculate subtotal and tax if not provided
+      // Use provided values or calculate defaults
       const calculatedSubtotal = subtotal ?? getSubtotal();
-      const calculatedTax = tax ?? calculatedSubtotal * 0.08; // 8% tax
+      const calculatedTax = tax ?? 0;
       const calculatedTotal = total ?? calculatedSubtotal + calculatedTax;
 
       // Create order record
@@ -68,6 +72,9 @@ const CheckoutPayment = () => {
         subtotal: calculatedSubtotal,
         tax: calculatedTax,
         total: calculatedTotal,
+        discount: discount,
+        discountType: discountType,
+        notes: notes,
         // Employee info can be added later if available
         employeeId: undefined,
         employeeName: undefined,

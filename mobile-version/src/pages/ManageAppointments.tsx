@@ -51,11 +51,26 @@ const ManageAppointments = () => {
     startOfWeek.setDate(today.getDate() - dayOfWeek);
     return startOfWeek;
   });
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
+  // Get user role and employee ID
+  const userRole = localStorage.getItem("userType") || "merchant";
+  const isEmployee = userRole === "employee";
+  const currentEmployeeId = localStorage.getItem("currentEmployeeId") || "1";
+
+  // For employees, always filter by their own ID; for merchants, allow selection
+  const [selectedEmployee, setSelectedEmployee] = useState<string>(() => {
+    return isEmployee ? currentEmployeeId : "all";
+  });
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(() => {
     const today = new Date();
     return today.getMonth();
   });
+
+  // Ensure employees always see only their own appointments
+  useEffect(() => {
+    if (isEmployee) {
+      setSelectedEmployee(currentEmployeeId);
+    }
+  }, [isEmployee, currentEmployeeId]);
 
   // Generate months for selector (current month ± 6 months)
   const monthOptions = useMemo(() => {
@@ -124,19 +139,30 @@ const ManageAppointments = () => {
   const [appointmentNotes, setAppointmentNotes] = useState<Record<string, Array<{ id: string; text: string; createdBy: string; createdAt: string }>>>({});
   const [filterListByDate, setFilterListByDate] = useState<boolean>(false);
   
+  // Filter appointments by employee if needed
+  const filteredAppointments = useMemo(() => {
+    if (isEmployee) {
+      return mockAppointments.filter(apt => apt.technicianId === currentEmployeeId);
+    }
+    if (selectedEmployee !== "all") {
+      return mockAppointments.filter(apt => apt.technicianId === selectedEmployee);
+    }
+    return mockAppointments;
+  }, [isEmployee, currentEmployeeId, selectedEmployee]);
+
   // Get appointments for selected date
-  const dayAppointments = mockAppointments.filter(apt => apt.date === selectedDate);
+  const dayAppointments = filteredAppointments.filter(apt => apt.date === selectedDate);
   
   const appointmentsByDate = useMemo(() => {
-    return mockAppointments.reduce<Record<string, typeof mockAppointments>>((acc, appointment) => {
+    return filteredAppointments.reduce<Record<string, typeof mockAppointments>>((acc, appointment) => {
       acc[appointment.date] = acc[appointment.date] ? [...acc[appointment.date], appointment] : [appointment];
       return acc;
     }, {});
-  }, []);
+  }, [filteredAppointments]);
 
   const activeAppointmentIds = useMemo(
-    () => mockAppointments.filter(apt => apt.status.toLowerCase() === "confirmed").map(apt => apt.id),
-    []
+    () => filteredAppointments.filter(apt => apt.status.toLowerCase() === "confirmed").map(apt => apt.id),
+    [filteredAppointments]
   );
 
   const calendarDays = useMemo(() => {
@@ -144,17 +170,17 @@ const ManageAppointments = () => {
   }, [focusedMonth, todayISO]);
 
   const sortedAppointments = useMemo(() => {
-    const filtered = viewMode === "list" && filterListByDate && selectedDate 
-      ? mockAppointments.filter(apt => apt.date === selectedDate)
-      : mockAppointments;
+    const baseFiltered = viewMode === "list" && filterListByDate && selectedDate 
+      ? filteredAppointments.filter(apt => apt.date === selectedDate)
+      : filteredAppointments;
     
-    return [...filtered].sort((a, b) => {
+    return [...baseFiltered].sort((a, b) => {
     if (a.date === b.date) {
       return new Date(`1970-01-01T${convertTo24Hour(a.time)}`).getTime() - new Date(`1970-01-01T${convertTo24Hour(b.time)}`).getTime();
     }
     return a.date.localeCompare(b.date);
   });
-  }, [mockAppointments, viewMode, filterListByDate, selectedDate]);
+  }, [filteredAppointments, viewMode, filterListByDate, selectedDate]);
 
   function getTimeRange(startTime: string, duration?: string) {
     if (!duration) {
@@ -292,14 +318,8 @@ const ManageAppointments = () => {
   // Get appointments for the week, filtered by employee
   const weekAppointments = useMemo(() => {
     const weekDates = weekDays.map(day => day.iso);
-    let filtered = mockAppointments.filter(apt => weekDates.includes(apt.date));
-    
-    if (selectedEmployee !== "all") {
-      filtered = filtered.filter(apt => apt.technicianId === selectedEmployee);
-    }
-    
-    return filtered;
-  }, [weekDays, selectedEmployee]);
+    return filteredAppointments.filter(apt => weekDates.includes(apt.date));
+  }, [weekDays, filteredAppointments]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -325,9 +345,9 @@ const ManageAppointments = () => {
           <TabsContent value="calendar" className="flex-1 outline-none data-[state=inactive]:hidden flex flex-col overflow-hidden">
             <div className="flex-1 flex flex-col overflow-hidden">
               {/* Week View Specific Header */}
-              {calendarViewMode === "week" && (
+              {calendarViewMode === "week" && !isEmployee && (
                 <div className="px-3 pt-2 pb-1.5 space-y-1.5 border-b border-gray-200">
-                  {/* Employee Filter */}
+                  {/* Employee Filter - Hidden for employees */}
                   <div>
                     <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
                       <SelectTrigger className="h-8 rounded-lg border-gray-200 text-xs w-full">
@@ -659,25 +679,27 @@ const ManageAppointments = () => {
               {calendarViewMode === "day" && (
                 <div className="flex-1 flex flex-col overflow-hidden relative">
                   {/* Day View Header */}
-                  <div className="px-3 pt-2 pb-1.5 space-y-1.5 border-b border-gray-200 bg-white">
-                    {/* Employee Filter */}
-                    <div>
-                      <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                        <SelectTrigger className="h-8 rounded-lg border-gray-200 text-xs w-full">
-                          <SelectValue placeholder="All Employees" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Employees</SelectItem>
-                          {mockEmployees
-                            .filter(emp => emp.status === "Active")
-                            .map((employee) => (
-                              <SelectItem key={employee.id} value={employee.id}>
-                                {employee.name}
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                  <div className={`px-3 pt-2 pb-1.5 space-y-1.5 border-b border-gray-200 bg-white ${isEmployee ? 'pb-1.5' : ''}`}>
+                    {/* Employee Filter - Hidden for employees */}
+                    {!isEmployee && (
+                      <div>
+                        <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                          <SelectTrigger className="h-8 rounded-lg border-gray-200 text-xs w-full">
+                            <SelectValue placeholder="All Employees" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Employees</SelectItem>
+                            {mockEmployees
+                              .filter(emp => emp.status === "Active")
+                              .map((employee) => (
+                                <SelectItem key={employee.id} value={employee.id}>
+                                  {employee.name}
+                                </SelectItem>
+                              ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     {/* Date Navigation Bar */}
                     <div className="flex items-center justify-between py-1.5 border-t border-gray-200 pt-2">
@@ -754,14 +776,9 @@ const ManageAppointments = () => {
 
                     {/* Timeline Container */}
                     <div className="relative">
-                      {/* Get appointments for selected date, filtered by employee */}
+                      {/* Get appointments for selected date (already filtered by employee if needed) */}
                       {(() => {
-                        const dayAppointmentsFiltered = dayAppointments.filter(apt => {
-                          if (selectedEmployee !== "all") {
-                            return apt.technicianId === selectedEmployee;
-                          }
-                          return true;
-                        });
+                        const dayAppointmentsFiltered = dayAppointments;
 
                         // Calculate appointment positions
                         const appointmentPositions = dayAppointmentsFiltered.map(apt => {
