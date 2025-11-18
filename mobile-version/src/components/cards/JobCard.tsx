@@ -57,24 +57,7 @@ const JobCard = ({
   const buildMenuItems = (): KebabMenuItem[] => {
     const items: KebabMenuItem[] = [];
     
-    // Status change options (for merchants only - employees use dropdown)
-    if (!isEmployee) {
-      if (job.status === "Scheduled" && onStatusChange) {
-        items.push({
-          label: "Change Status",
-          icon: ArrowRight,
-          action: () => onStatusChange("In Progress"),
-          separator: false,
-        });
-      } else if (job.status === "In Progress" && onStatusChange) {
-        items.push({
-          label: "Change Status",
-          icon: CheckCircle,
-          action: () => onStatusChange("Completed"),
-          separator: false,
-        });
-      }
-    }
+    // Status change removed from menu - now handled by dropdown for all users
     
     // Feedback options (for Completed jobs only)
     if (job.status === "Completed") {
@@ -103,13 +86,9 @@ const JobCard = ({
     
     // Standard actions (always available)
     if (onQuickAction) {
-      // Add separator before standard actions if there are any status/feedback items above
-      const hasStatusOrFeedbackItems = 
-        (!isEmployee && (
-          (job.status === "Scheduled" && onStatusChange) ||
-          (job.status === "In Progress" && onStatusChange)
-        )) ||
-        (job.status === "Completed" && (hasFeedback ? onViewFeedback : onSendFeedbackForm));
+      // Add separator before standard actions if there are feedback items above
+      const hasFeedbackItems = 
+        job.status === "Completed" && (hasFeedback ? onViewFeedback : onSendFeedbackForm);
       
       items.push(
         {
@@ -153,8 +132,8 @@ const JobCard = ({
           <p className="text-sm text-muted-foreground">{job.customerName}</p>
         </div>
         <div className="flex items-center gap-2">
-          {/* Status Badge or Dropdown */}
-          {isEmployee && onStatusChange ? (
+          {/* Status Dropdown - Available for all users */}
+          {onStatusChange ? (
             <div onClick={(e) => e.stopPropagation()} className="relative">
               <Select
                 value={job.status}
@@ -168,7 +147,7 @@ const JobCard = ({
                   className={cn(
                     "h-auto py-1 px-2.5 text-xs font-medium whitespace-nowrap border rounded-full",
                     "focus:ring-0 focus:ring-offset-0 shadow-none",
-                    "cursor-pointer transition-colors",
+                    "cursor-pointer transition-colors w-auto",
                     getStatusBadgeColor(job.status)
                   )}
                 >
