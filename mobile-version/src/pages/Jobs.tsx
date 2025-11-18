@@ -7,7 +7,7 @@ import { mockJobs } from "@/data/mobileMockData";
 import { mockCustomers } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Search, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import SendFeedbackFormModal from "@/components/modals/SendFeedbackFormModal";
@@ -30,6 +30,10 @@ const Jobs = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   
+  // Check if user is employee
+  const userRole = localStorage.getItem("userType") || "merchant";
+  const isEmployee = userRole === "employee";
+  
   // Manage job statuses (initialize from mockJobs, but allow updates)
   const [jobs, setJobs] = useState(mockJobs);
   
@@ -45,7 +49,17 @@ const Jobs = () => {
     const matchesSearch = job.title.toLowerCase().includes(search.toLowerCase()) ||
                          job.customerName.toLowerCase().includes(search.toLowerCase()) ||
                          job.technicianName.toLowerCase().includes(search.toLowerCase());
-    const matchesStatus = statusFilter === "all" || job.status.toLowerCase() === statusFilter.toLowerCase().replace(" ", "");
+    
+    // Handle status filtering - normalize status values
+    let matchesStatus = true;
+    if (statusFilter !== "all") {
+      if (statusFilter === "inprogress") {
+        matchesStatus = job.status === "In Progress";
+      } else {
+        matchesStatus = job.status.toLowerCase() === statusFilter.toLowerCase();
+      }
+    }
+    
     return matchesSearch && matchesStatus;
   });
 
@@ -124,6 +138,21 @@ const Jobs = () => {
             className="pl-10"
           />
         </div>
+
+        {/* Status Dropdown */}
+        <div>
+          <Select value={statusFilter} onValueChange={setStatusFilter}>
+            <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="inprogress">In Progress</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         
         {/* Summary Cards */}
         <div className="grid grid-cols-3 gap-2">
@@ -141,19 +170,11 @@ const Jobs = () => {
           </div>
         </div>
 
-        {/* Status Tabs */}
-        <Tabs value={statusFilter} onValueChange={setStatusFilter}>
-          <TabsList className="w-full grid grid-cols-4">
-            <TabsTrigger value="all">All</TabsTrigger>
-            <TabsTrigger value="scheduled">Scheduled</TabsTrigger>
-            <TabsTrigger value="inprogress">In Progress</TabsTrigger>
-            <TabsTrigger value="completed">Completed</TabsTrigger>
-          </TabsList>
-
-          <TabsContent value={statusFilter} className="mt-4 space-y-3">
-            {filteredJobs.length > 0 ? (
-              filteredJobs.map(job => {
-                const customer = mockCustomers.find(c => c.id === job.customerId);
+        {/* Jobs List */}
+        <div className="space-y-3">
+          {filteredJobs.length > 0 ? (
+            filteredJobs.map(job => {
+              const customer = mockCustomers.find(c => c.id === job.customerId);
                 return (
                   <JobCard 
                     key={job.id} 
@@ -161,40 +182,40 @@ const Jobs = () => {
                     customerEmail={customer?.email}
                     customerPhone={customer?.phone}
                     hasFeedback={hasFeedback(job.id)}
+                    isEmployee={isEmployee}
                     onClick={() => navigate(`/jobs/${job.id}`)}
                     onStatusChange={(newStatus) => handleStatusChange(job.id, newStatus)}
                     onSendFeedbackForm={() => handleSendFeedbackForm(job.id)}
                     onViewFeedback={() => handleViewFeedback(job.id)}
                     onQuickAction={(action) => {
-                      switch (action) {
-                        case "view":
-                          navigate(`/jobs/${job.id}`);
-                          break;
-                        case "edit":
-                          navigate(`/jobs/${job.id}/edit`);
-                          break;
-                        case "share":
-                          // Handle share action
-                          break;
-                        case "cancel":
-                          // Handle cancel action
-                          break;
-                      }
-                    }}
-                  />
-                );
-              })
-            ) : (
-              <EmptyState
-                icon={<Briefcase className="h-10 w-10 text-muted-foreground" />}
-                title="No jobs found"
-                description="Try adjusting your search or filters"
-                actionLabel="Create Job"
-                onAction={() => navigate("/jobs/new")}
-              />
-            )}
-          </TabsContent>
-        </Tabs>
+                    switch (action) {
+                      case "view":
+                        navigate(`/jobs/${job.id}`);
+                        break;
+                      case "edit":
+                        navigate(`/jobs/${job.id}/edit`);
+                        break;
+                      case "share":
+                        // Handle share action
+                        break;
+                      case "cancel":
+                        // Handle cancel action
+                        break;
+                    }
+                  }}
+                />
+              );
+            })
+          ) : (
+            <EmptyState
+              icon={<Briefcase className="h-10 w-10 text-muted-foreground" />}
+              title="No jobs found"
+              description="Try adjusting your search or filters"
+              actionLabel="Create Job"
+              onAction={() => navigate("/jobs/new")}
+            />
+          )}
+        </div>
       </div>
 
       {/* Send Feedback Form Modal */}

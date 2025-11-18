@@ -94,7 +94,7 @@ const CheckoutSummary = () => {
         <div className="bg-white rounded-xl border border-gray-200 p-4 mb-4">
           <h3 className="text-sm font-semibold text-gray-900 mb-3">Items</h3>
           <div className="space-y-3">
-            {items.map((item) => (
+            {items.map((item: any) => (
               <div key={item.id} className="flex gap-3">
                 <div className="w-16 h-16 bg-gray-100 rounded-lg flex items-center justify-center flex-shrink-0">
                   {item.image ? (
@@ -193,10 +193,10 @@ const CheckoutSummary = () => {
               </div>
             )}
             {taxRate > 0 && (
-              <div className="flex justify-between">
+            <div className="flex justify-between">
                 <span className="text-sm text-gray-600">Tax ({taxRate}%)</span>
                 <span className="text-sm font-semibold text-gray-900">${taxAmount.toFixed(2)}</span>
-              </div>
+            </div>
             )}
             <div className="border-t border-gray-200 pt-2 mt-2">
               <div className="flex justify-between items-baseline">

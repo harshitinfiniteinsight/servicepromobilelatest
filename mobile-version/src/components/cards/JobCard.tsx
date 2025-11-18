@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock, MapPin, Edit, Eye, Share2, XCircle, CheckCircle, ArrowRight, MessageSquare, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
@@ -18,6 +19,7 @@ interface JobCardProps {
   customerEmail?: string;
   customerPhone?: string;
   hasFeedback?: boolean;
+  isEmployee?: boolean;
   onClick?: () => void;
   onStatusChange?: (newStatus: string) => void;
   onSendFeedbackForm?: () => void;
@@ -30,6 +32,7 @@ const JobCard = ({
   customerEmail,
   customerPhone,
   hasFeedback = false,
+  isEmployee = false,
   onClick, 
   onStatusChange,
   onSendFeedbackForm,
@@ -38,28 +41,42 @@ const JobCard = ({
 }: JobCardProps) => {
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
 
+  // Get status badge colors for employee dropdown
+  const getStatusBadgeColor = (status: string) => {
+    if (status === "Scheduled") {
+      return "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200";
+    } else if (status === "In Progress") {
+      return "bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200";
+    } else if (status === "Completed") {
+      return "bg-green-100 text-green-700 border-green-200 hover:bg-green-200";
+    }
+    return statusColors[status] || "bg-gray-100 text-gray-700 border-gray-200";
+  };
+
   // Build menu items based on job status
   const buildMenuItems = (): KebabMenuItem[] => {
     const items: KebabMenuItem[] = [];
     
-    // Status change options (for Scheduled & In Progress)
-    if (job.status === "Scheduled" && onStatusChange) {
-      items.push({
-        label: "Change Status",
-        icon: ArrowRight,
-        action: () => onStatusChange("In Progress"),
-        separator: false,
-      });
-    } else if (job.status === "In Progress" && onStatusChange) {
-      items.push({
-        label: "Change Status",
-        icon: CheckCircle,
-        action: () => onStatusChange("Completed"),
-        separator: false,
-      });
+    // Status change options (for merchants only - employees use dropdown)
+    if (!isEmployee) {
+      if (job.status === "Scheduled" && onStatusChange) {
+        items.push({
+          label: "Change Status",
+          icon: ArrowRight,
+          action: () => onStatusChange("In Progress"),
+          separator: false,
+        });
+      } else if (job.status === "In Progress" && onStatusChange) {
+        items.push({
+          label: "Change Status",
+          icon: CheckCircle,
+          action: () => onStatusChange("Completed"),
+          separator: false,
+        });
+      }
     }
     
-    // Feedback options (for Completed jobs)
+    // Feedback options (for Completed jobs only)
     if (job.status === "Completed") {
       if (hasFeedback) {
         // Show "View Feedback" if feedback exists
@@ -88,8 +105,10 @@ const JobCard = ({
     if (onQuickAction) {
       // Add separator before standard actions if there are any status/feedback items above
       const hasStatusOrFeedbackItems = 
-        (job.status === "Scheduled" && onStatusChange) ||
-        (job.status === "In Progress" && onStatusChange) ||
+        (!isEmployee && (
+          (job.status === "Scheduled" && onStatusChange) ||
+          (job.status === "In Progress" && onStatusChange)
+        )) ||
         (job.status === "Completed" && (hasFeedback ? onViewFeedback : onSendFeedbackForm));
       
       items.push(
@@ -134,9 +153,43 @@ const JobCard = ({
           <p className="text-sm text-muted-foreground">{job.customerName}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Badge className={cn("text-xs whitespace-nowrap cursor-pointer", statusColors[job.status])}>
-            {job.status}
-          </Badge>
+          {/* Status Badge or Dropdown */}
+          {isEmployee && onStatusChange ? (
+            <div onClick={(e) => e.stopPropagation()} className="relative">
+              <Select
+                value={job.status}
+                onValueChange={(value) => {
+                  if (value !== job.status) {
+                    onStatusChange(value);
+                  }
+                }}
+              >
+                <SelectTrigger
+                  className={cn(
+                    "h-auto py-1 px-2.5 text-xs font-medium whitespace-nowrap border rounded-full",
+                    "focus:ring-0 focus:ring-offset-0 shadow-none",
+                    "cursor-pointer transition-colors",
+                    getStatusBadgeColor(job.status)
+                  )}
+                >
+                  <SelectValue className="text-xs">{job.status}</SelectValue>
+                </SelectTrigger>
+                <SelectContent 
+                  className="rounded-xl border border-gray-200 bg-white shadow-lg min-w-[120px]"
+                  align="end"
+                  sideOffset={4}
+                >
+                  <SelectItem value="Scheduled" className="text-xs">Scheduled</SelectItem>
+                  <SelectItem value="In Progress" className="text-xs">In Progress</SelectItem>
+                  <SelectItem value="Completed" className="text-xs">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <Badge className={cn("text-xs whitespace-nowrap cursor-pointer", statusColors[job.status])}>
+              {job.status}
+            </Badge>
+          )}
           {(onQuickAction || onStatusChange || onSendFeedbackForm || onViewFeedback) && (
             <div onClick={(e) => e.stopPropagation()}>
               <KebabMenu
