@@ -1,9 +1,8 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "installCommand": "npm install",
+  "buildCommand": "cd mobile-version && npm install && npm run build",
+  "outputDirectory": "mobile-version/dist",
+  "installCommand": "cd mobile-version && npm install",
   "framework": "vite",
-  "rootDirectory": "mobile-version",
   "rewrites": [
     {
       "source": "/(.*)",
