@@ -84,18 +84,18 @@ const JobCard = ({
       }
     }
     
-    // Standard actions (always available)
-    if (onQuickAction) {
-      // Add separator before standard actions if there are feedback items above
-      const hasFeedbackItems = 
-        job.status === "Completed" && (hasFeedback ? onViewFeedback : onSendFeedbackForm);
+      // Standard actions (always available)
+      if (onQuickAction) {
+        // Add separator before standard actions if there are feedback items above
+        const hasFeedbackItems = 
+          job.status === "Completed" && (hasFeedback ? onViewFeedback : onSendFeedbackForm);
       
       items.push(
         {
           label: "View Details",
           icon: Eye,
           action: () => onQuickAction("view"),
-          separator: hasStatusOrFeedbackItems,
+          separator: hasFeedbackItems,
         },
         {
           label: "Edit Job",
