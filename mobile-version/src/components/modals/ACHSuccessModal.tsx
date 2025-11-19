@@ -1,4 +1,4 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { CheckCircle2, X } from "lucide-react";
 
@@ -18,6 +18,9 @@ const ACHSuccessModal = ({ isOpen, onClose }: ACHSuccessModalProps) => {
       `}</style>
       <Dialog open={isOpen} onOpenChange={() => {}}>
         <DialogContent className="max-w-[320px] w-[85%] p-0 gap-0 rounded-[20px] overflow-hidden [&>button]:hidden bg-white m-0 fixed left-1/2 top-1/2 translate-x-[-50%] translate-y-[-50%] h-auto shadow-xl z-[60] animate-in fade-in-0 zoom-in-95 duration-200">
+        <DialogDescription className="sr-only">
+          ACH payment success modal
+        </DialogDescription>
         {/* Header with close icon */}
         <div className="flex justify-end p-3">
           <Button

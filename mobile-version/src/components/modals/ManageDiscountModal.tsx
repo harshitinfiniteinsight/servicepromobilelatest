@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, Trash2, Search, X } from "lucide-react";
@@ -81,6 +81,9 @@ const ManageDiscountModal = ({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[90%] max-w-sm mx-auto p-4 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[80vh] flex flex-col">
+        <DialogDescription className="sr-only">
+          Manage discounts modal
+        </DialogDescription>
         {/* Header */}
         <DialogHeader className="flex flex-row justify-between items-center pb-2 border-b border-gray-100 flex-shrink-0 mb-3">
           <DialogTitle className="text-base font-semibold text-gray-800">Manage Discount</DialogTitle>

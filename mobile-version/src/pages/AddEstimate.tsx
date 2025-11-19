@@ -27,6 +27,21 @@ const AddEstimate = () => {
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState("");
+
+  // Get user role and current employee ID
+  const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
+  const isEmployee = userType === "employee";
+  const currentEmployeeId = typeof window !== "undefined" ? localStorage.getItem("currentEmployeeId") || "1" : "1";
+
+  // Auto-fill employee field for employees on component mount
+  useEffect(() => {
+    if (isEmployee && currentEmployeeId) {
+      // Always set to current employee for employees, preventing changes
+      if (selectedEmployee !== currentEmployeeId) {
+        setSelectedEmployee(currentEmployeeId);
+      }
+    }
+  }, [isEmployee, currentEmployeeId, selectedEmployee]);
   const [items, setItems] = useState<Array<{ id: string; name: string; quantity: number; price: number; isCustom?: boolean }>>([]);
   const [itemSearch, setItemSearch] = useState("");
   const [tax, setTax] = useState(0);
@@ -536,76 +551,91 @@ const AddEstimate = () => {
 
             <div>
               <Label>Employee</Label>
-              <Popover 
-                open={employeeOpen} 
-                onOpenChange={(open) => {
-                  setEmployeeOpen(open);
-                  if (!open) {
-                    setEmployeeSearch("");
-                  }
-                }}
-              >
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={employeeOpen}
-                    className="w-full justify-between mt-2 h-11"
-                  >
-                    {selectedEmployee
-                      ? mockEmployees.find((employee) => employee.id === selectedEmployee)?.name
-                      : "Select employee..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                  <Command shouldFilter={false} value="">
-                    <CommandInput 
-                      placeholder="Search employees..." 
-                      value={employeeSearch}
-                      onValueChange={setEmployeeSearch}
-                    />
-                    <CommandList>
-                      <CommandEmpty>No employee found.</CommandEmpty>
-                      <CommandGroup>
-                        {filteredEmployees.map((employee) => {
-                          const isSelected = selectedEmployee === employee.id;
-                          return (
-                            <CommandItem
-                              key={employee.id}
-                              value={`${employee.name} ${employee.email} ${employee.role}`}
-                              onSelect={() => {
-                                setSelectedEmployee(employee.id);
-                                setEmployeeOpen(false);
-                              }}
-                              className={cn(
-                                isSelected 
-                                  ? "!bg-primary !text-white [&>div>span]:!text-white [&>div>span.text-xs]:!text-white data-[selected='true']:!bg-primary data-[selected=true]:!text-white" 
-                                  : "data-[selected='true']:bg-accent/50 data-[selected=true]:text-foreground"
-                              )}
-                              data-selected={isSelected ? "true" : undefined}
-                            >
-                              <Check
+              {isEmployee ? (
+                // Disabled input for employees
+                <div className="mt-2">
+                  <Input
+                    value={selectedEmployee ? mockEmployees.find(employee => employee.id === selectedEmployee)?.name || "" : ""}
+                    disabled
+                    className="w-full h-11 bg-gray-50 text-gray-600 cursor-not-allowed"
+                    readOnly
+                  />
+                </div>
+              ) : (
+                // Editable popover for merchants
+                <Popover 
+                  open={employeeOpen} 
+                  onOpenChange={(open) => {
+                    if (!isEmployee) {
+                      setEmployeeOpen(open);
+                      if (!open) {
+                        setEmployeeSearch("");
+                      }
+                    }
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={employeeOpen}
+                      className="w-full justify-between mt-2 h-11"
+                    >
+                      {selectedEmployee
+                        ? mockEmployees.find((employee) => employee.id === selectedEmployee)?.name
+                        : "Select employee..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command shouldFilter={false} value="">
+                      <CommandInput 
+                        placeholder="Search employees..." 
+                        value={employeeSearch}
+                        onValueChange={setEmployeeSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>No employee found.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredEmployees.map((employee) => {
+                            const isSelected = selectedEmployee === employee.id;
+                            return (
+                              <CommandItem
+                                key={employee.id}
+                                value={`${employee.name} ${employee.email} ${employee.role}`}
+                                onSelect={() => {
+                                  setSelectedEmployee(employee.id);
+                                  setEmployeeOpen(false);
+                                }}
                                 className={cn(
-                                  "mr-2 h-4 w-4",
-                                  isSelected ? "opacity-100 text-white" : "opacity-0"
+                                  isSelected 
+                                    ? "!bg-primary !text-white [&>div>span]:!text-white [&>div>span.text-xs]:!text-white data-[selected='true']:!bg-primary data-[selected=true]:!text-white" 
+                                    : "data-[selected='true']:bg-accent/50 data-[selected=true]:text-foreground"
                                 )}
-                              />
-                              <div className="flex flex-col">
-                                <span className="font-medium">{employee.name}</span>
-                                <span className={cn(
-                                  "text-xs",
-                                  isSelected ? "text-white" : "text-muted-foreground"
-                                )}>{employee.role}</span>
-                              </div>
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                                data-selected={isSelected ? "true" : undefined}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    isSelected ? "opacity-100 text-white" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{employee.name}</span>
+                                  <span className={cn(
+                                    "text-xs",
+                                    isSelected ? "text-white" : "text-muted-foreground"
+                                  )}>{employee.role}</span>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           </div>
         )}

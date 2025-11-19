@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -91,6 +91,9 @@ const AddEquipmentModal = ({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[90%] max-w-sm mx-auto p-5 rounded-2xl shadow-lg bg-white [&>button]:hidden">
+        <DialogDescription className="sr-only">
+          Add equipment modal
+        </DialogDescription>
         {/* Header */}
         <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b border-gray-100">
           <DialogTitle className="text-lg font-semibold text-gray-800">Add Equipment</DialogTitle>

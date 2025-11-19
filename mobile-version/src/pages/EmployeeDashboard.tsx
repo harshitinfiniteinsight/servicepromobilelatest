@@ -90,11 +90,24 @@ const EmployeeDashboard = () => {
     { label: "Help", icon: HelpCircle, path: "/settings/help" },
   ];
 
+  // Flag to control demo data usage (set to false when real API is connected)
+  const useDemoData = true;
+
+  // Local demo appointments array for employee dashboard
+  const demoAppointments = [
+    { id: "DEMO-001", subject: "AC Maintenance", customer: "Sarah Johnson", time: "09:00 AM" },
+    { id: "DEMO-002", subject: "Plumbing Repair", customer: "John Smith", time: "10:30 AM" },
+    { id: "DEMO-003", subject: "HVAC Installation", customer: "Robert Miller", time: "02:00 PM" },
+    { id: "DEMO-004", subject: "Water Heater Inspection", customer: "David Brown", time: "03:30 PM" },
+    { id: "DEMO-005", subject: "Kitchen Plumbing", customer: "William Taylor", time: "04:45 PM" },
+    { id: "DEMO-006", subject: "Electrical Panel Check", customer: "Jessica Martinez", time: "05:00 PM" },
+  ];
+
   // Get today's date in YYYY-MM-DD format
   const today = new Date().toISOString().split('T')[0];
   
   // Filter today's appointments for current employee
-  const todaysAppointments = mockAppointments
+  const realAppointments = mockAppointments
     .filter(apt => apt.date === today && apt.technicianId === currentEmployeeId)
     .sort((a, b) => {
       // Sort by time
@@ -102,6 +115,11 @@ const EmployeeDashboard = () => {
       const timeB = b.time.replace(/[^\d]/g, '');
       return timeA.localeCompare(timeB);
     });
+
+  // Use demo appointments if flag is enabled and no real appointments exist
+  const todaysAppointments = useDemoData && realAppointments.length === 0 
+    ? demoAppointments 
+    : realAppointments;
 
   // Map appointment status to display status
   const getAppointmentStatus = (status: string) => {
@@ -191,53 +209,63 @@ const EmployeeDashboard = () => {
       <div className="flex-1 overflow-y-auto scrollable px-4 pb-6 space-y-5" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top) + 0.5rem)' }}>
         {/* Today's Appointments Section */}
         <div>
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-2">
             <h3 className="font-bold text-[#1A1A1A] text-base">Today's Appointments</h3>
-            {todaysAppointments.length > 5 && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate(`/appointments/manage?date=${today}`)}
-                className="text-sm text-[#EB6A3C] hover:text-[#EB6A3C] hover:bg-orange-50"
-              >
-                View More
-              </Button>
-            )}
           </div>
           {todaysAppointments.length > 0 ? (
-            <div className="space-y-2">
-              {todaysAppointments.slice(0, 5).map((apt) => {
-                const displayStatus = getAppointmentStatus(apt.status);
-                return (
-                  <MobileCard
-                    key={apt.id}
-                    className="cursor-pointer active:scale-98 transition-transform bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-                    onClick={() => navigate(`/appointments/manage?appointment=${apt.id}`)}
-                  >
-                    <div className="flex items-center gap-3 p-3">
-                      {/* Left accent bar */}
-                      <div className="w-1 h-full bg-[#EB6A3C] rounded-full flex-shrink-0" />
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2 mb-1">
-                          <p className="font-semibold text-gray-900 truncate">{apt.customerName}</p>
-                          <Badge className={cn("text-[10px] px-2 py-0.5 h-5 flex-shrink-0 border", getStatusBadgeColor(apt.status))}>
-                            {displayStatus}
-                          </Badge>
+            <MobileCard className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden p-0">
+              <div className="space-y-0">
+                {todaysAppointments.slice(0, 5).map((apt, index) => {
+                  // Handle both demo appointments (subject/customer) and real appointments (service/customerName)
+                  const subject = (apt as any).subject || (apt as any).service || "";
+                  const customer = (apt as any).customer || (apt as any).customerName || "";
+                  const time = apt.time;
+                  
+                  return (
+                    <div
+                      key={apt.id}
+                      className={cn(
+                        "px-3 py-2.5 cursor-pointer transition-colors hover:bg-gray-50 active:bg-gray-100",
+                        index !== todaysAppointments.slice(0, 5).length - 1 && "border-b border-gray-100"
+                      )}
+                      onClick={() => navigate(`/appointments/manage?appointment=${apt.id}`)}
+                      style={{ minHeight: '36px', maxHeight: '42px' }}
+                    >
+                      <div className="flex items-center gap-2 h-full">
+                        {/* Subject */}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs font-semibold text-gray-900 truncate whitespace-nowrap">
+                            {subject}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600 mb-1 truncate">{apt.service}</p>
-                        <div className="flex items-center gap-2 text-xs text-gray-500">
-                          <Clock className="h-3 w-3" />
-                          <span>{apt.time}</span>
+                        {/* Customer Name */}
+                        <div className="flex-1 min-w-0 text-center">
+                          <p className="text-xs text-gray-600 truncate whitespace-nowrap">
+                            {customer}
+                          </p>
+                        </div>
+                        {/* Time - Right aligned */}
+                        <div className="flex-shrink-0">
+                          <p className="text-xs text-gray-500 whitespace-nowrap">
+                            {time}
+                          </p>
                         </div>
                       </div>
-                      
-                      <ChevronRight className="h-5 w-5 text-gray-400 flex-shrink-0" />
                     </div>
-                  </MobileCard>
-                );
-              })}
-            </div>
+                  );
+                })}
+                {todaysAppointments.length > 5 && (
+                  <div className="px-3 py-2 border-t border-gray-100">
+                    <button
+                      onClick={() => navigate(`/appointments/manage?date=${today}`)}
+                      className="w-full text-center text-xs text-[#EB6A3C] hover:text-[#EB6A3C]/80 font-medium transition-colors"
+                    >
+                      View More
+                    </button>
+                  </div>
+                )}
+              </div>
+            </MobileCard>
           ) : (
             <MobileCard className="p-6 text-center">
               <p className="text-sm text-gray-500">No appointments scheduled for today</p>

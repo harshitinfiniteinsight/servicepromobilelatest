@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -64,6 +64,9 @@ const LowInventoryAlertModal = ({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-sm w-[90%] mx-auto p-4 rounded-2xl shadow-lg bg-white [&>button]:hidden">
+        <DialogDescription className="sr-only">
+          Low inventory alert settings modal
+        </DialogDescription>
         {/* Header */}
         <DialogHeader className="flex flex-row items-center justify-between pb-3 border-b border-gray-100">
           <DialogTitle className="text-lg font-semibold text-gray-900">Low Inventory Alert</DialogTitle>

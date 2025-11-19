@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -119,6 +119,9 @@ const StockAdjustmentModal = ({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[92%] max-w-sm mx-auto p-4 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[85vh] overflow-y-auto">
+        <DialogDescription className="sr-only">
+          Stock adjustment modal for {item?.name || "inventory item"}
+        </DialogDescription>
         {/* Header */}
         <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b border-gray-100">
           <DialogTitle className="text-lg font-semibold text-gray-900">Stock Adjustment</DialogTitle>

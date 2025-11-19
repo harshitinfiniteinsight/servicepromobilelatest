@@ -15,6 +15,10 @@ const Agreements = () => {
   const navigate = useNavigate();
   const [showDepositModal, setShowDepositModal] = useState(false);
 
+  // Get user role
+  const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
+  const isEmployee = userType === "employee";
+
   const handlePayNow = (agreementId: string) => {
     toast.success(`Initiating payment for ${agreementId}`);
   };
@@ -47,15 +51,17 @@ const Agreements = () => {
         title="Agreements"
         actions={
           <div className="flex items-center gap-1.5">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 px-2 text-xs font-medium"
-              onClick={() => setShowDepositModal(true)}
-            >
-              <Percent className="h-3.5 w-3.5 mr-1" />
-              <span className="hidden sm:inline">Min Deposit</span>
-            </Button>
+            {!isEmployee && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs font-medium"
+                onClick={() => setShowDepositModal(true)}
+              >
+                <Percent className="h-3.5 w-3.5 mr-1" />
+                <span className="hidden sm:inline">Min Deposit</span>
+              </Button>
+            )}
             <Button size="sm" className="h-8 w-8 p-0" onClick={() => navigate("/agreements/new")}>
               <Plus className="h-4 w-4" />
             </Button>

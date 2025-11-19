@@ -1,16 +1,33 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { Home, DollarSign, Calendar, Users, MoreHorizontal } from "lucide-react";
+import { Home, DollarSign, Calendar, Users, MoreHorizontal, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import SalesSubmenu from "./SalesSubmenu";
 import { useCart } from "@/contexts/CartContext";
 import CartViewModal from "@/components/modals/CartViewModal";
 
-const navItems = [
+type NavItem = {
+  title: string;
+  path: string;
+  icon: React.ComponentType<{ className?: string }>;
+  hasSubmenu: boolean;
+};
+
+// Navigation configuration for merchant role
+const merchantNavItems: NavItem[] = [
   { title: "Dashboard", path: "/", icon: Home, hasSubmenu: false },
+  { title: "Jobs", path: "/jobs", icon: Briefcase, hasSubmenu: false },
   { title: "Sales", path: "/sales", icon: DollarSign, hasSubmenu: true },
   { title: "Appointments", path: "/appointments/manage", icon: Calendar, hasSubmenu: false },
-  { title: "Customers", path: "/customers", icon: Users, hasSubmenu: false },
+  { title: "Others", path: "/settings", icon: MoreHorizontal, hasSubmenu: false },
+];
+
+// Navigation configuration for employee role
+const employeeNavItems: NavItem[] = [
+  { title: "Dashboard", path: "/employee-dashboard", icon: Home, hasSubmenu: false },
+  { title: "Jobs", path: "/jobs", icon: Briefcase, hasSubmenu: false },
+  { title: "Sales", path: "/sales", icon: DollarSign, hasSubmenu: true },
+  { title: "Appointments", path: "/appointments/manage", icon: Calendar, hasSubmenu: false },
   { title: "Others", path: "/settings", icon: MoreHorizontal, hasSubmenu: false },
 ];
 
@@ -23,6 +40,13 @@ const BottomNav = () => {
   const [cartViewModalOpen, setCartViewModalOpen] = useState(false);
   const previousPathRef = useRef(location.pathname);
   const isOpeningSubmenuRef = useRef(false);
+
+  // Get user role and determine navigation items
+  // Read userType from localStorage on each render to handle role changes
+  const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
+  const navItems = useMemo(() => {
+    return userType === "merchant" ? merchantNavItems : employeeNavItems;
+  }, [userType, location.pathname]); // Re-compute when route changes to handle role switches
 
   // Close Sales submenu when navigating away from Sales routes
   useEffect(() => {
@@ -50,7 +74,7 @@ const BottomNav = () => {
     
     // Update previous path
     previousPathRef.current = location.pathname;
-  }, [location.pathname, searchParams]);
+  }, [location.pathname, searchParams, salesSubmenuOpen]);
 
   // Reset opening flag after submenu state changes
   useEffect(() => {
@@ -62,12 +86,32 @@ const BottomNav = () => {
     }
   }, [salesSubmenuOpen]);
 
+  // Listen for custom event to open Sales submenu (from Settings page)
+  useEffect(() => {
+    const handleOpenSalesSubmenu = () => {
+      isOpeningSubmenuRef.current = true;
+      setSalesSubmenuOpen(true);
+    };
+
+    window.addEventListener('openSalesSubmenu', handleOpenSalesSubmenu);
+    return () => {
+      window.removeEventListener('openSalesSubmenu', handleOpenSalesSubmenu);
+    };
+  }, []);
+
   const isActive = (path: string, hasSubmenu: boolean) => {
-    if (path === "/") return location.pathname === "/";
+    // Special handling for Dashboard - check both "/" and "/employee-dashboard" based on user role
+    if (path === "/") {
+      return location.pathname === "/";
+    }
+    if (path === "/employee-dashboard") {
+      return location.pathname === "/employee-dashboard";
+    }
     if (hasSubmenu) {
-      // Check if current path is one of the sales submenu paths
+      // Highlight Sales tab if submenu is open OR if on a sales submenu route
       const isInventorySellMode = location.pathname === "/inventory" && searchParams.get("mode") === "sell";
-      return location.pathname.startsWith("/invoices") || 
+      return salesSubmenuOpen ||
+             location.pathname.startsWith("/invoices") || 
              location.pathname.startsWith("/estimates") || 
              location.pathname.startsWith("/agreements") ||
              isInventorySellMode;
@@ -75,7 +119,7 @@ const BottomNav = () => {
     return location.pathname.startsWith(path);
   };
 
-  const handleItemClick = (item: typeof navItems[0], e: React.MouseEvent) => {
+  const handleItemClick = (item: NavItem, e: React.MouseEvent) => {
     if (item.hasSubmenu) {
       e.preventDefault();
       // If cart has items and Sales tab is clicked, open cart instead of submenu
@@ -97,7 +141,7 @@ const BottomNav = () => {
   return (
     <>
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t-2 border-gray-200 safe-bottom shadow-lg">
-        <div className="flex items-center justify-around h-16 max-w-md mx-auto">
+        <div className="flex items-center justify-between h-16 max-w-md mx-auto px-0">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.path, item.hasSubmenu);
@@ -107,7 +151,7 @@ const BottomNav = () => {
                 key={item.path}
                 onClick={(e) => handleItemClick(item, e)}
                 className={cn(
-                  "flex flex-col items-center justify-center flex-1 h-full touch-target transition-all duration-200 relative",
+                  "flex flex-col items-center justify-center flex-1 h-full touch-target transition-all duration-200 relative min-w-0 px-0",
                   active 
                     ? "text-primary" 
                     : "text-gray-500"

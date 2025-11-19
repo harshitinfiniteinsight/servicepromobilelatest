@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Info } from "lucide-react";
 
@@ -43,6 +43,9 @@ const TapToPayModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent className="max-w-md w-[90%] p-0 gap-0 rounded-[20px] overflow-hidden [&>button]:hidden bg-white shadow-xl max-h-[85vh] flex flex-col">
+        <DialogDescription className="sr-only">
+          Tap to pay modal for amount ${amount.toFixed(2)}
+        </DialogDescription>
         {/* Header - Inside Modal */}
         <div className="bg-orange-500 text-white px-4 py-3 flex items-center rounded-t-[20px] flex-shrink-0">
           <button

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -60,6 +60,9 @@ const SendSMSModal = ({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-sm w-[90%] p-0 gap-0 rounded-2xl bg-white shadow-md [&>button]:hidden">
+        <DialogDescription className="sr-only">
+          Send SMS modal
+        </DialogDescription>
         <DialogHeader className="px-5 pt-5 pb-4 flex flex-row items-center justify-between border-b border-gray-100">
           <DialogTitle className="text-lg font-semibold text-gray-900 text-center flex-1">Send SMS</DialogTitle>
           <Button

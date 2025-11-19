@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -151,6 +151,9 @@ const CustomerAddNoteModal = ({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md w-[90%] p-0 gap-0 rounded-2xl bg-white shadow-md max-h-[85vh] overflow-y-auto flex flex-col [&>button]:hidden">
+        <DialogDescription className="sr-only">
+          Add note modal for customer {customer?.name || "customer"}
+        </DialogDescription>
         {/* Header */}
         <DialogHeader className="px-4 pt-4 pb-4 flex flex-row items-center justify-between border-b border-gray-100 sticky top-0 bg-white z-10">
           <DialogTitle className="text-lg font-semibold text-gray-900">Add Note</DialogTitle>

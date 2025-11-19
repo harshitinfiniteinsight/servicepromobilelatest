@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -89,6 +89,9 @@ const AppointmentDetailsModal = ({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl bg-white shadow-xl max-h-[90vh] overflow-hidden flex flex-col [&>button]:hidden">
+        <DialogDescription className="sr-only">
+          Appointment details modal for {appointment?.customerName || "appointment"}
+        </DialogDescription>
         <DialogHeader className="px-5 pt-5 pb-3 flex flex-row items-center justify-between border-b border-gray-100">
           <DialogTitle className="text-lg font-semibold text-gray-900">Appointment Details</DialogTitle>
           <div className="flex items-center gap-2">

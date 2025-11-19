@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -34,6 +34,9 @@ const InvoiceDueAlertModal = ({ isOpen, onClose }: InvoiceDueAlertModalProps) =>
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-[90vw] sm:max-w-md rounded-xl p-0 gap-0 [&>button]:hidden">
+        <DialogDescription className="sr-only">
+          Invoice due alert settings modal
+        </DialogDescription>
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <DialogTitle className="text-lg font-semibold text-gray-900">

@@ -38,6 +38,10 @@ const Inventory = () => {
     return (saved === "grid" || saved === "list") ? saved : "list";
   });
   const [cartViewModalOpen, setCartViewModalOpen] = useState(false);
+  
+  // Get user role
+  const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
+  const isEmployee = userType === "employee";
 
   // Ensure grid view and inventory-services tab are applied when navigating from "Sell Product"
   useEffect(() => {
@@ -292,39 +296,53 @@ const Inventory = () => {
     <div className="h-full flex flex-col overflow-hidden">
       <MobileHeader 
         title="Inventory"
+        actions={
+          isEmployee ? (
+            <button
+              onClick={() => {
+                setManageDiscountModalOpen(true);
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition whitespace-nowrap"
+            >
+              Discount
+            </button>
+          ) : undefined
+        }
       />
       
-      <div className="flex-1 overflow-y-auto scrollable px-3 pb-2 space-y-2" style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top) + 0.25rem)' }}>
-        {/* Action Buttons */}
-        <div className="flex justify-between gap-2">
-          <button
-            onClick={() => {
-              setSendCurrentReportModalOpen(true);
-            }}
-            className="flex-1 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition"
-          >
-            Current Report
-          </button>
-          <button
-            onClick={() => {
-              setSendStockInOutReportModalOpen(true);
-            }}
-            className="flex-1 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition"
-          >
-            Stock In/Out Report
-          </button>
-          <button
-            onClick={() => {
-              setManageDiscountModalOpen(true);
-            }}
-            className="flex-1 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition"
-          >
-            Discount
-          </button>
-        </div>
+      <div className="flex-1 overflow-y-auto scrollable px-3 pb-2 inventory--compact" style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top) + 0.125rem)' }}>
+        {/* Action Buttons - Merchant only */}
+        {!isEmployee && (
+          <div className="flex justify-between gap-2 mb-3">
+            <button
+              onClick={() => {
+                setSendCurrentReportModalOpen(true);
+              }}
+              className="flex-1 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition"
+            >
+              Current Report
+            </button>
+            <button
+              onClick={() => {
+                setSendStockInOutReportModalOpen(true);
+              }}
+              className="flex-1 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition"
+            >
+              Stock In/Out Report
+            </button>
+            <button
+              onClick={() => {
+                setManageDiscountModalOpen(true);
+              }}
+              className="flex-1 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition"
+            >
+              Discount
+            </button>
+          </div>
+        )}
 
         {/* Tab Navigation */}
-        <div className="flex items-center justify-between border-b border-gray-200">
+        <div className="flex items-center justify-between border-b border-gray-200 mb-3">
           <button
             onClick={() => setActiveTab("inventory-services")}
             className={cn(
@@ -362,7 +380,7 @@ const Inventory = () => {
 
         {/* Employee Filter - Only for Equipment Tracking */}
         {activeTab === "equipment-tracking" && (
-          <div>
+          <div className="mb-3">
             <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
               <SelectTrigger className="w-full h-9 text-xs py-2 px-3 border border-gray-200 rounded-lg">
                 <SelectValue placeholder="Filter by employee" />
@@ -382,7 +400,7 @@ const Inventory = () => {
         )}
 
         {/* Search, View Toggle, and Add Button */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 mb-3">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none z-10" />
             <Input 
@@ -433,7 +451,7 @@ const Inventory = () => {
         </div>
         
         {/* Inventory Cards */}
-        <div className={cn(viewMode === "grid" && activeTab === "inventory-services" ? "grid grid-cols-2 gap-2" : "space-y-2")}>
+        <div className={cn(viewMode === "grid" && activeTab === "inventory-services" ? "grid grid-cols-2 gap-1.5" : "space-y-1.5")}>
           {activeTab === "inventory-services" && filteredInventory.map(item => {
             if (viewMode === "grid") {
               const getTypeInitial = (type?: string) => {
@@ -452,32 +470,221 @@ const Inventory = () => {
                   onClick={() => navigate(`/inventory/${item.id}`)}
                 >
                   {/* Full-Width Image Section */}
-                  <div className="relative w-full h-32 bg-gray-100 rounded-t-lg overflow-hidden">
+                  <div className="relative w-full h-24 bg-gray-100 rounded-t-lg overflow-hidden">
                     <div className="absolute inset-0 flex items-center justify-center">
                       <ImageIcon className="h-8 w-8 text-gray-400" />
                     </div>
-                    {/* Three-dot menu overlay - positioned in top-right of image */}
-                    <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
+                    {/* Three-dot menu overlay - positioned in top-right of image (Merchant only) */}
+                    {!isEmployee && (
+                      <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
+                        <KebabMenu
+                          items={[
+                            {
+                              label: "Edit Inventory",
+                              icon: Edit,
+                              action: () => navigate(`/inventory/${item.id}/edit`),
+                            },
+                            {
+                              label: "Adjust Stock",
+                              icon: Package,
+                              action: () => {
+                                setSelectedItemForAdjustment({
+                                  id: item.id,
+                                  name: item.name,
+                                  sku: item.sku,
+                                  stock: item.stock,
+                                });
+                                setStockAdjustmentModalOpen(true);
+                              },
+                            },
+                            {
+                              label: "Add Low Inventory Alert",
+                              icon: AlertTriangle,
+                              action: () => {
+                                setSelectedItemForAlert({ id: item.id, threshold: item.lowStockThreshold });
+                                setLowAlertModalOpen(true);
+                              },
+                            },
+                            {
+                              label: "Add to Damage Goods",
+                              icon: AlertCircle,
+                              action: () => {
+                                setSelectedItemForAdjustment({
+                                  id: item.id,
+                                  name: item.name,
+                                  sku: item.sku,
+                                  stock: item.stock,
+                                });
+                                setStockAdjustmentDefaults({
+                                  transactionType: "stock-out",
+                                  adjustmentReason: "Marked as Damaged",
+                                  remarks: "Item marked as damaged goods",
+                                });
+                                setStockAdjustmentModalOpen(true);
+                              },
+                            },
+                            {
+                              label: "Add to Tester Item",
+                              icon: AlertCircle,
+                              action: () => {
+                                setSelectedItemForAdjustment({
+                                  id: item.id,
+                                  name: item.name,
+                                  sku: item.sku,
+                                  stock: item.stock,
+                                });
+                                setStockAdjustmentDefaults({
+                                  transactionType: "stock-out",
+                                  adjustmentReason: "Marked as Demo Units",
+                                  remarks: "Item marked as tester/demo unit",
+                                });
+                                setStockAdjustmentModalOpen(true);
+                              },
+                            },
+                          ]}
+                          menuWidth="w-48"
+                          triggerClassName="bg-white/90 hover:bg-white shadow-sm"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content Section */}
+                  <div className="p-2">
+                    {/* Item Title */}
+                    <h3 className="text-xs font-semibold text-gray-900 mb-0.5 truncate leading-tight">
+                      {item.name}
+                    </h3>
+
+                    {/* Compact Info Row: SKU, Type, Stock, Price */}
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <div className="flex items-center gap-1 flex-1 min-w-0">
+                        <span className="text-[8px] text-gray-600 font-medium truncate">
+                          SKU: {item.sku}
+                        </span>
+                        <span className="text-gray-400 text-[8px]">•</span>
+                        <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[8px] font-medium rounded-full shrink-0">
+                          {getTypeInitial(item.type)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="text-[8px] text-gray-500">Stock:</span>
+                        <span className="text-xs font-bold text-gray-900">{item.stock}</span>
+                        {item.type !== "V" && item.unitPrice !== undefined && (
+                          <>
+                            <span className="text-gray-400 text-[8px]">•</span>
+                            <span className="text-xs font-bold text-orange-600">
+                              ${item.unitPrice.toFixed(2)}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Quantity Counter and Add to Cart - Compact Row */}
+                    {item.stock > 0 && (
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-md px-1.5 py-0.5 shadow-sm">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateItemQuantity(item.id, -1);
+                            }}
+                            disabled={getItemQuantity(item.id) <= 1}
+                            className="h-5 w-5 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <Minus className="h-2.5 w-2.5" />
+                          </Button>
+                          <span className="text-xs font-semibold min-w-[1.25rem] text-center text-gray-900">
+                            {getItemQuantity(item.id)}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateItemQuantity(item.id, 1);
+                            }}
+                            disabled={getItemQuantity(item.id) >= item.stock}
+                            className="h-5 w-5 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <Plus className="h-2.5 w-2.5" />
+                          </Button>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleAddToCart(item);
+                          }}
+                          disabled={item.stock === 0}
+                          className={cn(
+                            "flex-1 flex items-center justify-center gap-1 py-1.5 px-2 border rounded-lg text-[10px] font-semibold shadow-sm hover:shadow-md transition-all duration-200",
+                            item.stock === 0
+                              ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                              : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
+                          )}
+                        >
+                          <ShoppingCart className="h-3 w-3" />
+                          <span>Add</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            }
+            
+            // List View
+            const getTypeInitial = (type?: string) => {
+              switch (type) {
+                case "F": return "F";
+                case "V": return "V";
+                case "U": return "U";
+                default: return "U";
+              }
+            };
+
+            return (
+              <div
+                key={item.id}
+                className="bg-white p-2 rounded-lg border border-gray-200 hover:shadow-md hover:border-primary/30 transition-all duration-200"
+              >
+                <div className="flex justify-between items-start mb-1.5">
+                  <div className="flex flex-col flex-1 min-w-0">
+                    {/* Compact Info Row: SKU, Type, Stock, Price, Low Alert */}
+                    <div className="flex items-center gap-1 mb-0.5 flex-wrap">
+                      <span className="text-[8px] text-gray-600 font-medium">
+                        SKU: {item.sku}
+                      </span>
+                      <span className="text-gray-400 text-[8px]">•</span>
+                      <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[8px] font-medium rounded-full shrink-0">
+                        {getTypeInitial(item.type)}
+                      </span>
+                      <span className="text-gray-400 text-[8px]">•</span>
+                      <span className="text-[8px] text-green-600 font-semibold">Stock: {item.stock}</span>
+                      {item.type !== "V" && item.unitPrice !== undefined && (
+                        <>
+                          <span className="text-gray-400 text-[8px]">•</span>
+                          <span className="text-[8px] text-orange-600 font-semibold">${item.unitPrice.toFixed(2)}</span>
+                        </>
+                      )}
+                      <span className="text-gray-400 text-[8px]">•</span>
+                      <span className="text-[8px] text-gray-500">Low: {item.lowStockThreshold}</span>
+                    </div>
+                    <p className="text-sm font-medium text-gray-800 leading-tight">
+                      {item.name}
+                    </p>
+                  </div>
+                  
+                  {/* Quick Action Menu (Merchant only) */}
+                  {!isEmployee && (
+                    <div onClick={(e) => e.stopPropagation()}>
                       <KebabMenu
                         items={[
-                          {
-                            label: "Edit Inventory",
-                            icon: Edit,
-                            action: () => navigate(`/inventory/${item.id}/edit`),
-                          },
-                          {
-                            label: "Adjust Stock",
-                            icon: Package,
-                            action: () => {
-                              setSelectedItemForAdjustment({
-                                id: item.id,
-                                name: item.name,
-                                sku: item.sku,
-                                stock: item.stock,
-                              });
-                              setStockAdjustmentModalOpen(true);
-                            },
-                          },
                           {
                             label: "Add Low Inventory Alert",
                             icon: AlertTriangle,
@@ -524,202 +731,15 @@ const Inventory = () => {
                           },
                         ]}
                         menuWidth="w-48"
-                        triggerClassName="bg-white/90 hover:bg-white shadow-sm"
                       />
                     </div>
-                  </div>
-
-                  {/* Content Section */}
-                  <div className="p-2.5">
-                    {/* Item Title */}
-                    <h3 className="text-sm font-semibold text-gray-900 mb-1 truncate">
-                      {item.name}
-                    </h3>
-
-                    {/* SKU and Type */}
-                    <div className="flex items-center gap-1.5 mb-1.5">
-                      <span className="text-[9px] text-gray-600 font-medium">
-                        SKU: {item.sku}
-                      </span>
-                      <span className="text-gray-400">•</span>
-                      <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[9px] font-medium rounded-full">
-                        {getTypeInitial(item.type)}
-                      </span>
-                    </div>
-
-                    {/* Stock & Price Two-Column Layout */}
-                    <div className="grid grid-cols-2 gap-1.5 mb-1.5">
-                      <div>
-                        <p className="text-[9px] text-gray-500 mb-0.5">Stock</p>
-                        <p className="text-sm font-bold text-gray-900">{item.stock}</p>
-                      </div>
-                      <div>
-                        <p className="text-[9px] text-gray-500 mb-0.5">Price</p>
-                        <p className="text-sm font-bold text-orange-600">
-                          {item.type !== "V" && item.unitPrice !== undefined 
-                            ? `$${item.unitPrice.toFixed(2)}` 
-                            : "—"}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Quantity Counter */}
-                    {item.stock > 0 && (
-                      <div className="mb-1.5 flex items-center justify-center">
-                        <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 shadow-sm">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateItemQuantity(item.id, -1);
-                            }}
-                            disabled={getItemQuantity(item.id) <= 1}
-                            className="h-6 w-6 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="text-sm font-semibold min-w-[1.5rem] text-center text-gray-900">
-                            {getItemQuantity(item.id)}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateItemQuantity(item.id, 1);
-                            }}
-                            disabled={getItemQuantity(item.id) >= item.stock}
-                            className="h-6 w-6 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Add to Cart Button */}
-                    <div className="pt-1.5 border-t border-gray-100">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleAddToCart(item);
-                        }}
-                        disabled={item.stock === 0}
-                        className={cn(
-                          "w-full flex items-center justify-center gap-1.5 py-2.5 px-3 border rounded-xl text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200",
-                          item.stock === 0
-                            ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                            : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
-                        )}
-                      >
-                        <ShoppingCart className="h-4 w-4" />
-                        <span>Add to Cart</span>
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-            
-            // List View
-            const getTypeInitial = (type?: string) => {
-              switch (type) {
-                case "F": return "F";
-                case "V": return "V";
-                case "U": return "U";
-                default: return "U";
-              }
-            };
-
-            return (
-              <div
-                key={item.id}
-                className="bg-white p-3 rounded-lg border border-gray-200 hover:shadow-md hover:border-primary/30 transition-all duration-200"
-              >
-                <div className="flex justify-between items-start mb-2.5">
-                  <div className="flex flex-col flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-1">
-                      <span className="text-[9px] text-gray-600 font-medium">
-                        SKU: {item.sku}
-                      </span>
-                      <span className="text-gray-400">•</span>
-                      <span className="px-2 py-0.5 bg-orange-100 text-orange-700 text-[9px] font-medium rounded-full">
-                        {getTypeInitial(item.type)}
-                      </span>
-                    </div>
-                    <p className="text-base font-medium text-gray-800 mt-1">
-                      {item.name}
-                    </p>
-                    <div className="flex items-center gap-3 mt-2 text-sm">
-                      <span className="text-green-600 font-semibold">Stock: {item.stock}</span>
-                      <span className="text-gray-500">Low Alert: {item.lowStockThreshold}</span>
-                    </div>
-                    {item.type !== "V" && item.unitPrice !== undefined && (
-                      <p className="text-orange-600 font-semibold text-sm mt-1">${item.unitPrice.toFixed(2)}</p>
-                    )}
-                  </div>
-                  
-                  {/* Quick Action Menu */}
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <KebabMenu
-                      items={[
-                        {
-                          label: "Add Low Inventory Alert",
-                          icon: AlertTriangle,
-                          action: () => {
-                            setSelectedItemForAlert({ id: item.id, threshold: item.lowStockThreshold });
-                            setLowAlertModalOpen(true);
-                          },
-                        },
-                        {
-                          label: "Add to Damage Goods",
-                          icon: AlertCircle,
-                          action: () => {
-                            setSelectedItemForAdjustment({
-                              id: item.id,
-                              name: item.name,
-                              sku: item.sku,
-                              stock: item.stock,
-                            });
-                            setStockAdjustmentDefaults({
-                              transactionType: "stock-out",
-                              adjustmentReason: "Marked as Damaged",
-                              remarks: "Item marked as damaged goods",
-                            });
-                            setStockAdjustmentModalOpen(true);
-                          },
-                        },
-                        {
-                          label: "Add to Tester Item",
-                          icon: AlertCircle,
-                          action: () => {
-                            setSelectedItemForAdjustment({
-                              id: item.id,
-                              name: item.name,
-                              sku: item.sku,
-                              stock: item.stock,
-                            });
-                            setStockAdjustmentDefaults({
-                              transactionType: "stock-out",
-                              adjustmentReason: "Marked as Demo Units",
-                              remarks: "Item marked as tester/demo unit",
-                            });
-                            setStockAdjustmentModalOpen(true);
-                          },
-                        },
-                      ]}
-                      menuWidth="w-48"
-                    />
-                  </div>
+                  )}
                 </div>
                 
-                {/* Quantity Counter */}
+                {/* Quantity Counter and Add to Cart - Compact Row */}
                 {item.stock > 0 && (
-                  <div className="mb-2 flex items-center justify-center">
-                    <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-2 py-1.5 shadow-sm">
+                  <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-md px-1.5 py-0.5 shadow-sm">
                       <Button
                         type="button"
                         variant="ghost"
@@ -729,11 +749,11 @@ const Inventory = () => {
                           updateItemQuantity(item.id, -1);
                         }}
                         disabled={getItemQuantity(item.id) <= 1}
-                        className="h-6 w-6 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="h-5 w-5 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
-                        <Minus className="h-3 w-3" />
+                        <Minus className="h-2.5 w-2.5" />
                       </Button>
-                      <span className="text-sm font-semibold min-w-[1.5rem] text-center text-gray-900">
+                      <span className="text-xs font-semibold min-w-[1.25rem] text-center text-gray-900">
                         {getItemQuantity(item.id)}
                       </span>
                       <Button
@@ -745,31 +765,29 @@ const Inventory = () => {
                           updateItemQuantity(item.id, 1);
                         }}
                         disabled={getItemQuantity(item.id) >= item.stock}
-                        className="h-6 w-6 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="h-5 w-5 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                       >
-                        <Plus className="h-3 w-3" />
+                        <Plus className="h-2.5 w-2.5" />
                       </Button>
                     </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddToCart(item);
+                      }}
+                      disabled={item.stock === 0}
+                      className={cn(
+                        "flex-1 flex items-center justify-center gap-1 py-1.5 px-2 border rounded-lg text-[10px] font-semibold shadow-sm hover:shadow-md transition-all duration-200",
+                        item.stock === 0
+                          ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                          : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
+                      )}
+                    >
+                      <ShoppingCart className="h-3 w-3" />
+                      <span>Add</span>
+                    </button>
                   </div>
                 )}
-                
-                {/* Add to Cart Button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleAddToCart(item);
-                  }}
-                  disabled={item.stock === 0}
-                  className={cn(
-                    "w-full flex items-center justify-center gap-1.5 py-2.5 px-3 border rounded-xl text-xs font-semibold shadow-sm hover:shadow-md transition-all duration-200",
-                    item.stock === 0
-                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
-                  )}
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  <span>Add to Cart</span>
-                </button>
               </div>
             );
           })}

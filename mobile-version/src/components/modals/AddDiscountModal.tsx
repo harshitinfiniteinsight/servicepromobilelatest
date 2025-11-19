@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -93,6 +93,9 @@ const AddDiscountModal = ({
   return (
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="w-[90%] max-w-sm mx-auto p-5 rounded-2xl shadow-lg bg-white [&>button]:hidden">
+        <DialogDescription className="sr-only">
+          Add discount modal
+        </DialogDescription>
         {/* Header */}
         <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b border-gray-100">
           <DialogTitle className="text-base font-semibold text-gray-800">Add Discount</DialogTitle>
