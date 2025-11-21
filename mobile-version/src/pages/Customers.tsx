@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Search, Users } from "lucide-react";
 import SendSMSModal from "@/components/modals/SendSMSModal";
 import CustomerAddNoteModal from "@/components/modals/CustomerAddNoteModal";
+import { cn } from "@/lib/utils";
 
 const Customers = () => {
   const navigate = useNavigate();
@@ -20,6 +21,10 @@ const Customers = () => {
   const [addNoteModalOpen, setAddNoteModalOpen] = useState(false);
   const [selectedCustomerForNote, setSelectedCustomerForNote] = useState<typeof mockCustomers[0] | null>(null);
   
+  // Check if user is employee
+  const userRole = localStorage.getItem("userType") || "merchant";
+  const isEmployee = userRole === "employee";
+  
   const isActiveStatus = (status: string) => status === "Active";
   const isDeactivatedStatus = (status: string) => status === "Deactivated" || status === "Inactive";
 
@@ -27,6 +32,11 @@ const Customers = () => {
     const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
                          c.email.toLowerCase().includes(search.toLowerCase()) ||
                          c.phone.includes(search);
+    // For employees, only show active customers
+    if (isEmployee) {
+      return matchesSearch && isActiveStatus(c.status);
+    }
+    // For merchants, apply filter
     const matchesFilter =
       filter === "Active" ? isActiveStatus(c.status) : isDeactivatedStatus(c.status);
     return matchesSearch && matchesFilter;
@@ -96,7 +106,7 @@ const Customers = () => {
       
       <div className="flex-1 overflow-y-auto scrollable px-4 pb-6 space-y-4" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top) + 0.5rem)' }}>
         {/* Search */}
-        <div className="relative">
+        <div className={cn("relative", isEmployee ? "max-w-md mx-auto" : "")}>
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input 
             placeholder="Search by name, email, or phone..."
@@ -106,19 +116,21 @@ const Customers = () => {
           />
         </div>
         
-        {/* Filters */}
-        <div className="flex gap-2">
-          {["Active", "Deactivated"].map(f => (
-            <Button
-              key={f}
-              variant={filter === f ? "default" : "outline"}
-              size="sm"
-              onClick={() => setFilter(f as "Active" | "Deactivated")}
-            >
-              {f}
-            </Button>
-          ))}
-        </div>
+        {/* Filters - Only show for merchant/admin */}
+        {!isEmployee && (
+          <div className="flex gap-2">
+            {["Active", "Deactivated"].map(f => (
+              <Button
+                key={f}
+                variant={filter === f ? "default" : "outline"}
+                size="sm"
+                onClick={() => setFilter(f as "Active" | "Deactivated")}
+              >
+                {f}
+              </Button>
+            ))}
+          </div>
+        )}
         
         {/* List */}
         {filteredCustomers.length > 0 ? (
@@ -128,8 +140,9 @@ const Customers = () => {
                 key={customer.id}
                 customer={customer}
                 variant={isDeactivatedStatus(customer.status) ? "deactivated" : "default"}
+                isEmployee={isEmployee}
                 onActivate={
-                  isDeactivatedStatus(customer.status)
+                  isDeactivatedStatus(customer.status) && !isEmployee
                     ? () => toast.success("Customer activation coming soon")
                     : undefined
                 }

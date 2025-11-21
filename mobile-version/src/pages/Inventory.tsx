@@ -378,8 +378,8 @@ const Inventory = () => {
           </button>
         </div>
 
-        {/* Employee Filter - Only for Equipment Tracking */}
-        {activeTab === "equipment-tracking" && (
+        {/* Employee Filter - Only for Equipment Tracking (Merchant/Admin only) */}
+        {activeTab === "equipment-tracking" && !isEmployee && (
           <div className="mb-3">
             <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
               <SelectTrigger className="w-full h-9 text-xs py-2 px-3 border border-gray-200 rounded-lg">

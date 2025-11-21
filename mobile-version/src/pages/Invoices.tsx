@@ -9,6 +9,7 @@ import SendSMSModal from "@/components/modals/SendSMSModal";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import InvoiceDueAlertModal from "@/components/modals/InvoiceDueAlertModal";
+import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import { mockCustomers, mockInvoices } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -28,12 +29,13 @@ import {
   RotateCcw,
   XCircle,
   Bell,
+  Calendar as CalendarIcon,
 } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 
 type InvoiceTab = "single" | "recurring" | "deactivated";
 type InvoiceStatusFilter = "all" | "paid" | "open";
-type DateRangeFilter = "all" | "last7" | "last30" | "thisMonth";
 type Invoice = (typeof mockInvoices)[number];
 
 const Invoices = () => {
@@ -41,7 +43,11 @@ const Invoices = () => {
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<InvoiceTab>("single");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatusFilter>("all");
-  const [dateRange, setDateRange] = useState<DateRangeFilter>("all");
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<{ id: string; amount: number } | null>(null);
   const [actionInvoice, setActionInvoice] = useState<(Invoice & { customerEmail?: string; customerPhone?: string }) | null>(null);
@@ -75,25 +81,38 @@ const Invoices = () => {
       return;
     }
     setStatusFilter("all");
-    setDateRange("all");
+    setDateRange({ from: undefined, to: undefined });
   };
 
   const isWithinDateRange = (dateString: string) => {
-    if (dateRange === "all") return true;
-    const now = new Date();
+    // If no date range is selected, show all invoices
+    if (!dateRange.from && !dateRange.to) return true;
+    
     const targetDate = new Date(dateString);
-    const diffInDays = Math.abs(now.getTime() - targetDate.getTime()) / (1000 * 60 * 60 * 24);
-
-    switch (dateRange) {
-      case "last7":
-        return diffInDays <= 7;
-      case "last30":
-        return diffInDays <= 30;
-      case "thisMonth":
-        return now.getFullYear() === targetDate.getFullYear() && now.getMonth() === targetDate.getMonth();
-      default:
-        return true;
+    targetDate.setHours(0, 0, 0, 0);
+    
+    // Check if target date is within the selected range
+    if (dateRange.from && dateRange.to) {
+      const start = new Date(dateRange.from);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+      return targetDate >= start && targetDate <= end;
+    } else if (dateRange.from) {
+      const start = new Date(dateRange.from);
+      start.setHours(0, 0, 0, 0);
+      return targetDate >= start;
+    } else if (dateRange.to) {
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+      return targetDate <= end;
     }
+    
+    return true;
+  };
+
+  const handleDateRangeConfirm = (range: { from: Date | undefined; to: Date | undefined }) => {
+    setDateRange(range);
   };
 
   const getFilteredInvoices = (type: InvoiceTab) => {
@@ -381,17 +400,22 @@ const Invoices = () => {
         {showFilters && (
           <div className="flex gap-2">
             <div className="flex-1 min-w-0">
-              <Select value={dateRange} onValueChange={(value) => setDateRange(value as DateRangeFilter)}>
-                <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
-                  <SelectValue placeholder="Date range" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Dates</SelectItem>
-                  <SelectItem value="last7">Last 7 Days</SelectItem>
-                  <SelectItem value="last30">Last 30 Days</SelectItem>
-                  <SelectItem value="thisMonth">This Month</SelectItem>
-                </SelectContent>
-              </Select>
+              <Button
+                variant="outline"
+                onClick={() => setShowDateRangePicker(true)}
+                className="w-full h-9 px-2.5 text-xs font-normal justify-start gap-1.5"
+              >
+                <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                {dateRange.from && dateRange.to ? (
+                  <span className="truncate text-left text-xs">
+                    {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
+                  </span>
+                ) : dateRange.from ? (
+                  <span className="truncate text-left text-xs">{format(dateRange.from, "MM/dd/yyyy")}</span>
+                ) : (
+                  <span className="text-muted-foreground truncate text-left text-xs">Date Range</span>
+                )}
+              </Button>
             </div>
 
             <div className="flex-1 min-w-0">
@@ -578,6 +602,15 @@ const Invoices = () => {
       <InvoiceDueAlertModal
         isOpen={showInvoiceDueAlertModal}
         onClose={() => setShowInvoiceDueAlertModal(false)}
+      />
+
+      {/* Date Range Picker Modal */}
+      <DateRangePickerModal
+        open={showDateRangePicker}
+        onOpenChange={setShowDateRangePicker}
+        initialRange={dateRange}
+        onConfirm={handleDateRangeConfirm}
+        resetToToday={false}
       />
     </div>
   );

@@ -7,9 +7,7 @@ import { mockJobs, mockCustomers, mockEmployees, mockEstimates, mockInvoices, mo
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Calendar } from "@/components/ui/calendar";
-import { Search, Briefcase, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Briefcase, Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import SendFeedbackFormModal from "@/components/modals/SendFeedbackFormModal";
@@ -18,6 +16,7 @@ import FeedbackFormModal from "@/components/modals/FeedbackFormModal";
 import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import PreviewAgreementModal from "@/components/modals/PreviewAgreementModal";
+import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -44,7 +43,6 @@ const Jobs = () => {
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [jobTypeFilter, setJobTypeFilter] = useState("all");
   const [employeeFilter, setEmployeeFilter] = useState("all");
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   
   // Check if user is employee
   const userRole = localStorage.getItem("userType") || "merchant";
@@ -173,6 +171,8 @@ const Jobs = () => {
     if (statusFilter !== "all") {
       if (statusFilter === "inprogress") {
         matchesStatus = job.status === "In Progress";
+      } else if (statusFilter === "feedbackreceived") {
+        matchesStatus = job.status === "Feedback Received";
       } else {
         matchesStatus = job.status.toLowerCase() === statusFilter.toLowerCase();
       }
@@ -215,15 +215,7 @@ const Jobs = () => {
       matchesEmployee = job.technicianName === employeeFilter;
     }
     
-    // Payment status filtering
-    let matchesPaymentStatus = true;
-    if (paymentStatusFilter !== "all") {
-      // Derive payment status: Completed jobs are "Paid", others are "Open"
-      const paymentStatus = job.status === "Completed" ? "paid" : "open";
-      matchesPaymentStatus = paymentStatus === paymentStatusFilter.toLowerCase();
-    }
-    
-    return matchesSearch && matchesStatus && matchesDateRange && matchesJobType && matchesEmployee && matchesPaymentStatus;
+    return matchesSearch && matchesStatus && matchesDateRange && matchesJobType && matchesEmployee;
   });
   
   // Clear all filters
@@ -232,29 +224,22 @@ const Jobs = () => {
     setJobTypeFilter("all");
     setEmployeeFilter("all");
     setStatusFilter("all");
-    setPaymentStatusFilter("all");
   };
 
   // Handle date range selection with proper start/end logic
-  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
-    if (range) {
-      // If end date is earlier than start date, treat it as new start date
-      if (range.from && range.to && range.to < range.from) {
-        setDateRange({ from: range.to, to: undefined });
-      } else {
-        setDateRange(range);
-      }
-    }
+  const handleDateRangeConfirm = (range: { from: Date | undefined; to: Date | undefined }) => {
+    setDateRange(range);
   };
   
   // Check if any filters are active
-  const hasActiveFilters = dateRange.from || dateRange.to || jobTypeFilter !== "all" || (!isEmployee && employeeFilter !== "all") || statusFilter !== "all" || paymentStatusFilter !== "all";
+  const hasActiveFilters = dateRange.from || dateRange.to || jobTypeFilter !== "all" || (!isEmployee && employeeFilter !== "all") || statusFilter !== "all";
 
   const summary = useMemo(() => ({
     total: filteredJobs.length,
     scheduled: filteredJobs.filter(j => j.status === "Scheduled").length,
     inProgress: filteredJobs.filter(j => j.status === "In Progress").length,
     completed: filteredJobs.filter(j => j.status === "Completed").length,
+    feedbackReceived: filteredJobs.filter(j => j.status === "Feedback Received").length,
   }), [filteredJobs]);
 
   // Handle status change
@@ -321,6 +306,15 @@ const Jobs = () => {
     };
     
     setJobFeedbackStatus(updatedStatus);
+    
+    // Change job status from "Completed" to "Feedback Received" when feedback is submitted
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === feedback.jobId && job.status === "Completed"
+          ? { ...job, status: "Feedback Received" }
+          : job
+      )
+    );
     
     // Persist to localStorage so it can be accessed from other pages (e.g., Employees)
     try {
@@ -424,7 +418,7 @@ const Jobs = () => {
           </div>
         </div>
 
-        {/* Row 2: Job Type + Payment Status (side by side) - For Employee */}
+        {/* Row 2: Job Type + Job Status (side by side) - For Employee */}
         {isEmployee ? (
           <div className="flex items-center gap-2">
             {/* Job Type Filter */}
@@ -442,16 +436,18 @@ const Jobs = () => {
               </Select>
             </div>
 
-            {/* Payment Status Filter */}
+            {/* Job Status Filter */}
             <div className="flex-[0.48] min-w-0">
-              <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-full h-9 px-2.5 text-xs">
-                  <SelectValue placeholder="Payment Status" />
+                  <SelectValue placeholder="Job Status" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="inprogress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -484,13 +480,14 @@ const Jobs = () => {
               <div className="flex-[0.48] min-w-0">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-full h-9 px-2.5 text-xs">
-                    <SelectValue placeholder="Status" />
+                    <SelectValue placeholder="Job Status" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All</SelectItem>
                     <SelectItem value="scheduled">Scheduled</SelectItem>
                     <SelectItem value="inprogress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -547,19 +544,30 @@ const Jobs = () => {
           </div>
         )}
         
-        {/* Summary Cards */}
-        <div className="grid grid-cols-3 gap-2">
-          <div className="p-3 rounded-xl bg-primary/5 border border-primary/20 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Scheduled</p>
-            <p className="text-xl font-bold">{summary.scheduled}</p>
+        {/* Summary Cards - Four Metrics */}
+        <div className="grid grid-cols-4 gap-2">
+          {/* Scheduled - Light Peach */}
+          <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#FFE5D9] border border-[#FFD4C4] min-h-[80px]">
+            <p className="text-xs text-[#8B4513] font-medium mb-1.5 text-center leading-tight">Scheduled</p>
+            <p className="text-xl font-bold text-[#8B4513] text-center">{summary.scheduled}</p>
           </div>
-          <div className="p-3 rounded-xl bg-warning/5 border border-warning/20 text-center">
-            <p className="text-xs text-muted-foreground mb-1">In Progress</p>
-            <p className="text-xl font-bold">{summary.inProgress}</p>
+          
+          {/* In Progress - Light Yellow */}
+          <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#FFF9E6] border border-[#FFE8B3] min-h-[80px]">
+            <p className="text-xs text-[#B8860B] font-medium mb-1.5 text-center leading-tight">In Progress</p>
+            <p className="text-xl font-bold text-[#B8860B] text-center">{summary.inProgress}</p>
           </div>
-          <div className="p-3 rounded-xl bg-success/5 border border-success/20 text-center">
-            <p className="text-xs text-muted-foreground mb-1">Completed</p>
-            <p className="text-xl font-bold">{summary.completed}</p>
+          
+          {/* Completed - Light Green */}
+          <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#E6F7E6] border border-[#B3E6B3] min-h-[80px]">
+            <p className="text-xs text-[#2D5016] font-medium mb-1.5 text-center leading-tight">Completed</p>
+            <p className="text-xl font-bold text-[#2D5016] text-center">{summary.completed}</p>
+          </div>
+          
+          {/* Feedback Received - Light Mint */}
+          <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#E0F7F4] border border-[#B3E6DE] min-h-[80px]">
+            <p className="text-xs text-[#0D4D3D] font-medium mb-1.5 text-center leading-tight">Feedback Received</p>
+            <p className="text-xl font-bold text-[#0D4D3D] text-center">{summary.feedbackReceived}</p>
           </div>
         </div>
 
@@ -617,7 +625,7 @@ const Jobs = () => {
                 }
                 
                 // For generic JOB-XXX IDs, use job status
-                if (job.status === "Completed") return "Paid";
+                if (job.status === "Completed" || job.status === "Feedback Received") return "Paid";
                 return "Open";
               };
               
@@ -703,113 +711,14 @@ const Jobs = () => {
         />
       )}
 
-      {/* Mobile Date Range Picker Dialog - Centered Pop-up Modal */}
-      <Dialog open={showDateRangePicker} onOpenChange={setShowDateRangePicker}>
-        <DialogContent className="w-[90%] max-w-md p-0 rounded-2xl shadow-xl bg-white max-h-[90vh] flex flex-col overflow-hidden [&>button]:hidden">
-          {/* Header with Title and Close */}
-          <div className="flex items-center justify-between px-5 py-4 border-b relative">
-            <DialogTitle className="text-lg font-semibold text-center flex-1 absolute left-0 right-0 pointer-events-none">
-              Select Date Range
-            </DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowDateRangePicker(false)}
-              className="h-8 w-8 ml-auto relative z-10"
-            >
-              <X className="h-5 w-5" />
-              <span className="sr-only">Close</span>
-            </Button>
-          </div>
-          <DialogDescription className="sr-only">
-            Choose a start date and end date to filter jobs by date range
-          </DialogDescription>
-
-          {/* Calendar Container - Scrollable */}
-          <div className="flex-1 overflow-y-auto px-4 py-4 min-h-0 overflow-x-hidden calendar-date-picker">
-            <style>{`
-              .calendar-date-picker table {
-                display: block !important;
-              }
-              .calendar-date-picker table thead,
-              .calendar-date-picker table tbody {
-                display: block !important;
-              }
-              .calendar-date-picker table thead tr,
-              .calendar-date-picker table tbody tr {
-                display: grid !important;
-                grid-template-columns: repeat(7, 1fr) !important;
-                width: 100% !important;
-                gap: 0 !important;
-              }
-              .calendar-date-picker table thead th,
-              .calendar-date-picker table tbody td {
-                display: flex !important;
-                width: 100% !important;
-                max-width: 100% !important;
-              }
-            `}</style>
-            <Calendar
-              mode="range"
-              selected={dateRange}
-              onSelect={handleDateRangeSelect}
-              numberOfMonths={1}
-              initialFocus
-              showOutsideDays={false}
-              className="w-full"
-              classNames={{
-                months: "flex flex-col w-full",
-                month: "space-y-3 w-full",
-                caption: "relative flex items-center justify-center mb-4 px-0 w-full min-h-[44px]",
-                caption_label: "text-base font-semibold text-foreground text-center z-10",
-                nav: "absolute left-0 right-0 flex items-center justify-between w-full pointer-events-none px-0",
-                nav_button: "h-10 w-10 p-0 hover:bg-accent rounded-md flex items-center justify-center touch-target active:bg-accent/80 flex-shrink-0 pointer-events-auto",
-                nav_button_previous: "",
-                nav_button_next: "",
-                table: "w-full border-collapse mx-auto",
-                head_row: "grid grid-cols-7 mb-2 w-full gap-0",
-                head_cell: "text-muted-foreground font-medium text-xs flex items-center justify-center py-2 text-center",
-                row: "grid grid-cols-7 w-full mb-1 gap-0",
-                cell: "h-[44px] text-center text-sm p-0 relative flex items-center justify-center [&:has([aria-selected].day-range-end)]:rounded-r-full [&:has([aria-selected].day-range-start)]:rounded-l-full [&:has([aria-selected].day-range-middle)]:bg-primary/20",
-                day: "h-[44px] w-full p-0 font-normal rounded-full hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground transition-colors touch-target active:scale-95 flex items-center justify-center mx-auto max-w-[44px]",
-                day_range_start: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground rounded-full font-semibold",
-                day_range_end: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground rounded-full font-semibold",
-                day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground rounded-full font-semibold",
-                day_range_middle: "bg-primary/20 text-foreground hover:bg-primary/30 rounded-none aria-selected:bg-primary/20",
-                day_today: "bg-accent/50 text-accent-foreground font-semibold border-2 border-accent",
-                day_outside: "text-muted-foreground opacity-50",
-                day_disabled: "text-muted-foreground opacity-50 cursor-not-allowed",
-                day_hidden: "invisible",
-              }}
-              components={{
-                IconLeft: ({ ...props }) => <ChevronLeft className="h-5 w-5" {...props} />,
-                IconRight: ({ ...props }) => <ChevronRight className="h-5 w-5" {...props} />,
-              }}
-            />
-          </div>
-
-          {/* Action Buttons - Sticky Footer */}
-          <div className="flex gap-3 px-5 py-4 border-t bg-white">
-            <Button
-              variant="outline"
-              onClick={() => {
-                setDateRange({ from: undefined, to: undefined });
-                setShowDateRangePicker(false);
-              }}
-              className="flex-1 h-11 text-base font-medium"
-            >
-              Clear
-            </Button>
-            <Button
-              onClick={() => setShowDateRangePicker(false)}
-              className="flex-1 h-11 text-base font-medium bg-primary hover:bg-primary/90 text-primary-foreground"
-              disabled={!dateRange.from || !dateRange.to}
-            >
-              Apply
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      {/* Date Range Picker Modal */}
+      <DateRangePickerModal
+        open={showDateRangePicker}
+        onOpenChange={setShowDateRangePicker}
+        initialRange={dateRange}
+        onConfirm={handleDateRangeConfirm}
+        resetToToday={true}
+      />
 
       {/* Preview Modals */}
       {previewEstimate && (

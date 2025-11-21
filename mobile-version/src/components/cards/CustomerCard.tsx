@@ -17,6 +17,7 @@ interface CustomerCardProps {
     photo?: string;
   };
   variant?: "default" | "deactivated";
+  isEmployee?: boolean;
   onActivate?: () => void;
   onQuickAction?: (action: string) => void;
 }
@@ -27,7 +28,7 @@ const formatCustomerId = (id: string) => {
   return `ID: C-${numeric.padStart(3, "0")}`;
 };
 
-const CustomerCard = ({ customer, variant = "default", onActivate, onQuickAction }: CustomerCardProps) => {
+const CustomerCard = ({ customer, variant = "default", isEmployee = false, onActivate, onQuickAction }: CustomerCardProps) => {
   const navigate = useNavigate();
   const initials = customer.name.split(" ").map(n => n[0]).join("");
   const isDeactivated =
@@ -104,60 +105,74 @@ const CustomerCard = ({ customer, variant = "default", onActivate, onQuickAction
             <p className="text-xs text-gray-500">{formatCustomerId(customer.id)}</p>
           </div>
         </div>
-        {onQuickAction && (
-          <KebabMenu
-            items={[
-              {
-                label: "Edit Customer",
-                icon: Edit,
-                action: () => onQuickAction("edit"),
-              },
-              {
-                label: "Send SMS",
-                icon: MessageSquare,
-                action: () => onQuickAction("sms"),
-              },
-              {
-                label: "Memo",
-                icon: FileText,
-                action: () => onQuickAction("memo"),
-              },
-              {
-                label: "Setup Appointment",
-                icon: Calendar,
-                action: () => onQuickAction("appointment"),
-              },
-              {
-                label: "Create Invoice",
-                icon: Receipt,
-                action: () => onQuickAction("create-invoice"),
-              },
-              {
-                label: "Create Estimate",
-                icon: FileCheck,
-                action: () => onQuickAction("create-estimate"),
-              },
-              {
-                label: "Create Agreement",
-                icon: ClipboardList,
-                action: () => onQuickAction("create-agreement"),
-              },
-              {
-                label: "Customer Details",
-                icon: User,
-                action: () => onQuickAction("details"),
-                separator: true,
-              },
-              {
-                label: "Deactivate",
-                icon: XCircle,
-                action: () => onQuickAction("deactivate"),
-                variant: "destructive",
-              },
-            ]}
-            menuWidth="w-52"
-          />
-        )}
+        {onQuickAction && (() => {
+          const menuItems: KebabMenuItem[] = [];
+          
+          // For employees, exclude Edit Customer and Deactivate
+          if (!isEmployee) {
+            menuItems.push({
+              label: "Edit Customer",
+              icon: Edit,
+              action: () => onQuickAction("edit"),
+            });
+          }
+          
+          menuItems.push(
+            {
+              label: "Send SMS",
+              icon: MessageSquare,
+              action: () => onQuickAction("sms"),
+            },
+            {
+              label: "Memo",
+              icon: FileText,
+              action: () => onQuickAction("memo"),
+            },
+            {
+              label: "Setup Appointment",
+              icon: Calendar,
+              action: () => onQuickAction("appointment"),
+            },
+            {
+              label: "Create Invoice",
+              icon: Receipt,
+              action: () => onQuickAction("create-invoice"),
+            },
+            {
+              label: "Create Estimate",
+              icon: FileCheck,
+              action: () => onQuickAction("create-estimate"),
+            },
+            {
+              label: "Create Agreement",
+              icon: ClipboardList,
+              action: () => onQuickAction("create-agreement"),
+            },
+            {
+              label: "Customer Details",
+              icon: User,
+              action: () => onQuickAction("details"),
+              separator: !isEmployee, // Only show separator if Deactivate will follow
+            }
+          );
+          
+          // Only add Deactivate for merchant/admin
+          if (!isEmployee) {
+            menuItems.push({
+              label: "Deactivate",
+              icon: XCircle,
+              action: () => onQuickAction("deactivate"),
+              variant: "destructive",
+            });
+          }
+          
+          return (
+            <KebabMenu
+              items={menuItems}
+              menuWidth="w-52"
+            />
+          );
+        })()}
       </div>
       <div className="pl-12 space-y-1">
         <p className="flex items-center text-xs text-gray-600">

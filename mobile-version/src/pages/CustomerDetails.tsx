@@ -283,25 +283,7 @@ const CustomerDetails = () => {
               </div>
 
               {isEditing && (
-                <div className="flex justify-end gap-2 pt-3 border-t border-gray-200 mt-3">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setFormState({
-                        name: customer.name,
-                        email: customer.email,
-                        phone: customer.phone,
-                        company: customer.notes ?? "",
-                        address: customer.address,
-                        gender: (customer as any).gender || "Male",
-                      });
-                      setIsEditing(false);
-                      navigate(`/customers/${id}`, { replace: true });
-                    }}
-                  >
-                    Cancel
-                  </Button>
+                <div className="flex justify-end pt-3 border-t border-gray-200 mt-3">
                   <Button 
                     size="sm"
                     onClick={() => {

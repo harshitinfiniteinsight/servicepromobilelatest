@@ -164,7 +164,7 @@ const AddCustomer = () => {
       </div>
 
       {/* Bottom Actions */}
-      <div className="p-4 border-t bg-background space-y-2">
+      <div className="p-4 border-t bg-background">
         <Button
           className="w-full"
           size="lg"
@@ -172,19 +172,6 @@ const AddCustomer = () => {
           disabled={!formData.firstName || !formData.lastName || !formData.email || !formData.phone}
         >
           Create Customer
-        </Button>
-        <Button 
-          variant="ghost" 
-          className="w-full" 
-          onClick={() => {
-            if (isFromCheckout) {
-              navigate("/checkout/customer");
-            } else {
-              navigate("/customers");
-            }
-          }}
-        >
-          Cancel
         </Button>
       </div>
     </div>
