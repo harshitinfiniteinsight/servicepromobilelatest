@@ -1,5 +1,5 @@
 import { X, Printer, Edit, Mail, MessageSquare } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockCustomers } from "@/data/mobileMockData";
@@ -39,6 +39,7 @@ const PreviewAgreementModal = ({ isOpen, onClose, agreement, onAction }: Preview
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="!fixed !inset-0 !translate-x-0 !translate-y-0 max-w-full w-full h-full max-h-full p-0 gap-0 rounded-none m-0 flex flex-col sm:!left-[50%] sm:!top-[50%] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:max-w-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:!inset-auto [&>button]:hidden">
+        <DialogTitle className="sr-only">Preview Agreement</DialogTitle>
         <DialogDescription className="sr-only">
           Preview agreement {agreement.id}
         </DialogDescription>

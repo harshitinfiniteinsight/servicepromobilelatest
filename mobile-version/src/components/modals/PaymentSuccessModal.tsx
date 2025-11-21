@@ -1,5 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 
 interface PaymentSuccessModalProps {
   isOpen: boolean;
@@ -11,6 +11,7 @@ const PaymentSuccessModal = ({ isOpen, onClose, total }: PaymentSuccessModalProp
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-sm w-[calc(100%-2rem)] p-6 gap-0 rounded-2xl [&>button]:hidden">
+        <DialogTitle className="sr-only">Success</DialogTitle>
         <DialogDescription className="sr-only">
           Payment success modal for amount ${total.toFixed(2)}
         </DialogDescription>

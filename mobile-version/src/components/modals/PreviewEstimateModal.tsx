@@ -1,5 +1,5 @@
 import { X, Printer, Edit, Mail, MessageSquare, UserCog, XCircle } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { mockCustomers } from "@/data/mobileMockData";
 import { format } from "date-fns";
@@ -110,6 +110,7 @@ const PreviewEstimateModal = ({ isOpen, onClose, estimate, onAction }: PreviewEs
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="!fixed !inset-0 !translate-x-0 !translate-y-0 max-w-full w-full h-full max-h-full p-0 gap-0 rounded-none m-0 flex flex-col sm:!left-[50%] sm:!top-[50%] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:max-w-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:!inset-auto [&>button]:hidden">
+        <DialogTitle className="sr-only">Preview Estimate</DialogTitle>
         <DialogDescription className="sr-only">
           Preview estimate {estimate.id}
         </DialogDescription>

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Printer, X, Mail, MessageSquare, UserCog, Edit } from "lucide-react";
 import { format } from "date-fns";
@@ -84,6 +84,7 @@ const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvo
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="!fixed !inset-0 !translate-x-0 !translate-y-0 m-0 flex h-full max-h-full w-full max-w-full flex-col gap-0 rounded-none p-0 sm:!left-1/2 sm:!top-1/2 sm:h-auto sm:max-h-[92vh] sm:w-[720px] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:rounded-3xl [&>button]:hidden">
+        <DialogTitle className="sr-only">Preview Invoice</DialogTitle>
         <DialogDescription className="sr-only">Preview invoice {invoice.id}</DialogDescription>
 
         <div className="bg-orange-500 px-3 py-3 flex items-center justify-between safe-top">
