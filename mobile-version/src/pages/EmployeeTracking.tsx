@@ -5,13 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { mockJobs, mockEmployees } from "@/data/mobileMockData";
-import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { toast } from "sonner";
 import ScheduleRouteModal from "@/components/modals/ScheduleRouteModal";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
 
 // Fix for default marker icons in Leaflet with Vite
 import icon from "leaflet/dist/images/marker-icon.png";
@@ -158,6 +161,9 @@ const MapUpdater = ({ coordinates }: { coordinates: [number, number][] }) => {
 const EmployeeTracking = () => {
   const [activeTab, setActiveTab] = useState<"my-route" | "live-location">("live-location");
   const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState<string>("all");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  // Single date for employee Scheduled Route tab
+  const [employeeSelectedDate, setEmployeeSelectedDate] = useState<Date>(new Date());
   const [expandedAccordion, setExpandedAccordion] = useState<string>("");
   const [showScheduleRouteModal, setShowScheduleRouteModal] = useState(false);
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | undefined>(undefined);
@@ -207,22 +213,88 @@ const EmployeeTracking = () => {
     return initialStatuses;
   });
 
-  // Filter jobs based on login type
-  // Employee: Only their jobs | Merchant: All employees' jobs
+  // Format date for comparison (YYYY-MM-DD)
+  const formatDateForComparison = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Generate demo jobs for an employee if no real jobs exist
+  const generateDemoJobsForEmployee = (employeeId: string, dateStr: string, employeeName: string): typeof mockJobs => {
+    const demoJobTemplates = [
+      { title: "HVAC Service Call", time: "09:00 AM", status: "Scheduled" as const, location: "123 Main St, Chicago, IL" },
+      { title: "Plumbing Inspection", time: "11:00 AM", status: "Scheduled" as const, location: "456 Oak Ave, Chicago, IL" },
+      { title: "AC Maintenance", time: "02:00 PM", status: "Scheduled" as const, location: "789 Pine Rd, Chicago, IL" },
+      { title: "Electrical Repair", time: "04:00 PM", status: "Scheduled" as const, location: "321 Elm St, Chicago, IL" },
+    ];
+
+    const demoCustomers = [
+      "John Smith", "Sarah Johnson", "Robert Miller", "Emma Davis"
+    ];
+
+    return demoJobTemplates.map((template, index) => ({
+      id: `DEMO-${employeeId}-${dateStr}-${index + 1}`,
+      title: template.title,
+      customerId: `demo-${index + 1}`,
+      customerName: demoCustomers[index] || `Customer ${index + 1}`,
+      technicianId: employeeId,
+      technicianName: employeeName,
+      date: dateStr,
+      time: template.time,
+      status: template.status,
+      location: template.location,
+    }));
+  };
+
+  // Filter jobs based on login type and selected date, or generate demo jobs if none exist
+  // Employee: Only their jobs (filtered by date) | Merchant: All employees' jobs (filtered by single date)
   const employeeJobs = useMemo(() => {
-    let filteredJobs = mockJobs;
+    let filteredJobs: typeof mockJobs = [];
+    
+    // Determine which date to use based on tab and user type
+    let dateToUse: Date;
+    if (isEmployee && activeTab === "my-route") {
+      // Employee Scheduled Route tab: Use employeeSelectedDate
+      dateToUse = employeeSelectedDate;
+    } else {
+      // Merchant or Employee Live Location tab: Use selectedDate
+      dateToUse = selectedDate;
+    }
+    
+    const dateStr = formatDateForComparison(dateToUse);
+    filteredJobs = mockJobs.filter((job) => job.date === dateStr);
     
     if (isEmployee) {
       // Employee: Filter by employee ID only
-      filteredJobs = mockJobs.filter((job) => job.technicianId === currentEmployeeId);
+      filteredJobs = filteredJobs.filter((job) => job.technicianId === currentEmployeeId);
+      
+      // If no jobs exist, generate demo jobs for this employee
+      if (filteredJobs.length === 0) {
+        const employee = mockEmployees.find(emp => emp.id === currentEmployeeId);
+        if (employee) {
+          filteredJobs = generateDemoJobsForEmployee(currentEmployeeId, dateStr, employee.name);
+        }
+      }
+    } else {
+      // Merchant: Show all jobs for selected date
+      // If no jobs exist, generate demo jobs for all employees
+      if (filteredJobs.length === 0) {
+        const demoJobs: typeof mockJobs = [];
+        mockEmployees.forEach((employee) => {
+          const empDemoJobs = generateDemoJobsForEmployee(employee.id, dateStr, employee.name);
+          demoJobs.push(...empDemoJobs);
+        });
+        filteredJobs = demoJobs;
+      }
     }
-    // Merchant: Show all jobs (no filter by employee ID)
     
     return filteredJobs.map((job) => ({
       ...job,
       status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed",
     }));
-  }, [currentEmployeeId, jobStatuses, isEmployee]);
+  }, [currentEmployeeId, jobStatuses, isEmployee, selectedDate, employeeSelectedDate, activeTab]);
 
   // Helper function to convert time string to minutes for comparison
   const timeToMinutes = (timeStr: string): number => {
@@ -615,7 +687,22 @@ const EmployeeTracking = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
-      <MobileHeader title="Employee Tracking" showBack={true} />
+      <MobileHeader 
+        title="Employee Tracking" 
+        showBack={true}
+        actions={
+          !isEmployee && (
+            <button
+              onClick={() => setShowScheduleRouteModal(true)}
+              className="h-8 px-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-md flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 shrink-0 text-xs font-medium"
+              aria-label="Schedule Route"
+            >
+              <Plus className="h-4 w-4" />
+              <span>Add Route</span>
+            </button>
+          )
+        }
+      />
 
       <div className="flex-1 overflow-hidden flex flex-col pt-14">
         {/* Tab Navigation - Show both tabs for both merchant and employee logins */}
@@ -679,42 +766,120 @@ const EmployeeTracking = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {/* Employee Filter Dropdown + Add Button Row - Merchant Only */}
+                  {/* Employee Filter + Date Picker Row - Merchant Only */}
                   {!isEmployee && (
-                    <div className="mb-4 flex items-center gap-3">
-                      <Select value={selectedEmployeeFilter} onValueChange={setSelectedEmployeeFilter}>
-                        <SelectTrigger className="flex-1 bg-white border-gray-300 h-10">
-                          <SelectValue>
-                            {selectedEmployeeFilter === "all" 
-                              ? "All Employees" 
-                              : mockEmployees.find(emp => emp.id === selectedEmployeeFilter)?.name || "All Employees"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Employees</SelectItem>
-                          {employeesWithJobs.map((employee) => (
-                            <SelectItem key={employee.id} value={employee.id}>
-                              {employee.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <button
-                        onClick={() => setShowScheduleRouteModal(true)}
-                        className="h-10 w-10 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 active:scale-95 shrink-0"
-                        aria-label={isEmployee ? "Scheduled Route" : "Schedule Route"}
-                      >
-                        <Plus className="h-5 w-5" />
-                      </button>
+                    <div className="mb-4">
+                      <div className="flex items-center gap-3">
+                        <Select value={selectedEmployeeFilter} onValueChange={setSelectedEmployeeFilter}>
+                          <SelectTrigger className="flex-1 bg-white border-gray-300 h-10">
+                            <SelectValue>
+                              {selectedEmployeeFilter === "all" 
+                                ? "All Employees" 
+                                : mockEmployees.find(emp => emp.id === selectedEmployeeFilter)?.name || "All Employees"}
+                            </SelectValue>
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">All Employees</SelectItem>
+                            {employeesWithJobs.map((employee) => (
+                              <SelectItem key={employee.id} value={employee.id}>
+                                {employee.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="flex-1 bg-white border-gray-300 h-10 justify-start text-left font-normal hover:bg-gray-50"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                              {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Pick a date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={selectedDate}
+                              onSelect={(date) => {
+                                if (date) {
+                                  setSelectedDate(date);
+                                }
+                              }}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
                     </div>
                   )}
 
                   {isEmployee ? (
                     // Employee Login: Map + Single list
                     <>
+                      {/* Date Filter + Add Route Button - Employee Only */}
+                      <div className="mb-4">
+                        <div className="flex items-center gap-3">
+                          {/* Date Picker */}
+                          <Popover>
+                            <PopoverTrigger asChild>
+                              <Button
+                                variant="outline"
+                                className="flex-1 bg-white border-gray-300 h-10 justify-start text-left font-normal hover:bg-gray-50"
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                                {employeeSelectedDate ? format(employeeSelectedDate, "MMM dd, yyyy") : "Pick a date"}
+                              </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0" align="start">
+                              <Calendar
+                                mode="single"
+                                selected={employeeSelectedDate}
+                                onSelect={(date) => {
+                                  if (date) {
+                                    setEmployeeSelectedDate(date);
+                                  }
+                                }}
+                                initialFocus
+                              />
+                            </PopoverContent>
+                          </Popover>
+
+                          {/* Add Route Button */}
+                          <button
+                            onClick={() => {
+                              // Pre-fill with current employee for employee login (but don't set editingEmployeeId to keep it in create mode)
+                              // The modal will detect employee mode and pre-fill/disable the dropdown
+                              setShowScheduleRouteModal(true);
+                            }}
+                            className="h-10 px-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-md flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 shrink-0 text-xs font-medium"
+                            aria-label="Add Route"
+                          >
+                            <Plus className="h-4 w-4" />
+                            <span>Add Route</span>
+                          </button>
+                        </div>
+                      </div>
+
                       {/* Route Map - Employee View */}
                       {sortedJobs.length > 0 && (
                         <div className="mb-4">
+                          {/* Heading with Date and Edit Icon */}
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-semibold text-gray-800">
+                              Scheduled Route for {format(employeeSelectedDate, "dd/MM/yyyy")}
+                            </h3>
+                            <button
+                              onClick={() => {
+                                setEditingEmployeeId(currentEmployeeId);
+                                setShowScheduleRouteModal(true);
+                              }}
+                              className="h-8 w-8 flex items-center justify-center text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-full transition-colors"
+                              aria-label="Edit Route"
+                            >
+                              <Pencil className="h-4 w-4" />
+                            </button>
+                          </div>
                           <div className="relative h-[280px] rounded-2xl shadow-lg overflow-hidden border border-gray-200 bg-white">
                             <MapContainer
                               center={employeeCurrentLocation}
@@ -1150,17 +1315,21 @@ const EmployeeTracking = () => {
               ) : (
                 <div className="space-y-2.5">
                   <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-800">Today's Stops</h3>
+                    <h3 className="text-sm font-semibold text-gray-800">
+                      {formatDateForComparison(selectedDate) === formatDateForComparison(new Date()) 
+                        ? "Today's Stops" 
+                        : `${format(selectedDate, "MMM dd, yyyy")} Stops`}
+                    </h3>
                     <span className="text-xs text-gray-500">
                       {filteredJobsForDisplay.length} {filteredJobsForDisplay.length === 1 ? "stop" : "stops"}
                     </span>
                   </div>
 
-                  {/* Employee Filter Dropdown (Merchant Only) - Below "Today's Stops" heading */}
+                  {/* Employee Filter + Date Picker (Merchant Only) - Below "Today's Stops" heading */}
                   {!isEmployee && (
-                    <div className="mb-4">
+                    <div className="mb-4 flex items-center gap-3">
                       <Select value={selectedEmployeeFilter} onValueChange={setSelectedEmployeeFilter}>
-                        <SelectTrigger className="w-full bg-white border-gray-300 h-10">
+                        <SelectTrigger className="flex-1 bg-white border-gray-300 h-10">
                           <SelectValue>
                             {selectedEmployeeFilter === "all" 
                               ? "All Employees" 
@@ -1176,6 +1345,29 @@ const EmployeeTracking = () => {
                           ))}
                         </SelectContent>
                       </Select>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            className="flex-1 bg-white border-gray-300 h-10 justify-start text-left font-normal hover:bg-gray-50"
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                            {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={selectedDate}
+                            onSelect={(date) => {
+                              if (date) {
+                                setSelectedDate(date);
+                              }
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     </div>
                   )}
 
@@ -1485,7 +1677,7 @@ const EmployeeTracking = () => {
           setShowScheduleRouteModal(false);
           setEditingEmployeeId(undefined);
         }}
-        initialEmployeeId={editingEmployeeId}
+        initialEmployeeId={editingEmployeeId || (isEmployee ? currentEmployeeId : undefined)}
         mode={editingEmployeeId ? "edit" : "create"}
         onSave={(employeeId, orderedJobIds) => {
           // Route is already saved in localStorage by the modal

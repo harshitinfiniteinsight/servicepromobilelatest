@@ -3,7 +3,10 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
-import { X, MapPin, Clock, GripVertical } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { X, MapPin, Clock, GripVertical, Calendar as CalendarIcon } from "lucide-react";
+import { format } from "date-fns";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
@@ -184,6 +187,7 @@ const RouteStopCard = ({ job, index, empColor }: RouteStopCardProps) => {
 
 const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode = "create" }: ScheduleRouteModalProps) => {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [routeStops, setRouteStops] = useState<typeof mockJobs>([]);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -192,22 +196,78 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
   const buttonText = mode === "edit" ? "Update Route" : "Save Route";
   const savingText = mode === "edit" ? "Updating..." : "Saving...";
 
-  // Get employees with jobs for today
-  const employeesWithJobs = useMemo(() => {
-    const employeeIds = new Set(mockJobs.map((job) => job.technicianId));
-    return mockEmployees.filter((emp) => employeeIds.has(emp.id));
+  // Format date for comparison (YYYY-MM-DD)
+  const formatDateForComparison = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // Get all employees (not filtered by jobs) - show full list
+  const allEmployees = useMemo(() => {
+    return mockEmployees;
   }, []);
 
-  // Get jobs for selected employee
+  // Calculate number of stops for each employee on selected date
+  const getEmployeeStopCount = (employeeId: string): number => {
+    const dateStr = formatDateForComparison(selectedDate);
+    return mockJobs.filter(
+      (job) => job.technicianId === employeeId && job.date === dateStr
+    ).length;
+  };
+
+  // Generate demo jobs for an employee if no real jobs exist
+  const generateDemoJobs = (employeeId: string, dateStr: string, employeeName: string): typeof mockJobs => {
+    const demoJobTemplates = [
+      { title: "HVAC Service Call", time: "09:00 AM", status: "Scheduled" as const, location: "123 Main St, Chicago, IL" },
+      { title: "Plumbing Inspection", time: "11:00 AM", status: "Scheduled" as const, location: "456 Oak Ave, Chicago, IL" },
+      { title: "AC Maintenance", time: "02:00 PM", status: "Scheduled" as const, location: "789 Pine Rd, Chicago, IL" },
+      { title: "Electrical Repair", time: "04:00 PM", status: "Scheduled" as const, location: "321 Elm St, Chicago, IL" },
+    ];
+
+    const demoCustomers = [
+      "John Smith", "Sarah Johnson", "Robert Miller", "Emma Davis"
+    ];
+
+    return demoJobTemplates.map((template, index) => ({
+      id: `DEMO-${employeeId}-${dateStr}-${index + 1}`,
+      title: template.title,
+      customerId: `demo-${index + 1}`,
+      customerName: demoCustomers[index] || `Customer ${index + 1}`,
+      technicianId: employeeId,
+      technicianName: employeeName,
+      date: dateStr,
+      time: template.time,
+      status: template.status,
+      location: template.location,
+    }));
+  };
+
+  // Get jobs for selected employee and date, or generate demo jobs if none exist
   const employeeJobs = useMemo(() => {
     if (!selectedEmployeeId) return [];
-    return mockJobs.filter((job) => job.technicianId === selectedEmployeeId);
-  }, [selectedEmployeeId]);
+    const dateStr = formatDateForComparison(selectedDate);
+    const realJobs = mockJobs.filter(
+      (job) => job.technicianId === selectedEmployeeId && job.date === dateStr
+    );
+    
+    // If no real jobs exist, generate demo jobs
+    if (realJobs.length === 0) {
+      const selectedEmployee = mockEmployees.find(emp => emp.id === selectedEmployeeId);
+      if (selectedEmployee) {
+        return generateDemoJobs(selectedEmployeeId, dateStr, selectedEmployee.name);
+      }
+    }
+    
+    return realJobs;
+  }, [selectedEmployeeId, selectedDate]);
 
   // Load saved route order or use default time-based order
   useEffect(() => {
     if (selectedEmployeeId && employeeJobs.length > 0) {
-      const savedOrderKey = `route_order_${selectedEmployeeId}`;
+      const dateStr = formatDateForComparison(selectedDate);
+      const savedOrderKey = `route_order_${selectedEmployeeId}_${dateStr}`;
       const savedOrder = localStorage.getItem(savedOrderKey);
       
       if (savedOrder) {
@@ -240,23 +300,46 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     } else {
       setRouteStops([]);
     }
-  }, [selectedEmployeeId, employeeJobs]);
+  }, [selectedEmployeeId, employeeJobs, selectedDate]);
 
-  // Auto-select employee: use initialEmployeeId if provided, otherwise first employee
+  // Check if user is employee (when initialEmployeeId is provided and matches logged-in employee)
+  const isEmployeeMode = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    const userType = localStorage.getItem("userType");
+    const currentEmployeeId = localStorage.getItem("currentEmployeeId");
+    return userType === "employee" && initialEmployeeId === currentEmployeeId;
+  }, [initialEmployeeId]);
+
+  // Auto-select employee: use initialEmployeeId if provided (especially for edit mode or employee mode), otherwise first employee with jobs on selected date
   useEffect(() => {
-    if (isOpen && !selectedEmployeeId && employeesWithJobs.length > 0) {
-      if (initialEmployeeId && employeesWithJobs.some(emp => emp.id === initialEmployeeId)) {
-        setSelectedEmployeeId(initialEmployeeId);
-      } else {
-        setSelectedEmployeeId(employeesWithJobs[0].id);
+    if (isOpen) {
+      // In edit mode or employee mode, always use initialEmployeeId if provided
+      if ((mode === "edit" || isEmployeeMode) && initialEmployeeId && allEmployees.some(emp => emp.id === initialEmployeeId)) {
+        if (selectedEmployeeId !== initialEmployeeId) {
+          setSelectedEmployeeId(initialEmployeeId);
+        }
+      } else if (!selectedEmployeeId) {
+        // In create mode (merchant), auto-select initialEmployeeId if provided, otherwise first employee with jobs
+        if (initialEmployeeId && allEmployees.some(emp => emp.id === initialEmployeeId)) {
+          setSelectedEmployeeId(initialEmployeeId);
+        } else {
+          const dateStr = formatDateForComparison(selectedDate);
+          const employeeWithJobs = allEmployees.find(emp => 
+            mockJobs.some(job => job.technicianId === emp.id && job.date === dateStr)
+          );
+          if (employeeWithJobs) {
+            setSelectedEmployeeId(employeeWithJobs.id);
+          }
+        }
       }
     }
-  }, [isOpen, selectedEmployeeId, employeesWithJobs, initialEmployeeId]);
+  }, [isOpen, selectedEmployeeId, allEmployees, initialEmployeeId, selectedDate, mode, isEmployeeMode]);
 
-  // Reset selected employee when modal closes
+  // Reset selected employee and date when modal closes
   useEffect(() => {
     if (!isOpen) {
       setSelectedEmployeeId("");
+      setSelectedDate(new Date());
     }
   }, [isOpen]);
 
@@ -334,9 +417,10 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
 
     setIsSaving(true);
     try {
-      // Save to localStorage
+      // Save to localStorage with date included in key
       const orderedIds = routeStops.map((job) => job.id);
-      const savedOrderKey = `route_order_${selectedEmployeeId}`;
+      const dateStr = formatDateForComparison(selectedDate);
+      const savedOrderKey = `route_order_${selectedEmployeeId}_${dateStr}`;
       localStorage.setItem(savedOrderKey, JSON.stringify(orderedIds));
 
       // Call onSave callback
@@ -375,45 +459,99 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto bg-[#FDF4EF] flex flex-col">
-          {/* Employee Selector */}
+          {/* Employee Selector and Date Picker Row */}
           <div className="px-4 pt-4 pb-3">
-            <label className="text-sm font-medium text-gray-700 mb-2 block">Select Employee</label>
-            <div className="relative">
-              {selectedEmployee && (
-                <div
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full z-10"
-                  style={{ backgroundColor: empColor }}
-                />
-              )}
-              <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-                <SelectTrigger className="w-full bg-white border-gray-300 h-10 pl-8">
-                  <SelectValue placeholder="Select Employee">
-                    {selectedEmployee
-                      ? `${selectedEmployee.name} (${employeeJobs.length} ${employeeJobs.length === 1 ? "stop" : "stops"})`
-                      : "Select Employee"}
-                  </SelectValue>
-                </SelectTrigger>
-                <SelectContent>
-                  {employeesWithJobs.map((employee) => {
-                    const empJobs = mockJobs.filter((job) => job.technicianId === employee.id);
-                    const empCol = employeeColors[employee.id] || "#3b82f6";
-                    return (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        <div className="flex items-center gap-2">
-                          <div
-                            className="w-3 h-3 rounded-full shrink-0"
-                            style={{ backgroundColor: empCol }}
-                          />
-                          <span>{employee.name}</span>
-                          <span className="text-xs text-gray-500 ml-1">
-                            ({empJobs.length} {empJobs.length === 1 ? "stop" : "stops"})
-                          </span>
-                        </div>
-                      </SelectItem>
-                    );
-                  })}
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3 w-full">
+              {/* Employee Selector */}
+              <div className="min-w-0">
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Select Employee</label>
+                <div className="relative">
+                  {selectedEmployee && (
+                    <div
+                      className="absolute left-3 top-1/2 -translate-y-1/2 w-3 h-3 rounded-full z-10"
+                      style={{ backgroundColor: empColor }}
+                    />
+                  )}
+                  <Select 
+                    value={selectedEmployeeId} 
+                    onValueChange={setSelectedEmployeeId}
+                    disabled={mode === "edit" || isEmployeeMode}
+                  >
+                    <SelectTrigger 
+                      className={cn(
+                        "w-full bg-white border-gray-300 h-10 pl-8",
+                        (mode === "edit" || isEmployeeMode) && "opacity-60 cursor-not-allowed"
+                      )}
+                    >
+                      <SelectValue placeholder="Select Employee">
+                        {selectedEmployee
+                          ? `${selectedEmployee.name} (${employeeJobs.length} ${employeeJobs.length === 1 ? "stop" : "stops"})`
+                          : "Select Employee"}
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      {allEmployees.map((employee) => {
+                        const stopCount = getEmployeeStopCount(employee.id);
+                        const empCol = employeeColors[employee.id] || "#3b82f6";
+                        return (
+                          <SelectItem key={employee.id} value={employee.id}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-3 h-3 rounded-full shrink-0"
+                                style={{ backgroundColor: empCol }}
+                              />
+                              <span>{employee.name}</span>
+                              {stopCount > 0 && (
+                                <span className="text-xs text-gray-500 ml-1">
+                                  ({stopCount} {stopCount === 1 ? "stop" : "stops"})
+                                </span>
+                              )}
+                            </div>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* Date Selector */}
+              <div className="min-w-0">
+                <label className="text-sm font-medium text-gray-700 mb-2 block">Select Date</label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full bg-white border-gray-300 h-10 justify-start text-left font-normal hover:bg-gray-50"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                      {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={selectedDate}
+                      onSelect={(date) => {
+                        if (date) {
+                          setSelectedDate(date);
+                          // If current employee has no jobs on new date, reset selection
+                          const dateStr = formatDateForComparison(date);
+                          if (selectedEmployeeId) {
+                            const hasJobsOnNewDate = mockJobs.some(
+                              (job) => job.technicianId === selectedEmployeeId && job.date === dateStr
+                            );
+                            if (!hasJobsOnNewDate) {
+                              setSelectedEmployeeId("");
+                            }
+                          }
+                        }
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
           </div>
 
@@ -536,7 +674,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
             </div>
           )}
 
-          {!selectedEmployeeId && (
+          {!selectedEmployeeId && mode !== "edit" && (
             <div className="flex-1 flex items-center justify-center px-4">
               <div className="text-center">
                 <p className="text-gray-500 text-sm">Please select an employee to schedule their route</p>

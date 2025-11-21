@@ -150,8 +150,8 @@ const JobCard = ({
       });
     }
     
-    // View Feedback - only when job status is Completed AND feedback exists
-    if (job.status === "Completed" && hasFeedback && onViewFeedback) {
+    // View Feedback - when job status is "Feedback Received"
+    if (job.status === "Feedback Received" && onViewFeedback) {
       items.push({
         label: "View Feedback",
         icon: MessageSquare,
@@ -160,8 +160,8 @@ const JobCard = ({
       });
     }
     
-    // Send Feedback Form - only when job status is Completed AND feedback does NOT exist
-    if (job.status === "Completed" && !hasFeedback && onSendFeedbackForm) {
+    // Send Feedback Form - when job status is Completed (but not Feedback Received)
+    else if (job.status === "Completed" && onSendFeedbackForm) {
       items.push({
         label: "Send Feedback Form",
         icon: FileText,

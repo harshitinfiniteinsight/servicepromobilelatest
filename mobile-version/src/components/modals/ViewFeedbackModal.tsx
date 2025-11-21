@@ -13,11 +13,13 @@ interface ViewFeedbackModalProps {
     title: string;
     customerName: string;
     technicianName?: string;
+    location?: string;
   };
   feedback?: {
     rating: number;
     comment: string;
     submittedAt: string;
+    media?: string[]; // Array of image URLs if any
   };
 }
 
@@ -96,6 +98,21 @@ const ViewFeedbackModal = ({
             />
           </div>
 
+          {/* Address/Location */}
+          {job.location && (
+            <div className="mb-4">
+              <Label className="text-sm font-semibold block mb-2" style={{ color: '#333' }}>Address</Label>
+              <Input
+                type="text"
+                value={job.location}
+                disabled
+                readOnly
+                className="bg-gray-50 text-gray-700 cursor-not-allowed rounded-lg h-10 border"
+                style={{ borderColor: '#E5E5E5' }}
+              />
+            </div>
+          )}
+
           {/* Star Rating */}
           {displayFeedback.rating > 0 && (
             <div className="mb-4">
@@ -130,6 +147,24 @@ const ViewFeedbackModal = ({
               </p>
             </div>
           </div>
+
+          {/* Media/Images */}
+          {displayFeedback.media && displayFeedback.media.length > 0 && (
+            <div className="mb-4">
+              <Label className="text-sm font-semibold block mb-2" style={{ color: '#333' }}>Media</Label>
+              <div className="grid grid-cols-2 gap-2">
+                {displayFeedback.media.map((url, index) => (
+                  <div key={index} className="relative aspect-square rounded-lg overflow-hidden border" style={{ borderColor: '#E5E5E5' }}>
+                    <img 
+                      src={url} 
+                      alt={`Feedback media ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Submitted Date */}
           {displayFeedback.submittedAt && (
