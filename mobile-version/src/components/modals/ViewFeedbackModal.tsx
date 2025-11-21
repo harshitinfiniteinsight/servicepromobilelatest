@@ -1,7 +1,9 @@
-import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { X, Star, MessageSquare } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { X, Star } from "lucide-react";
+import StarRating from "@/components/common/StarRating";
 
 interface ViewFeedbackModalProps {
   isOpen: boolean;
@@ -10,6 +12,7 @@ interface ViewFeedbackModalProps {
     id: string;
     title: string;
     customerName: string;
+    technicianName?: string;
   };
   feedback?: {
     rating: number;
@@ -33,14 +36,15 @@ const ViewFeedbackModal = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden [&>button]:hidden">
+      <DialogContent className="w-[90%] sm:w-[95%] max-w-md p-0 gap-0 rounded-[20px] max-h-[90vh] overflow-hidden [&>button]:hidden">
+        <DialogTitle className="sr-only">Feedback</DialogTitle>
         <DialogDescription className="sr-only">
           View feedback for {job.title}
         </DialogDescription>
         
         {/* Header */}
-        <div className="bg-orange-500 text-white px-4 py-4 flex items-center justify-between safe-top">
-          <h2 className="text-lg sm:text-xl font-bold text-white">Customer Feedback</h2>
+        <div className="bg-orange-500 text-white px-5 py-4 flex items-center justify-between safe-top rounded-t-[20px]">
+          <h2 className="text-lg sm:text-xl font-bold text-white">Feedback</h2>
           <Button
             variant="ghost"
             size="icon"
@@ -51,71 +55,101 @@ const ViewFeedbackModal = ({
           </Button>
         </div>
 
-        {/* Content */}
-        <div className="px-4 py-6 space-y-4 overflow-y-auto max-h-[calc(85vh-80px)]">
-          <div className="space-y-2">
-            <p className="text-sm text-gray-600">
-              Feedback from <span className="font-semibold text-gray-900">{job.customerName}</span> for job:
-            </p>
-            <p className="text-base font-semibold text-gray-900">{job.title}</p>
+        {/* Content - Scrollable */}
+        <div className="px-5 py-5 overflow-y-auto max-h-[calc(90vh-140px)]" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+          {/* Customer Name */}
+          <div className="mb-4">
+            <Label className="text-sm font-semibold block mb-2" style={{ color: '#333' }}>Customer Name</Label>
+            <Input
+              type="text"
+              value={job.customerName}
+              disabled
+              readOnly
+              className="bg-gray-50 text-gray-700 cursor-not-allowed rounded-lg h-10 border" 
+              style={{ borderColor: '#E5E5E5' }}
+            />
           </div>
 
-          <div className="pt-4 space-y-4 border-t border-gray-200">
-            {/* Rating */}
-            {displayFeedback.rating > 0 && (
-              <div className="space-y-2">
-                <Label className="text-sm font-semibold text-gray-900">Rating</Label>
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star
-                      key={i}
-                      className={`h-6 w-6 ${
-                        i < displayFeedback.rating
-                          ? "fill-yellow-400 text-yellow-400"
-                          : "fill-gray-200 text-gray-200"
-                      }`}
-                    />
-                  ))}
-                  <span className="ml-2 text-sm font-semibold text-gray-700">
-                    {displayFeedback.rating}/5
-                  </span>
-                </div>
-              </div>
-            )}
+          {/* Employee Name */}
+          <div className="mb-4">
+            <Label className="text-sm font-semibold block mb-2" style={{ color: '#333' }}>Employee Name</Label>
+            <Input
+              type="text"
+              value={job.technicianName || "N/A"}
+              disabled
+              readOnly
+              className="bg-gray-50 text-gray-700 cursor-not-allowed rounded-lg h-10 border"
+              style={{ borderColor: '#E5E5E5' }}
+            />
+          </div>
 
-            {/* Comment */}
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-gray-900">Comment</Label>
-              <div className="p-3 rounded-lg bg-gray-50 border border-gray-200 min-h-[100px]">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                  {displayFeedback.comment}
-                </p>
+          {/* Service */}
+          <div className="mb-4">
+            <Label className="text-sm font-semibold block mb-2" style={{ color: '#333' }}>Service</Label>
+            <Input
+              type="text"
+              value={job.title}
+              disabled
+              readOnly
+              className="bg-gray-50 text-gray-700 cursor-not-allowed rounded-lg h-10 border"
+              style={{ borderColor: '#E5E5E5' }}
+            />
+          </div>
+
+          {/* Star Rating */}
+          {displayFeedback.rating > 0 && (
+            <div className="mb-4">
+              <Label className="text-sm font-semibold block mb-2" style={{ color: '#333' }}>Rating</Label>
+              <div className="flex items-center">
+                <StarRating
+                  rating={displayFeedback.rating}
+                  onRatingChange={() => {}} // Read-only
+                  maxRating={5}
+                  size="sm"
+                  disabled={true}
+                />
+                <span className="ml-3 text-sm font-semibold" style={{ color: '#333' }}>
+                  {displayFeedback.rating}/5
+                </span>
               </div>
             </div>
+          )}
 
-            {/* Submitted Date */}
-            {displayFeedback.submittedAt && (
-              <div className="space-y-1">
-                <Label className="text-xs text-gray-500">Submitted on</Label>
-                <p className="text-sm text-gray-600">{displayFeedback.submittedAt}</p>
-              </div>
-            )}
-
-            {/* No Feedback State */}
-            {!feedback && (
-              <div className="text-center py-6">
-                <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-2" />
-                <p className="text-sm text-gray-500">Feedback form has been sent, but no response received yet.</p>
-              </div>
-            )}
+          {/* Feedback Text */}
+          <div className="mb-4">
+            <Label className="text-sm font-semibold block mb-2" style={{ color: '#333' }}>Feedback</Label>
+            <div 
+              className="rounded-xl border bg-gray-50 p-4 min-h-[120px]"
+              style={{ 
+                borderColor: '#E5E5E5',
+                padding: '12px 14px'
+              }}
+            >
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {displayFeedback.comment || "No feedback provided."}
+              </p>
+            </div>
           </div>
+
+          {/* Submitted Date */}
+          {displayFeedback.submittedAt && (
+            <div className="mb-4">
+              <Label className="text-xs block mb-1" style={{ color: '#666' }}>Submitted on</Label>
+              <p className="text-sm" style={{ color: '#666' }}>{displayFeedback.submittedAt}</p>
+            </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div className="px-4 py-4 border-t border-gray-200">
+        <div className="px-5 pb-4 bg-white rounded-b-[20px]" style={{ paddingBottom: 'calc(1rem + env(safe-area-inset-bottom, 0px))' }}>
           <Button
             onClick={onClose}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-xl"
+            className="w-full font-bold text-white transition-all rounded-2xl bg-[#F57C00] hover:bg-[#E65100] active:scale-[0.98]"
+            style={{ 
+              height: '52px',
+              marginTop: '16px',
+              marginBottom: '16px'
+            }}
           >
             Close
           </Button>

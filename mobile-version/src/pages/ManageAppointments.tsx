@@ -38,7 +38,23 @@ const ManageAppointments = () => {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const todayISO = useMemo(() => toISODate(new Date()), []);
-  const [selectedDate, setSelectedDate] = useState(todayISO);
+  
+  // Get URL params first (before using them in useState initializers)
+  const viewFromUrl = searchParams.get("view") as "calendar" | "list" | null;
+  const tabFromUrl = searchParams.get("tab") as "month" | "week" | "day" | null;
+  const dateFromUrl = searchParams.get("date");
+  
+  // Initialize selectedDate from URL param if present, otherwise use today
+  const [selectedDate, setSelectedDate] = useState(() => {
+    if (dateFromUrl) {
+      // Validate date format (YYYY-MM-DD)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(dateFromUrl)) {
+        return dateFromUrl;
+      }
+    }
+    return todayISO;
+  });
   const [focusedMonth, setFocusedMonth] = useState(() => {
     const date = new Date();
     date.setDate(1);
@@ -101,10 +117,9 @@ const ManageAppointments = () => {
     }
   }, [focusedMonth, monthOptions]);
   
-  // Get view from URL params or default to calendar
-  const viewFromUrl = searchParams.get("view") as "calendar" | "list" | null;
+  // Initialize view mode and calendar view mode from URL params (already declared above)
   const [viewMode, setViewMode] = useState<"calendar" | "list">(viewFromUrl || "calendar");
-  const [calendarViewMode, setCalendarViewMode] = useState<"month" | "week" | "day">("week");
+  const [calendarViewMode, setCalendarViewMode] = useState<"month" | "week" | "day">(tabFromUrl || "week");
 
   // Initialize URL param if not present
   useEffect(() => {
@@ -119,6 +134,27 @@ const ManageAppointments = () => {
       setViewMode(viewFromUrl);
     }
   }, [viewFromUrl, viewMode]);
+
+  // Sync calendar view mode (tab) with URL params
+  useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== calendarViewMode && (tabFromUrl === "month" || tabFromUrl === "week" || tabFromUrl === "day")) {
+      setCalendarViewMode(tabFromUrl);
+    }
+  }, [tabFromUrl, calendarViewMode]);
+
+  // Sync selected date with URL params
+  useEffect(() => {
+    if (dateFromUrl) {
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (dateRegex.test(dateFromUrl) && dateFromUrl !== selectedDate) {
+        setSelectedDate(dateFromUrl);
+        // Update focused month to match the selected date
+        const dateObj = new Date(dateFromUrl);
+        dateObj.setDate(1);
+        setFocusedMonth(dateObj);
+      }
+    }
+  }, [dateFromUrl, selectedDate]);
 
   // Update URL when view mode changes
   const handleViewModeChange = (value: "calendar" | "list") => {
@@ -1004,28 +1040,33 @@ const ManageAppointments = () => {
                                 ];
                                 
                                 if (isActive) {
-                                  items.push(
-                                    {
-                                      label: "Share",
-                                      icon: Share2,
-                                      action: () => {
-                                        setSingleAppointmentToShare(appointment);
-                                        setShareModalOpen(true);
-                                      },
+                                  items.push({
+                                    label: "Share",
+                                    icon: Share2,
+                                    action: () => {
+                                      setSingleAppointmentToShare(appointment);
+                                      setShareModalOpen(true);
                                     },
-                                    {
+                                  });
+                                  
+                                  // Deactivate option - only for merchants, not employees
+                                  if (!isEmployee) {
+                                    items.push({
                                       label: "Deactivate",
                                       icon: Ban,
                                       action: () => {},
                                       variant: "destructive",
-                                    }
-                                  );
+                                    });
+                                  }
                                 } else {
-                                  items.push({
-                                    label: "Activate",
-                                    icon: BookmarkCheck,
-                                    action: () => {},
-                                  });
+                                  // Activate option - only for merchants, not employees
+                                  if (!isEmployee) {
+                                    items.push({
+                                      label: "Activate",
+                                      icon: BookmarkCheck,
+                                      action: () => {},
+                                    });
+                                  }
                                 }
                                 
                                 return <KebabMenu items={items} menuWidth="w-44" />;

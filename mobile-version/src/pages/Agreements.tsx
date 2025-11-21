@@ -76,15 +76,20 @@ const Agreements = () => {
         <div className="space-y-2">
           {mockAgreements.map(agreement => {
             const isPaid = agreement.status === "Paid";
+            
+            // Build menu items based on payment status and user role
             const kebabMenuItems: KebabMenuItem[] = isPaid
               ? [
+                  // Paid agreements: Only Preview (for both merchant and employee)
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
                 ]
               : [
+                  // Unpaid agreements: Preview, Send Email, Send SMS, Pay
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
                   { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
                   { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
-                  { label: "Edit Agreement", icon: Edit, action: () => handleMenuAction(agreement.id, "edit") },
+                  // Edit Agreement: Only for merchants, not employees
+                  ...(isEmployee ? [] : [{ label: "Edit Agreement", icon: Edit, action: () => handleMenuAction(agreement.id, "edit") }]),
                   { label: "Pay", icon: CreditCard, action: () => handleMenuAction(agreement.id, "pay") },
                 ];
 

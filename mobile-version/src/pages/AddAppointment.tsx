@@ -31,6 +31,13 @@ const AddAppointment = ({ mode = "create" }: AddAppointmentProps) => {
   const fromDashboard = searchParams.get("from") === "dashboard";
   const preselectedCustomerId = searchParams.get("customerId");
   const preselectedCustomerName = searchParams.get("customerName");
+  
+  // Check if user is employee
+  const userType = localStorage.getItem("userType") || "merchant";
+  const isEmployee = userType === "employee";
+  const currentEmployeeId = localStorage.getItem("currentEmployeeId") || "1";
+  const currentEmployee = mockEmployees.find(emp => emp.id === currentEmployeeId);
+  
   const [subject, setSubject] = useState("");
   const [employeeId, setEmployeeId] = useState("");
   const [customerId, setCustomerId] = useState("");
@@ -58,7 +65,12 @@ const AddAppointment = ({ mode = "create" }: AddAppointmentProps) => {
       const appointment = mockAppointments.find(apt => apt.id === id);
       if (appointment) {
         setSubject(appointment.service);
-        setEmployeeId(appointment.technicianId);
+        // For employees, lock to their own ID; for merchants, use appointment's technician
+        if (isEmployee && currentEmployeeId) {
+          setEmployeeId(currentEmployeeId);
+        } else {
+          setEmployeeId(appointment.technicianId);
+        }
         setCustomerId(appointment.customerId);
         setCategory(serviceTypes.includes(appointment.service) ? appointment.service : "");
         setEmail(`${appointment.customerName.split(" ").join(".").toLowerCase()}@example.com`);
@@ -77,7 +89,14 @@ const AddAppointment = ({ mode = "create" }: AddAppointmentProps) => {
         setNote(appointment.status === "Pending" ? "Follow up required" : "");
       }
     }
-  }, [mode, id]);
+  }, [mode, id, isEmployee, currentEmployeeId]);
+
+  // Auto-fill employee field for employee login
+  useEffect(() => {
+    if (isEmployee && currentEmployeeId && mode === "create") {
+      setEmployeeId(currentEmployeeId);
+    }
+  }, [isEmployee, currentEmployeeId, mode]);
 
   // Handle pre-selected customer from query params
   useEffect(() => {
@@ -150,18 +169,33 @@ const AddAppointment = ({ mode = "create" }: AddAppointmentProps) => {
                     <span>Employee</span>
                     <span className="text-destructive">*</span>
                   </Label>
-                  <Select value={employeeId} onValueChange={setEmployeeId}>
-                    <SelectTrigger className="h-11 border-gray-300">
-                      <SelectValue placeholder="Choose employee" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {activeEmployees.map(emp => (
-                        <SelectItem key={emp.id} value={emp.id}>
-                          {emp.name} — {emp.role}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {/* Hidden input for employee ID (for form submission) */}
+                  {isEmployee && currentEmployeeId && (
+                    <input type="hidden" name="employeeId" value={currentEmployeeId} />
+                  )}
+                  {/* Employee field - disabled for employees, editable for merchants */}
+                  {isEmployee && currentEmployee ? (
+                    <Input
+                      value={currentEmployee.name}
+                      disabled
+                      readOnly
+                      className="h-11 border-gray-300 bg-gray-50 text-gray-700 cursor-not-allowed"
+                      style={{ backgroundColor: '#f7f7f7', color: '#444', opacity: 1 }}
+                    />
+                  ) : (
+                    <Select value={employeeId} onValueChange={setEmployeeId}>
+                      <SelectTrigger className="h-11 border-gray-300">
+                        <SelectValue placeholder="Choose employee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeEmployees.map(emp => (
+                          <SelectItem key={emp.id} value={emp.id}>
+                            {emp.name} — {emp.role}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                 </div>
 
                 <div className="flex-1 space-y-2 mt-4 sm:mt-0">

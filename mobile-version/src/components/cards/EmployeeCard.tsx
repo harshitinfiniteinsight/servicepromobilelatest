@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
-import { Phone, Mail, Edit, XCircle, RotateCcw } from "lucide-react";
+import { Phone, Mail, Edit, XCircle, RotateCcw, Star } from "lucide-react";
 
 interface EmployeeCardProps {
   employee: {
@@ -16,6 +16,10 @@ interface EmployeeCardProps {
     color?: string;
   };
   variant?: "default" | "deactivated";
+  feedbackSummary?: {
+    averageRating: number;
+    totalFeedbackCount: number;
+  } | null;
   onActivate?: () => void;
   onQuickAction?: (action: string) => void;
   onColorChange?: (color: string) => void;
@@ -40,7 +44,8 @@ const formatEmployeeId = (id: string) => {
 
 const EmployeeCard = ({ 
   employee, 
-  variant = "default", 
+  variant = "default",
+  feedbackSummary,
   onActivate, 
   onQuickAction,
   onColorChange 
@@ -146,8 +151,19 @@ const EmployeeCard = ({
             </PopoverContent>
           </Popover>
 
-          <div className="flex flex-col leading-tight min-w-0">
-            <h3 className="text-sm font-semibold text-gray-900 truncate">{employee.name}</h3>
+          <div className="flex flex-col leading-tight min-w-0 flex-1">
+            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+              <h3 className="text-sm font-semibold text-gray-900">{employee.name}</h3>
+              {/* Feedback Rating - Only for merchant, inline with name */}
+              {feedbackSummary !== undefined && feedbackSummary && feedbackSummary.totalFeedbackCount > 0 && (
+                <div className="flex items-center gap-1 flex-shrink-0">
+                  <Star className="text-[#F28A2E] fill-[#F28A2E]" style={{ width: '14px', height: '14px', minWidth: '14px' }} />
+                  <span className="text-xs text-gray-700 font-medium whitespace-nowrap">
+                    {feedbackSummary.averageRating.toFixed(1)} ({feedbackSummary.totalFeedbackCount})
+                  </span>
+                </div>
+              )}
+            </div>
             <p className="text-xs text-gray-500">{formatEmployeeId(employee.id)}</p>
           </div>
         </div>
@@ -179,6 +195,10 @@ const EmployeeCard = ({
           <Mail className="h-3.5 w-3.5 mr-1.5 text-gray-400 flex-shrink-0" />
           <span className="truncate">{employee.email}</span>
         </p>
+        {/* Show "No feedback yet" if employee has completed jobs but no feedback */}
+        {feedbackSummary === null && (
+          <p className="text-xs text-gray-500 mt-1">No feedback yet</p>
+        )}
       </div>
     </div>
   );

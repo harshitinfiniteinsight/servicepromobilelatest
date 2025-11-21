@@ -95,17 +95,28 @@ const AppointmentDetailsModal = ({
         <DialogHeader className="px-5 pt-5 pb-3 flex flex-row items-center justify-between border-b border-gray-100">
           <DialogTitle className="text-lg font-semibold text-gray-900">Appointment Details</DialogTitle>
           <div className="flex items-center gap-2">
-            <div className="flex items-center gap-2">
-              <Label htmlFor="deactivate-toggle" className="text-xs font-medium text-gray-600 cursor-pointer">
-                Deactivate
-              </Label>
-              <Switch
-                id="deactivate-toggle"
-                checked={isDeactivated}
-                onCheckedChange={setIsDeactivated}
-                disabled
-              />
-            </div>
+            {/* Deactivate toggle - only for merchants, not employees */}
+            {(() => {
+              const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
+              const isEmployee = userType === "employee";
+              
+              if (!isEmployee) {
+                return (
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="deactivate-toggle" className="text-xs font-medium text-gray-600 cursor-pointer">
+                      Deactivate
+                    </Label>
+                    <Switch
+                      id="deactivate-toggle"
+                      checked={isDeactivated}
+                      onCheckedChange={setIsDeactivated}
+                      disabled
+                    />
+                  </div>
+                );
+              }
+              return null;
+            })()}
             <Button
               variant="ghost"
               size="icon"

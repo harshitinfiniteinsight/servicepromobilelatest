@@ -86,14 +86,14 @@ const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvo
       <DialogContent className="!fixed !inset-0 !translate-x-0 !translate-y-0 m-0 flex h-full max-h-full w-full max-w-full flex-col gap-0 rounded-none p-0 sm:!left-1/2 sm:!top-1/2 sm:h-auto sm:max-h-[92vh] sm:w-[720px] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:rounded-3xl [&>button]:hidden">
         <DialogDescription className="sr-only">Preview invoice {invoice.id}</DialogDescription>
 
-        <div className="bg-[#0E5FFF] px-3 py-3 flex items-center justify-between safe-top">
+        <div className="bg-orange-500 px-3 py-3 flex items-center justify-between safe-top">
           <h2 className="text-base font-semibold text-white">Preview Invoice</h2>
           <div className="flex items-center gap-1.5">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => handleAction("print")}
-              className="text-white hover:bg-white/20 h-8 px-2"
+              className="text-white hover:bg-orange-600 h-8 px-2"
             >
               <Printer className="h-3.5 w-3.5 mr-1" />
               <span className="text-xs">Print</span>
@@ -102,17 +102,17 @@ const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvo
               variant="ghost"
               size="icon"
               onClick={onClose}
-              className="text-white hover:bg-white/20 h-9 w-9 rounded-full"
+              className="text-white hover:bg-orange-600 h-9 w-9 rounded-full"
             >
               <X className="h-5 w-5" />
             </Button>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto bg-[#0A1C2F]">
+        <div className="flex-1 overflow-y-auto bg-gray-50">
           <div className="mx-auto w-full max-w-[900px] px-3 py-3">
             <div className="rounded-2xl bg-white shadow-2xl overflow-hidden border border-gray-100">
-              <div className="bg-[#0E5FFF] text-white px-4 py-3 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
+              <div className="bg-orange-500 text-white px-4 py-3 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[10px] uppercase tracking-wide opacity-80">Invoice No.</p>
                   <p className="text-base font-semibold">{invoice.id}</p>
@@ -158,7 +158,7 @@ const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvo
                 <div className="overflow-x-auto -mx-4 px-4">
                   <table className="w-full text-xs border border-[#E0E7FF] table-auto">
                     <thead>
-                      <tr className="bg-[#0E5FFF] text-white">
+                      <tr className="bg-orange-500 text-white">
                         <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-left font-semibold whitespace-nowrap">Date</th>
                         <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-left font-semibold min-w-[80px]">Product/Service</th>
                         <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-left font-semibold hidden sm:table-cell">SKU</th>
@@ -249,7 +249,7 @@ const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvo
                   </p>
                   <p>
                     <span className="font-semibold text-[#0E1E3E]">Terms & Conditions:</span>{" "}
-                    <span className="text-[#0E5FFF]">from global settings</span>
+                    <span className="text-orange-500">from global settings</span>
                   </p>
                   <p>
                     <span className="font-semibold text-[#0E1E3E]">Cancellation & Refund Policy:</span> –
@@ -264,46 +264,35 @@ const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvo
           </div>
         </div>
 
-        <div className="bg-[#0E5FFF] safe-bottom">
+        <div className="bg-orange-500 safe-bottom">
           <div className="px-3 pt-3 pb-4">
-            <div className="grid grid-cols-2 gap-2 w-full">
-              {invoice.status !== "Paid" && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAction("edit")}
-                  className="bg-white/10 border-white/30 text-white hover:bg-white/20 h-9 px-3 py-2 w-full justify-center text-xs rounded-lg"
-                >
-                  <Edit className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                  <span className="whitespace-nowrap">Edit</span>
-                </Button>
-              )}
+            <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 w-full">
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => handleAction("send-email")}
-                className="text-white hover:bg-white/20 h-9 px-3 py-2 w-full justify-start text-xs rounded-lg"
+                className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
               >
-                <Mail className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                <span className="whitespace-nowrap">Send Email</span>
+                <Mail className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                <span className="whitespace-nowrap text-[10px] sm:text-xs">Send Email</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => handleAction("send-sms")}
-                className="text-white hover:bg-white/20 h-9 px-3 py-2 w-full justify-start text-xs rounded-lg"
+                className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
               >
-                <MessageSquare className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                <span className="whitespace-nowrap">Send via SMS</span>
+                <MessageSquare className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                <span className="whitespace-nowrap text-[10px] sm:text-xs">Send SMS</span>
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => handleAction("reassign")}
-                className="text-white hover:bg-white/20 h-9 px-3 py-2 w-full justify-start text-xs rounded-lg"
+                className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
               >
-                <UserCog className="h-3.5 w-3.5 mr-1.5 flex-shrink-0" />
-                <span className="whitespace-nowrap">Reassign</span>
+                <UserCog className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                <span className="whitespace-nowrap text-[10px] sm:text-xs">Reassign</span>
               </Button>
             </div>
           </div>

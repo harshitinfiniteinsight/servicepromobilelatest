@@ -350,43 +350,38 @@ const PreviewEstimateModal = ({ isOpen, onClose, estimate, onAction }: PreviewEs
         </div>
 
         {/* Bottom Action Bar - Sticky Footer */}
-        <div className="bg-orange-600 px-4 py-3 flex items-center gap-2 overflow-x-auto safe-bottom">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleAction("edit")}
-            className="text-white hover:bg-orange-700 flex-shrink-0"
-          >
-            <Edit className="h-4 w-4 mr-1.5" />
-            <span className="text-xs">Edit Estimate</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleAction("send-email")}
-            className="text-white hover:bg-orange-700 flex-shrink-0"
-          >
-            <Mail className="h-4 w-4 mr-1.5" />
-            <span className="text-xs">Send Email</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleAction("send-sms")}
-            className="text-white hover:bg-orange-700 flex-shrink-0"
-          >
-            <MessageSquare className="h-4 w-4 mr-1.5" />
-            <span className="text-xs">Send via SMS</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => handleAction("reassign")}
-            className="text-white hover:bg-orange-700 flex-shrink-0"
-          >
-            <UserCog className="h-4 w-4 mr-1.5" />
-            <span className="text-xs">Reassign Employee</span>
-          </Button>
+        <div className="bg-orange-500 safe-bottom">
+          <div className="px-3 pt-3 pb-4">
+            <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 w-full">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleAction("send-email")}
+                className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
+              >
+                <Mail className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                <span className="whitespace-nowrap text-[10px] sm:text-xs">Send Email</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleAction("send-sms")}
+                className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
+              >
+                <MessageSquare className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                <span className="whitespace-nowrap text-[10px] sm:text-xs">Send SMS</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleAction("reassign")}
+                className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
+              >
+                <UserCog className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                <span className="whitespace-nowrap text-[10px] sm:text-xs">Reassign</span>
+              </Button>
+            </div>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

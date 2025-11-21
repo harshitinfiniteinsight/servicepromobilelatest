@@ -1,18 +1,137 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { mockEmployees } from "@/data/mobileMockData";
+import { mockEmployees, mockJobs } from "@/data/mobileMockData";
 import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
 import EmployeeCard from "@/components/cards/EmployeeCard";
+
+// Type for employee feedback summary
+type EmployeeFeedbackSummary = {
+  averageRating: number;
+  totalFeedbackCount: number;
+};
 
 const Employees = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<"Active" | "Deactivated">("Active");
   const [employeeColors, setEmployeeColors] = useState<Record<string, string>>({});
+  
+  // Check if user is merchant
+  const userRole = localStorage.getItem("userType") || "merchant";
+  const isMerchant = userRole === "merchant";
+  
+  // Initialize demo feedback data if not present (for UI demonstration)
+  const initializeDemoFeedback = () => {
+    const existingData = localStorage.getItem("jobFeedbackStatus");
+    if (!existingData || Object.keys(JSON.parse(existingData || "{}")).length === 0) {
+      // Demo feedback data for completed jobs
+      const demoFeedback: Record<string, { exists: boolean; feedback: { rating: number; comment: string; submittedAt: string } }> = {
+        "JOB-003": { // Chris Davis - Electrical Service
+          exists: true,
+          feedback: {
+            rating: 5,
+            comment: "Excellent service! Very professional and completed the work quickly.",
+            submittedAt: new Date("2024-01-30").toLocaleString(),
+          },
+        },
+        "JOB-006": { // Sarah Martinez - Furnace Inspection
+          exists: true,
+          feedback: {
+            rating: 4,
+            comment: "Good work, but arrived a bit late. Overall satisfied.",
+            submittedAt: new Date("2024-01-29").toLocaleString(),
+          },
+        },
+        "JOB-010": { // Mike Johnson - AC Installation
+          exists: true,
+          feedback: {
+            rating: 5,
+            comment: "Outstanding installation! Clean work and great communication.",
+            submittedAt: new Date("2024-01-28").toLocaleString(),
+          },
+        },
+        "JOB-012": { // Tom Wilson - Leak Repair
+          exists: true,
+          feedback: {
+            rating: 4,
+            comment: "Fixed the leak perfectly. Very knowledgeable technician.",
+            submittedAt: new Date("2024-01-30").toLocaleString(),
+          },
+        },
+        "JOB-015": { // Sarah Martinez - Thermostat Install
+          exists: true,
+          feedback: {
+            rating: 5,
+            comment: "Perfect installation! Everything working great.",
+            submittedAt: new Date("2024-01-27").toLocaleString(),
+          },
+        },
+      };
+      
+      try {
+        localStorage.setItem("jobFeedbackStatus", JSON.stringify(demoFeedback));
+      } catch (error) {
+        console.warn("Failed to save demo feedback to localStorage:", error);
+      }
+    }
+  };
+
+  // Calculate employee feedback summaries from jobs
+  // In a real app, this would come from an API or shared state
+  const employeeFeedbackSummaries = useMemo<Record<string, EmployeeFeedbackSummary | null>>(() => {
+    // Initialize demo feedback on first load
+    initializeDemoFeedback();
+    
+    const summaries: Record<string, EmployeeFeedbackSummary | null> = {};
+    
+    // Get feedback data from localStorage (if available from Jobs page or demo data)
+    const jobFeedbackData = JSON.parse(localStorage.getItem("jobFeedbackStatus") || "{}");
+    
+    // Track completed jobs and feedback by employee name
+    const completedJobsByEmployee: Record<string, number> = {};
+    const feedbackByEmployee: Record<string, number[]> = {};
+    
+    mockJobs.forEach(job => {
+      if (job.technicianName && job.status === "Completed") {
+        // Count completed jobs
+        completedJobsByEmployee[job.technicianName] = (completedJobsByEmployee[job.technicianName] || 0) + 1;
+        
+        // Track feedback ratings
+        const feedback = jobFeedbackData[job.id]?.feedback;
+        if (feedback && feedback.rating) {
+          if (!feedbackByEmployee[job.technicianName]) {
+            feedbackByEmployee[job.technicianName] = [];
+          }
+          feedbackByEmployee[job.technicianName].push(feedback.rating);
+        }
+      }
+    });
+    
+    // Calculate summaries for each employee
+    Object.entries(completedJobsByEmployee).forEach(([employeeName, completedCount]) => {
+      const employee = mockEmployees.find(emp => emp.name === employeeName);
+      if (employee) {
+        const ratings = feedbackByEmployee[employeeName] || [];
+        if (ratings.length > 0) {
+          // Has feedback - calculate average
+          const total = ratings.reduce((sum, rating) => sum + rating, 0);
+          summaries[employee.id] = {
+            averageRating: total / ratings.length,
+            totalFeedbackCount: ratings.length,
+          };
+        } else if (completedCount > 0) {
+          // Has completed jobs but no feedback yet
+          summaries[employee.id] = null;
+        }
+      }
+    });
+    
+    return summaries;
+  }, []);
 
   const isActiveStatus = (status: string) => status === "Active";
   const isDeactivatedStatus = (status: string) => status === "Deactivated" || status === "Inactive";
@@ -126,6 +245,7 @@ const Employees = () => {
                   color: employeeColors[employee.id] || employee.color || "#3B82F6",
                 }}
                 variant={isDeactivatedStatus(employee.status) ? "deactivated" : "default"}
+                feedbackSummary={isMerchant ? employeeFeedbackSummaries[employee.id] : undefined}
                 onActivate={
                   isDeactivatedStatus(employee.status)
                     ? () => handleActivate(employee.id, employee.name)

@@ -220,6 +220,8 @@ const EmployeeDashboard = () => {
                   const subject = (apt as any).subject || (apt as any).service || "";
                   const customer = (apt as any).customer || (apt as any).customerName || "";
                   const time = apt.time;
+                  // Get appointment date - use apt.date if available (real appointments), otherwise use today (demo appointments)
+                  const appointmentDate = (apt as any).date || today;
                   
                   return (
                     <div
@@ -228,7 +230,7 @@ const EmployeeDashboard = () => {
                         "px-3 py-2.5 cursor-pointer transition-colors hover:bg-gray-50 active:bg-gray-100",
                         index !== todaysAppointments.slice(0, 5).length - 1 && "border-b border-gray-100"
                       )}
-                      onClick={() => navigate(`/appointments/manage?appointment=${apt.id}`)}
+                      onClick={() => navigate(`/appointments/manage?view=calendar&tab=day&date=${appointmentDate}`)}
                       style={{ minHeight: '36px', maxHeight: '42px' }}
                     >
                       <div className="flex items-center gap-2 h-full">
@@ -257,7 +259,7 @@ const EmployeeDashboard = () => {
                 {todaysAppointments.length > 5 && (
                   <div className="px-3 py-2 border-t border-gray-100">
                     <button
-                      onClick={() => navigate(`/appointments/manage?date=${today}`)}
+                      onClick={() => navigate(`/appointments/manage?view=calendar&tab=day&date=${today}`)}
                       className="w-full text-center text-xs text-[#EB6A3C] hover:text-[#EB6A3C]/80 font-medium transition-colors"
                     >
                       View More
