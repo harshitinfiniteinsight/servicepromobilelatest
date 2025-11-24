@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockInventory, mockEmployees, mockDiscounts } from "@/data/mobileMockData";
-import { Plus, Minus, Search, Trash2, Edit, Package, AlertTriangle, AlertCircle, UserCog, FileText, Settings, List, Grid3x3, Image as ImageIcon, ShoppingCart } from "lucide-react";
+import { Plus, Search, Trash2, Edit, Package, AlertTriangle, PackageX, FlaskConical, UserCog, FileText, Settings, List, Grid3x3, Image as ImageIcon } from "lucide-react";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import { cn } from "@/lib/utils";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -21,8 +21,7 @@ import AddDiscountModal from "@/components/modals/AddDiscountModal";
 import EditDiscountModal from "@/components/modals/EditDiscountModal";
 import SendCurrentReportModal from "@/components/modals/SendCurrentReportModal";
 import SendStockInOutReportModal from "@/components/modals/SendStockInOutReportModal";
-import CartViewModal from "@/components/modals/CartViewModal";
-import { useCart } from "@/contexts/CartContext";
+import SetLowInventoryAlertModal from "@/components/modals/SetLowInventoryAlertModal";
 import { toast } from "sonner";
 import { showSuccessToast } from "@/utils/toast";
 
@@ -30,14 +29,12 @@ const Inventory = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [searchParams] = useSearchParams();
-  const { getTotalItems, addItem } = useCart();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState("inventory-services");
   const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
     const saved = localStorage.getItem("inventory-view-mode");
     return (saved === "grid" || saved === "list") ? saved : "list";
   });
-  const [cartViewModalOpen, setCartViewModalOpen] = useState(false);
   
   // Get user role
   const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
@@ -89,8 +86,7 @@ const Inventory = () => {
   const [sendStockInOutReportModalOpen, setSendStockInOutReportModalOpen] = useState(false);
   const [lowAlertModalOpen, setLowAlertModalOpen] = useState(false);
   const [selectedItemForAlert, setSelectedItemForAlert] = useState<{ id: string; threshold?: number } | null>(null);
-  // Quantity state for each inventory item
-  const [itemQuantities, setItemQuantities] = useState<Record<string, number>>({});
+  const [setLowInventoryAlertModalOpen, setSetLowInventoryAlertModalOpen] = useState(false);
   const [stockAdjustmentModalOpen, setStockAdjustmentModalOpen] = useState(false);
   const [selectedItemForAdjustment, setSelectedItemForAdjustment] = useState<{ id: string; name: string; sku: string; stock: number } | null>(null);
   const [stockAdjustmentDefaults, setStockAdjustmentDefaults] = useState<{
@@ -120,58 +116,6 @@ const Inventory = () => {
                          item.inventoryId.toLowerCase().includes(search.toLowerCase());
     return matchesSearch;
   });
-
-  // Quantity management functions
-  const getItemQuantity = (itemId: string) => {
-    return itemQuantities[itemId] ?? 1;
-  };
-
-  const updateItemQuantity = (itemId: string, change: number) => {
-    const currentQty = getItemQuantity(itemId);
-    const item = mockInventory.find(i => i.id === itemId);
-    const maxQty = item?.stock ?? 0;
-    const newQty = Math.max(1, Math.min(maxQty, currentQty + change));
-    setItemQuantities(prev => ({
-      ...prev,
-      [itemId]: newQty,
-    }));
-  };
-
-  const handleAddToCart = (item: typeof mockInventory[number]) => {
-    if (item.stock === 0) {
-      toast.error("Item is out of stock");
-      return;
-    }
-    const qty = getItemQuantity(item.id);
-    if (qty > item.stock) {
-      toast.error(`Only ${item.stock} items available in stock`);
-      return;
-    }
-    
-    // Add item directly to cart
-    addItem(
-      {
-        id: item.id,
-        name: item.name,
-        sku: item.sku,
-        price: item.unitPrice || 0,
-        type: item.type,
-      },
-      qty
-    );
-    
-    // Show success toast
-    toast.success("Item added to cart");
-    
-    // Reset quantity to 1 after adding
-    setItemQuantities(prev => ({
-      ...prev,
-      [item.id]: 1,
-    }));
-    
-    // Open the full Cart bottom sheet immediately
-    setCartViewModalOpen(true);
-  };
 
   const handleDeleteAgreementInventory = (id: string) => {
     setAgreementInventory(agreementInventory.filter(item => item.id !== id));
@@ -306,7 +250,16 @@ const Inventory = () => {
             >
               Discount
             </button>
-          ) : undefined
+          ) : (
+            <button
+              onClick={() => {
+                setSetLowInventoryAlertModalOpen(true);
+              }}
+              className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition whitespace-nowrap"
+            >
+              Alert Settings
+            </button>
+          )
         }
       />
       
@@ -474,79 +427,77 @@ const Inventory = () => {
                     <div className="absolute inset-0 flex items-center justify-center">
                       <ImageIcon className="h-8 w-8 text-gray-400" />
                     </div>
-                    {/* Three-dot menu overlay - positioned in top-right of image (Merchant only) */}
-                    {!isEmployee && (
-                      <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
-                        <KebabMenu
-                          items={[
-                            {
-                              label: "Edit Inventory",
-                              icon: Edit,
-                              action: () => navigate(`/inventory/${item.id}/edit`),
+                    {/* Three-dot menu overlay - positioned in top-right of image */}
+                    <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
+                      <KebabMenu
+                        items={[
+                          {
+                            label: "Edit",
+                            icon: Edit,
+                            action: () => navigate(`/inventory/${item.id}/edit`),
+                          },
+                          {
+                            label: "Adjust Stock",
+                            icon: Package,
+                            action: () => {
+                              setSelectedItemForAdjustment({
+                                id: item.id,
+                                name: item.name,
+                                sku: item.sku,
+                                stock: item.stock,
+                              });
+                              setStockAdjustmentModalOpen(true);
                             },
-                            {
-                              label: "Adjust Stock",
-                              icon: Package,
-                              action: () => {
-                                setSelectedItemForAdjustment({
-                                  id: item.id,
-                                  name: item.name,
-                                  sku: item.sku,
-                                  stock: item.stock,
-                                });
-                                setStockAdjustmentModalOpen(true);
-                              },
+                          },
+                          ...(!isEmployee ? [{
+                            label: "Alert",
+                            icon: AlertTriangle,
+                            action: () => {
+                              setSelectedItemForAlert({ id: item.id, threshold: item.lowStockThreshold });
+                              setLowAlertModalOpen(true);
                             },
-                            {
-                              label: "Add Low Inventory Alert",
-                              icon: AlertTriangle,
-                              action: () => {
-                                setSelectedItemForAlert({ id: item.id, threshold: item.lowStockThreshold });
-                                setLowAlertModalOpen(true);
-                              },
+                          }] : []),
+                          {
+                            label: "Damaged Goods",
+                            icon: PackageX,
+                            action: () => {
+                              setSelectedItemForAdjustment({
+                                id: item.id,
+                                name: item.name,
+                                sku: item.sku,
+                                stock: item.stock,
+                              });
+                              setStockAdjustmentDefaults({
+                                transactionType: "stock-out",
+                                adjustmentReason: "Marked as Damaged",
+                                remarks: "Item marked as damaged goods",
+                              });
+                              setStockAdjustmentModalOpen(true);
                             },
-                            {
-                              label: "Add to Damage Goods",
-                              icon: AlertCircle,
-                              action: () => {
-                                setSelectedItemForAdjustment({
-                                  id: item.id,
-                                  name: item.name,
-                                  sku: item.sku,
-                                  stock: item.stock,
-                                });
-                                setStockAdjustmentDefaults({
-                                  transactionType: "stock-out",
-                                  adjustmentReason: "Marked as Damaged",
-                                  remarks: "Item marked as damaged goods",
-                                });
-                                setStockAdjustmentModalOpen(true);
-                              },
+                          },
+                          {
+                            label: "Tester",
+                            icon: FlaskConical,
+                            action: () => {
+                              setSelectedItemForAdjustment({
+                                id: item.id,
+                                name: item.name,
+                                sku: item.sku,
+                                stock: item.stock,
+                              });
+                              setStockAdjustmentDefaults({
+                                transactionType: "stock-out",
+                                adjustmentReason: "Marked as Demo Units",
+                                remarks: "Item marked as tester/demo unit",
+                              });
+                              setStockAdjustmentModalOpen(true);
                             },
-                            {
-                              label: "Add to Tester Item",
-                              icon: AlertCircle,
-                              action: () => {
-                                setSelectedItemForAdjustment({
-                                  id: item.id,
-                                  name: item.name,
-                                  sku: item.sku,
-                                  stock: item.stock,
-                                });
-                                setStockAdjustmentDefaults({
-                                  transactionType: "stock-out",
-                                  adjustmentReason: "Marked as Demo Units",
-                                  remarks: "Item marked as tester/demo unit",
-                                });
-                                setStockAdjustmentModalOpen(true);
-                              },
-                            },
-                          ]}
-                          menuWidth="w-48"
-                          triggerClassName="bg-white/90 hover:bg-white shadow-sm"
-                        />
-                      </div>
-                    )}
+                          },
+                        ]}
+                        menuWidth="w-48"
+                        triggerClassName="bg-white/90 hover:bg-white shadow-sm"
+                      />
+                    </div>
                   </div>
 
                   {/* Content Section */}
@@ -580,59 +531,6 @@ const Inventory = () => {
                         )}
                       </div>
                     </div>
-
-                    {/* Quantity Counter and Add to Cart - Compact Row */}
-                    {item.stock > 0 && (
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-md px-1.5 py-0.5 shadow-sm">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateItemQuantity(item.id, -1);
-                            }}
-                            disabled={getItemQuantity(item.id) <= 1}
-                            className="h-5 w-5 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <Minus className="h-2.5 w-2.5" />
-                          </Button>
-                          <span className="text-xs font-semibold min-w-[1.25rem] text-center text-gray-900">
-                            {getItemQuantity(item.id)}
-                          </span>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="sm"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateItemQuantity(item.id, 1);
-                            }}
-                            disabled={getItemQuantity(item.id) >= item.stock}
-                            className="h-5 w-5 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          >
-                            <Plus className="h-2.5 w-2.5" />
-                          </Button>
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleAddToCart(item);
-                          }}
-                          disabled={item.stock === 0}
-                          className={cn(
-                            "flex-1 flex items-center justify-center gap-1 py-1.5 px-2 border rounded-lg text-[10px] font-semibold shadow-sm hover:shadow-md transition-all duration-200",
-                            item.stock === 0
-                              ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                              : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
-                          )}
-                        >
-                          <ShoppingCart className="h-3 w-3" />
-                          <span>Add</span>
-                        </button>
-                      </div>
-                    )}
                   </div>
                 </div>
               );
@@ -680,114 +578,77 @@ const Inventory = () => {
                     </p>
                   </div>
                   
-                  {/* Quick Action Menu (Merchant only) */}
-                  {!isEmployee && (
-                    <div onClick={(e) => e.stopPropagation()}>
-                      <KebabMenu
-                        items={[
-                          {
-                            label: "Add Low Inventory Alert",
-                            icon: AlertTriangle,
-                            action: () => {
-                              setSelectedItemForAlert({ id: item.id, threshold: item.lowStockThreshold });
-                              setLowAlertModalOpen(true);
-                            },
+                  {/* Quick Action Menu */}
+                  <div onClick={(e) => e.stopPropagation()}>
+                    <KebabMenu
+                      items={[
+                        {
+                          label: "Edit",
+                          icon: Edit,
+                          action: () => navigate(`/inventory/${item.id}/edit`),
+                        },
+                        {
+                          label: "Adjust Stock",
+                          icon: Package,
+                          action: () => {
+                            setSelectedItemForAdjustment({
+                              id: item.id,
+                              name: item.name,
+                              sku: item.sku,
+                              stock: item.stock,
+                            });
+                            setStockAdjustmentModalOpen(true);
                           },
-                          {
-                            label: "Add to Damage Goods",
-                            icon: AlertCircle,
-                            action: () => {
-                              setSelectedItemForAdjustment({
-                                id: item.id,
-                                name: item.name,
-                                sku: item.sku,
-                                stock: item.stock,
-                              });
-                              setStockAdjustmentDefaults({
-                                transactionType: "stock-out",
-                                adjustmentReason: "Marked as Damaged",
-                                remarks: "Item marked as damaged goods",
-                              });
-                              setStockAdjustmentModalOpen(true);
-                            },
+                        },
+                        ...(!isEmployee ? [{
+                          label: "Alert",
+                          icon: AlertTriangle,
+                          action: () => {
+                            setSelectedItemForAlert({ id: item.id, threshold: item.lowStockThreshold });
+                            setLowAlertModalOpen(true);
                           },
-                          {
-                            label: "Add to Tester Item",
-                            icon: AlertCircle,
-                            action: () => {
-                              setSelectedItemForAdjustment({
-                                id: item.id,
-                                name: item.name,
-                                sku: item.sku,
-                                stock: item.stock,
-                              });
-                              setStockAdjustmentDefaults({
-                                transactionType: "stock-out",
-                                adjustmentReason: "Marked as Demo Units",
-                                remarks: "Item marked as tester/demo unit",
-                              });
-                              setStockAdjustmentModalOpen(true);
-                            },
+                        }] : []),
+                        {
+                          label: "Damaged Goods",
+                          icon: PackageX,
+                          action: () => {
+                            setSelectedItemForAdjustment({
+                              id: item.id,
+                              name: item.name,
+                              sku: item.sku,
+                              stock: item.stock,
+                            });
+                            setStockAdjustmentDefaults({
+                              transactionType: "stock-out",
+                              adjustmentReason: "Marked as Damaged",
+                              remarks: "Item marked as damaged goods",
+                            });
+                            setStockAdjustmentModalOpen(true);
                           },
-                        ]}
-                        menuWidth="w-48"
-                      />
-                    </div>
-                  )}
-                </div>
-                
-                {/* Quantity Counter and Add to Cart - Compact Row */}
-                {item.stock > 0 && (
-                  <div className="flex items-center gap-1.5">
-                    <div className="flex items-center gap-1 bg-gray-50 border border-gray-200 rounded-md px-1.5 py-0.5 shadow-sm">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateItemQuantity(item.id, -1);
-                        }}
-                        disabled={getItemQuantity(item.id) <= 1}
-                        className="h-5 w-5 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <Minus className="h-2.5 w-2.5" />
-                      </Button>
-                      <span className="text-xs font-semibold min-w-[1.25rem] text-center text-gray-900">
-                        {getItemQuantity(item.id)}
-                      </span>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateItemQuantity(item.id, 1);
-                        }}
-                        disabled={getItemQuantity(item.id) >= item.stock}
-                        className="h-5 w-5 p-0 hover:bg-orange-100 hover:text-orange-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                      >
-                        <Plus className="h-2.5 w-2.5" />
-                      </Button>
-                    </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddToCart(item);
-                      }}
-                      disabled={item.stock === 0}
-                      className={cn(
-                        "flex-1 flex items-center justify-center gap-1 py-1.5 px-2 border rounded-lg text-[10px] font-semibold shadow-sm hover:shadow-md transition-all duration-200",
-                        item.stock === 0
-                          ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
-                          : "bg-orange-50 hover:bg-orange-100 border-orange-200 text-orange-700"
-                      )}
-                    >
-                      <ShoppingCart className="h-3 w-3" />
-                      <span>Add</span>
-                    </button>
+                        },
+                        {
+                          label: "Tester",
+                          icon: FlaskConical,
+                          action: () => {
+                            setSelectedItemForAdjustment({
+                              id: item.id,
+                              name: item.name,
+                              sku: item.sku,
+                              stock: item.stock,
+                            });
+                            setStockAdjustmentDefaults({
+                              transactionType: "stock-out",
+                              adjustmentReason: "Marked as Demo Units",
+                              remarks: "Item marked as tester/demo unit",
+                            });
+                            setStockAdjustmentModalOpen(true);
+                          },
+                        },
+                      ]}
+                      menuWidth="w-48"
+                    />
                   </div>
-                )}
+                </div>
               </div>
             );
           })}
@@ -1181,17 +1042,18 @@ const Inventory = () => {
         }}
       />
 
-      {/* Cart View Modal */}
-      <CartViewModal
-        isOpen={cartViewModalOpen}
-        onClose={() => setCartViewModalOpen(false)}
-        onShopMore={() => {
-          // Ensure we're on inventory-services tab with grid view
-          setActiveTab("inventory-services");
-          setViewMode("grid");
-          localStorage.setItem("inventory-view-mode", "grid");
+      {/* Set Low Inventory Alert Modal */}
+      <SetLowInventoryAlertModal
+        isOpen={setLowInventoryAlertModalOpen}
+        onClose={() => setSetLowInventoryAlertModalOpen(false)}
+        onSave={(settings) => {
+          // In a real app, this would call an API to save alert settings
+          console.info("Saving alert settings:", settings);
+          toast.success("Alert settings saved successfully");
+          setSetLowInventoryAlertModalOpen(false);
         }}
       />
+
     </div>
   );
 };

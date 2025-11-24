@@ -1,4 +1,4 @@
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { FileText, TrendingUp, ClipboardList, ShoppingCart, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,20 +17,8 @@ const salesOptions = [
 const SalesSubmenu = ({ isOpen, onClose }: SalesSubmenuProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [searchParams] = useSearchParams();
 
   const handleOptionClick = (path: string) => {
-    // Special handling for "Sell Product" - navigate to Inventory with grid view
-    if (path === "/sales/sell-product") {
-      // Set grid view in localStorage before navigation
-      localStorage.setItem("inventory-view-mode", "grid");
-      // Close modal first for smooth transition
-      onClose();
-      // Navigate to inventory with mode=sell query parameter
-      navigate("/inventory?mode=sell");
-      return;
-    }
-    
     navigate(path);
     onClose();
   };
@@ -63,10 +51,7 @@ const SalesSubmenu = ({ isOpen, onClose }: SalesSubmenuProps) => {
           <div className="p-2">
             {salesOptions.map((option) => {
               const Icon = option.icon;
-              // Special handling for "Sell Product" - check if on inventory with mode=sell
-              const isActive = option.path === "/sales/sell-product"
-                ? location.pathname === "/inventory" && searchParams.get("mode") === "sell"
-                : location.pathname.startsWith(option.path);
+              const isActive = location.pathname.startsWith(option.path);
               
               return (
                 <button

@@ -68,7 +68,7 @@ const Settings = () => {
         { label: "Invoices", route: "/invoices", icon: FileText },
         { label: "Estimates", route: "/estimates", icon: TrendingUp },
         { label: "Agreements", route: "/agreements", icon: ClipboardList },
-        { label: "Sell Product", route: "/inventory?mode=sell", icon: ShoppingCart },
+        { label: "Sell Product", route: "/sales/sell-product", icon: ShoppingCart },
       ],
     },
     {
@@ -104,7 +104,7 @@ const Settings = () => {
       submenus: [
         { label: "Employee List", route: "/employees", icon: Users },
         { label: "Schedule", route: "/employees/schedule", icon: Calendar },
-        { label: "Employee Tracking", route: "/employees/tracking", icon: BarChart3 },
+        { label: "Job Route", route: "/employees/tracking", icon: BarChart3 },
       ],
     },
     {
@@ -163,14 +163,14 @@ const Settings = () => {
         };
       }
       
-      // Filter Employees submenu for employees - only show Schedule and Employee Tracking
+      // Filter Employees submenu for employees - only show Schedule and Job Route
       if (isEmployee && item.id === "employees" && item.hasSubmenu) {
         return {
           ...item,
           submenus: item.submenus?.filter(submenu => {
             const allowedLabels = [
               "Schedule",
-              "Employee Tracking"
+              "Job Route"
             ];
             return allowedLabels.includes(submenu.label);
           }) || []

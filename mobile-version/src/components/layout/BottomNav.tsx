@@ -1,10 +1,9 @@
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Home, DollarSign, Calendar, Users, MoreHorizontal, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useEffect, useRef, useMemo } from "react";
 import SalesSubmenu from "./SalesSubmenu";
 import { useCart } from "@/contexts/CartContext";
-import CartViewModal from "@/components/modals/CartViewModal";
 
 type NavItem = {
   title: string;
@@ -34,10 +33,8 @@ const employeeNavItems: NavItem[] = [
 const BottomNav = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const { getTotalItems } = useCart();
   const [salesSubmenuOpen, setSalesSubmenuOpen] = useState(false);
-  const [cartViewModalOpen, setCartViewModalOpen] = useState(false);
   const previousPathRef = useRef(location.pathname);
   const isOpeningSubmenuRef = useRef(false);
 
@@ -50,11 +47,10 @@ const BottomNav = () => {
 
   // Close Sales submenu when navigating away from Sales routes
   useEffect(() => {
-    const isInventorySellMode = location.pathname === "/inventory" && searchParams.get("mode") === "sell";
     const isSalesRoute = location.pathname.startsWith("/invoices") || 
                          location.pathname.startsWith("/estimates") || 
                          location.pathname.startsWith("/agreements") ||
-                         isInventorySellMode;
+                         location.pathname.startsWith("/sales/sell-product");
     
     const routeChanged = previousPathRef.current !== location.pathname;
     
@@ -74,7 +70,7 @@ const BottomNav = () => {
     
     // Update previous path
     previousPathRef.current = location.pathname;
-  }, [location.pathname, searchParams, salesSubmenuOpen]);
+  }, [location.pathname, salesSubmenuOpen]);
 
   // Reset opening flag after submenu state changes
   useEffect(() => {
@@ -109,12 +105,11 @@ const BottomNav = () => {
     }
     if (hasSubmenu) {
       // Highlight Sales tab if submenu is open OR if on a sales submenu route
-      const isInventorySellMode = location.pathname === "/inventory" && searchParams.get("mode") === "sell";
       return salesSubmenuOpen ||
              location.pathname.startsWith("/invoices") || 
              location.pathname.startsWith("/estimates") || 
              location.pathname.startsWith("/agreements") ||
-             isInventorySellMode;
+             location.pathname.startsWith("/sales/sell-product");
     }
     return location.pathname.startsWith(path);
   };
@@ -122,11 +117,6 @@ const BottomNav = () => {
   const handleItemClick = (item: NavItem, e: React.MouseEvent) => {
     if (item.hasSubmenu) {
       e.preventDefault();
-      // If cart has items and Sales tab is clicked, open cart instead of submenu
-      if (getTotalItems() > 0 && !salesSubmenuOpen) {
-        setCartViewModalOpen(true);
-        return;
-      }
       // Set flag to prevent useEffect from closing it immediately
       isOpeningSubmenuRef.current = true;
       // Toggle submenu: if already open, close it; otherwise open it
@@ -183,7 +173,6 @@ const BottomNav = () => {
         </div>
       </nav>
       <SalesSubmenu isOpen={salesSubmenuOpen} onClose={() => setSalesSubmenuOpen(false)} />
-      <CartViewModal isOpen={cartViewModalOpen} onClose={() => setCartViewModalOpen(false)} />
     </>
   );
 };

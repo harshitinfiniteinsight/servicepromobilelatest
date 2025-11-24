@@ -11,7 +11,7 @@ const FloatingCartButton = () => {
   
   const totalItems = getTotalItems();
   
-  // Hide on checkout/payment screens
+  // Show on all pages when cart has items, except checkout/payment screens
   const isCheckoutPage = location.pathname.startsWith("/checkout");
   const shouldShow = totalItems > 0 && !isCheckoutPage;
   

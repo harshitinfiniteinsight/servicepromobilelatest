@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Edit, Eye, Share2, FileText, MessageSquare } from "lucide-react";
+import { Calendar, Edit, Eye, Share2, FileText, MessageSquare, UserCog } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
@@ -28,6 +28,7 @@ interface JobCardProps {
   onViewFeedback?: () => void;
   onQuickAction?: (action: string) => void;
   onPreview?: (documentId: string, jobType: "Agreement" | "Estimate" | "Invoice") => void;
+  onReassignEmployee?: () => void;
 }
 
 const JobCard = ({ 
@@ -43,7 +44,8 @@ const JobCard = ({
   onSendFeedbackForm,
   onViewFeedback,
   onQuickAction,
-  onPreview
+  onPreview,
+  onReassignEmployee
 }: JobCardProps) => {
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
 
@@ -88,6 +90,8 @@ const JobCard = ({
       return "bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200";
     } else if (status === "Completed") {
       return "bg-green-100 text-green-700 border-green-200 hover:bg-green-200";
+    } else if (status === "Cancelled") {
+      return "bg-red-100 text-red-700 border-red-200 hover:bg-red-200";
     }
     return statusColors[status] || "bg-gray-100 text-gray-700 border-gray-200";
   };
@@ -136,6 +140,16 @@ const JobCard = ({
         label: "Edit",
         icon: Edit,
         action: () => onQuickAction("edit"),
+        separator: false,
+      });
+    }
+    
+    // Reassign Employee - only for merchant, only when status is Scheduled
+    if (!isEmployee && job.status === "Scheduled" && onReassignEmployee) {
+      items.push({
+        label: "Reassign Employee",
+        icon: UserCog,
+        action: () => onReassignEmployee(),
         separator: false,
       });
     }
@@ -212,6 +226,7 @@ const JobCard = ({
                   <SelectItem value="Scheduled" className="text-xs">Scheduled</SelectItem>
                   <SelectItem value="In Progress" className="text-xs">In Progress</SelectItem>
                   <SelectItem value="Completed" className="text-xs">Completed</SelectItem>
+                  <SelectItem value="Cancelled" className="text-xs">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
             </div>

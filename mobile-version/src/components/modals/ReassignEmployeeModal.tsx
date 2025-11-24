@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -12,6 +12,7 @@ interface ReassignEmployeeModalProps {
   onClose: () => void;
   currentEmployeeId?: string;
   estimateId?: string;
+  onSave?: (employeeId: string) => void;
 }
 
 const ReassignEmployeeModal = ({
@@ -19,6 +20,7 @@ const ReassignEmployeeModal = ({
   onClose,
   currentEmployeeId,
   estimateId,
+  onSave,
 }: ReassignEmployeeModalProps) => {
   const [selectedEmployee, setSelectedEmployee] = useState<string>("");
 
@@ -34,10 +36,15 @@ const ReassignEmployeeModal = ({
       return;
     }
 
-    const employee = mockEmployees.find(emp => emp.id === selectedEmployee);
-    if (employee) {
-      toast.success(`Employee reassigned to ${employee.name}`);
-      onClose();
+    if (onSave) {
+      onSave(selectedEmployee);
+    } else {
+      // Fallback behavior if onSave not provided
+      const employee = mockEmployees.find(emp => emp.id === selectedEmployee);
+      if (employee) {
+        toast.success(`Employee reassigned to ${employee.name}`);
+        onClose();
+      }
     }
   };
 
@@ -46,6 +53,7 @@ const ReassignEmployeeModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden [&>button]:hidden">
+        <DialogTitle className="sr-only">Reassign Employee</DialogTitle>
         <DialogDescription className="sr-only">
           Reassign employee for estimate {estimateId}
         </DialogDescription>

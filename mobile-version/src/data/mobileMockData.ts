@@ -494,6 +494,7 @@ export const statusColors: Record<string, string> = {
   Scheduled: "bg-primary/10 text-primary border-primary/20",
   "In Progress": "bg-warning/10 text-warning border-warning/20",
   Completed: "bg-success/10 text-success border-success/20",
+  Cancelled: "bg-destructive/10 text-destructive border-destructive/20",
   Confirmed: "bg-success/10 text-success border-success/20",
   Pending: "bg-warning/10 text-warning border-warning/20",
   "Expiring Soon": "bg-warning/10 text-warning border-warning/20",

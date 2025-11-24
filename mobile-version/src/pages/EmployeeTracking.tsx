@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { mockJobs, mockEmployees } from "@/data/mobileMockData";
-import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon, XCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
@@ -292,7 +292,7 @@ const EmployeeTracking = () => {
     
     return filteredJobs.map((job) => ({
       ...job,
-      status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed",
+      status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed" | "Cancelled",
     }));
   }, [currentEmployeeId, jobStatuses, isEmployee, selectedDate, employeeSelectedDate, activeTab]);
 
@@ -358,8 +358,8 @@ const EmployeeTracking = () => {
         } else {
           // Default sort for this employee's jobs
           const sorted = empJobs.sort((a, b) => {
-            const aCompleted = a.status === "Completed";
-            const bCompleted = b.status === "Completed";
+            const aCompleted = a.status === "Completed" || a.status === "Cancelled";
+            const bCompleted = b.status === "Completed" || b.status === "Cancelled";
             if (aCompleted !== bCompleted) {
               return aCompleted ? 1 : -1;
             }
@@ -384,8 +384,8 @@ const EmployeeTracking = () => {
         
         // Sort unordered jobs by default logic
         const sortedUnordered = unordered.sort((a, b) => {
-          const aCompleted = a.status === "Completed";
-          const bCompleted = b.status === "Completed";
+          const aCompleted = a.status === "Completed" || a.status === "Cancelled";
+          const bCompleted = b.status === "Completed" || b.status === "Cancelled";
           if (aCompleted !== bCompleted) {
             return aCompleted ? 1 : -1;
           }
@@ -399,8 +399,8 @@ const EmployeeTracking = () => {
       } else {
         // Default sort
         jobs = jobs.sort((a, b) => {
-          const aCompleted = a.status === "Completed";
-          const bCompleted = b.status === "Completed";
+          const aCompleted = a.status === "Completed" || a.status === "Cancelled";
+          const bCompleted = b.status === "Completed" || b.status === "Cancelled";
           if (aCompleted !== bCompleted) {
             return aCompleted ? 1 : -1;
           }
@@ -422,7 +422,7 @@ const EmployeeTracking = () => {
     let closestDiff = Infinity;
 
     sortedJobs.forEach((job, index) => {
-      if (job.status === "Completed") return;
+      if (job.status === "Completed" || job.status === "Cancelled") return;
       
       const jobTime = timeToMinutes(job.time);
       const diff = Math.abs(jobTime - currentTime);
@@ -472,7 +472,7 @@ const EmployeeTracking = () => {
     let closestDiff = Infinity;
 
     jobs.forEach((job, index) => {
-      if (job.status === "Completed") return;
+      if (job.status === "Completed" || job.status === "Cancelled") return;
       
       const jobTime = timeToMinutes(job.time);
       const diff = Math.abs(jobTime - currentTime);
@@ -552,6 +552,8 @@ const EmployeeTracking = () => {
         return "bg-orange-100 text-orange-700 border-orange-200";
       case "Scheduled":
         return "bg-gray-100 text-gray-700 border-gray-200";
+      case "Cancelled":
+        return "bg-red-100 text-red-700 border-red-200";
       default:
         return "bg-gray-100 text-gray-700 border-gray-200";
     }
@@ -579,6 +581,8 @@ const EmployeeTracking = () => {
         return <Circle className="h-4 w-4 text-orange-600 fill-orange-600" />;
       case "Scheduled":
         return <Circle className="h-4 w-4 text-gray-400" />;
+      case "Cancelled":
+        return <XCircle className="h-4 w-4 text-red-600" />;
       default:
         return <Circle className="h-4 w-4 text-gray-400" />;
     }
@@ -688,7 +692,7 @@ const EmployeeTracking = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
       <MobileHeader 
-        title="Employee Tracking" 
+        title="Job Route" 
         showBack={true}
         actions={
           !isEmployee && (
@@ -1011,12 +1015,61 @@ const EmployeeTracking = () => {
                                     </Badge>
                                   )}
                                 </div>
-                                <Badge className={cn(
-                                  "text-[10px] px-2 py-0.5 shrink-0",
-                                  getStatusBadge(job.status)
-                                )}>
-                                  {job.status}
-                                </Badge>
+                                {/* Status Dropdown - Schedule Route tab for employees */}
+                                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                                  <Select
+                                    value={job.status}
+                                    onValueChange={(value) => handleStatusChange(job.id, value)}
+                                  >
+                                    <SelectTrigger
+                                      className={cn(
+                                        "h-auto py-0.5 px-2 text-[10px] font-medium border rounded-full shrink-0 w-auto min-w-[70px] max-w-[100px]",
+                                        "focus:ring-1 focus:ring-offset-0 focus:ring-orange-500",
+                                        getStatusBadge(job.status),
+                                        "hover:opacity-90 active:opacity-80 transition-opacity cursor-pointer"
+                                      )}
+                                    >
+                                      <SelectValue>
+                                        <span className="flex items-center gap-1 whitespace-nowrap">
+                                          <span className="truncate">{job.status}</span>
+                                          <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                                        </span>
+                                      </SelectValue>
+                                    </SelectTrigger>
+                                    <SelectContent 
+                                      className="z-[9999] min-w-[160px] rounded-lg shadow-lg" 
+                                      position="popper" 
+                                      sideOffset={4}
+                                      align="end"
+                                      side="bottom"
+                                    >
+                                      <SelectItem value="Scheduled" className="text-xs py-2 cursor-pointer">
+                                        <span className="flex items-center gap-2">
+                                          <Circle className="h-3 w-3 text-gray-400" />
+                                          Scheduled
+                                        </span>
+                                      </SelectItem>
+                                      <SelectItem value="In Progress" className="text-xs py-2 cursor-pointer">
+                                        <span className="flex items-center gap-2">
+                                          <Circle className="h-3 w-3 text-orange-600 fill-orange-600" />
+                                          In Progress
+                                        </span>
+                                      </SelectItem>
+                                      <SelectItem value="Completed" className="text-xs py-2 cursor-pointer">
+                                        <span className="flex items-center gap-2">
+                                          <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                          Completed
+                                        </span>
+                                      </SelectItem>
+                                      <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                                        <span className="flex items-center gap-2">
+                                          <XCircle className="h-3 w-3 text-red-600" />
+                                          Cancelled
+                                        </span>
+                                      </SelectItem>
+                                    </SelectContent>
+                                  </Select>
+                                </div>
                               </div>
                               
                               <p className="text-sm text-gray-700 mb-1.5 font-medium">{job.title}</p>
@@ -1168,12 +1221,61 @@ const EmployeeTracking = () => {
                                                   </Badge>
                                                 )}
                                               </div>
-                                              <Badge className={cn(
-                                                "text-[10px] px-2 py-0.5 shrink-0",
-                                                getStatusBadge(job.status)
-                                              )}>
-                                                {job.status}
-                                              </Badge>
+                                              {/* Status Dropdown - Schedule Route tab for merchants */}
+                                              <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                                                <Select
+                                                  value={job.status}
+                                                  onValueChange={(value) => handleStatusChange(job.id, value)}
+                                                >
+                                                  <SelectTrigger
+                                                    className={cn(
+                                                      "h-auto py-0.5 px-2 text-[10px] font-medium border rounded-full shrink-0 w-auto min-w-[70px] max-w-[100px]",
+                                                      "focus:ring-1 focus:ring-offset-0 focus:ring-orange-500",
+                                                      getStatusBadge(job.status),
+                                                      "hover:opacity-90 active:opacity-80 transition-opacity cursor-pointer"
+                                                    )}
+                                                  >
+                                                    <SelectValue>
+                                                      <span className="flex items-center gap-1 whitespace-nowrap">
+                                                        <span className="truncate">{job.status}</span>
+                                                        <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
+                                                      </span>
+                                                    </SelectValue>
+                                                  </SelectTrigger>
+                                                  <SelectContent 
+                                                    className="z-[9999] min-w-[160px] rounded-lg shadow-lg" 
+                                                    position="popper" 
+                                                    sideOffset={4}
+                                                    align="end"
+                                                    side="bottom"
+                                                  >
+                                                    <SelectItem value="Scheduled" className="text-xs py-2 cursor-pointer">
+                                                      <span className="flex items-center gap-2">
+                                                        <Circle className="h-3 w-3 text-gray-400" />
+                                                        Scheduled
+                                                      </span>
+                                                    </SelectItem>
+                                                    <SelectItem value="In Progress" className="text-xs py-2 cursor-pointer">
+                                                      <span className="flex items-center gap-2">
+                                                        <Circle className="h-3 w-3 text-orange-600 fill-orange-600" />
+                                                        In Progress
+                                                      </span>
+                                                    </SelectItem>
+                                                    <SelectItem value="Completed" className="text-xs py-2 cursor-pointer">
+                                                      <span className="flex items-center gap-2">
+                                                        <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                                        Completed
+                                                      </span>
+                                                    </SelectItem>
+                                                    <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                                                      <span className="flex items-center gap-2">
+                                                        <XCircle className="h-3 w-3 text-red-600" />
+                                                        Cancelled
+                                                      </span>
+                                                    </SelectItem>
+                                                  </SelectContent>
+                                                </Select>
+                                              </div>
                                             </div>
                                             
                                             <p className="text-sm text-gray-700 mb-1.5 font-medium">{job.title}</p>
@@ -1481,6 +1583,12 @@ const EmployeeTracking = () => {
                                         Completed
                                       </span>
                                     </SelectItem>
+                                    <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                                      <span className="flex items-center gap-2">
+                                        <XCircle className="h-3 w-3 text-red-600" />
+                                        Cancelled
+                                      </span>
+                                    </SelectItem>
                                   </SelectContent>
                                 </Select>
                               </div>
@@ -1636,6 +1744,12 @@ const EmployeeTracking = () => {
                                               <span className="flex items-center gap-2">
                                                 <CheckCircle2 className="h-3 w-3 text-green-600" />
                                                 Completed
+                                              </span>
+                                            </SelectItem>
+                                            <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                                              <span className="flex items-center gap-2">
+                                                <XCircle className="h-3 w-3 text-red-600" />
+                                                Cancelled
                                               </span>
                                             </SelectItem>
                                           </SelectContent>

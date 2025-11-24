@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import JobCard from "@/components/cards/JobCard";
@@ -7,7 +7,7 @@ import { mockJobs, mockCustomers, mockEmployees, mockEstimates, mockInvoices, mo
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Briefcase, Calendar as CalendarIcon } from "lucide-react";
+import { Search, Briefcase, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import SendFeedbackFormModal from "@/components/modals/SendFeedbackFormModal";
@@ -17,6 +17,7 @@ import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import PreviewAgreementModal from "@/components/modals/PreviewAgreementModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
+import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -43,6 +44,7 @@ const Jobs = () => {
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [jobTypeFilter, setJobTypeFilter] = useState("all");
   const [employeeFilter, setEmployeeFilter] = useState("all");
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState("all");
   
   // Check if user is employee
   const userRole = localStorage.getItem("userType") || "merchant";
@@ -150,6 +152,44 @@ const Jobs = () => {
   const [previewInvoice, setPreviewInvoice] = useState<any>(null);
   const [previewAgreement, setPreviewAgreement] = useState<any>(null);
   
+  // Reassign employee modal state
+  const [showReassignEmployeeModal, setShowReassignEmployeeModal] = useState(false);
+  const [selectedJobForReassign, setSelectedJobForReassign] = useState<typeof jobs[0] | null>(null);
+  
+  // Metrics carousel state
+  const [metricsGroupIndex, setMetricsGroupIndex] = useState(0);
+  const metricsCarouselRef = useRef<HTMLDivElement>(null);
+  
+  // Total groups: Group 1 (Scheduled, In Progress, Completed), Group 2 (Cancelled, Feedback Received)
+  const totalGroups = 2;
+  
+  // Handle carousel navigation
+  const handlePreviousGroup = () => {
+    if (metricsGroupIndex > 0) {
+      setMetricsGroupIndex(metricsGroupIndex - 1);
+    }
+  };
+  
+  const handleNextGroup = () => {
+    if (metricsGroupIndex < totalGroups - 1) {
+      setMetricsGroupIndex(metricsGroupIndex + 1);
+    }
+  };
+  
+  // Scroll carousel when group index changes
+  useEffect(() => {
+    if (metricsCarouselRef.current) {
+      const container = metricsCarouselRef.current;
+      // Each group is exactly the container's visible width (100% width)
+      // Scroll by the container's clientWidth (visible width without scrollbar)
+      const scrollAmount = metricsGroupIndex * container.clientWidth;
+      container.scrollTo({
+        left: scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  }, [metricsGroupIndex]);
+  
   // Get unique employees from jobs
   const availableEmployees = useMemo(() => {
     const employeeSet = new Set<string>();
@@ -173,6 +213,8 @@ const Jobs = () => {
         matchesStatus = job.status === "In Progress";
       } else if (statusFilter === "feedbackreceived") {
         matchesStatus = job.status === "Feedback Received";
+      } else if (statusFilter === "cancelled") {
+        matchesStatus = job.status === "Cancelled";
       } else {
         matchesStatus = job.status.toLowerCase() === statusFilter.toLowerCase();
       }
@@ -215,7 +257,50 @@ const Jobs = () => {
       matchesEmployee = job.technicianName === employeeFilter;
     }
     
-    return matchesSearch && matchesStatus && matchesDateRange && matchesJobType && matchesEmployee;
+    // Payment status filtering
+    let matchesPaymentStatus = true;
+    if (paymentStatusFilter !== "all") {
+      const id = job.id.toUpperCase();
+      let paymentStatus: "Paid" | "Open" | undefined = undefined;
+      
+      // Check invoice status
+      if (id.startsWith("INV")) {
+        const invoice = mockInvoices.find(inv => inv.id === job.id);
+        if (invoice) {
+          paymentStatus = invoice.status === "Paid" ? "Paid" : "Open";
+        }
+      }
+      // Check estimate status
+      else if (id.startsWith("EST")) {
+        const estimate = mockEstimates.find(est => est.id === job.id);
+        if (estimate) {
+          paymentStatus = estimate.status === "Paid" ? "Paid" : "Open";
+        }
+      }
+      // Check agreement status
+      else if (id.startsWith("AGR") || id.includes("AGR")) {
+        const agreement = mockAgreements.find(agr => agr.id === job.id);
+        if (agreement) {
+          paymentStatus = agreement.status === "Paid" ? "Paid" : "Open";
+        }
+      }
+      // For generic JOB-XXX IDs, use job status
+      else {
+        if (job.status === "Completed" || job.status === "Feedback Received") {
+          paymentStatus = "Paid";
+        } else {
+          paymentStatus = "Open";
+        }
+      }
+      
+      if (paymentStatusFilter === "open") {
+        matchesPaymentStatus = paymentStatus === "Open";
+      } else if (paymentStatusFilter === "paid") {
+        matchesPaymentStatus = paymentStatus === "Paid";
+      }
+    }
+    
+    return matchesSearch && matchesStatus && matchesDateRange && matchesJobType && matchesEmployee && matchesPaymentStatus;
   });
   
   // Clear all filters
@@ -224,6 +309,7 @@ const Jobs = () => {
     setJobTypeFilter("all");
     setEmployeeFilter("all");
     setStatusFilter("all");
+    setPaymentStatusFilter("all");
   };
 
   // Handle date range selection with proper start/end logic
@@ -232,13 +318,14 @@ const Jobs = () => {
   };
   
   // Check if any filters are active
-  const hasActiveFilters = dateRange.from || dateRange.to || jobTypeFilter !== "all" || (!isEmployee && employeeFilter !== "all") || statusFilter !== "all";
+  const hasActiveFilters = dateRange.from || dateRange.to || jobTypeFilter !== "all" || (!isEmployee && employeeFilter !== "all") || statusFilter !== "all" || paymentStatusFilter !== "all";
 
   const summary = useMemo(() => ({
     total: filteredJobs.length,
     scheduled: filteredJobs.filter(j => j.status === "Scheduled").length,
     inProgress: filteredJobs.filter(j => j.status === "In Progress").length,
     completed: filteredJobs.filter(j => j.status === "Completed").length,
+    cancelled: filteredJobs.filter(j => j.status === "Cancelled").length,
     feedbackReceived: filteredJobs.filter(j => j.status === "Feedback Received").length,
   }), [filteredJobs]);
 
@@ -374,6 +461,35 @@ const Jobs = () => {
     return jobFeedbackStatus[jobId]?.exists === true;
   };
 
+  // Handle reassign employee
+  const handleReassignEmployee = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      setSelectedJobForReassign(job);
+      setShowReassignEmployeeModal(true);
+    }
+  };
+
+  // Handle employee reassignment save
+  const handleReassignSave = (newEmployeeId: string) => {
+    if (!selectedJobForReassign) return;
+    
+    const newEmployee = mockEmployees.find(emp => emp.id === newEmployeeId);
+    if (newEmployee) {
+      // Update the job's technician
+      setJobs(prevJobs => 
+        prevJobs.map(job => 
+          job.id === selectedJobForReassign.id 
+            ? { ...job, technicianName: newEmployee.name, technicianId: newEmployee.id }
+            : job
+        )
+      );
+      toast.success(`Employee reassigned to ${newEmployee.name}`);
+      setShowReassignEmployeeModal(false);
+      setSelectedJobForReassign(null);
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <MobileHeader 
@@ -447,6 +563,7 @@ const Jobs = () => {
                   <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="inprogress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="cancelled">Cancelled</SelectItem>
                   <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
                 </SelectContent>
               </Select>
@@ -454,47 +571,25 @@ const Jobs = () => {
           </div>
         ) : (
           <>
-            {/* Row 2: Date Range + Job Status (48% each) - For Merchant */}
-            <div className="flex items-center gap-2">
-              {/* Date Range Filter */}
+            {/* Row 2: Employees + Type of Job + Job Status + Payment Status - For Merchant */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Employee Filter */}
               <div className="flex-[0.48] min-w-0">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowDateRangePicker(true)}
-                  className="w-full h-9 px-2.5 text-xs font-normal justify-start gap-1.5"
-                >
-                  <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-                  {dateRange.from && dateRange.to ? (
-                    <span className="truncate text-left text-xs">
-                      {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
-                    </span>
-                  ) : dateRange.from ? (
-                    <span className="truncate text-left text-xs">{format(dateRange.from, "MM/dd/yyyy")}</span>
-                  ) : (
-                    <span className="text-muted-foreground truncate text-left text-xs">Date Range</span>
-                  )}
-                </Button>
-              </div>
-
-              {/* Job Status Filter */}
-              <div className="flex-[0.48] min-w-0">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
                   <SelectTrigger className="w-full h-9 px-2.5 text-xs">
-                    <SelectValue placeholder="Job Status" />
+                    <SelectValue placeholder="Employee" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="inprogress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
+                    <SelectItem value="all">All Employees</SelectItem>
+                    {availableEmployees.map((employee) => (
+                      <SelectItem key={employee} value={employee}>
+                        {employee}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
-            </div>
 
-            {/* Row 3: Job Type + Employee (48% each) - For Merchant */}
-            <div className="flex items-center gap-2">
               {/* Job Type Filter */}
               <div className="flex-[0.48] min-w-0">
                 <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
@@ -510,19 +605,33 @@ const Jobs = () => {
                 </Select>
               </div>
 
-              {/* Employee Filter */}
+              {/* Job Status Filter */}
               <div className="flex-[0.48] min-w-0">
-                <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-full h-9 px-2.5 text-xs">
-                    <SelectValue placeholder="Employee" />
+                    <SelectValue placeholder="Job Status" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Employees</SelectItem>
-                    {availableEmployees.map((employee) => (
-                      <SelectItem key={employee} value={employee}>
-                        {employee}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="scheduled">Scheduled</SelectItem>
+                    <SelectItem value="inprogress">In Progress</SelectItem>
+                    <SelectItem value="completed">Completed</SelectItem>
+                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Payment Status Filter */}
+              <div className="flex-[0.48] min-w-0">
+                <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                  <SelectTrigger className="w-full h-9 px-2.5 text-xs">
+                    <SelectValue placeholder="Payment Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All</SelectItem>
+                    <SelectItem value="open">Open</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -544,31 +653,83 @@ const Jobs = () => {
           </div>
         )}
         
-        {/* Summary Cards - Four Metrics */}
-        <div className="grid grid-cols-4 gap-2">
-          {/* Scheduled - Light Peach */}
-          <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#FFE5D9] border border-[#FFD4C4] min-h-[80px]">
-            <p className="text-xs text-[#8B4513] font-medium mb-1.5 text-center leading-tight">Scheduled</p>
-            <p className="text-xl font-bold text-[#8B4513] text-center">{summary.scheduled}</p>
+        {/* Summary Cards - Carousel with 3 Metrics at a Time */}
+        <div className="relative mb-4 px-10">
+          {/* Left Arrow */}
+          <button
+            onClick={handlePreviousGroup}
+            disabled={metricsGroupIndex === 0}
+            className={`absolute left-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center transition-all ${
+              metricsGroupIndex === 0
+                ? 'opacity-40 cursor-not-allowed'
+                : 'opacity-100 hover:bg-gray-50 active:scale-95'
+            }`}
+            aria-label="Previous metrics"
+          >
+            <ChevronLeft className="h-4 w-4 text-gray-700" />
+          </button>
+          
+          {/* Carousel Container */}
+          <div
+            ref={metricsCarouselRef}
+            className="flex gap-2 overflow-x-hidden scroll-smooth"
+            style={{
+              scrollSnapType: 'x mandatory',
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'none',
+              msOverflowStyle: 'none'
+            }}
+          >
+            {/* Group 1: Scheduled, In Progress, Completed */}
+            <div className="flex gap-2 flex-shrink-0" style={{ width: '100%', scrollSnapAlign: 'start' }}>
+              {/* Scheduled - Light Peach */}
+              <div className="flex flex-col p-2.5 rounded-xl bg-orange-50/30 border border-orange-200/40 shadow-sm flex-shrink-0" style={{ width: 'calc((100% - 1rem) / 3)' }}>
+                <p className="text-[10px] font-medium text-orange-700 mb-1 leading-tight text-left">Scheduled</p>
+                <p className="text-lg font-bold text-orange-700 leading-tight text-left">{summary.scheduled}</p>
+              </div>
+              
+              {/* In Progress - Light Yellow */}
+              <div className="flex flex-col p-2.5 rounded-xl bg-yellow-50/30 border border-yellow-200/40 shadow-sm flex-shrink-0" style={{ width: 'calc((100% - 1rem) / 3)' }}>
+                <p className="text-[10px] font-medium text-yellow-700 mb-1 leading-tight text-left">In Progress</p>
+                <p className="text-lg font-bold text-yellow-700 leading-tight text-left">{summary.inProgress}</p>
+              </div>
+              
+              {/* Completed - Light Green */}
+              <div className="flex flex-col p-2.5 rounded-xl bg-green-50/30 border border-green-200/40 shadow-sm flex-shrink-0" style={{ width: 'calc((100% - 1rem) / 3)' }}>
+                <p className="text-[10px] font-medium text-green-700 mb-1 leading-tight text-left">Completed</p>
+                <p className="text-lg font-bold text-green-700 leading-tight text-left">{summary.completed}</p>
+              </div>
+            </div>
+            
+            {/* Group 2: Cancelled, Feedback Received */}
+            <div className="flex gap-2 flex-shrink-0" style={{ width: '100%', scrollSnapAlign: 'start' }}>
+              {/* Cancelled - Light Red */}
+              <div className="flex flex-col p-2.5 rounded-xl bg-red-50/30 border border-red-200/40 shadow-sm flex-shrink-0" style={{ width: 'calc((100% - 1rem) / 3)' }}>
+                <p className="text-[10px] font-medium text-red-700 mb-1 leading-tight text-left">Cancelled</p>
+                <p className="text-lg font-bold text-red-700 leading-tight text-left">{summary.cancelled}</p>
+              </div>
+              
+              {/* Feedback Received - Light Teal */}
+              <div className="flex flex-col p-2.5 rounded-xl bg-teal-50/30 border border-teal-200/40 shadow-sm flex-shrink-0" style={{ width: 'calc((100% - 1rem) / 3)' }}>
+                <p className="text-[10px] font-medium text-teal-700 mb-1 leading-tight text-left">Feedback</p>
+                <p className="text-lg font-bold text-teal-700 leading-tight text-left">{summary.feedbackReceived}</p>
+              </div>
+            </div>
           </div>
           
-          {/* In Progress - Light Yellow */}
-          <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#FFF9E6] border border-[#FFE8B3] min-h-[80px]">
-            <p className="text-xs text-[#B8860B] font-medium mb-1.5 text-center leading-tight">In Progress</p>
-            <p className="text-xl font-bold text-[#B8860B] text-center">{summary.inProgress}</p>
-          </div>
-          
-          {/* Completed - Light Green */}
-          <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#E6F7E6] border border-[#B3E6B3] min-h-[80px]">
-            <p className="text-xs text-[#2D5016] font-medium mb-1.5 text-center leading-tight">Completed</p>
-            <p className="text-xl font-bold text-[#2D5016] text-center">{summary.completed}</p>
-          </div>
-          
-          {/* Feedback Received - Light Mint */}
-          <div className="flex flex-col items-center justify-center p-4 rounded-xl bg-[#E0F7F4] border border-[#B3E6DE] min-h-[80px]">
-            <p className="text-xs text-[#0D4D3D] font-medium mb-1.5 text-center leading-tight">Feedback Received</p>
-            <p className="text-xl font-bold text-[#0D4D3D] text-center">{summary.feedbackReceived}</p>
-          </div>
+          {/* Right Arrow */}
+          <button
+            onClick={handleNextGroup}
+            disabled={metricsGroupIndex === totalGroups - 1}
+            className={`absolute right-0 top-1/2 -translate-y-1/2 z-10 w-8 h-8 rounded-full bg-white border border-gray-200 shadow-md flex items-center justify-center transition-all ${
+              metricsGroupIndex === totalGroups - 1
+                ? 'opacity-40 cursor-not-allowed'
+                : 'opacity-100 hover:bg-gray-50 active:scale-95'
+            }`}
+            aria-label="Next metrics"
+          >
+            <ChevronRight className="h-4 w-4 text-gray-700" />
+          </button>
         </div>
 
         {/* Jobs List */}
@@ -644,6 +805,7 @@ const Jobs = () => {
                     onSendFeedbackForm={() => handleSendFeedbackForm(job.id)}
                     onViewFeedback={() => handleViewFeedback(job.id)}
                     onPreview={handlePreview}
+                    onReassignEmployee={() => handleReassignEmployee(job.id)}
                     onQuickAction={(action) => {
                     switch (action) {
                       case "edit":
@@ -719,6 +881,20 @@ const Jobs = () => {
         onConfirm={handleDateRangeConfirm}
         resetToToday={true}
       />
+
+      {/* Reassign Employee Modal */}
+      {selectedJobForReassign && (
+        <ReassignEmployeeModal
+          isOpen={showReassignEmployeeModal}
+          onClose={() => {
+            setShowReassignEmployeeModal(false);
+            setSelectedJobForReassign(null);
+          }}
+          currentEmployeeId={mockEmployees.find(emp => emp.name === selectedJobForReassign.technicianName)?.id}
+          estimateId={selectedJobForReassign.id}
+          onSave={handleReassignSave}
+        />
+      )}
 
       {/* Preview Modals */}
       {previewEstimate && (
