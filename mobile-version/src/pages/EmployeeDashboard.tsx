@@ -41,6 +41,7 @@ import {
   ChevronRight,
   Clock,
   CheckCircle2,
+  Route,
 } from "lucide-react";
 import { mockAppointments, mockInvoices, mockEstimates } from "@/data/mobileMockData";
 import { cn } from "@/lib/utils";
@@ -142,8 +143,8 @@ const EmployeeDashboard = () => {
   const quickActions = [
     { label: "New Estimate", path: "/estimates/new", icon: FileText },
     { label: "New Invoice", path: "/invoices/new", icon: DollarSign },
-    { label: "Add Appointment", path: "/appointments/add?from=dashboard", icon: Calendar },
     { label: "New Agreement", path: "/agreements/new", icon: ClipboardList },
+    { label: "Job Route", path: "/employees/tracking", icon: Route },
   ];
 
   const operationalModules = [
@@ -329,7 +330,7 @@ const EmployeeDashboard = () => {
         {/* Quick Actions Section */}
         <div>
           <h3 className="font-bold text-[#1A1A1A] text-base mb-3">Quick Actions</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (

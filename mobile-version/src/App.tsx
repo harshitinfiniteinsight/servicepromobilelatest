@@ -99,6 +99,7 @@ const AppContent = () => {
             <Route path="/appointments/new" element={<AddAppointment mode="create" />} />
             <Route path="/appointments/:id/edit" element={<AddAppointment mode="edit" />} />
             <Route path="/invoices" element={<Invoices />} />
+            <Route path="/invoices/:id/edit" element={<AddInvoice />} />
             <Route path="/invoices/:id" element={<InvoiceDetails />} />
             <Route path="/invoices/new" element={<AddInvoice />} />
             <Route path="/invoices/due-alert" element={<InvoiceDueAlert />} />
@@ -107,6 +108,7 @@ const AppContent = () => {
             <Route path="/estimates/new" element={<AddEstimate />} />
             <Route path="/estimates/:id/edit" element={<AddEstimate />} />
             <Route path="/agreements" element={<Agreements />} />
+            <Route path="/agreements/:id/edit" element={<AddAgreement />} />
             <Route path="/agreements/:id" element={<AgreementDetails />} />
             <Route path="/agreements/new" element={<AddAgreement />} />
             <Route path="/agreements/minimum-deposit" element={<MinimumDepositPercentage />} />

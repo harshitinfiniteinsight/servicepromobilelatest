@@ -422,23 +422,25 @@ const AddEstimate = () => {
       
       {/* Progress Indicator */}
       <div className="px-4 pt-16 pb-4">
-        <div className="flex items-center justify-between mb-2">
-          {steps.map((s, idx) => (
-            <div key={s.number} className="flex items-center flex-1">
-              <div className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold",
-                step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                {step > s.number ? "✓" : s.number}
-              </div>
-              {idx < steps.length - 1 && (
+        <div className="flex items-center justify-center mb-2">
+          <div className="flex items-center max-w-full">
+            {steps.map((s, idx) => (
+              <div key={s.number} className="flex items-center">
                 <div className={cn(
-                  "flex-1 h-1 mx-2",
-                  step > s.number ? "bg-primary" : "bg-muted"
-                )} />
-              )}
-            </div>
-          ))}
+                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold shrink-0",
+                  step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  {step > s.number ? "✓" : s.number}
+                </div>
+                {idx < steps.length - 1 && (
+                  <div className={cn(
+                    "w-8 sm:w-12 h-1 mx-2",
+                    step > s.number ? "bg-primary" : "bg-muted"
+                  )} />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
         <p className="text-sm text-muted-foreground text-center">
           Step {step} of {steps.length}: {steps[step - 1].title}

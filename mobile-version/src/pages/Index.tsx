@@ -38,6 +38,7 @@ import {
   Globe,
   HelpCircle,
   LogOut,
+  Route,
 } from "lucide-react";
 import { mockAppointments, mockInvoices, mockEstimates, mockJobs } from "@/data/mobileMockData";
 import { cn } from "@/lib/utils";
@@ -130,8 +131,8 @@ const Index = () => {
   const quickActions = [
     { label: "New Estimate", path: "/estimates/new", icon: FileText },
     { label: "New Invoice", path: "/invoices/new", icon: DollarSign },
-    { label: "Add Appointment", path: "/appointments/add?from=dashboard", icon: Calendar },
     { label: "New Agreement", path: "/agreements/new", icon: ClipboardList },
+    { label: "Job Route", path: "/employees/tracking", icon: Route },
   ];
 
   return (
@@ -275,7 +276,7 @@ const Index = () => {
         {/* Quick Actions */}
         <div>
           <h3 className="font-semibold mb-3 text-gray-900">Quick Actions</h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
               return (

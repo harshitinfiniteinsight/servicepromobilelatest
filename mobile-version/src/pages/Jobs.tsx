@@ -18,6 +18,9 @@ import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import PreviewAgreementModal from "@/components/modals/PreviewAgreementModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
+import AddServicePicturesModal from "@/components/modals/AddServicePicturesModal";
+import ViewServicePicturesModal from "@/components/modals/ViewServicePicturesModal";
+import CannotEditModal from "@/components/modals/CannotEditModal";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -28,6 +31,14 @@ type JobFeedbackStatus = {
       comment: string;
       submittedAt: string;
     };
+  };
+};
+
+// Track job pictures
+type JobPictures = {
+  [jobId: string]: {
+    beforeImage: string | null;
+    afterImage: string | null;
   };
 };
 
@@ -65,6 +76,12 @@ const Jobs = () => {
       return technicians[techIndex];
     };
 
+    // Helper to get customer address
+    const getCustomerAddress = (customerId: string): string => {
+      const customer = mockCustomers.find(c => c.id === customerId);
+      return customer?.address || "";
+    };
+
     // Transform invoices to jobs
     const invoiceJobs = mockInvoices.map((invoice, index) => ({
       id: invoice.id,
@@ -76,7 +93,7 @@ const Jobs = () => {
       date: invoice.issueDate,
       time: "09:00 AM", // Default time
       status: invoice.status === "Paid" ? "Completed" : invoice.status === "Overdue" ? "In Progress" : "Scheduled",
-      location: "", // Can be enhanced with customer address
+      location: getCustomerAddress(invoice.customerId),
     }));
 
     // Transform estimates to jobs
@@ -90,7 +107,7 @@ const Jobs = () => {
       date: estimate.date,
       time: "10:00 AM",
       status: estimate.status === "Paid" ? "Completed" : "Scheduled",
-      location: "",
+      location: getCustomerAddress(estimate.customerId),
     }));
 
     // Transform agreements to jobs
@@ -104,7 +121,7 @@ const Jobs = () => {
       date: agreement.startDate,
       time: "11:00 AM",
       status: agreement.status === "Paid" ? "Completed" : "In Progress",
-      location: "",
+      location: getCustomerAddress(agreement.customerId),
     }));
 
     // Combine all jobs
@@ -143,6 +160,38 @@ const Jobs = () => {
   const [showViewFeedbackModal, setShowViewFeedbackModal] = useState(false);
   const [showFillFeedbackFormModal, setShowFillFeedbackFormModal] = useState(false);
   const [selectedJobForFeedback, setSelectedJobForFeedback] = useState<typeof mockJobs[0] | null>(null);
+  
+  // Picture modals state
+  const [showAddPicturesModal, setShowAddPicturesModal] = useState(false);
+  const [showViewPicturesModal, setShowViewPicturesModal] = useState(false);
+  const [selectedJobForPictures, setSelectedJobForPictures] = useState<typeof mockJobs[0] | null>(null);
+  
+  // Cannot Edit modal state
+  const [showCannotEditModal, setShowCannotEditModal] = useState(false);
+  const [selectedJobForCannotEdit, setSelectedJobForCannotEdit] = useState<{
+    id: string;
+    jobType: "Estimate" | "Invoice" | "Agreement";
+  } | null>(null);
+  
+  // Track job pictures - load from localStorage
+  const [jobPictures, setJobPictures] = useState<JobPictures>(() => {
+    try {
+      const stored = localStorage.getItem("jobPictures");
+      return stored ? JSON.parse(stored) : {};
+    } catch (error) {
+      console.warn("Failed to load pictures from localStorage:", error);
+      return {};
+    }
+  });
+  
+  // Save job pictures to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem("jobPictures", JSON.stringify(jobPictures));
+    } catch (error) {
+      console.warn("Failed to save pictures to localStorage:", error);
+    }
+  }, [jobPictures]);
   
   // Preview modals state
   const [showEstimatePreview, setShowEstimatePreview] = useState(false);
@@ -330,16 +379,68 @@ const Jobs = () => {
   }), [filteredJobs]);
 
   // Handle status change
+  // Auto-send feedback form email (without showing modal)
+  const autoSendFeedbackFormEmail = async (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+    
+    const customer = mockCustomers.find(c => c.id === job.customerId);
+    const customerEmail = customer?.email || "";
+    
+    if (!customerEmail) {
+      console.warn(`No email found for customer ${job.customerName}`);
+      return;
+    }
+    
+    // In production, this would be an API call to send the email
+    // For now, simulate async email sending
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Mark feedback form as sent
+    setJobFeedbackStatus(prev => ({
+      ...prev,
+      [jobId]: { exists: false } // Form sent, but feedback not yet received
+    }));
+    
+    toast.success(`Feedback form sent automatically to ${customerEmail}`);
+  };
+
   const handleStatusChange = (jobId: string, newStatus: string) => {
+    const oldJob = jobs.find(j => j.id === jobId);
+    const oldStatus = oldJob?.status;
+    
     setJobs(prevJobs => 
       prevJobs.map(job => 
         job.id === jobId ? { ...job, status: newStatus } : job
       )
     );
+    
+    // Check if status changed to Completed
+    if (newStatus === "Completed" && oldStatus !== "Completed") {
+      const feedbackAutoSendEnabled = typeof window !== "undefined" 
+        ? localStorage.getItem("autoSendFeedback") === "true" 
+        : false;
+      
+      if (oldJob && !hasFeedback(jobId)) {
+        if (feedbackAutoSendEnabled) {
+          // Auto-send email without showing modal (async, non-blocking)
+          autoSendFeedbackFormEmail(jobId).catch(err => {
+            console.error("Failed to auto-send feedback form:", err);
+            toast.error("Failed to send feedback form automatically");
+          });
+        } else {
+          // Show modal with delivery options
+          setTimeout(() => {
+            handleSendFeedbackForm(jobId);
+          }, 100);
+        }
+      }
+    }
+    
     toast.success(`Job status updated to ${newStatus}`);
   };
 
-  // Handle feedback form send
+  // Handle feedback form send (shows modal)
   const handleSendFeedbackForm = (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
     if (job) {
@@ -459,6 +560,167 @@ const Jobs = () => {
   // Check if feedback exists for a job
   const hasFeedback = (jobId: string) => {
     return jobFeedbackStatus[jobId]?.exists === true;
+  };
+  
+  // Check if job has any pictures
+  const hasPictures = (jobId: string): boolean => {
+    const pictures = jobPictures[jobId];
+    return !!(pictures?.beforeImage || pictures?.afterImage);
+  };
+  
+  // Handle add pictures
+  const handleAddPictures = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      setSelectedJobForPictures(job);
+      setShowAddPicturesModal(true);
+    }
+  };
+  
+  // Handle view pictures
+  const handleViewPictures = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      setSelectedJobForPictures(job);
+      setShowViewPicturesModal(true);
+    }
+  };
+  
+  // Handle save pictures
+  const handleSavePictures = (jobId: string, beforeImage: string | null, afterImage: string | null) => {
+    setJobPictures(prev => ({
+      ...prev,
+      [jobId]: {
+        beforeImage,
+        afterImage,
+      },
+    }));
+  };
+  
+  // Handle delete picture
+  const handleDeletePicture = (jobId: string, type: "before" | "after") => {
+    setJobPictures(prev => {
+      const current = prev[jobId] || { beforeImage: null, afterImage: null };
+      return {
+        ...prev,
+        [jobId]: {
+          ...current,
+          [type === "before" ? "beforeImage" : "afterImage"]: null,
+        },
+      };
+    });
+  };
+  
+  // Handle replace picture
+  const handleReplacePicture = (jobId: string, type: "before" | "after") => {
+    // Simulate file upload - in a real app, this would use actual file picker/camera API
+    const mockImageUrl = `https://picsum.photos/400/300?random=${Date.now()}`;
+    setJobPictures(prev => {
+      const current = prev[jobId] || { beforeImage: null, afterImage: null };
+      return {
+        ...prev,
+        [jobId]: {
+          ...current,
+          [type === "before" ? "beforeImage" : "afterImage"]: mockImageUrl,
+        },
+      };
+    });
+  };
+
+  // Handle edit job - conditional navigation based on job type and payment status
+  const handleEditJob = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return;
+
+    // Determine job type
+    const getJobType = (): "Estimate" | "Invoice" | "Agreement" | null => {
+      const id = job.id.toUpperCase();
+      if (id.startsWith("AG") || id.includes("AGR")) return "Agreement";
+      if (id.startsWith("EST")) return "Estimate";
+      if (id.startsWith("INV")) return "Invoice";
+      // For generic JOB-XXX IDs, assign types in a pattern
+      if (id.startsWith("JOB")) {
+        const jobNum = parseInt(id.replace(/[^0-9]/g, "")) || 0;
+        const typeIndex = jobNum % 3;
+        if (typeIndex === 0) return "Invoice";
+        if (typeIndex === 1) return "Estimate";
+        return "Agreement";
+      }
+      return null;
+    };
+
+    // Determine payment status
+    const getPaymentStatus = (): "Paid" | "Open" => {
+      const id = job.id.toUpperCase();
+      
+      // Check invoice status
+      if (id.startsWith("INV")) {
+        const invoice = mockInvoices.find(inv => inv.id === job.id);
+        if (invoice) {
+          return invoice.status === "Paid" ? "Paid" : "Open";
+        }
+      }
+      
+      // Check estimate status
+      if (id.startsWith("EST")) {
+        const estimate = mockEstimates.find(est => est.id === job.id);
+        if (estimate) {
+          return estimate.status === "Paid" ? "Paid" : "Open";
+        }
+      }
+      
+      // Check agreement status
+      if (id.startsWith("AGR") || id.includes("AGR")) {
+        const agreement = mockAgreements.find(agr => agr.id === job.id);
+        if (agreement) {
+          return agreement.status === "Paid" ? "Paid" : "Open";
+        }
+      }
+      
+      // For generic JOB-XXX IDs, use job status
+      if (job.status === "Completed" || job.status === "Feedback Received") return "Paid";
+      return "Open";
+    };
+
+    const jobType = getJobType();
+    const paymentStatus = getPaymentStatus();
+
+    // If paid, show cannot edit modal
+    if (paymentStatus === "Paid" && jobType) {
+      setSelectedJobForCannotEdit({
+        id: jobId,
+        jobType: jobType,
+      });
+      setShowCannotEditModal(true);
+      return;
+    }
+
+    // If open, navigate to correct edit screen based on job type
+    if (jobType === "Estimate") {
+      navigate(`/estimates/${jobId}/edit`);
+    } else if (jobType === "Invoice") {
+      navigate(`/invoices/${jobId}/edit`);
+    } else if (jobType === "Agreement") {
+      navigate(`/agreements/${jobId}/edit`);
+    } else {
+      // Fallback to generic job edit if type cannot be determined
+      navigate(`/jobs/${jobId}/edit`);
+    }
+  };
+
+  // Handle create new from Cannot Edit modal
+  const handleCreateNewFromCannotEdit = () => {
+    if (!selectedJobForCannotEdit) return;
+
+    const { jobType } = selectedJobForCannotEdit;
+
+    if (jobType === "Estimate") {
+      navigate("/estimates/new");
+    } else if (jobType === "Invoice") {
+      navigate("/invoices/new");
+    } else if (jobType === "Agreement") {
+      navigate("/agreements/new");
+    }
   };
 
   // Handle reassign employee
@@ -799,6 +1061,7 @@ const Jobs = () => {
                     customerEmail={customer?.email}
                     customerPhone={customer?.phone}
                     hasFeedback={hasFeedback(job.id)}
+                    hasPictures={hasPictures(job.id)}
                     isEmployee={isEmployee}
                     onClick={() => navigate(`/jobs/${job.id}`)}
                     onStatusChange={(newStatus) => handleStatusChange(job.id, newStatus)}
@@ -806,10 +1069,12 @@ const Jobs = () => {
                     onViewFeedback={() => handleViewFeedback(job.id)}
                     onPreview={handlePreview}
                     onReassignEmployee={() => handleReassignEmployee(job.id)}
+                    onAddPictures={() => handleAddPictures(job.id)}
+                    onViewPictures={() => handleViewPictures(job.id)}
                     onQuickAction={(action) => {
                     switch (action) {
                       case "edit":
-                        navigate(`/jobs/${job.id}/edit`);
+                        handleEditJob(job.id);
                         break;
                       case "share":
                         // Handle share action
@@ -957,6 +1222,51 @@ const Jobs = () => {
               setPreviewAgreement(null);
             }
           }}
+        />
+      )}
+
+      {/* Add Service Pictures Modal */}
+      {selectedJobForPictures && (
+        <AddServicePicturesModal
+          open={showAddPicturesModal}
+          onOpenChange={setShowAddPicturesModal}
+          jobId={selectedJobForPictures.id}
+          jobStatus={selectedJobForPictures.status}
+          beforeImage={jobPictures[selectedJobForPictures.id]?.beforeImage || null}
+          afterImage={jobPictures[selectedJobForPictures.id]?.afterImage || null}
+          onSave={(jobId, beforeImage, afterImage) => {
+            handleSavePictures(jobId, beforeImage, afterImage);
+            setShowAddPicturesModal(false);
+            setSelectedJobForPictures(null);
+          }}
+        />
+      )}
+
+      {/* View Service Pictures Modal */}
+      {selectedJobForPictures && (
+        <ViewServicePicturesModal
+          open={showViewPicturesModal}
+          onOpenChange={(open) => {
+            setShowViewPicturesModal(open);
+            if (!open) {
+              setSelectedJobForPictures(null);
+            }
+          }}
+          jobId={selectedJobForPictures.id}
+          beforeImage={jobPictures[selectedJobForPictures.id]?.beforeImage || null}
+          afterImage={jobPictures[selectedJobForPictures.id]?.afterImage || null}
+          onDelete={handleDeletePicture}
+          onReplace={handleReplacePicture}
+        />
+      )}
+
+      {/* Cannot Edit Modal */}
+      {selectedJobForCannotEdit && (
+        <CannotEditModal
+          open={showCannotEditModal}
+          onOpenChange={setShowCannotEditModal}
+          jobType={selectedJobForCannotEdit.jobType}
+          onCreateNew={handleCreateNewFromCannotEdit}
         />
       )}
     </div>

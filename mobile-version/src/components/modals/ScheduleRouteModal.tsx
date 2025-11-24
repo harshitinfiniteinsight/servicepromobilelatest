@@ -1,20 +1,23 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, MapPin, Clock, GripVertical, Calendar as CalendarIcon } from "lucide-react";
+import { X, MapPin, Clock, GripVertical, Calendar as CalendarIcon, Circle, XCircle, ChevronDown, UserCog, Edit } from "lucide-react";
 import { format } from "date-fns";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { mockJobs, mockEmployees } from "@/data/mobileMockData";
+import { mockJobs, mockEmployees, mockInvoices, mockEstimates, mockAgreements } from "@/data/mobileMockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
+import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 
 // Create numbered marker icon with order number and employee color
 // Replaces the old createCustomIcon and createCheckIcon functions
@@ -107,14 +110,73 @@ const employeeColors: Record<string, string> = {
   "5": "#EC4899", // Pink
 };
 
+// Get status badge styling for Edit Route modal (only Scheduled and Cancelled)
+const getStatusBadgeForRoute = (status: string) => {
+  switch (status) {
+    case "Scheduled":
+      return "bg-orange-100 text-orange-700 border-orange-200";
+    case "Cancelled":
+      return "bg-red-100 text-red-700 border-red-200";
+    default:
+      // Default to Scheduled if status is not one of the allowed options
+      return "bg-orange-100 text-orange-700 border-orange-200";
+  }
+};
+
+// Determine payment status from job
+const getPaymentStatus = (job: typeof mockJobs[0]): "Paid" | "Open" => {
+  const id = job.id.toUpperCase();
+  
+  // Check invoice status
+  if (id.startsWith("INV")) {
+    const invoice = mockInvoices.find(inv => inv.id === job.id);
+    if (invoice) {
+      return invoice.status === "Paid" ? "Paid" : "Open";
+    }
+  }
+  
+  // Check estimate status
+  if (id.startsWith("EST")) {
+    const estimate = mockEstimates.find(est => est.id === job.id);
+    if (estimate) {
+      return estimate.status === "Paid" ? "Paid" : "Open";
+    }
+  }
+  
+  // Check agreement status
+  if (id.startsWith("AGR") || id.includes("AGR")) {
+    const agreement = mockAgreements.find(agr => agr.id === job.id);
+    if (agreement) {
+      return agreement.status === "Paid" ? "Paid" : "Open";
+    }
+  }
+  
+  // For generic JOB-XXX IDs, use job status
+  if (job.status === "Completed" || job.status === "Feedback Received") return "Paid";
+  return "Open";
+};
+
+// Determine job type for navigation
+const getJobType = (jobId: string): "Invoice" | "Estimate" | "Agreement" | "Job" => {
+  const id = jobId.toUpperCase();
+  if (id.startsWith("INV")) return "Invoice";
+  if (id.startsWith("EST")) return "Estimate";
+  if (id.startsWith("AGR") || id.includes("AGR")) return "Agreement";
+  return "Job";
+};
+
 // Draggable Route Stop Card Component
 interface RouteStopCardProps {
   job: typeof mockJobs[0];
   index: number;
   empColor: string;
+  status: string;
+  onStatusChange: (jobId: string, newStatus: string) => void;
+  onReassignEmployee: (job: typeof mockJobs[0]) => void;
+  onEditJob: (job: typeof mockJobs[0]) => void;
 }
 
-const RouteStopCard = ({ job, index, empColor }: RouteStopCardProps) => {
+const RouteStopCard = ({ job, index, empColor, status, onStatusChange, onReassignEmployee, onEditJob }: RouteStopCardProps) => {
   const {
     attributes,
     listeners,
@@ -130,23 +192,47 @@ const RouteStopCard = ({ job, index, empColor }: RouteStopCardProps) => {
     opacity: isDragging ? 0.5 : 1,
   };
 
+  // Ensure status is either Scheduled or Cancelled
+  const currentStatus = status === "Cancelled" ? "Cancelled" : "Scheduled";
+  const paymentStatus = getPaymentStatus(job);
+
+  // Build menu items
+  const menuItems: KebabMenuItem[] = [
+    {
+      label: "Reassign Employee",
+      icon: UserCog,
+      action: () => onReassignEmployee(job),
+      separator: false,
+    },
+  ];
+
+  // Add Edit option only if payment status is Open
+  if (paymentStatus === "Open") {
+    menuItems.push({
+      label: "Edit Job",
+      icon: Edit,
+      action: () => onEditJob(job),
+      separator: false,
+    });
+  }
+
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        "bg-white p-3.5 rounded-xl border border-gray-200 shadow-sm",
+        "bg-white p-3 rounded-xl border border-gray-200 shadow-sm",
         isDragging && "shadow-lg"
       )}
     >
-      <div className="flex items-start gap-3">
+      <div className="flex items-start gap-2.5">
         {/* Drag Handle */}
         <div
           {...attributes}
           {...listeners}
           className="flex-shrink-0 mt-1 cursor-grab active:cursor-grabbing touch-none"
         >
-          <GripVertical className="h-5 w-5 text-gray-400" />
+          <GripVertical className="h-4 w-4 text-gray-400" />
         </div>
 
         {/* Stop Number - Dynamically syncs with map marker number via index position */}
@@ -163,14 +249,61 @@ const RouteStopCard = ({ job, index, empColor }: RouteStopCardProps) => {
             <h4 className="font-semibold text-sm text-gray-900 truncate">
               {job.customerName}
             </h4>
-            <Badge className="text-[10px] px-2 py-0.5 shrink-0 bg-gray-100 text-gray-700 border-gray-200">
-              Scheduled
-            </Badge>
+            <div className="flex items-center gap-1.5 shrink-0">
+              {/* Status Dropdown - Only Scheduled and Cancelled */}
+              <div onClick={(e) => e.stopPropagation()}>
+                <Select
+                  value={currentStatus}
+                  onValueChange={(value) => onStatusChange(job.id, value)}
+                >
+                  <SelectTrigger
+                    className={cn(
+                      "h-auto py-0.5 px-2 text-[10px] font-medium border rounded-full shrink-0 w-auto min-w-[75px] max-w-[95px]",
+                      "focus:ring-1 focus:ring-offset-0 focus:ring-orange-500",
+                      getStatusBadgeForRoute(currentStatus),
+                      "hover:opacity-90 active:opacity-80 transition-opacity cursor-pointer"
+                    )}
+                  >
+                    <SelectValue>
+                      <span className="truncate">{currentStatus}</span>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent 
+                    className="z-[9999] min-w-[140px] rounded-lg shadow-lg" 
+                    position="popper" 
+                    sideOffset={4}
+                    align="end"
+                    side="bottom"
+                  >
+                    <SelectItem value="Scheduled" className="text-xs py-2 cursor-pointer">
+                      <span className="flex items-center gap-2">
+                        <Circle className="h-3 w-3 text-orange-600" />
+                        Scheduled
+                      </span>
+                    </SelectItem>
+                    <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                      <span className="flex items-center gap-2">
+                        <XCircle className="h-3 w-3 text-red-600" />
+                        Cancelled
+                      </span>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              {/* Three-dot Kebab Menu */}
+              <div onClick={(e) => e.stopPropagation()}>
+                <KebabMenu
+                  items={menuItems}
+                  align="end"
+                  menuWidth="w-48"
+                />
+              </div>
+            </div>
           </div>
 
           <p className="text-sm text-gray-700 mb-1.5 font-medium">{job.title}</p>
 
-          <p className="text-xs text-gray-600 mb-2 line-clamp-1 flex items-start gap-1.5">
+          <p className="text-xs text-gray-600 mb-1.5 line-clamp-1 flex items-start gap-1.5">
             <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
             <span className="flex-1 truncate">{job.location}</span>
           </p>
@@ -186,10 +319,14 @@ const RouteStopCard = ({ job, index, empColor }: RouteStopCardProps) => {
 };
 
 const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode = "create" }: ScheduleRouteModalProps) => {
+  const navigate = useNavigate();
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [routeStops, setRouteStops] = useState<typeof mockJobs>([]);
+  const [jobStatuses, setJobStatuses] = useState<Record<string, string>>({});
   const [isSaving, setIsSaving] = useState(false);
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [selectedJobForReassign, setSelectedJobForReassign] = useState<typeof mockJobs[0] | null>(null);
 
   // Determine text based on mode
   const modalTitle = mode === "edit" ? "Edit Route" : "Schedule Route";
@@ -263,6 +400,49 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     return realJobs;
   }, [selectedEmployeeId, selectedDate]);
 
+  // Initialize job statuses from route stops or load saved statuses
+  useEffect(() => {
+    if (routeStops.length > 0 && selectedEmployeeId) {
+      const dateStr = formatDateForComparison(selectedDate);
+      const statusKey = `route_statuses_${selectedEmployeeId}_${dateStr}`;
+      const savedStatuses = localStorage.getItem(statusKey);
+      
+      if (savedStatuses) {
+        try {
+          const parsedStatuses = JSON.parse(savedStatuses);
+          // Merge saved statuses with current route stops, ensuring all jobs have a status
+          const initialStatuses: Record<string, string> = {};
+          routeStops.forEach((job) => {
+            // Use saved status if available, otherwise use job status or default to Scheduled
+            const savedStatus = parsedStatuses[job.id];
+            if (savedStatus === "Cancelled") {
+              initialStatuses[job.id] = "Cancelled";
+            } else {
+              initialStatuses[job.id] = "Scheduled";
+            }
+          });
+          setJobStatuses(initialStatuses);
+        } catch (error) {
+          // If parsing fails, initialize from job statuses
+          const initialStatuses: Record<string, string> = {};
+          routeStops.forEach((job) => {
+            const status = job.status === "Cancelled" ? "Cancelled" : "Scheduled";
+            initialStatuses[job.id] = status;
+          });
+          setJobStatuses(initialStatuses);
+        }
+      } else {
+        // No saved statuses, initialize from job statuses
+        const initialStatuses: Record<string, string> = {};
+        routeStops.forEach((job) => {
+          const status = job.status === "Cancelled" ? "Cancelled" : "Scheduled";
+          initialStatuses[job.id] = status;
+        });
+        setJobStatuses(initialStatuses);
+      }
+    }
+  }, [routeStops, selectedEmployeeId, selectedDate]);
+
   // Load saved route order or use default time-based order
   useEffect(() => {
     if (selectedEmployeeId && employeeJobs.length > 0) {
@@ -302,6 +482,38 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     }
   }, [selectedEmployeeId, employeeJobs, selectedDate]);
 
+  // Handle job status change in Route Stops
+  const handleJobStatusChange = (jobId: string, newStatus: string) => {
+    // Ensure only Scheduled or Cancelled
+    const validStatus = newStatus === "Cancelled" ? "Cancelled" : "Scheduled";
+    setJobStatuses((prev) => ({
+      ...prev,
+      [jobId]: validStatus,
+    }));
+  };
+
+  // Handle reassign employee
+  const handleReassignEmployee = (job: typeof mockJobs[0]) => {
+    setSelectedJobForReassign(job);
+    setShowReassignModal(true);
+  };
+
+  // Handle edit job
+  const handleEditJob = (job: typeof mockJobs[0]) => {
+    const jobType = getJobType(job.id);
+    if (jobType === "Invoice") {
+      navigate(`/invoices/${job.id}/edit`);
+    } else if (jobType === "Estimate") {
+      navigate(`/estimates/${job.id}/edit`);
+    } else if (jobType === "Agreement") {
+      navigate(`/agreements/${job.id}/edit`);
+    } else {
+      navigate(`/jobs/${job.id}/edit`);
+    }
+    // Close the modal when navigating to edit
+    onClose();
+  };
+
   // Check if user is employee (when initialEmployeeId is provided and matches logged-in employee)
   const isEmployeeMode = useMemo(() => {
     if (typeof window === "undefined") return false;
@@ -335,11 +547,14 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     }
   }, [isOpen, selectedEmployeeId, allEmployees, initialEmployeeId, selectedDate, mode, isEmployeeMode]);
 
-  // Reset selected employee and date when modal closes
+  // Reset selected employee, date, and job statuses when modal closes
   useEffect(() => {
     if (!isOpen) {
       setSelectedEmployeeId("");
       setSelectedDate(new Date());
+      setJobStatuses({});
+      setShowReassignModal(false);
+      setSelectedJobForReassign(null);
     }
   }, [isOpen]);
 
@@ -422,6 +637,10 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
       const dateStr = formatDateForComparison(selectedDate);
       const savedOrderKey = `route_order_${selectedEmployeeId}_${dateStr}`;
       localStorage.setItem(savedOrderKey, JSON.stringify(orderedIds));
+
+      // Save job statuses
+      const statusKey = `route_statuses_${selectedEmployeeId}_${dateStr}`;
+      localStorage.setItem(statusKey, JSON.stringify(jobStatuses));
 
       // Call onSave callback
       onSave(selectedEmployeeId, orderedIds);
@@ -657,6 +876,10 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
                         job={job}
                         index={index}
                         empColor={empColor}
+                        status={jobStatuses[job.id] || (job.status === "Cancelled" ? "Cancelled" : "Scheduled")}
+                        onStatusChange={handleJobStatusChange}
+                        onReassignEmployee={handleReassignEmployee}
+                        onEditJob={handleEditJob}
                       />
                     ))}
                   </div>
@@ -702,6 +925,31 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
           </div>
         )}
       </DialogContent>
+
+      {/* Reassign Employee Modal */}
+      {selectedJobForReassign && (
+        <ReassignEmployeeModal
+          isOpen={showReassignModal}
+          onClose={() => {
+            setShowReassignModal(false);
+            setSelectedJobForReassign(null);
+          }}
+          currentEmployeeId={selectedJobForReassign.technicianId}
+          estimateId={selectedJobForReassign.id}
+          onSave={(newEmployeeId) => {
+            // Update the job's technician
+            const newEmployee = mockEmployees.find(emp => emp.id === newEmployeeId);
+            if (newEmployee && selectedJobForReassign) {
+              // In production, this would call an API endpoint
+              // For now, we'll just show a success message
+              toast.success(`Employee reassigned to ${newEmployee.name}`);
+              setShowReassignModal(false);
+              setSelectedJobForReassign(null);
+              // In production, you would update the job data here and refresh route stops
+            }
+          }}
+        />
+      )}
     </Dialog>
   );
 };

@@ -57,6 +57,8 @@ const KebabMenu = ({
           className
         )}
         sideOffset={4}
+        onClick={(e) => e.stopPropagation()}
+        onPointerDown={(e) => e.stopPropagation()}
       >
         {items.map((item, index) => {
           const Icon = item.icon;

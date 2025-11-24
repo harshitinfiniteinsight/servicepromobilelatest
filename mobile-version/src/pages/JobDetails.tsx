@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
@@ -6,11 +7,30 @@ import { mockJobs, mockCustomers, mockEmployees } from "@/data/mobileMockData";
 import { Calendar, Clock, MapPin, User, Phone, Mail, Navigation } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
+import { toast } from "sonner";
+import SendFeedbackFormModal from "@/components/modals/SendFeedbackFormModal";
 
 const JobDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [jobStatus, setJobStatus] = useState<string>("");
+  const [showFeedbackFormModal, setShowFeedbackFormModal] = useState(false);
+  const [jobFeedbackStatus, setJobFeedbackStatus] = useState<Record<string, { exists: boolean; feedback?: { rating: number; comment: string; submittedAt: string } }>>(() => {
+    try {
+      const stored = localStorage.getItem("jobFeedbackStatus");
+      return stored ? JSON.parse(stored) : {};
+    } catch (error) {
+      return {};
+    }
+  });
+
   const job = mockJobs.find(j => j.id === id);
+  
+  useEffect(() => {
+    if (job) {
+      setJobStatus(job.status);
+    }
+  }, [job]);
   
   if (!job) {
     return (
@@ -23,6 +43,78 @@ const JobDetails = () => {
   const customer = mockCustomers.find(c => c.id === job.customerId);
   const technician = mockEmployees.find(e => e.id === job.technicianId);
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
+
+  // Check if feedback exists for this job
+  const hasFeedback = jobFeedbackStatus[job.id]?.exists === true;
+
+  // Auto-send feedback form email (without showing modal)
+  const autoSendFeedbackFormEmail = async (jobId: string) => {
+    const customerEmail = customer?.email || "";
+    
+    if (!customerEmail) {
+      console.warn(`No email found for customer ${job.customerName}`);
+      return;
+    }
+    
+    // In production, this would be an API call to send the email
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Mark feedback form as sent
+    setJobFeedbackStatus(prev => {
+      const updated = {
+        ...prev,
+        [jobId]: { exists: false }
+      };
+      localStorage.setItem("jobFeedbackStatus", JSON.stringify(updated));
+      return updated;
+    });
+    
+    toast.success(`Feedback form sent automatically to ${customerEmail}`);
+  };
+
+  // Handle status change
+  const handleStatusChange = (newStatus: string) => {
+    const oldStatus = jobStatus;
+    setJobStatus(newStatus);
+    
+    // Check if status changed to Completed
+    if (newStatus === "Completed" && oldStatus !== "Completed") {
+      const feedbackAutoSendEnabled = typeof window !== "undefined" 
+        ? localStorage.getItem("autoSendFeedback") === "true" 
+        : false;
+      
+      if (!hasFeedback) {
+        if (feedbackAutoSendEnabled) {
+          // Auto-send email without showing modal (async, non-blocking)
+          autoSendFeedbackFormEmail(job.id).catch(err => {
+            console.error("Failed to auto-send feedback form:", err);
+            toast.error("Failed to send feedback form automatically");
+          });
+        } else {
+          // Show modal with delivery options
+          setTimeout(() => {
+            setShowFeedbackFormModal(true);
+          }, 100);
+        }
+      }
+    }
+    
+    toast.success(`Job status updated to ${newStatus}`);
+  };
+
+  // Handle feedback form send (shows modal)
+  const handleFeedbackFormSent = () => {
+    setJobFeedbackStatus(prev => {
+      const updated = {
+        ...prev,
+        [job.id]: { exists: false }
+      };
+      localStorage.setItem("jobFeedbackStatus", JSON.stringify(updated));
+      return updated;
+    });
+    setShowFeedbackFormModal(false);
+    toast.success("Feedback form sent successfully");
+  };
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -42,8 +134,8 @@ const JobDetails = () => {
           <div className="flex items-start justify-between mb-4">
             <div className="flex-1">
               <h2 className="text-2xl font-bold mb-2">{job.title}</h2>
-              <Badge className={cn("text-sm", statusColors[job.status])}>
-                {job.status}
+              <Badge className={cn("text-sm", statusColors[jobStatus || job.status])}>
+                {jobStatus || job.status}
               </Badge>
             </div>
           </div>
@@ -133,9 +225,9 @@ const JobDetails = () => {
           </div>
 
           {/* Status Actions */}
-          {job.status === "Scheduled" && (
+          {(jobStatus || job.status) === "Scheduled" && (
             <div className="space-y-2">
-              <Button className="w-full" size="lg">
+              <Button className="w-full" size="lg" onClick={() => handleStatusChange("In Progress")}>
                 Start Job
               </Button>
               <Button variant="outline" className="w-full">
@@ -144,9 +236,9 @@ const JobDetails = () => {
             </div>
           )}
 
-          {job.status === "In Progress" && (
+          {(jobStatus || job.status) === "In Progress" && (
             <div className="space-y-2">
-              <Button className="w-full" size="lg">
+              <Button className="w-full" size="lg" onClick={() => handleStatusChange("Completed")}>
                 Complete Job
               </Button>
               <Button variant="outline" className="w-full">
@@ -156,6 +248,22 @@ const JobDetails = () => {
           )}
         </div>
       </div>
+
+      {/* Send Feedback Form Modal */}
+      {job && (
+        <SendFeedbackFormModal
+          isOpen={showFeedbackFormModal}
+          onClose={() => setShowFeedbackFormModal(false)}
+          job={job}
+          customerEmail={customer?.email || ""}
+          onSend={handleFeedbackFormSent}
+          onFillForm={() => {
+            setShowFeedbackFormModal(false);
+            // Navigate to feedback form or show feedback form modal
+            toast.info("Fill feedback form functionality");
+          }}
+        />
+      )}
     </div>
   );
 };

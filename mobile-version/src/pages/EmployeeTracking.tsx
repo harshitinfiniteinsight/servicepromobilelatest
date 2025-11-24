@@ -1,17 +1,23 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { mockJobs, mockEmployees } from "@/data/mobileMockData";
-import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon, XCircle } from "lucide-react";
+import { mockJobs, mockEmployees, mockInvoices, mockEstimates, mockAgreements, mockCustomers } from "@/data/mobileMockData";
+import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon, XCircle, UserCog, Edit, MessageSquare, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { toast } from "sonner";
 import ScheduleRouteModal from "@/components/modals/ScheduleRouteModal";
+import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
+import SendFeedbackFormModal from "@/components/modals/SendFeedbackFormModal";
+import ViewFeedbackModal from "@/components/modals/ViewFeedbackModal";
+import FeedbackFormModal from "@/components/modals/FeedbackFormModal";
+import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { format } from "date-fns";
@@ -159,7 +165,8 @@ const MapUpdater = ({ coordinates }: { coordinates: [number, number][] }) => {
 };
 
 const EmployeeTracking = () => {
-  const [activeTab, setActiveTab] = useState<"my-route" | "live-location">("live-location");
+  const navigate = useNavigate();
+  const [activeTab, setActiveTab] = useState<"my-route" | "live-location">("my-route");
   const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   // Single date for employee Scheduled Route tab
@@ -167,6 +174,8 @@ const EmployeeTracking = () => {
   const [expandedAccordion, setExpandedAccordion] = useState<string>("");
   const [showScheduleRouteModal, setShowScheduleRouteModal] = useState(false);
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | undefined>(undefined);
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [selectedJobForReassign, setSelectedJobForReassign] = useState<typeof mockJobs[0] | null>(null);
 
   // Get current employee ID from localStorage
   const currentEmployeeId = localStorage.getItem("currentEmployeeId") || "1";
@@ -184,19 +193,6 @@ const EmployeeTracking = () => {
     "5": "#EC4899", // Pink
   };
 
-  // Get today's date in YYYY-MM-DD format
-  // For demo purposes, we'll show jobs from mock data (which has dates in 2024)
-  // In production, this would use actual today's date
-  const getTodayDate = () => {
-    const today = new Date();
-    const year = today.getFullYear();
-    const month = String(today.getMonth() + 1).padStart(2, "0");
-    const day = String(today.getDate()).padStart(2, "0");
-    return `${year}-${month}-${day}`;
-  };
-
-  const todayDate = getTodayDate();
-
   // State to manage job status updates
   const [jobStatuses, setJobStatuses] = useState<Record<string, string>>(() => {
     const initialStatuses: Record<string, string> = {};
@@ -212,6 +208,9 @@ const EmployeeTracking = () => {
     });
     return initialStatuses;
   });
+
+  // State to manage job assignments (technicianId updates)
+  const [jobAssignments, setJobAssignments] = useState<Record<string, { technicianId: string; technicianName: string }>>({});
 
   // Format date for comparison (YYYY-MM-DD)
   const formatDateForComparison = (date: Date): string => {
@@ -266,6 +265,19 @@ const EmployeeTracking = () => {
     const dateStr = formatDateForComparison(dateToUse);
     filteredJobs = mockJobs.filter((job) => job.date === dateStr);
     
+    // Apply job assignments (reassignments) to jobs
+    filteredJobs = filteredJobs.map((job) => {
+      const assignment = jobAssignments[job.id];
+      if (assignment) {
+        return {
+          ...job,
+          technicianId: assignment.technicianId,
+          technicianName: assignment.technicianName,
+        };
+      }
+      return job;
+    });
+    
     if (isEmployee) {
       // Employee: Filter by employee ID only
       filteredJobs = filteredJobs.filter((job) => job.technicianId === currentEmployeeId);
@@ -294,7 +306,7 @@ const EmployeeTracking = () => {
       ...job,
       status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed" | "Cancelled",
     }));
-  }, [currentEmployeeId, jobStatuses, isEmployee, selectedDate, employeeSelectedDate, activeTab]);
+  }, [currentEmployeeId, jobStatuses, jobAssignments, isEmployee, selectedDate, employeeSelectedDate, activeTab]);
 
   // Helper function to convert time string to minutes for comparison
   const timeToMinutes = (timeStr: string): number => {
@@ -528,11 +540,31 @@ const EmployeeTracking = () => {
   }, [sortedJobs, selectedEmployeeFilter, isEmployee]);
 
   // Group jobs by employee (for merchant login)
+  // Includes employees who originally had jobs on the selected date, even if they now have 0 after reassignment
   const jobsByEmployee = useMemo(() => {
     if (isEmployee) {
       return { [currentEmployeeId]: filteredJobsForDisplay };
     }
     
+    // Determine which date to use
+    const dateStr = formatDateForComparison(selectedDate);
+    
+    // Get all employees who originally had jobs on this date (from mockJobs)
+    const employeesWithOriginalJobs = new Set<string>();
+    mockJobs.forEach((job) => {
+      if (job.date === dateStr) {
+        // Check if this job has been reassigned
+        const assignment = jobAssignments[job.id];
+        const currentTechnicianId = assignment ? assignment.technicianId : job.technicianId;
+        employeesWithOriginalJobs.add(currentTechnicianId);
+        // Also include original employee if job was reassigned
+        if (assignment && assignment.technicianId !== job.technicianId) {
+          employeesWithOriginalJobs.add(job.technicianId);
+        }
+      }
+    });
+    
+    // Group current jobs by employee
     const grouped: Record<string, typeof filteredJobsForDisplay> = {};
     filteredJobsForDisplay.forEach((job) => {
       if (!grouped[job.technicianId]) {
@@ -540,8 +572,16 @@ const EmployeeTracking = () => {
       }
       grouped[job.technicianId].push(job);
     });
+    
+    // Ensure all employees who originally had jobs (or currently have jobs) are included
+    employeesWithOriginalJobs.forEach((employeeId) => {
+      if (!grouped[employeeId]) {
+        grouped[employeeId] = [];
+      }
+    });
+    
     return grouped;
-  }, [filteredJobsForDisplay, isEmployee, currentEmployeeId]);
+  }, [filteredJobsForDisplay, isEmployee, currentEmployeeId, selectedDate, jobAssignments]);
 
   // Get status badge styling
   const getStatusBadge = (status: string) => {
@@ -560,16 +600,211 @@ const EmployeeTracking = () => {
   };
 
   // Handle job status update
+  // Track feedback status for jobs
+  const [jobFeedbackStatus, setJobFeedbackStatus] = useState<Record<string, { exists: boolean; feedback?: { rating: number; comment: string; submittedAt: string } }>>(() => {
+    try {
+      const stored = localStorage.getItem("jobFeedbackStatus");
+      return stored ? JSON.parse(stored) : {};
+    } catch (error) {
+      return {};
+    }
+  });
+
+  // Check if feedback exists for a job
+  const hasFeedback = (jobId: string) => {
+    return jobFeedbackStatus[jobId]?.exists === true;
+  };
+
+  // Modals state for feedback
+  const [showFeedbackFormModal, setShowFeedbackFormModal] = useState(false);
+  const [showViewFeedbackModal, setShowViewFeedbackModal] = useState(false);
+  const [showFillFeedbackFormModal, setShowFillFeedbackFormModal] = useState(false);
+  const [selectedJobForFeedback, setSelectedJobForFeedback] = useState<typeof mockJobs[0] | null>(null);
+
+  // Auto-send feedback form email (without showing modal)
+  const autoSendFeedbackFormEmail = async (jobId: string) => {
+    const allJobs = [...mockJobs, ...mockInvoices.map(inv => ({
+      id: inv.id,
+      customerId: inv.customerId,
+      customerName: inv.customerName,
+      title: `Invoice ${inv.id}`,
+    })), ...mockEstimates.map(est => ({
+      id: est.id,
+      customerId: est.customerId,
+      customerName: est.customerName,
+      title: `Estimate ${est.id}`,
+    })), ...mockAgreements.map(agr => ({
+      id: agr.id,
+      customerId: agr.customerId,
+      customerName: agr.customerName,
+      title: agr.type,
+    }))];
+    
+    const job = allJobs.find(j => j.id === jobId);
+    if (!job) return;
+    
+    const customer = mockCustomers.find(c => c.id === job.customerId);
+    const customerEmail = customer?.email || "";
+    
+    if (!customerEmail) {
+      console.warn(`No email found for customer ${job.customerName}`);
+      return;
+    }
+    
+    // In production, this would be an API call to send the email
+    // For now, simulate async email sending
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Mark feedback form as sent
+    setJobFeedbackStatus(prev => {
+      const updated = {
+        ...prev,
+        [jobId]: { exists: false } // Form sent, but feedback not yet received
+      };
+      localStorage.setItem("jobFeedbackStatus", JSON.stringify(updated));
+      return updated;
+    });
+    
+    toast.success(`Feedback form sent automatically to ${customerEmail}`);
+  };
+
+  // Handle feedback form send (shows modal)
+  const handleSendFeedbackForm = (jobId: string) => {
+    const allJobs = [...mockJobs, ...mockInvoices.map(inv => ({
+      id: inv.id,
+      customerId: inv.customerId,
+      customerName: inv.customerName,
+      title: `Invoice ${inv.id}`,
+      technicianId: "1",
+      technicianName: "Mike Johnson",
+      date: inv.issueDate,
+      time: "09:00 AM",
+      status: inv.status === "Paid" ? "Completed" : "Scheduled",
+      location: mockCustomers.find(c => c.id === inv.customerId)?.address || "",
+    })), ...mockEstimates.map(est => ({
+      id: est.id,
+      customerId: est.customerId,
+      customerName: est.customerName,
+      title: `Estimate ${est.id}`,
+      technicianId: "1",
+      technicianName: "Mike Johnson",
+      date: est.date,
+      time: "10:00 AM",
+      status: est.status === "Paid" ? "Completed" : "Scheduled",
+      location: mockCustomers.find(c => c.id === est.customerId)?.address || "",
+    })), ...mockAgreements.map(agr => ({
+      id: agr.id,
+      customerId: agr.customerId,
+      customerName: agr.customerName,
+      title: agr.type,
+      technicianId: "1",
+      technicianName: "Mike Johnson",
+      date: agr.startDate,
+      time: "11:00 AM",
+      status: agr.status === "Paid" ? "Completed" : "In Progress",
+      location: mockCustomers.find(c => c.id === agr.customerId)?.address || "",
+    }))];
+    
+    const job = allJobs.find(j => j.id === jobId);
+    if (job) {
+      setSelectedJobForFeedback(job as typeof mockJobs[0]);
+      setShowFeedbackFormModal(true);
+    }
+  };
+
   const handleStatusChange = (jobId: string, newStatus: string) => {
+    const oldStatus = jobStatuses[jobId] || mockJobs.find(j => j.id === jobId)?.status || "";
+    
     setJobStatuses((prev) => ({
       ...prev,
       [jobId]: newStatus,
     }));
     
-    // In production, this would call an API endpoint
-    // Example: await updateJobStatus(jobId, newStatus);
+    // Check if status changed to Completed
+    if (newStatus === "Completed" && oldStatus !== "Completed") {
+      const feedbackAutoSendEnabled = typeof window !== "undefined" 
+        ? localStorage.getItem("autoSendFeedback") === "true" 
+        : false;
+      
+      if (!hasFeedback(jobId)) {
+        if (feedbackAutoSendEnabled) {
+          // Auto-send email without showing modal (async, non-blocking)
+          autoSendFeedbackFormEmail(jobId).catch(err => {
+            console.error("Failed to auto-send feedback form:", err);
+            toast.error("Failed to send feedback form automatically");
+          });
+        } else {
+          // Show modal with delivery options
+          setTimeout(() => {
+            handleSendFeedbackForm(jobId);
+          }, 100);
+        }
+      }
+    }
     
     toast.success(`Job status updated to ${newStatus}`);
+  };
+
+  // Determine payment status from job
+  const getPaymentStatus = (job: typeof mockJobs[0]): "Paid" | "Open" => {
+    const id = job.id.toUpperCase();
+    
+    // Check invoice status
+    if (id.startsWith("INV")) {
+      const invoice = mockInvoices.find(inv => inv.id === job.id);
+      if (invoice) {
+        return invoice.status === "Paid" ? "Paid" : "Open";
+      }
+    }
+    
+    // Check estimate status
+    if (id.startsWith("EST")) {
+      const estimate = mockEstimates.find(est => est.id === job.id);
+      if (estimate) {
+        return estimate.status === "Paid" ? "Paid" : "Open";
+      }
+    }
+    
+    // Check agreement status
+    if (id.startsWith("AGR") || id.includes("AGR")) {
+      const agreement = mockAgreements.find(agr => agr.id === job.id);
+      if (agreement) {
+        return agreement.status === "Paid" ? "Paid" : "Open";
+      }
+    }
+    
+    // For generic JOB-XXX IDs, use job status
+    if (job.status === "Completed" || job.status === "Feedback Received") return "Paid";
+    return "Open";
+  };
+
+  // Determine job type for navigation
+  const getJobType = (jobId: string): "Invoice" | "Estimate" | "Agreement" | "Job" => {
+    const id = jobId.toUpperCase();
+    if (id.startsWith("INV")) return "Invoice";
+    if (id.startsWith("EST")) return "Estimate";
+    if (id.startsWith("AGR") || id.includes("AGR")) return "Agreement";
+    return "Job";
+  };
+
+  // Handle reassign employee
+  const handleReassignEmployee = (job: typeof mockJobs[0]) => {
+    setSelectedJobForReassign(job);
+    setShowReassignModal(true);
+  };
+
+  // Handle edit navigation
+  const handleEditJob = (job: typeof mockJobs[0]) => {
+    const jobType = getJobType(job.id);
+    if (jobType === "Invoice") {
+      navigate(`/invoices/${job.id}/edit`);
+    } else if (jobType === "Estimate") {
+      navigate(`/estimates/${job.id}/edit`);
+    } else if (jobType === "Agreement") {
+      navigate(`/agreements/${job.id}/edit`);
+    } else {
+      navigate(`/jobs/${job.id}/edit`);
+    }
   };
 
   // Get status icon
@@ -772,10 +1007,10 @@ const EmployeeTracking = () => {
                 <div className="space-y-3">
                   {/* Employee Filter + Date Picker Row - Merchant Only */}
                   {!isEmployee && (
-                    <div className="mb-4">
-                      <div className="flex items-center gap-3">
+                    <div className="mb-3">
+                      <div className="flex items-center gap-2">
                         <Select value={selectedEmployeeFilter} onValueChange={setSelectedEmployeeFilter}>
-                          <SelectTrigger className="flex-1 bg-white border-gray-300 h-10">
+                          <SelectTrigger className="flex-1 bg-white border-gray-300 h-9 text-sm">
                             <SelectValue>
                               {selectedEmployeeFilter === "all" 
                                 ? "All Employees" 
@@ -795,9 +1030,9 @@ const EmployeeTracking = () => {
                           <PopoverTrigger asChild>
                             <Button
                               variant="outline"
-                              className="flex-1 bg-white border-gray-300 h-10 justify-start text-left font-normal hover:bg-gray-50"
+                              className="flex-1 bg-white border-gray-300 h-9 justify-start text-left font-normal hover:bg-gray-50 text-sm px-3"
                             >
-                              <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                              <CalendarIcon className="mr-2 h-3.5 w-3.5 text-gray-500" />
                               {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Pick a date"}
                             </Button>
                           </PopoverTrigger>
@@ -822,16 +1057,16 @@ const EmployeeTracking = () => {
                     // Employee Login: Map + Single list
                     <>
                       {/* Date Filter + Add Route Button - Employee Only */}
-                      <div className="mb-4">
-                        <div className="flex items-center gap-3">
+                      <div className="mb-3">
+                        <div className="flex items-center gap-2">
                           {/* Date Picker */}
                           <Popover>
                             <PopoverTrigger asChild>
                               <Button
                                 variant="outline"
-                                className="flex-1 bg-white border-gray-300 h-10 justify-start text-left font-normal hover:bg-gray-50"
+                                className="flex-1 bg-white border-gray-300 h-9 justify-start text-left font-normal hover:bg-gray-50 text-sm px-3"
                               >
-                                <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
+                                <CalendarIcon className="mr-2 h-3.5 w-3.5 text-gray-500" />
                                 {employeeSelectedDate ? format(employeeSelectedDate, "MMM dd, yyyy") : "Pick a date"}
                               </Button>
                             </PopoverTrigger>
@@ -856,10 +1091,10 @@ const EmployeeTracking = () => {
                               // The modal will detect employee mode and pre-fill/disable the dropdown
                               setShowScheduleRouteModal(true);
                             }}
-                            className="h-10 px-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-md flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 shrink-0 text-xs font-medium"
+                            className="h-9 px-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-md flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 shrink-0 text-xs font-medium"
                             aria-label="Add Route"
                           >
-                            <Plus className="h-4 w-4" />
+                            <Plus className="h-3.5 w-3.5" />
                             <span>Add Route</span>
                           </button>
                         </div>
@@ -908,7 +1143,6 @@ const EmployeeTracking = () => {
                                     color: "#FF7A00",
                                     weight: 4,
                                     opacity: 0.9,
-                                    smoothFactor: 1,
                                   }}
                                 />
                               )}
@@ -1030,10 +1264,7 @@ const EmployeeTracking = () => {
                                       )}
                                     >
                                       <SelectValue>
-                                        <span className="flex items-center gap-1 whitespace-nowrap">
-                                          <span className="truncate">{job.status}</span>
-                                          <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
-                                        </span>
+                                        <span className="truncate">{job.status}</span>
                                       </SelectValue>
                                     </SelectTrigger>
                                     <SelectContent 
@@ -1105,7 +1336,8 @@ const EmployeeTracking = () => {
                         })
                         .map(([employeeId, jobs]) => {
                           const employee = mockEmployees.find(emp => emp.id === employeeId);
-                          if (!employee || jobs.length === 0) return null;
+                          if (!employee) return null;
+                          // Show accordion even if jobs.length === 0 (employee might have had jobs reassigned)
                           
                           const empColor = employeeColors[employeeId] || "#3b82f6";
                           const currentIdx = getCurrentStopIndex(jobs);
@@ -1118,23 +1350,24 @@ const EmployeeTracking = () => {
                             <AccordionItem 
                               key={employeeId} 
                               value={employeeId}
-                              className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm"
+                              className="border border-gray-200 rounded-xl overflow-hidden bg-white shadow-sm mb-2"
                             >
                               <AccordionTrigger 
                                 className={cn(
-                                  "px-4 py-3 hover:no-underline [&[data-state=open]]:bg-opacity-20",
-                                  "transition-colors"
+                                  "px-4 py-2.5 hover:no-underline transition-all",
+                                  "[&[data-state=open]]:bg-opacity-20 [&[data-state=open]]:rounded-t-xl",
+                                  expandedAccordion === employeeId && "rounded-t-xl"
                                 )}
                                 style={{ backgroundColor: expandedAccordion === employeeId ? bgColor : 'transparent' }}
                               >
-                                <div className="flex items-center gap-3 flex-1">
+                                <div className="flex items-center gap-2.5 flex-1 text-left">
                                   <div 
                                     className="w-3 h-3 rounded-full shrink-0"
                                     style={{ backgroundColor: empColor }}
                                   />
-                                  <div className="flex-1 text-left">
-                                    <h4 className="text-sm font-semibold text-gray-800">{employee.name}</h4>
-                                    <span className="text-xs text-gray-500">
+                                  <div className="flex-1 min-w-0">
+                                    <h4 className="text-sm font-semibold text-gray-800 leading-tight">{employee.name}</h4>
+                                    <span className="text-xs text-gray-500 leading-tight">
                                       {jobs.length} {jobs.length === 1 ? "stop" : "stops"}
                                     </span>
                                   </div>
@@ -1142,7 +1375,7 @@ const EmployeeTracking = () => {
                                   <div
                                     role="button"
                                     tabIndex={0}
-                                    className="h-8 w-8 shrink-0 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-full flex items-center justify-center cursor-pointer transition-colors"
+                                    className="h-7 w-7 shrink-0 text-gray-600 hover:text-orange-600 hover:bg-orange-50 rounded-full flex items-center justify-center cursor-pointer transition-colors mr-1"
                                     onClick={(e) => {
                                       e.stopPropagation(); // Prevent accordion toggle
                                       setEditingEmployeeId(employeeId);
@@ -1158,11 +1391,16 @@ const EmployeeTracking = () => {
                                     }}
                                     aria-label={`Edit schedule for ${employee.name}`}
                                   >
-                                    <Pencil className="h-4 w-4" />
+                                    <Pencil className="h-3.5 w-3.5" />
                                   </div>
                                 </div>
                               </AccordionTrigger>
-                              <AccordionContent className="px-4 pb-4 pt-2">
+                              <AccordionContent className="px-4 pb-3 pt-2 bg-gray-50/50 rounded-b-xl">
+                                {jobs.length === 0 ? (
+                                  <div className="py-6 text-center">
+                                    <p className="text-sm text-gray-500">No jobs assigned</p>
+                                  </div>
+                                ) : (
                                 <div className="space-y-2.5">
                                   {jobs.map((job, index) => {
                                     const isCurrentStop = index === currentIdx;
@@ -1172,7 +1410,7 @@ const EmployeeTracking = () => {
                                       <div
                                         key={job.id}
                                         className={cn(
-                                          "bg-white p-3.5 rounded-xl border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden",
+                                          "bg-white p-3 rounded-xl border shadow-sm hover:shadow-md transition-all relative overflow-hidden",
                                           isCurrentStop 
                                             ? "border-orange-300 bg-orange-50/30" 
                                             : "border-gray-200"
@@ -1201,9 +1439,10 @@ const EmployeeTracking = () => {
                                           </div>
                                           
                                           {/* Job Details */}
-                                          <div className="flex-1 min-w-0 pr-2">
+                                          <div className="flex-1 min-w-0">
+                                            {/* Row 1: Customer Name + Status + Kebab Menu */}
                                             <div className="flex items-start justify-between gap-2 mb-1.5">
-                                              <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
+                                              <div className="flex-1 min-w-0 flex items-center gap-1.5 flex-wrap">
                                                 <h4 className={cn(
                                                   "font-semibold text-sm truncate",
                                                   isCurrentStop ? "text-orange-700" : "text-gray-900"
@@ -1221,70 +1460,149 @@ const EmployeeTracking = () => {
                                                   </Badge>
                                                 )}
                                               </div>
-                                              {/* Status Dropdown - Schedule Route tab for merchants */}
-                                              <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                                                <Select
-                                                  value={job.status}
-                                                  onValueChange={(value) => handleStatusChange(job.id, value)}
-                                                >
-                                                  <SelectTrigger
-                                                    className={cn(
-                                                      "h-auto py-0.5 px-2 text-[10px] font-medium border rounded-full shrink-0 w-auto min-w-[70px] max-w-[100px]",
-                                                      "focus:ring-1 focus:ring-offset-0 focus:ring-orange-500",
-                                                      getStatusBadge(job.status),
-                                                      "hover:opacity-90 active:opacity-80 transition-opacity cursor-pointer"
-                                                    )}
+                                              <div className="flex items-center gap-1.5 shrink-0">
+                                                {/* Status Dropdown - Schedule Route tab for merchants */}
+                                                <div onClick={(e) => e.stopPropagation()}>
+                                                  <Select
+                                                    value={job.status}
+                                                    onValueChange={(value) => handleStatusChange(job.id, value)}
                                                   >
-                                                    <SelectValue>
-                                                      <span className="flex items-center gap-1 whitespace-nowrap">
+                                                    <SelectTrigger
+                                                      className={cn(
+                                                        "h-auto py-0.5 px-2 text-[10px] font-medium border rounded-full shrink-0 w-auto min-w-[70px] max-w-[100px]",
+                                                        "focus:ring-1 focus:ring-offset-0 focus:ring-orange-500",
+                                                        getStatusBadge(job.status),
+                                                        "hover:opacity-90 active:opacity-80 transition-opacity cursor-pointer"
+                                                      )}
+                                                    >
+                                                      <SelectValue>
                                                         <span className="truncate">{job.status}</span>
-                                                        <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
-                                                      </span>
-                                                    </SelectValue>
-                                                  </SelectTrigger>
-                                                  <SelectContent 
-                                                    className="z-[9999] min-w-[160px] rounded-lg shadow-lg" 
-                                                    position="popper" 
-                                                    sideOffset={4}
-                                                    align="end"
-                                                    side="bottom"
-                                                  >
-                                                    <SelectItem value="Scheduled" className="text-xs py-2 cursor-pointer">
-                                                      <span className="flex items-center gap-2">
-                                                        <Circle className="h-3 w-3 text-gray-400" />
-                                                        Scheduled
-                                                      </span>
-                                                    </SelectItem>
-                                                    <SelectItem value="In Progress" className="text-xs py-2 cursor-pointer">
-                                                      <span className="flex items-center gap-2">
-                                                        <Circle className="h-3 w-3 text-orange-600 fill-orange-600" />
-                                                        In Progress
-                                                      </span>
-                                                    </SelectItem>
-                                                    <SelectItem value="Completed" className="text-xs py-2 cursor-pointer">
-                                                      <span className="flex items-center gap-2">
-                                                        <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                                        Completed
-                                                      </span>
-                                                    </SelectItem>
-                                                    <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
-                                                      <span className="flex items-center gap-2">
-                                                        <XCircle className="h-3 w-3 text-red-600" />
-                                                        Cancelled
-                                                      </span>
-                                                    </SelectItem>
-                                                  </SelectContent>
-                                                </Select>
+                                                      </SelectValue>
+                                                    </SelectTrigger>
+                                                    <SelectContent 
+                                                      className="z-[9999] min-w-[160px] rounded-lg shadow-lg" 
+                                                      position="popper" 
+                                                      sideOffset={4}
+                                                      align="end"
+                                                      side="bottom"
+                                                    >
+                                                      <SelectItem value="Scheduled" className="text-xs py-2 cursor-pointer">
+                                                        <span className="flex items-center gap-2">
+                                                          <Circle className="h-3 w-3 text-gray-400" />
+                                                          Scheduled
+                                                        </span>
+                                                      </SelectItem>
+                                                      <SelectItem value="In Progress" className="text-xs py-2 cursor-pointer">
+                                                        <span className="flex items-center gap-2">
+                                                          <Circle className="h-3 w-3 text-orange-600 fill-orange-600" />
+                                                          In Progress
+                                                        </span>
+                                                      </SelectItem>
+                                                      <SelectItem value="Completed" className="text-xs py-2 cursor-pointer">
+                                                        <span className="flex items-center gap-2">
+                                                          <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                                          Completed
+                                                        </span>
+                                                      </SelectItem>
+                                                      <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                                                        <span className="flex items-center gap-2">
+                                                          <XCircle className="h-3 w-3 text-red-600" />
+                                                          Cancelled
+                                                        </span>
+                                                      </SelectItem>
+                                                    </SelectContent>
+                                                  </Select>
+                                            </div>
+                                                {/* Three-dot Kebab Menu */}
+                                                <div onClick={(e) => e.stopPropagation()}>
+                                                  {(() => {
+                                                    const paymentStatus = getPaymentStatus(job);
+                                                    const feedbackAutoSendEnabled = typeof window !== "undefined" 
+                                                      ? localStorage.getItem("autoSendFeedback") === "true" 
+                                                      : false;
+                                                    
+                                                    const menuItems: KebabMenuItem[] = [
+                                                      {
+                                                        label: "Reassign Employee",
+                                                        icon: UserCog,
+                                                        action: () => handleReassignEmployee(job),
+                                                        separator: false,
+                                                      },
+                                                    ];
+                                                    
+                                                    // Add Edit option only if payment status is Open
+                                                    if (paymentStatus === "Open") {
+                                                      menuItems.push({
+                                                        label: "Edit",
+                                                        icon: Edit,
+                                                        action: () => handleEditJob(job),
+                                                        separator: false,
+                                                      });
+                                                    }
+                                                    
+                                                    // Feedback menu options based on global setting and feedback existence
+                                                    const jobHasFeedback = hasFeedback(job.id);
+                                                    
+                                                    if (feedbackAutoSendEnabled) {
+                                                      // Auto-send is ON: Only show "View Feedback" if feedback exists
+                                                      if (jobHasFeedback) {
+                                                        menuItems.push({
+                                                          label: "View Feedback",
+                                                          icon: MessageSquare,
+                                                          action: () => {
+                                                            setSelectedJobForFeedback(job);
+                                                            setShowViewFeedbackModal(true);
+                                                          },
+                                                          separator: false,
+                                                        });
+                                                      }
+                                                    } else {
+                                                      // Auto-send is OFF: Show "Send Feedback Form" for completed jobs, and "View Feedback" if exists
+                                                      if (jobHasFeedback) {
+                                                        menuItems.push({
+                                                          label: "View Feedback",
+                                                          icon: MessageSquare,
+                                                          action: () => {
+                                                            setSelectedJobForFeedback(job);
+                                                            setShowViewFeedbackModal(true);
+                                                          },
+                                                          separator: false,
+                                                        });
+                                                      }
+                                                      
+                                                      // Show "Send Feedback Form" for completed jobs (but not if feedback already exists)
+                                                      if (job.status === "Completed" && !jobHasFeedback) {
+                                                        menuItems.push({
+                                                          label: "Send Feedback Form",
+                                                          icon: FileText,
+                                                          action: () => handleSendFeedbackForm(job.id),
+                                                          separator: false,
+                                                        });
+                                                      }
+                                                    }
+                                                    
+                                                    return (
+                                                      <KebabMenu
+                                                        items={menuItems}
+                                                        align="end"
+                                                        menuWidth="w-48"
+                                                      />
+                                                    );
+                                                  })()}
+                                                </div>
                                               </div>
                                             </div>
                                             
+                                            {/* Row 2: Job Title */}
                                             <p className="text-sm text-gray-700 mb-1.5 font-medium">{job.title}</p>
                                             
-                                            <p className="text-xs text-gray-600 mb-2 line-clamp-1 flex items-start gap-1.5">
+                                            {/* Row 3: Location */}
+                                            <p className="text-xs text-gray-600 mb-1.5 line-clamp-1 flex items-start gap-1.5">
                                               <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
                                               <span className="flex-1 truncate">{job.location}</span>
                                             </p>
                                             
+                                            {/* Row 4: Time */}
                                             <div className="flex items-center gap-2 text-xs text-gray-600">
                                               <Clock className="h-3.5 w-3.5 shrink-0" />
                                               <span className="font-medium">{job.time}</span>
@@ -1295,6 +1613,7 @@ const EmployeeTracking = () => {
                                     );
                                   })}
                                 </div>
+                                )}
                               </AccordionContent>
                             </AccordionItem>
                           );
@@ -1537,7 +1856,7 @@ const EmployeeTracking = () => {
                                 )}
                               </div>
                               {/* Status Dropdown - Only in Live Location tab for employees */}
-                              {isEmployee && (
+                              {isEmployee && activeTab === "live-location" && (
                                 <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
                                 <Select
                                   value={job.status}
@@ -1552,10 +1871,7 @@ const EmployeeTracking = () => {
                                     )}
                                   >
                                     <SelectValue>
-                                      <span className="flex items-center gap-1 whitespace-nowrap">
                                         <span className="truncate">{job.status}</span>
-                                        <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
-                                      </span>
                                     </SelectValue>
                                   </SelectTrigger>
                                   <SelectContent 
@@ -1583,10 +1899,10 @@ const EmployeeTracking = () => {
                                         Completed
                                       </span>
                                     </SelectItem>
-                                    <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
-                                      <span className="flex items-center gap-2">
-                                        <XCircle className="h-3 w-3 text-red-600" />
-                                        Cancelled
+                                      <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                                        <span className="flex items-center gap-2">
+                                          <XCircle className="h-3 w-3 text-red-600" />
+                                          Cancelled
                                       </span>
                                     </SelectItem>
                                   </SelectContent>
@@ -1715,10 +2031,7 @@ const EmployeeTracking = () => {
                                             )}
                                           >
                                             <SelectValue>
-                                              <span className="flex items-center gap-1 whitespace-nowrap">
                                                 <span className="truncate">{job.status}</span>
-                                                <ChevronDown className="h-2.5 w-2.5 opacity-60 shrink-0" />
-                                              </span>
                                             </SelectValue>
                                           </SelectTrigger>
                                           <SelectContent 
@@ -1793,7 +2106,7 @@ const EmployeeTracking = () => {
         }}
         initialEmployeeId={editingEmployeeId || (isEmployee ? currentEmployeeId : undefined)}
         mode={editingEmployeeId ? "edit" : "create"}
-        onSave={(employeeId, orderedJobIds) => {
+        onSave={(_employeeId, _orderedJobIds) => {
           // Route is already saved in localStorage by the modal
           // Force re-render to show updated order
           setShowScheduleRouteModal(false);
@@ -1802,6 +2115,131 @@ const EmployeeTracking = () => {
           toast.success("Route order updated successfully");
         }}
       />
+
+      {/* Reassign Employee Modal */}
+      {selectedJobForReassign && (
+        <ReassignEmployeeModal
+          isOpen={showReassignModal}
+          onClose={() => {
+            setShowReassignModal(false);
+            setSelectedJobForReassign(null);
+          }}
+          currentEmployeeId={selectedJobForReassign.technicianId}
+          estimateId={selectedJobForReassign.id}
+          onSave={(newEmployeeId) => {
+            // Update the job's technician
+            const newEmployee = mockEmployees.find(emp => emp.id === newEmployeeId);
+            if (newEmployee && selectedJobForReassign) {
+              // Get current assignment (or use original job assignment)
+              const currentAssignment = jobAssignments[selectedJobForReassign.id];
+              const oldEmployeeId = currentAssignment 
+                ? currentAssignment.technicianId 
+                : selectedJobForReassign.technicianId;
+              
+              // Update job assignment in state
+              setJobAssignments((prev) => ({
+                ...prev,
+                [selectedJobForReassign.id]: {
+                  technicianId: newEmployeeId,
+                  technicianName: newEmployee.name,
+                },
+              }));
+              
+              // In production, this would call an API endpoint
+              // Example: await reassignJob(selectedJobForReassign.id, newEmployeeId);
+              
+              toast.success(`Job reassigned to ${newEmployee.name}`);
+              setShowReassignModal(false);
+              setSelectedJobForReassign(null);
+              
+              // Auto-expand the new employee's accordion if it's different from the old one (merchant view only)
+              if (oldEmployeeId !== newEmployeeId && !isEmployee) {
+                // Small delay to ensure state updates have propagated
+                setTimeout(() => {
+                  setExpandedAccordion(newEmployeeId);
+                }, 100);
+              }
+            }
+          }}
+        />
+      )}
+
+      {/* Send Feedback Form Modal */}
+      {selectedJobForFeedback && (
+        <SendFeedbackFormModal
+          isOpen={showFeedbackFormModal}
+          onClose={() => {
+            setShowFeedbackFormModal(false);
+            setSelectedJobForFeedback(null);
+          }}
+          job={selectedJobForFeedback}
+          customerEmail={mockCustomers.find(c => c.id === selectedJobForFeedback.customerId)?.email || ""}
+          onSend={() => {
+            setJobFeedbackStatus(prev => {
+              const updated = {
+                ...prev,
+                [selectedJobForFeedback.id]: { exists: false }
+              };
+              localStorage.setItem("jobFeedbackStatus", JSON.stringify(updated));
+              return updated;
+            });
+            setShowFeedbackFormModal(false);
+            setSelectedJobForFeedback(null);
+            toast.success("Feedback form sent successfully");
+          }}
+          onFillForm={() => {
+            setShowFeedbackFormModal(false);
+            setTimeout(() => {
+              setShowFillFeedbackFormModal(true);
+            }, 100);
+          }}
+        />
+      )}
+
+      {/* View Feedback Modal */}
+      {selectedJobForFeedback && (
+        <ViewFeedbackModal
+          isOpen={showViewFeedbackModal}
+          onClose={() => {
+            setShowViewFeedbackModal(false);
+            setSelectedJobForFeedback(null);
+          }}
+          job={selectedJobForFeedback}
+          feedback={jobFeedbackStatus[selectedJobForFeedback.id]?.feedback}
+        />
+      )}
+
+      {/* Fill Feedback Form Modal */}
+      {selectedJobForFeedback && (
+        <FeedbackFormModal
+          isOpen={showFillFeedbackFormModal}
+          onClose={() => {
+            setShowFillFeedbackFormModal(false);
+            setSelectedJobForFeedback(null);
+          }}
+          job={selectedJobForFeedback}
+          onSubmit={(rating: number, comment: string) => {
+            setJobFeedbackStatus(prev => {
+              const updated = {
+                ...prev,
+                [selectedJobForFeedback.id]: {
+                  exists: true,
+                  feedback: {
+                    rating,
+                    comment,
+                    submittedAt: new Date().toLocaleString(),
+                  }
+                }
+              };
+              localStorage.setItem("jobFeedbackStatus", JSON.stringify(updated));
+              return updated;
+            });
+            setShowFillFeedbackFormModal(false);
+            setSelectedJobForFeedback(null);
+            toast.success("Feedback submitted successfully");
+          }}
+        />
+      )}
     </div>
   );
 };

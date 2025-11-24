@@ -23,7 +23,13 @@ const Agreements = () => {
     toast.success(`Initiating payment for ${agreementId}`);
   };
 
-  const handleMenuAction = (agreementId: string, action: string) => {
+  const handleMenuAction = (agreementId: string, action: string, event?: React.MouseEvent) => {
+    // Stop event propagation to prevent card onClick from firing
+    if (event) {
+      event.stopPropagation();
+      event.preventDefault();
+    }
+    
     switch (action) {
       case "preview":
         navigate(`/agreements/${agreementId}`);
@@ -35,6 +41,7 @@ const Agreements = () => {
         toast.success(`Sending agreement SMS for ${agreementId}`);
         break;
       case "edit":
+        // Directly navigate to edit screen, skipping details screen
         navigate(`/agreements/${agreementId}/edit`);
         break;
       case "pay":
@@ -80,16 +87,31 @@ const Agreements = () => {
             // Build menu items based on payment status and user role
             const kebabMenuItems: KebabMenuItem[] = isPaid
               ? [
-                  // Paid agreements: Only Preview (for both merchant and employee)
+                  // Paid agreements: Preview and Edit (Edit only for merchants)
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
+                  ...(isEmployee ? [] : [{ 
+                    label: "Edit Agreement", 
+                    icon: Edit, 
+                    action: () => {
+                      // Directly navigate to edit screen, skipping details screen
+                      handleMenuAction(agreement.id, "edit");
+                    }
+                  }]),
                 ]
               : [
-                  // Unpaid agreements: Preview, Send Email, Send SMS, Pay
+                  // Unpaid agreements: Preview, Send Email, Send SMS, Edit, Pay
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
                   { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
                   { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
                   // Edit Agreement: Only for merchants, not employees
-                  ...(isEmployee ? [] : [{ label: "Edit Agreement", icon: Edit, action: () => handleMenuAction(agreement.id, "edit") }]),
+                  ...(isEmployee ? [] : [{ 
+                    label: "Edit Agreement", 
+                    icon: Edit, 
+                    action: () => {
+                      // Directly navigate to edit screen, skipping details screen
+                      handleMenuAction(agreement.id, "edit");
+                    }
+                  }]),
                   { label: "Pay", icon: CreditCard, action: () => handleMenuAction(agreement.id, "pay") },
                 ];
 
@@ -97,7 +119,14 @@ const Agreements = () => {
               <div
                 key={agreement.id}
                 className="p-2.5 rounded-lg border bg-card active:scale-[0.98] transition-transform cursor-pointer"
-                onClick={() => navigate(`/agreements/${agreement.id}`)}
+                onClick={(e) => {
+                  // Don't navigate if clicking on kebab menu or its dropdown
+                  const target = e.target as HTMLElement;
+                  if (target.closest('[role="menu"]') || target.closest('[role="menuitem"]') || target.closest('button[aria-haspopup="menu"]')) {
+                    return;
+                  }
+                  navigate(`/agreements/${agreement.id}`);
+                }}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
@@ -115,7 +144,7 @@ const Agreements = () => {
                       </span>
                     </div>
                   </div>
-                  <div className="text-right flex flex-col items-end gap-1.5 flex-shrink-0 ml-2">
+                  <div className="text-right flex flex-col items-end gap-1.5 flex-shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
                     <div className="flex items-baseline gap-1">
                       <DollarSign className="h-3.5 w-3.5 text-primary flex-shrink-0" />
                       <span className="text-lg font-bold whitespace-nowrap">${agreement.monthlyAmount.toFixed(2)}</span>

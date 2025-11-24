@@ -1,9 +1,10 @@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Edit, Eye, Share2, FileText, MessageSquare, UserCog } from "lucide-react";
+import { Calendar, Edit, Eye, Share2, FileText, MessageSquare, UserCog, MapPin, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
+import { toast } from "sonner";
 
 interface JobCardProps {
   job: {
@@ -22,6 +23,7 @@ interface JobCardProps {
   customerPhone?: string;
   hasFeedback?: boolean;
   isEmployee?: boolean;
+  hasPictures?: boolean;
   onClick?: () => void;
   onStatusChange?: (newStatus: string) => void;
   onSendFeedbackForm?: () => void;
@@ -29,6 +31,8 @@ interface JobCardProps {
   onQuickAction?: (action: string) => void;
   onPreview?: (documentId: string, jobType: "Agreement" | "Estimate" | "Invoice") => void;
   onReassignEmployee?: () => void;
+  onAddPictures?: () => void;
+  onViewPictures?: () => void;
 }
 
 const JobCard = ({ 
@@ -39,13 +43,16 @@ const JobCard = ({
   customerPhone,
   hasFeedback = false,
   isEmployee = false,
+  hasPictures = false,
   onClick, 
   onStatusChange,
   onSendFeedbackForm,
   onViewFeedback,
   onQuickAction,
   onPreview,
-  onReassignEmployee
+  onReassignEmployee,
+  onAddPictures,
+  onViewPictures
 }: JobCardProps) => {
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
 
@@ -122,9 +129,34 @@ const JobCard = ({
     }
   };
 
+  // Open Google Maps with job address
+  const openGoogleMaps = (address: string) => {
+    if (!address || address.trim() === "") {
+      toast.error("Location unavailable");
+      return;
+    }
+
+    // URL encode the address
+    const encodedAddress = encodeURIComponent(address.trim());
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+
+    // Open in new tab/window
+    try {
+      window.open(googleMapsUrl, "_blank");
+    } catch (error) {
+      console.error("Failed to open Google Maps:", error);
+      toast.error("Failed to open map");
+    }
+  };
+
   // Build menu items for three-dot menu
   const buildMenuItems = (): KebabMenuItem[] => {
     const items: KebabMenuItem[] = [];
+    
+    // Get global feedback auto-send setting
+    const feedbackAutoSendEnabled = typeof window !== "undefined" 
+      ? localStorage.getItem("autoSendFeedback") === "true" 
+      : false;
     
     // Preview - always visible
     items.push({
@@ -164,24 +196,65 @@ const JobCard = ({
       });
     }
     
-    // View Feedback - when job status is "Feedback Received"
-    if (job.status === "Feedback Received" && onViewFeedback) {
+    // Show on Map - always visible
+    items.push({
+      label: "Show on Map",
+      icon: MapPin,
+      action: () => openGoogleMaps(job.location),
+      separator: false,
+    });
+    
+    // Add Pictures - always visible
+    if (onAddPictures) {
       items.push({
-        label: "View Feedback",
-        icon: MessageSquare,
-        action: () => onViewFeedback(),
+        label: "Add Pictures",
+        icon: ImageIcon,
+        action: () => onAddPictures(),
         separator: false,
       });
     }
     
-    // Send Feedback Form - when job status is Completed (but not Feedback Received)
-    else if (job.status === "Completed" && onSendFeedbackForm) {
+    // View Pictures - only if pictures exist
+    if (hasPictures && onViewPictures) {
       items.push({
-        label: "Send Feedback Form",
-        icon: FileText,
-        action: () => onSendFeedbackForm(),
+        label: "View Pictures",
+        icon: ImageIcon,
+        action: () => onViewPictures(),
         separator: false,
       });
+    }
+    
+    // Feedback menu options based on global setting and feedback existence
+    if (feedbackAutoSendEnabled) {
+      // Auto-send is ON: Don't show "Send Feedback Form", only show "View Feedback" if feedback exists
+      if (hasFeedback && onViewFeedback) {
+        items.push({
+          label: "View Feedback",
+          icon: MessageSquare,
+          action: () => onViewFeedback(),
+          separator: false,
+        });
+      }
+    } else {
+      // Auto-send is OFF: Show "Send Feedback Form" for completed jobs, and "View Feedback" if feedback exists
+      if (hasFeedback && onViewFeedback) {
+        items.push({
+          label: "View Feedback",
+          icon: MessageSquare,
+          action: () => onViewFeedback(),
+          separator: false,
+        });
+      }
+      
+      // Show "Send Feedback Form" for completed jobs (but not if feedback already exists)
+      if (job.status === "Completed" && !hasFeedback && onSendFeedbackForm) {
+        items.push({
+          label: "Send Feedback Form",
+          icon: FileText,
+          action: () => onSendFeedbackForm(),
+          separator: false,
+        });
+      }
     }
     
     return items;

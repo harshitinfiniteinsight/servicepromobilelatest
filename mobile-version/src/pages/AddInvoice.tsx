@@ -1,5 +1,5 @@
 import { useState, ChangeEvent, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { mockCustomers, mockInventory, mockEmployees, mockDiscounts } from "@/data/mobileMockData";
+import { mockCustomers, mockInventory, mockEmployees, mockDiscounts, mockInvoices } from "@/data/mobileMockData";
 import { Search, Plus, Minus, X, ChevronsUpDown, Check, Package, FileText, Save, Upload, Tag, Camera, RefreshCw, List } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -19,6 +19,9 @@ import { showSuccessToast } from "@/utils/toast";
 
 const AddInvoice = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
+  const isEditMode = !!id;
+  const invoice = isEditMode ? mockInvoices.find(inv => inv.id === id) : null;
   const [step, setStep] = useState(1);
   const [customerList, setCustomerList] = useState(() => [...mockCustomers]);
   const [customerOpen, setCustomerOpen] = useState(false);
@@ -38,15 +41,93 @@ const AddInvoice = () => {
   const isEmployee = userType === "employee";
   const currentEmployeeId = typeof window !== "undefined" ? localStorage.getItem("currentEmployeeId") || "1" : "1";
 
+  // Due date state
+  const [dueDate, setDueDate] = useState("");
+  // Payment status state (for edit mode)
+  const [paymentStatus, setPaymentStatus] = useState<"Open" | "Paid" | "Overdue">("Open");
+
+  // Load invoice data in edit mode
+  useEffect(() => {
+    if (isEditMode && invoice) {
+      // Pre-fill customer
+      if (invoice.customerId) {
+        setSelectedCustomer(invoice.customerId);
+      }
+
+      // Pre-fill employee (if available in invoice, otherwise use current employee)
+      const employeeId = (invoice as any).employeeId || currentEmployeeId;
+      setSelectedEmployee(employeeId);
+
+      // Pre-fill invoice type
+      if (invoice.type === "recurring") {
+        setInvoiceType("recurring");
+        setIsRecurringEnabled(true);
+      }
+
+      // Pre-fill due date
+      if (invoice.dueDate) {
+        setDueDate(invoice.dueDate);
+      }
+
+      // Pre-fill payment status
+      if (invoice.status) {
+        setPaymentStatus(invoice.status as "Open" | "Paid" | "Overdue");
+      }
+
+      // Pre-fill tax (calculate from amount if needed, or use default)
+      // Note: Mock invoices don't have tax field, so we'll use 0 as default
+      setTax((invoice as any).taxRate || 0);
+
+      // Pre-fill discount (if available)
+      if ((invoice as any).discount) {
+        const invDiscount = (invoice as any).discount;
+        if (typeof invDiscount === "object") {
+          setSelectedDiscount(invDiscount);
+        }
+      }
+
+      // Pre-fill items (if available)
+      if ((invoice as any).items && Array.isArray((invoice as any).items)) {
+        setItems((invoice as any).items);
+      }
+
+      // Pre-fill notes/terms (if available)
+      if ((invoice as any).memo) {
+        setNotes((invoice as any).memo);
+      }
+      if ((invoice as any).termsConditions) {
+        setTermsAndConditions((invoice as any).termsConditions);
+      }
+      if ((invoice as any).cancellationPolicy) {
+        setCancellationPolicy((invoice as any).cancellationPolicy);
+      }
+
+      // Pre-fill recurring settings (if recurring)
+      if (invoice.type === "recurring") {
+        if ((invoice as any).recurringInterval) {
+          setRecurringInterval((invoice as any).recurringInterval);
+        }
+        if ((invoice as any).recurringEndDate) {
+          setRecurringEndDate((invoice as any).recurringEndDate);
+          setRecurringEndOption("date");
+        }
+        if ((invoice as any).recurringOccurrences) {
+          setRecurringOccurrences(String((invoice as any).recurringOccurrences));
+          setRecurringEndOption("occurrences");
+        }
+      }
+    }
+  }, [isEditMode, invoice, currentEmployeeId]);
+
   // Auto-fill employee field for employees on component mount
   useEffect(() => {
-    if (isEmployee && currentEmployeeId) {
+    if (isEmployee && currentEmployeeId && !isEditMode) {
       // Always set to current employee for employees, preventing changes
       if (selectedEmployee !== currentEmployeeId) {
         setSelectedEmployee(currentEmployeeId);
       }
     }
-  }, [isEmployee, currentEmployeeId, selectedEmployee]);
+  }, [isEmployee, currentEmployeeId, selectedEmployee, isEditMode]);
   const [items, setItems] = useState<Array<{ id: string; name: string; quantity: number; price: number; isCustom?: boolean }>>([]);
   const [itemSearch, setItemSearch] = useState("");
   const [invoiceType, setInvoiceType] = useState<"single" | "recurring">("single");
@@ -301,7 +382,7 @@ const AddInvoice = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader title="New Invoice" showBack={true} actions={headerActions} />
+      <MobileHeader title={isEditMode ? "Edit Invoice" : "New Invoice"} showBack={true} actions={headerActions} />
 
       <Dialog
         open={showQuickAddCustomer}
@@ -375,25 +456,27 @@ const AddInvoice = () => {
         </DialogContent>
       </Dialog>
 
-      <div className="px-3 pt-14 pb-2">
-        <div className="flex items-center justify-between mb-1.5">
-          {steps.map((s, idx) => (
-            <div key={s.number} className="flex items-center flex-1">
-              <div
-                className={cn(
-                "flex items-center justify-center w-6 h-6 rounded-full text-xs font-semibold",
-                step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+      <div className="px-4 pt-16 pb-4">
+        <div className="flex items-center justify-center mb-2">
+          <div className="flex items-center max-w-full">
+            {steps.map((s, idx) => (
+              <div key={s.number} className="flex items-center">
+                <div
+                  className={cn(
+                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold shrink-0",
+                  step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}
+                >
+                  {step > s.number ? "✓" : s.number}
+                </div>
+                {idx < steps.length - 1 && (
+                  <div className={cn("w-8 sm:w-12 h-1 mx-2", step > s.number ? "bg-primary" : "bg-muted")} />
                 )}
-              >
-                {step > s.number ? "✓" : s.number}
               </div>
-              {idx < steps.length - 1 && (
-                <div className={cn("flex-1 h-0.5 mx-1.5", step > s.number ? "bg-primary" : "bg-muted")} />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground text-center">
+        <p className="text-sm text-muted-foreground text-center">
           Step {step} of {steps.length}: {steps[step - 1].title}
         </p>
       </div>
@@ -401,6 +484,17 @@ const AddInvoice = () => {
       <div className="flex-1 overflow-y-auto scrollable px-3 pb-4 space-y-3">
         {step === 1 && (
           <div className="space-y-4">
+            {isEditMode && invoice && (
+              <div>
+                <Label>Invoice ID</Label>
+                <Input
+                  value={invoice.id}
+                  disabled
+                  className="mt-2 h-11 bg-gray-50 text-gray-600 cursor-not-allowed"
+                  readOnly
+                />
+              </div>
+            )}
             <div>
               <div className="flex items-center justify-between">
                 <Label>Customer</Label>
@@ -1395,11 +1489,15 @@ const AddInvoice = () => {
             <Button
               className="flex-1 h-9 text-sm"
               onClick={() => {
-                showSuccessToast("Invoice created successfully");
+                if (isEditMode) {
+                  showSuccessToast("Invoice updated successfully");
+                } else {
+                  showSuccessToast("Invoice created successfully");
+                }
                 navigate("/invoices");
               }}
             >
-              Create Invoice
+              {isEditMode ? "Update Invoice" : "Create Invoice"}
             </Button>
           )}
         </div>

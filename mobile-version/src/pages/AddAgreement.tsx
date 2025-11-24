@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,13 +9,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { mockCustomers, serviceTypes, mockEmployees } from "@/data/mobileMockData";
+import { mockCustomers, serviceTypes, mockEmployees, mockAgreements } from "@/data/mobileMockData";
 import { RefreshCw, List, ChevronsUpDown, Check, Plus, Calendar, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
+import { showSuccessToast } from "@/utils/toast";
 
 const BASE_SERVICE_CATALOG = [
   { id: "svc-1", name: "Service Call Fee", price: 95 },
@@ -29,6 +30,10 @@ const BASE_SERVICE_CATALOG = [
 
 const AddAgreement = () => {
   const navigate = useNavigate();
+  const { id } = useParams<{ id?: string }>();
+  const isEditMode = !!id;
+  const agreement = isEditMode ? mockAgreements.find(ag => ag.id === id) : null;
+  
   const [step, setStep] = useState(1);
   const [customerList, setCustomerList] = useState(() => [...mockCustomers]);
   const [customerOpen, setCustomerOpen] = useState(false);
@@ -48,15 +53,15 @@ const AddAgreement = () => {
   const isEmployee = userType === "employee";
   const currentEmployeeId = typeof window !== "undefined" ? localStorage.getItem("currentEmployeeId") || "1" : "1";
 
-  // Auto-fill employee field for employees on component mount
+  // Auto-fill employee field for employees on component mount (only in create mode)
   useEffect(() => {
-    if (isEmployee && currentEmployeeId) {
+    if (isEmployee && currentEmployeeId && !isEditMode) {
       // Always set to current employee for employees, preventing changes
       if (selectedEmployee !== currentEmployeeId) {
         setSelectedEmployee(currentEmployeeId);
       }
     }
-  }, [isEmployee, currentEmployeeId, selectedEmployee]);
+  }, [isEmployee, currentEmployeeId, selectedEmployee, isEditMode]);
   const [agreementType, setAgreementType] = useState("One Time");
   const [serviceRequirement, setServiceRequirement] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
@@ -65,6 +70,81 @@ const AddAgreement = () => {
   const [serviceSearch, setServiceSearch] = useState("");
   const [serviceCatalog, setServiceCatalog] = useState(() => [...BASE_SERVICE_CATALOG]);
   const [selectedServices, setSelectedServices] = useState<Record<string, { id: string; name: string; price: number }>>({});
+  const [agreementStatus, setAgreementStatus] = useState<"Open" | "Paid">("Open");
+  const [monthlyAmount, setMonthlyAmount] = useState(0);
+  const [billingCycle, setBillingCycle] = useState("Monthly");
+
+  // Load agreement data in edit mode
+  useEffect(() => {
+    if (isEditMode && agreement) {
+      // Pre-fill customer
+      if (agreement.customerId) {
+        setSelectedCustomer(agreement.customerId);
+      }
+
+      // Pre-fill employee (if available in agreement, otherwise use current employee)
+      const employeeId = (agreement as any).employeeId || currentEmployeeId;
+      if (!isEmployee) {
+        setSelectedEmployee(employeeId);
+      }
+
+      // Pre-fill agreement type (plan name)
+      if (agreement.type) {
+        // Map agreement type to form values
+        // Assuming "One Time" or "Service" based on type
+        setAgreementType(agreement.type.includes("Service") || agreement.type.includes("Maintenance") ? "Service" : "One Time");
+      }
+
+      // Pre-fill dates
+      if (agreement.startDate) {
+        setStartDate(agreement.startDate);
+      }
+      if (agreement.endDate) {
+        setEndDate(agreement.endDate);
+      }
+
+      // Pre-fill monthly amount
+      if (agreement.monthlyAmount) {
+        setMonthlyAmount(agreement.monthlyAmount);
+      }
+
+      // Pre-fill billing cycle (default to Monthly if not specified)
+      if ((agreement as any).billingCycle) {
+        setBillingCycle((agreement as any).billingCycle);
+      } else {
+        // Default to Monthly based on monthlyAmount field
+        setBillingCycle("Monthly");
+      }
+
+      // Pre-fill status
+      if (agreement.status) {
+        setAgreementStatus(agreement.status as "Open" | "Paid");
+      }
+
+      // Pre-fill work description (if available)
+      if ((agreement as any).description) {
+        setWorkDescription((agreement as any).description);
+      }
+
+      // Pre-fill services (if available)
+      if ((agreement as any).services && Array.isArray((agreement as any).services)) {
+        const services: Record<string, { id: string; name: string; price: number }> = {};
+        (agreement as any).services.forEach((svc: any) => {
+          services[svc.id] = {
+            id: svc.id,
+            name: svc.name,
+            price: svc.price || 0,
+          };
+        });
+        setSelectedServices(services);
+      }
+
+      // Pre-fill service requirements (if available)
+      if ((agreement as any).serviceRequirement && Array.isArray((agreement as any).serviceRequirement)) {
+        setServiceRequirement((agreement as any).serviceRequirement);
+      }
+    }
+  }, [isEditMode, agreement, currentEmployeeId, isEmployee]);
 
   const sortedCustomers = [...customerList].sort((a, b) => {
     const dateA = new Date(a.joinedDate).getTime();
@@ -192,6 +272,58 @@ const AddAgreement = () => {
     navigate("/agreements");
   };
 
+  // Helper function to get agreement by ID (simulating API call)
+  const getAgreementById = (agreementId: string) => {
+    return mockAgreements.find(ag => ag.id === agreementId);
+  };
+
+  // Update agreement function (simulating API call)
+  const updateAgreement = (agreementId: string, payload: any) => {
+    // In a real app, this would be an API call
+    // For now, we'll just simulate success
+    const index = mockAgreements.findIndex(ag => ag.id === agreementId);
+    if (index !== -1) {
+      // Update the agreement in mock data
+      mockAgreements[index] = {
+        ...mockAgreements[index],
+        ...payload,
+      };
+      return Promise.resolve({ success: true });
+    }
+    return Promise.reject(new Error("Agreement not found"));
+  };
+
+  const handleSubmit = async () => {
+    if (isEditMode && id) {
+      // Update existing agreement
+      try {
+        const payload = {
+          customerId: selectedCustomer || "",
+          employeeId: selectedEmployee || currentEmployeeId,
+          type: agreementType,
+          startDate,
+          endDate,
+          monthlyAmount,
+          billingCycle,
+          status: agreementStatus,
+          description: workDescription,
+          services: selectedServicesList,
+          serviceRequirement,
+        };
+
+        await updateAgreement(id, payload);
+        showSuccessToast("Agreement updated successfully");
+        navigate("/agreements");
+      } catch (error) {
+        toast.error("Failed to update agreement");
+        console.error("Error updating agreement:", error);
+      }
+    } else {
+      // Create new agreement (existing logic)
+      navigate("/agreements");
+    }
+  };
+
   const handleAgreementTypeChange = (value: string) => {
     setAgreementType(value);
     if (value !== "Service") {
@@ -202,7 +334,7 @@ const AddAgreement = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden">
       <MobileHeader
-        title="New Agreement"
+        title={isEditMode ? "Edit Agreement" : "New Agreement"}
         showBack={true}
         actions={
           <div className="flex items-center gap-2">
@@ -302,23 +434,25 @@ const AddAgreement = () => {
       
       {/* Progress Indicator */}
       <div className="px-4 pt-16 pb-4">
-        <div className="flex items-center justify-between mb-2">
-          {steps.map((s, idx) => (
-            <div key={s.number} className="flex items-center flex-1">
-              <div className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold",
-                step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                {step > s.number ? "✓" : s.number}
-              </div>
-              {idx < steps.length - 1 && (
+        <div className="flex items-center justify-center mb-2">
+          <div className="flex items-center max-w-full">
+            {steps.map((s, idx) => (
+              <div key={s.number} className="flex items-center">
                 <div className={cn(
-                  "flex-1 h-1 mx-2",
-                  step > s.number ? "bg-primary" : "bg-muted"
-                )} />
-              )}
-            </div>
-          ))}
+                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold shrink-0",
+                  step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                )}>
+                  {step > s.number ? "✓" : s.number}
+                </div>
+                {idx < steps.length - 1 && (
+                  <div className={cn(
+                    "w-8 sm:w-12 h-1 mx-2",
+                    step > s.number ? "bg-primary" : "bg-muted"
+                  )} />
+                )}
+              </div>
+            ))}
+          </div>
         </div>
         <p className="text-sm text-muted-foreground text-center">
           Step {step} of {steps.length}: {steps[step - 1].title}
@@ -524,6 +658,26 @@ const AddAgreement = () => {
                 </Popover>
               )}
             </div>
+
+            {isEditMode && (
+              <div>
+                <Label>Status</Label>
+                <Select
+                  value={agreementStatus}
+                  onValueChange={(value) => {
+                    setAgreementStatus(value as "Open" | "Paid");
+                  }}
+                >
+                  <SelectTrigger className="mt-2 h-11">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Open">Open</SelectItem>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
         )}
 
@@ -625,6 +779,40 @@ const AddAgreement = () => {
               />
             </div>
                   </div>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-base font-semibold tracking-tight">Billing Cycle *</Label>
+                <Select
+                  value={billingCycle}
+                  onValueChange={setBillingCycle}
+                >
+                  <SelectTrigger className="h-11">
+                    <SelectValue placeholder="Select billing cycle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Monthly">Monthly</SelectItem>
+                    <SelectItem value="Quarterly">Quarterly</SelectItem>
+                    <SelectItem value="Annually">Annually</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-base font-semibold tracking-tight">Monthly Amount *</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    value={monthlyAmount || ""}
+                    onChange={e => setMonthlyAmount(Number(e.target.value) || 0)}
+                    placeholder="0.00"
+                    className="pl-8 h-11"
+                    min="0"
+                    step="0.01"
+                  />
                 </div>
               </div>
             </div>
@@ -818,8 +1006,8 @@ const AddAgreement = () => {
               className="flex-1"
               onClick={() => setStep(step + 1)}
               disabled={
-                (step === 1 && (!selectedCustomer || !selectedEmployee)) ||
-                (step === 2 && (!startDate || !endDate || (agreementType === "Service" && serviceRequirement.length === 0))) ||
+                (step === 1 && (!selectedCustomer || !selectedEmployee || (isEditMode && !agreementStatus))) ||
+                (step === 2 && (!startDate || !endDate || !billingCycle || !monthlyAmount || (agreementType === "Service" && serviceRequirement.length === 0))) ||
                 (step === 3 && selectedServicesList.length === 0) ||
                 (step === 4 && !workDescription.trim())
               }
@@ -827,8 +1015,8 @@ const AddAgreement = () => {
               Next
             </Button>
           ) : (
-            <Button className="flex-1" onClick={() => navigate("/agreements")}>
-              Create Agreement
+            <Button className="flex-1" onClick={handleSubmit}>
+              {isEditMode ? "Update Agreement" : "Create Agreement"}
             </Button>
           )}
         </div>

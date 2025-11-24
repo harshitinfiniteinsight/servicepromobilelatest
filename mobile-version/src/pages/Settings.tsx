@@ -1,6 +1,10 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { 
   Home, 
   Briefcase, 
@@ -26,11 +30,24 @@ import {
   Globe,
   HelpCircle,
   LogOut,
-  ChevronRight
+  ChevronRight,
+  MessageSquare,
+  X
 } from "lucide-react";
+import { showSuccessToast } from "@/utils/toast";
 
 const Settings = () => {
   const navigate = useNavigate();
+  const [showFeedbackSettingsModal, setShowFeedbackSettingsModal] = useState(false);
+  const [autoSendFeedback, setAutoSendFeedback] = useState(false);
+  
+  // Load saved feedback setting from localStorage
+  useEffect(() => {
+    const savedSetting = localStorage.getItem("autoSendFeedback");
+    if (savedSetting !== null) {
+      setAutoSendFeedback(savedSetting === "true");
+    }
+  }, []);
   
   // Get user role
   const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
@@ -128,6 +145,7 @@ const Settings = () => {
         { label: "Change Password", route: "/settings/change-password", icon: Lock },
         { label: "Permission Settings", route: "/settings/permissions", icon: Shield },
         { label: "Business Policies", route: "/settings/business-policies", icon: Building2 },
+        { label: "Feedback Settings", route: null, icon: MessageSquare, isModal: true },
         { label: "Payment Settings", route: "/settings/payment-methods", icon: CreditCard },
         { label: "Change App Language", route: "/settings/language", icon: Globe },
         { label: "Help", route: "/settings/help", icon: HelpCircle },
@@ -263,6 +281,8 @@ const Settings = () => {
                               onClick={() => {
                                 if (submenu.isAction && submenu.label === "Logout") {
                                   handleLogout();
+                                } else if ((submenu as any).isModal && submenu.label === "Feedback Settings") {
+                                  setShowFeedbackSettingsModal(true);
                                 } else if (submenu.route) {
                                   navigate(submenu.route);
                                 }
@@ -277,7 +297,7 @@ const Settings = () => {
                                 <SubIcon className="h-4 w-4" />
                                 <span className="text-sm font-medium">{submenu.label}</span>
                               </div>
-                              {submenu.route && (
+                              {(submenu.route || (submenu as any).isModal) && (
                                 <ChevronRight className="w-4 h-4 text-gray-400" />
                               )}
                             </button>
@@ -311,6 +331,77 @@ const Settings = () => {
           </Accordion>
         </div>
       </div>
+
+      {/* Feedback Settings Modal */}
+      <Dialog 
+        open={showFeedbackSettingsModal} 
+        onOpenChange={(open) => {
+          setShowFeedbackSettingsModal(open);
+          // Load saved setting when modal opens
+          if (open) {
+            const savedSetting = localStorage.getItem("autoSendFeedback");
+            if (savedSetting !== null) {
+              setAutoSendFeedback(savedSetting === "true");
+            } else {
+              setAutoSendFeedback(false); // Default to OFF
+            }
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-0">
+          <DialogHeader className="relative px-6 pt-6 pb-4 border-b">
+            <DialogTitle className="text-lg font-semibold pr-8">Feedback Settings</DialogTitle>
+            <DialogDescription className="sr-only">
+              Configure automatic feedback form email settings for completed jobs
+            </DialogDescription>
+            <button
+              onClick={() => setShowFeedbackSettingsModal(false)}
+              className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          </DialogHeader>
+          
+          <div className="px-6 py-4 space-y-4">
+            {/* Toggle Row */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="flex items-center justify-between px-4 py-4">
+                <div className="flex-1 min-w-0 pr-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-1">
+                    Send Feedback Form Automatically
+                  </h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Automatically email a feedback form to customers when their job status changes to Completed.
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <Switch
+                    checked={autoSendFeedback}
+                    onCheckedChange={setAutoSendFeedback}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="pt-2">
+              <Button
+                onClick={() => {
+                  // Save setting (in real app, this would be an API call)
+                  // Store in localStorage for persistence
+                  localStorage.setItem("autoSendFeedback", String(autoSendFeedback));
+                  showSuccessToast("Feedback settings saved successfully");
+                  setShowFeedbackSettingsModal(false);
+                }}
+                className="w-full"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
