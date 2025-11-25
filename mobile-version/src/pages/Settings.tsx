@@ -348,27 +348,27 @@ const Settings = () => {
           }
         }}
       >
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-0">
-          <DialogHeader className="relative px-6 pt-6 pb-4 border-b">
-            <DialogTitle className="text-lg font-semibold pr-8">Feedback Settings</DialogTitle>
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-auto sm:max-w-md rounded-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 [&>button]:hidden">
+          <DialogHeader className="relative px-6 pt-6 pb-4 border-b border-gray-200">
+            <DialogTitle className="text-lg font-semibold text-center">Feedback Settings</DialogTitle>
             <DialogDescription className="sr-only">
               Configure automatic feedback form email settings for completed jobs
             </DialogDescription>
             <button
               onClick={() => setShowFeedbackSettingsModal(false)}
-              className="absolute top-4 right-4 p-1 rounded-full hover:bg-gray-100 transition-colors"
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors"
               aria-label="Close"
             >
               <X className="h-5 w-5 text-gray-500" />
             </button>
           </DialogHeader>
           
-          <div className="px-6 py-4 space-y-4">
+          <div className="px-6 py-6 space-y-6">
             {/* Toggle Row */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-              <div className="flex items-center justify-between px-4 py-4">
+              <div className="flex items-center justify-between px-5 py-5">
                 <div className="flex-1 min-w-0 pr-4">
-                  <h3 className="text-sm font-medium text-gray-900 mb-1">
+                  <h3 className="text-sm font-medium text-gray-900 mb-1.5">
                     Send Feedback Form Automatically
                   </h3>
                   <p className="text-xs text-gray-500 leading-relaxed">
@@ -385,7 +385,7 @@ const Settings = () => {
             </div>
 
             {/* Save Button */}
-            <div className="pt-2">
+            <div className="pt-4">
               <Button
                 onClick={() => {
                   // Save setting (in real app, this would be an API call)
@@ -394,7 +394,7 @@ const Settings = () => {
                   showSuccessToast("Feedback settings saved successfully");
                   setShowFeedbackSettingsModal(false);
                 }}
-                className="w-full"
+                className="w-full h-11 text-sm font-semibold"
               >
                 Save
               </Button>
