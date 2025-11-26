@@ -110,12 +110,12 @@ const employeeColors: Record<string, string> = {
   "5": "#EC4899", // Pink
 };
 
-// Get status badge styling for Edit Route modal (only Scheduled and Cancelled)
+// Get status badge styling for Edit Route modal (only Scheduled and Cancel)
 const getStatusBadgeForRoute = (status: string) => {
   switch (status) {
     case "Scheduled":
       return "bg-orange-100 text-orange-700 border-orange-200";
-    case "Cancelled":
+    case "Cancel":
       return "bg-red-100 text-red-700 border-red-200";
     default:
       // Default to Scheduled if status is not one of the allowed options
@@ -192,8 +192,8 @@ const RouteStopCard = ({ job, index, empColor, status, onStatusChange, onReassig
     opacity: isDragging ? 0.5 : 1,
   };
 
-  // Ensure status is either Scheduled or Cancelled
-  const currentStatus = status === "Cancelled" ? "Cancelled" : "Scheduled";
+  // Ensure status is either Scheduled or Cancel
+  const currentStatus = status === "Cancel" ? "Cancel" : "Scheduled";
   const paymentStatus = getPaymentStatus(job);
 
   // Build menu items
@@ -250,7 +250,7 @@ const RouteStopCard = ({ job, index, empColor, status, onStatusChange, onReassig
               {job.customerName}
             </h4>
             <div className="flex items-center gap-1.5 shrink-0">
-              {/* Status Dropdown - Only Scheduled and Cancelled */}
+              {/* Status Dropdown - Only Scheduled and Cancel */}
               <div onClick={(e) => e.stopPropagation()}>
                 <Select
                   value={currentStatus}
@@ -281,10 +281,10 @@ const RouteStopCard = ({ job, index, empColor, status, onStatusChange, onReassig
                         Scheduled
                       </span>
                     </SelectItem>
-                    <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                    <SelectItem value="Cancel" className="text-xs py-2 cursor-pointer">
                       <span className="flex items-center gap-2">
                         <XCircle className="h-3 w-3 text-red-600" />
-                        Cancelled
+                        Cancel
                       </span>
                     </SelectItem>
                   </SelectContent>
@@ -415,8 +415,8 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
           routeStops.forEach((job) => {
             // Use saved status if available, otherwise use job status or default to Scheduled
             const savedStatus = parsedStatuses[job.id];
-            if (savedStatus === "Cancelled") {
-              initialStatuses[job.id] = "Cancelled";
+            if (savedStatus === "Cancel") {
+              initialStatuses[job.id] = "Cancel";
             } else {
               initialStatuses[job.id] = "Scheduled";
             }
@@ -426,7 +426,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
           // If parsing fails, initialize from job statuses
           const initialStatuses: Record<string, string> = {};
           routeStops.forEach((job) => {
-            const status = job.status === "Cancelled" ? "Cancelled" : "Scheduled";
+            const status = job.status === "Cancel" ? "Cancel" : "Scheduled";
             initialStatuses[job.id] = status;
           });
           setJobStatuses(initialStatuses);
@@ -435,7 +435,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
         // No saved statuses, initialize from job statuses
         const initialStatuses: Record<string, string> = {};
         routeStops.forEach((job) => {
-          const status = job.status === "Cancelled" ? "Cancelled" : "Scheduled";
+          const status = job.status === "Cancel" ? "Cancel" : "Scheduled";
           initialStatuses[job.id] = status;
         });
         setJobStatuses(initialStatuses);
@@ -484,8 +484,8 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
 
   // Handle job status change in Route Stops
   const handleJobStatusChange = (jobId: string, newStatus: string) => {
-    // Ensure only Scheduled or Cancelled
-    const validStatus = newStatus === "Cancelled" ? "Cancelled" : "Scheduled";
+    // Ensure only Scheduled or Cancel
+    const validStatus = newStatus === "Cancel" ? "Cancel" : "Scheduled";
     setJobStatuses((prev) => ({
       ...prev,
       [jobId]: validStatus,
@@ -876,7 +876,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
                         job={job}
                         index={index}
                         empColor={empColor}
-                        status={jobStatuses[job.id] || (job.status === "Cancelled" ? "Cancelled" : "Scheduled")}
+                        status={jobStatuses[job.id] || (job.status === "Cancel" ? "Cancel" : "Scheduled")}
                         onStatusChange={handleJobStatusChange}
                         onReassignEmployee={handleReassignEmployee}
                         onEditJob={handleEditJob}

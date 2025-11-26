@@ -5,7 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import MinimumDepositPercentageModal from "@/components/modals/MinimumDepositPercentageModal";
-import { mockAgreements } from "@/data/mobileMockData";
+import { DocumentVerificationModal } from "@/components/modals/DocumentVerificationModal";
+import PaymentModal from "@/components/modals/PaymentModal";
+import SendSmsModal from "@/components/modals/SendSmsModal";
+import { mockAgreements, mockCustomers } from "@/data/mobileMockData";
 import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
@@ -14,13 +17,50 @@ import { toast } from "sonner";
 const Agreements = () => {
   const navigate = useNavigate();
   const [showDepositModal, setShowDepositModal] = useState(false);
+  const [showDocumentVerificationModal, setShowDocumentVerificationModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showSmsModal, setShowSmsModal] = useState(false);
+  const [selectedAgreementId, setSelectedAgreementId] = useState<string | null>(null);
+  const [selectedAgreementAmount, setSelectedAgreementAmount] = useState<number>(0);
+  const [selectedAgreementForSms, setSelectedAgreementForSms] = useState<{ id: string; customerId: string; customerPhone?: string } | null>(null);
 
   // Get user role
   const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
   const isEmployee = userType === "employee";
 
   const handlePayNow = (agreementId: string) => {
-    toast.success(`Initiating payment for ${agreementId}`);
+    const agreement = mockAgreements.find(a => a.id === agreementId);
+    if (agreement) {
+      setSelectedAgreementId(agreementId);
+      setSelectedAgreementAmount(agreement.monthlyAmount || 0);
+      setShowDocumentVerificationModal(true);
+    }
+  };
+
+  const handleVerificationComplete = (data: {
+    signature: string;
+    documentType: string;
+    document: File | string;
+  }) => {
+    // Here you would typically:
+    // 1. Upload the signature and document to backend
+    // 2. Link verification data to the agreement
+    // The upload is already handled in DocumentVerificationModal's handleSend
+    
+    // Close document verification modal
+    setShowDocumentVerificationModal(false);
+    
+    // Immediately open payment modal (modal swap, no navigation)
+    setTimeout(() => {
+      setShowPaymentModal(true);
+    }, 100); // Small delay to ensure smooth modal transition
+  };
+
+  const handlePaymentComplete = () => {
+    setShowPaymentModal(false);
+    setSelectedAgreementId(null);
+    setSelectedAgreementAmount(0);
+    toast.success("Payment processed successfully");
   };
 
   const handleMenuAction = (agreementId: string, action: string, event?: React.MouseEvent) => {
@@ -38,7 +78,20 @@ const Agreements = () => {
         toast.success(`Sending agreement email for ${agreementId}`);
         break;
       case "send-sms":
-        toast.success(`Sending agreement SMS for ${agreementId}`);
+        const agreement = mockAgreements.find(a => a.id === agreementId);
+        if (agreement) {
+          const customer = mockCustomers.find(c => c.id === agreement.customerId);
+          if (!customer?.phone) {
+            toast.error("No phone number available for this customer");
+            return;
+          }
+          setSelectedAgreementForSms({
+            id: agreementId,
+            customerId: agreement.customerId,
+            customerPhone: customer.phone,
+          });
+          setShowSmsModal(true);
+        }
         break;
       case "edit":
         // Directly navigate to edit screen, skipping details screen
@@ -82,24 +135,17 @@ const Agreements = () => {
       >
         <div className="space-y-2">
           {mockAgreements.map(agreement => {
-            const isPaid = agreement.status === "Paid";
+            // Check if agreement is paid (case-insensitive)
+            const isPaid = agreement.status?.toLowerCase() === "paid";
             
             // Build menu items based on payment status and user role
             const kebabMenuItems: KebabMenuItem[] = isPaid
               ? [
-                  // Paid agreements: Preview and Edit (Edit only for merchants)
+                  // Paid agreements: Only Preview
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
-                  ...(isEmployee ? [] : [{ 
-                    label: "Edit Agreement", 
-                    icon: Edit, 
-                    action: () => {
-                      // Directly navigate to edit screen, skipping details screen
-                      handleMenuAction(agreement.id, "edit");
-                    }
-                  }]),
                 ]
               : [
-                  // Unpaid agreements: Preview, Send Email, Send SMS, Edit, Pay
+                  // Unpaid agreements: Preview, Send Email, Send SMS, Edit Agreement
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
                   { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
                   { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
@@ -112,7 +158,6 @@ const Agreements = () => {
                       handleMenuAction(agreement.id, "edit");
                     }
                   }]),
-                  { label: "Pay", icon: CreditCard, action: () => handleMenuAction(agreement.id, "pay") },
                 ];
 
             return (
@@ -120,9 +165,9 @@ const Agreements = () => {
                 key={agreement.id}
                 className="p-2.5 rounded-lg border bg-card active:scale-[0.98] transition-transform cursor-pointer"
                 onClick={(e) => {
-                  // Don't navigate if clicking on kebab menu or its dropdown
+                  // Don't navigate if clicking on kebab menu, pay button, or its dropdown
                   const target = e.target as HTMLElement;
-                  if (target.closest('[role="menu"]') || target.closest('[role="menuitem"]') || target.closest('button[aria-haspopup="menu"]')) {
+                  if (target.closest('[role="menu"]') || target.closest('[role="menuitem"]') || target.closest('button[aria-haspopup="menu"]') || target.closest('button[class*="Pay"]')) {
                     return;
                   }
                   navigate(`/agreements/${agreement.id}`);
@@ -150,7 +195,23 @@ const Agreements = () => {
                       <span className="text-lg font-bold whitespace-nowrap">${agreement.monthlyAmount.toFixed(2)}</span>
                     </div>
                     <p className="text-[10px] text-muted-foreground text-right whitespace-nowrap">per month</p>
-                    <KebabMenu items={kebabMenuItems} menuWidth="w-44" />
+                    <div className="flex items-center gap-2">
+                      {/* Pay button for unpaid agreements */}
+                      {!isPaid && (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="h-auto min-h-0 px-2 py-1 text-xs font-semibold whitespace-nowrap bg-primary hover:bg-primary/90 rounded-xl shadow-sm hover:shadow-md transition-all leading-tight"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePayNow(agreement.id);
+                          }}
+                        >
+                          Pay
+                        </Button>
+                      )}
+                      <KebabMenu items={kebabMenuItems} menuWidth="w-44" />
+                    </div>
                   </div>
                 </div>
               </div>
@@ -163,6 +224,44 @@ const Agreements = () => {
         isOpen={showDepositModal}
         onClose={() => setShowDepositModal(false)}
       />
+
+      {selectedAgreementId && (
+        <>
+          <DocumentVerificationModal
+            open={showDocumentVerificationModal}
+            onOpenChange={setShowDocumentVerificationModal}
+            agreementId={selectedAgreementId}
+            onVerificationComplete={handleVerificationComplete}
+          />
+          
+          <PaymentModal
+            isOpen={showPaymentModal}
+            onClose={() => {
+              setShowPaymentModal(false);
+              setSelectedAgreementId(null);
+              setSelectedAgreementAmount(0);
+            }}
+            amount={selectedAgreementAmount}
+            onPaymentMethodSelect={handlePaymentComplete}
+          />
+        </>
+      )}
+
+      {/* Send SMS Modal - Always render when selectedAgreementForSms exists */}
+      {selectedAgreementForSms ? (
+        <SendSmsModal
+          key={`sms-${selectedAgreementForSms.id}`}
+          isOpen={showSmsModal}
+          onClose={() => {
+            setShowSmsModal(false);
+            setSelectedAgreementForSms(null);
+          }}
+          customerPhone={selectedAgreementForSms.customerPhone || ""}
+          customerCountryCode="+1"
+          entityId={selectedAgreementForSms.id}
+          entityType="agreement"
+        />
+      ) : null}
     </div>
   );
 };

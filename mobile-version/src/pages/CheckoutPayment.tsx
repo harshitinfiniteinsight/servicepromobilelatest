@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import PaymentModal from "@/components/modals/PaymentModal";
-import PaymentSuccessModal from "@/components/modals/PaymentSuccessModal";
 import { useCart } from "@/contexts/CartContext";
 import { createOrder } from "@/services/orderService";
 import { toast } from "sonner";
@@ -10,7 +9,7 @@ import { toast } from "sonner";
 const CheckoutPayment = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { items, getSubtotal } = useCart();
+  const { items, getSubtotal, clearCart } = useCart();
   const { customer, total, subtotal, tax, taxRate, discount, discountType, notes } = (location.state as { 
     customer?: any; 
     total?: number; 
@@ -22,10 +21,10 @@ const CheckoutPayment = () => {
     notes?: string;
   }) || {};
   const [paymentModalOpen, setPaymentModalOpen] = useState(true);
-  const [successModalOpen, setSuccessModalOpen] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<string>("Credit Card");
+  const [isPaymentComplete, setIsPaymentComplete] = useState(false);
 
-  if (!customer || items.length === 0) {
+  // Don't redirect if payment is complete (navigation will happen in handleSuccessClose)
+  if (!isPaymentComplete && (!customer || items.length === 0)) {
     navigate("/checkout/customer");
     return null;
   }
@@ -43,7 +42,6 @@ const CheckoutPayment = () => {
 
   const handlePaymentMethodSelect = async (methodId: string) => {
     const methodName = getPaymentMethodName(methodId);
-    setPaymentMethod(methodName);
     
     try {
       // Use provided values or calculate defaults
@@ -62,7 +60,11 @@ const CheckoutPayment = () => {
         type: item.type,
       }));
 
-      await createOrder({
+      // Get current employee info if available
+      const currentEmployeeId = localStorage.getItem("currentEmployeeId");
+      const currentEmployeeName = localStorage.getItem("currentEmployeeName") || "System";
+
+      const newOrder = await createOrder({
         type: "cart",
         orderType: "Cart",
         source: "cart",
@@ -75,24 +77,48 @@ const CheckoutPayment = () => {
         discount: discount,
         discountType: discountType,
         notes: notes,
-        // Employee info can be added later if available
-        employeeId: undefined,
-        employeeName: undefined,
+        employeeId: currentEmployeeId || undefined,
+        employeeName: currentEmployeeName,
         status: "Paid",
         paymentMethod: methodName,
       });
 
+      // Close payment modal and mark payment as complete
       setPaymentModalOpen(false);
-      setSuccessModalOpen(true);
+      setIsPaymentComplete(true);
+      
+      // Show success message briefly, then navigate
+      toast.success("Payment received successfully!");
+      
+      // Clear the cart immediately
+      clearCart();
+      
+      // Navigate to Product Orders screen with the new order data
+      // Use replace: true to prevent going back to checkout
+      const orderData = {
+        id: newOrder.id,
+        items: newOrder.items.map((item: any) => ({
+          name: item.name,
+          price: item.price * item.quantity, // Total price for the item
+        })),
+        customerName: newOrder.customerName,
+        employeeName: newOrder.employeeName || "System",
+        totalAmount: newOrder.total,
+        date: newOrder.createdAt || newOrder.issueDate || new Date().toISOString().split("T")[0],
+        paymentStatus: "Paid",
+      };
+
+      // Navigate immediately
+      navigate("/sales/product-orders", { 
+        replace: true,
+        state: { 
+          newOrder: orderData
+        } 
+      });
     } catch (error) {
       console.error("Error creating order:", error);
       toast.error("Failed to create order. Please try again.");
     }
-  };
-
-  const handleSuccessClose = () => {
-    setSuccessModalOpen(false);
-    navigate("/checkout/confirmation", { state: { customer, total, subtotal, tax } });
   };
 
   return (
@@ -115,12 +141,6 @@ const CheckoutPayment = () => {
         onPaymentMethodSelect={handlePaymentMethodSelect}
       />
 
-      {/* Success Modal */}
-      <PaymentSuccessModal
-        isOpen={successModalOpen}
-        onClose={handleSuccessClose}
-        total={total || 0}
-      />
     </>
   );
 };

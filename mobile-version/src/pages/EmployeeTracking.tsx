@@ -304,7 +304,7 @@ const EmployeeTracking = () => {
     
     return filteredJobs.map((job) => ({
       ...job,
-      status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed" | "Cancelled",
+      status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed" | "Cancel",
     }));
   }, [currentEmployeeId, jobStatuses, jobAssignments, isEmployee, selectedDate, employeeSelectedDate, activeTab]);
 
@@ -370,8 +370,8 @@ const EmployeeTracking = () => {
         } else {
           // Default sort for this employee's jobs
           const sorted = empJobs.sort((a, b) => {
-            const aCompleted = a.status === "Completed" || a.status === "Cancelled";
-            const bCompleted = b.status === "Completed" || b.status === "Cancelled";
+            const aCompleted = a.status === "Completed" || a.status === "Cancel";
+            const bCompleted = b.status === "Completed" || b.status === "Cancel";
             if (aCompleted !== bCompleted) {
               return aCompleted ? 1 : -1;
             }
@@ -396,8 +396,8 @@ const EmployeeTracking = () => {
         
         // Sort unordered jobs by default logic
         const sortedUnordered = unordered.sort((a, b) => {
-          const aCompleted = a.status === "Completed" || a.status === "Cancelled";
-          const bCompleted = b.status === "Completed" || b.status === "Cancelled";
+          const aCompleted = a.status === "Completed" || a.status === "Cancel";
+          const bCompleted = b.status === "Completed" || b.status === "Cancel";
           if (aCompleted !== bCompleted) {
             return aCompleted ? 1 : -1;
           }
@@ -411,8 +411,8 @@ const EmployeeTracking = () => {
       } else {
         // Default sort
         jobs = jobs.sort((a, b) => {
-          const aCompleted = a.status === "Completed" || a.status === "Cancelled";
-          const bCompleted = b.status === "Completed" || b.status === "Cancelled";
+          const aCompleted = a.status === "Completed" || a.status === "Cancel";
+          const bCompleted = b.status === "Completed" || b.status === "Cancel";
           if (aCompleted !== bCompleted) {
             return aCompleted ? 1 : -1;
           }
@@ -434,7 +434,7 @@ const EmployeeTracking = () => {
     let closestDiff = Infinity;
 
     sortedJobs.forEach((job, index) => {
-      if (job.status === "Completed" || job.status === "Cancelled") return;
+      if (job.status === "Completed" || job.status === "Cancel") return;
       
       const jobTime = timeToMinutes(job.time);
       const diff = Math.abs(jobTime - currentTime);
@@ -484,7 +484,7 @@ const EmployeeTracking = () => {
     let closestDiff = Infinity;
 
     jobs.forEach((job, index) => {
-      if (job.status === "Completed" || job.status === "Cancelled") return;
+      if (job.status === "Completed" || job.status === "Cancel") return;
       
       const jobTime = timeToMinutes(job.time);
       const diff = Math.abs(jobTime - currentTime);
@@ -592,7 +592,7 @@ const EmployeeTracking = () => {
         return "bg-orange-100 text-orange-700 border-orange-200";
       case "Scheduled":
         return "bg-gray-100 text-gray-700 border-gray-200";
-      case "Cancelled":
+      case "Cancel":
         return "bg-red-100 text-red-700 border-red-200";
       default:
         return "bg-gray-100 text-gray-700 border-gray-200";
@@ -816,7 +816,7 @@ const EmployeeTracking = () => {
         return <Circle className="h-4 w-4 text-orange-600 fill-orange-600" />;
       case "Scheduled":
         return <Circle className="h-4 w-4 text-gray-400" />;
-      case "Cancelled":
+      case "Cancel":
         return <XCircle className="h-4 w-4 text-red-600" />;
       default:
         return <Circle className="h-4 w-4 text-gray-400" />;
@@ -1292,10 +1292,10 @@ const EmployeeTracking = () => {
                                           Completed
                                         </span>
                                       </SelectItem>
-                                      <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                                      <SelectItem value="Cancel" className="text-xs py-2 cursor-pointer">
                                         <span className="flex items-center gap-2">
                                           <XCircle className="h-3 w-3 text-red-600" />
-                                          Cancelled
+                                          Cancel
                                         </span>
                                       </SelectItem>
                                     </SelectContent>
@@ -1504,10 +1504,10 @@ const EmployeeTracking = () => {
                                                           Completed
                                                         </span>
                                                       </SelectItem>
-                                                      <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                                                      <SelectItem value="Cancel" className="text-xs py-2 cursor-pointer">
                                                         <span className="flex items-center gap-2">
                                                           <XCircle className="h-3 w-3 text-red-600" />
-                                                          Cancelled
+                                                          Cancel
                                                         </span>
                                                       </SelectItem>
                                                     </SelectContent>
@@ -1899,10 +1899,10 @@ const EmployeeTracking = () => {
                                         Completed
                                       </span>
                                     </SelectItem>
-                                      <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                                      <SelectItem value="Cancel" className="text-xs py-2 cursor-pointer">
                                         <span className="flex items-center gap-2">
                                           <XCircle className="h-3 w-3 text-red-600" />
-                                          Cancelled
+                                          Cancel
                                       </span>
                                     </SelectItem>
                                   </SelectContent>
@@ -2059,10 +2059,10 @@ const EmployeeTracking = () => {
                                                 Completed
                                               </span>
                                             </SelectItem>
-                                            <SelectItem value="Cancelled" className="text-xs py-2 cursor-pointer">
+                                            <SelectItem value="Cancel" className="text-xs py-2 cursor-pointer">
                                               <span className="flex items-center gap-2">
                                                 <XCircle className="h-3 w-3 text-red-600" />
-                                                Cancelled
+                                                Cancel
                                               </span>
                                             </SelectItem>
                                           </SelectContent>

@@ -32,7 +32,8 @@ import {
   LogOut,
   ChevronRight,
   MessageSquare,
-  X
+  X,
+  ListOrdered
 } from "lucide-react";
 import { showSuccessToast } from "@/utils/toast";
 
@@ -86,6 +87,7 @@ const Settings = () => {
         { label: "Estimates", route: "/estimates", icon: TrendingUp },
         { label: "Agreements", route: "/agreements", icon: ClipboardList },
         { label: "Sell Product", route: "/sales/sell-product", icon: ShoppingCart },
+        { label: "View Product Orders", route: "/sales/product-orders", icon: ListOrdered },
       ],
     },
     {
@@ -234,29 +236,6 @@ const Settings = () => {
               const Icon = item.icon;
               
               if (item.hasSubmenu) {
-                // Special handling for Sales - open submenu overlay instead of accordion
-                if (item.id === "sales") {
-                  return (
-                    <div key={item.id} className="bg-white rounded-xl shadow-sm">
-                      <button
-                        onClick={() => {
-                          // Dispatch custom event to open Sales submenu
-                          window.dispatchEvent(new CustomEvent('openSalesSubmenu'));
-                        }}
-                        className="w-full px-4 py-4 flex items-center justify-between hover:bg-accent/5 active:bg-accent/10 transition-colors rounded-xl"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getIconColor(item.id)}`}>
-                            <Icon className="h-5 w-5" />
-                          </div>
-                          <span className="font-medium text-gray-800">{item.title}</span>
-                        </div>
-                        <ChevronRight className="h-5 w-5 text-gray-400" />
-                      </button>
-                    </div>
-                  );
-                }
-                
                 return (
                   <AccordionItem
                     key={item.id}

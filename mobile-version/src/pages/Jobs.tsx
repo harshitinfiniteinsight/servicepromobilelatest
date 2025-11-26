@@ -209,7 +209,7 @@ const Jobs = () => {
   const [metricsGroupIndex, setMetricsGroupIndex] = useState(0);
   const metricsCarouselRef = useRef<HTMLDivElement>(null);
   
-  // Total groups: Group 1 (Scheduled, In Progress, Completed), Group 2 (Cancelled, Feedback Received)
+  // Total groups: Group 1 (Scheduled, In Progress, Completed), Group 2 (Cancel, Feedback Received)
   const totalGroups = 2;
   
   // Handle carousel navigation
@@ -262,8 +262,8 @@ const Jobs = () => {
         matchesStatus = job.status === "In Progress";
       } else if (statusFilter === "feedbackreceived") {
         matchesStatus = job.status === "Feedback Received";
-      } else if (statusFilter === "cancelled") {
-        matchesStatus = job.status === "Cancelled";
+      } else if (statusFilter === "cancel") {
+        matchesStatus = job.status === "Cancel";
       } else {
         matchesStatus = job.status.toLowerCase() === statusFilter.toLowerCase();
       }
@@ -374,7 +374,7 @@ const Jobs = () => {
     scheduled: filteredJobs.filter(j => j.status === "Scheduled").length,
     inProgress: filteredJobs.filter(j => j.status === "In Progress").length,
     completed: filteredJobs.filter(j => j.status === "Completed").length,
-    cancelled: filteredJobs.filter(j => j.status === "Cancelled").length,
+    cancelled: filteredJobs.filter(j => j.status === "Cancel").length,
     feedbackReceived: filteredJobs.filter(j => j.status === "Feedback Received").length,
   }), [filteredJobs]);
 
@@ -414,6 +414,77 @@ const Jobs = () => {
         job.id === jobId ? { ...job, status: newStatus } : job
       )
     );
+    
+    // Check if status changed to Cancel - deactivate the underlying document
+    if (newStatus === "Cancel" && oldStatus !== "Cancel") {
+      const jobIdUpper = jobId.toUpperCase();
+      
+      // Deactivate invoice
+      if (jobIdUpper.startsWith("INV")) {
+        const invoice = mockInvoices.find(inv => inv.id === jobId);
+        if (invoice) {
+          // In production, this would be an API call to deactivate
+          // For now, we'll track deactivation in localStorage
+          const deactivatedInvoices = JSON.parse(localStorage.getItem("deactivatedInvoices") || "[]");
+          if (!deactivatedInvoices.includes(jobId)) {
+            deactivatedInvoices.push(jobId);
+            localStorage.setItem("deactivatedInvoices", JSON.stringify(deactivatedInvoices));
+          }
+          toast.success(`Invoice ${jobId} has been cancelled and deactivated`);
+        }
+      }
+      // Deactivate estimate
+      else if (jobIdUpper.startsWith("EST")) {
+        const estimate = mockEstimates.find(est => est.id === jobId);
+        if (estimate) {
+          const deactivatedEstimates = JSON.parse(localStorage.getItem("deactivatedEstimates") || "[]");
+          if (!deactivatedEstimates.includes(jobId)) {
+            deactivatedEstimates.push(jobId);
+            localStorage.setItem("deactivatedEstimates", JSON.stringify(deactivatedEstimates));
+          }
+          toast.success(`Estimate ${jobId} has been cancelled and deactivated`);
+        }
+      }
+      // Deactivate agreement
+      else if (jobIdUpper.startsWith("AGR") || jobIdUpper.includes("AGR")) {
+        const agreement = mockAgreements.find(agr => agr.id === jobId);
+        if (agreement) {
+          const deactivatedAgreements = JSON.parse(localStorage.getItem("deactivatedAgreements") || "[]");
+          if (!deactivatedAgreements.includes(jobId)) {
+            deactivatedAgreements.push(jobId);
+            localStorage.setItem("deactivatedAgreements", JSON.stringify(deactivatedAgreements));
+          }
+          toast.success(`Agreement ${jobId} has been cancelled and deactivated`);
+        }
+      }
+    }
+    
+    // Check if status changed from Cancel to something else - reactivate the document
+    if (oldStatus === "Cancel" && newStatus !== "Cancel" && !isEmployee) {
+      const jobIdUpper = jobId.toUpperCase();
+      
+      // Reactivate invoice
+      if (jobIdUpper.startsWith("INV")) {
+        const deactivatedInvoices = JSON.parse(localStorage.getItem("deactivatedInvoices") || "[]");
+        const updated = deactivatedInvoices.filter((id: string) => id !== jobId);
+        localStorage.setItem("deactivatedInvoices", JSON.stringify(updated));
+        toast.success(`Invoice ${jobId} has been reactivated`);
+      }
+      // Reactivate estimate
+      else if (jobIdUpper.startsWith("EST")) {
+        const deactivatedEstimates = JSON.parse(localStorage.getItem("deactivatedEstimates") || "[]");
+        const updated = deactivatedEstimates.filter((id: string) => id !== jobId);
+        localStorage.setItem("deactivatedEstimates", JSON.stringify(updated));
+        toast.success(`Estimate ${jobId} has been reactivated`);
+      }
+      // Reactivate agreement
+      else if (jobIdUpper.startsWith("AGR") || jobIdUpper.includes("AGR")) {
+        const deactivatedAgreements = JSON.parse(localStorage.getItem("deactivatedAgreements") || "[]");
+        const updated = deactivatedAgreements.filter((id: string) => id !== jobId);
+        localStorage.setItem("deactivatedAgreements", JSON.stringify(updated));
+        toast.success(`Agreement ${jobId} has been reactivated`);
+      }
+    }
     
     // Check if status changed to Completed
     if (newStatus === "Completed" && oldStatus !== "Completed") {
@@ -825,7 +896,7 @@ const Jobs = () => {
                   <SelectItem value="scheduled">Scheduled</SelectItem>
                   <SelectItem value="inprogress">In Progress</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
+                  <SelectItem value="cancel">Cancel</SelectItem>
                   <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
                 </SelectContent>
               </Select>
@@ -878,7 +949,7 @@ const Jobs = () => {
                     <SelectItem value="scheduled">Scheduled</SelectItem>
                     <SelectItem value="inprogress">In Progress</SelectItem>
                     <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancelled">Cancelled</SelectItem>
+                    <SelectItem value="cancel">Cancel</SelectItem>
                     <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
                   </SelectContent>
                 </Select>
@@ -963,11 +1034,11 @@ const Jobs = () => {
               </div>
             </div>
             
-            {/* Group 2: Cancelled, Feedback Received */}
+            {/* Group 2: Cancel, Feedback Received */}
             <div className="flex gap-2 flex-shrink-0" style={{ width: '100%', scrollSnapAlign: 'start' }}>
-              {/* Cancelled - Light Red */}
+              {/* Cancel - Light Red */}
               <div className="flex flex-col p-2.5 rounded-xl bg-red-50/30 border border-red-200/40 shadow-sm flex-shrink-0" style={{ width: 'calc((100% - 1rem) / 3)' }}>
-                <p className="text-[10px] font-medium text-red-700 mb-1 leading-tight text-left">Cancelled</p>
+                <p className="text-[10px] font-medium text-red-700 mb-1 leading-tight text-left">Cancel</p>
                 <p className="text-lg font-bold text-red-700 leading-tight text-left">{summary.cancelled}</p>
               </div>
               

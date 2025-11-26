@@ -6,7 +6,7 @@ import EmptyState from "@/components/cards/EmptyState";
 import PaymentModal from "@/components/modals/PaymentModal";
 import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
-import SendSMSModal from "@/components/modals/SendSMSModal";
+import SendSmsModal from "@/components/modals/SendSmsModal";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import ShareAddressModal from "@/components/modals/ShareAddressModal";
 import { mockEstimates, mockCustomers } from "@/data/mobileMockData";
@@ -529,14 +529,16 @@ const Estimates = () => {
 
       {/* Send SMS Modal */}
       {selectedEstimateForAction && (
-        <SendSMSModal
+        <SendSmsModal
           isOpen={showSMSModal}
           onClose={() => {
             setShowSMSModal(false);
             setSelectedEstimateForAction(null);
           }}
-          phoneNumber={selectedEstimateForAction.customerPhone}
-          customerName={selectedEstimateForAction.customerName}
+          customerPhone={selectedEstimateForAction.customerPhone || ""}
+          customerCountryCode="+1"
+          entityId={selectedEstimateForAction.id}
+          entityType="estimate"
         />
       )}
 

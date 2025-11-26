@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, RotateCcw } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import EnterCardDetailsModal from "./EnterCardDetailsModal";
 import EnterACHPaymentDetailsModal from "./EnterACHPaymentDetailsModal";
 import CashPaymentModal from "./CashPaymentModal";
@@ -135,6 +135,9 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect }: Paymen
     <>
       <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal} onOpenChange={onClose}>
         <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden [&>div]:p-0 [&>button]:hidden">
+          <DialogTitle className="sr-only">
+            Service Pro911 - Payment
+          </DialogTitle>
           <DialogDescription className="sr-only">
             Payment modal for amount ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </DialogDescription>

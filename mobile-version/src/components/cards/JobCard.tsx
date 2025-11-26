@@ -97,7 +97,7 @@ const JobCard = ({
       return "bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200";
     } else if (status === "Completed") {
       return "bg-green-100 text-green-700 border-green-200 hover:bg-green-200";
-    } else if (status === "Cancelled") {
+    } else if (status === "Cancel") {
       return "bg-red-100 text-red-700 border-red-200 hover:bg-red-200";
     }
     return statusColors[status] || "bg-gray-100 text-gray-700 border-gray-200";
@@ -224,6 +224,19 @@ const JobCard = ({
       });
     }
     
+    // Reactivate - only for merchant, only when status is Cancel
+    if (!isEmployee && job.status === "Cancel" && onStatusChange) {
+      items.push({
+        label: "Reactivate",
+        icon: Edit,
+        action: () => {
+          // Change status back to Scheduled to reactivate
+          onStatusChange("Scheduled");
+        },
+        separator: false,
+      });
+    }
+    
     // Feedback menu options based on global setting and feedback existence
     if (feedbackAutoSendEnabled) {
       // Auto-send is ON: Don't show "Send Feedback Form", only show "View Feedback" if feedback exists
@@ -299,7 +312,7 @@ const JobCard = ({
                   <SelectItem value="Scheduled" className="text-xs">Scheduled</SelectItem>
                   <SelectItem value="In Progress" className="text-xs">In Progress</SelectItem>
                   <SelectItem value="Completed" className="text-xs">Completed</SelectItem>
-                  <SelectItem value="Cancelled" className="text-xs">Cancelled</SelectItem>
+                  <SelectItem value="Cancel" className="text-xs">Cancel</SelectItem>
                 </SelectContent>
               </Select>
             </div>

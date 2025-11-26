@@ -1,4 +1,4 @@
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -22,6 +22,9 @@ const ActionSheet = ({ open, onOpenChange, actions, title }: ActionSheetProps) =
       <DialogContent
         className="sm:max-w-md bottom-0 top-auto translate-y-0 data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom rounded-t-2xl rounded-b-none p-4 gap-2"
       >
+        <DialogTitle className="sr-only">
+          {title || "Action Sheet"}
+        </DialogTitle>
         {title && (
           <h3 className="font-semibold text-center text-muted-foreground text-sm mb-2">
             {title}

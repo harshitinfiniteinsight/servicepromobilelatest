@@ -71,8 +71,15 @@ const CustomerSelection = () => {
     navigate("/checkout/summary");
   };
 
+  // Redirect to inventory if cart is empty
+  useEffect(() => {
+    if (items.length === 0) {
+      navigate("/inventory", { replace: true });
+    }
+  }, [items.length, navigate]);
+
+  // Don't render if cart is empty (will redirect)
   if (items.length === 0) {
-    navigate("/inventory");
     return null;
   }
 

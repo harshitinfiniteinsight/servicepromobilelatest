@@ -5,7 +5,7 @@ import InvoiceCard from "@/components/cards/InvoiceCard";
 import EmptyState from "@/components/cards/EmptyState";
 import PaymentModal from "@/components/modals/PaymentModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
-import SendSMSModal from "@/components/modals/SendSMSModal";
+import SendSmsModal from "@/components/modals/SendSmsModal";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import InvoiceDueAlertModal from "@/components/modals/InvoiceDueAlertModal";
@@ -558,15 +558,17 @@ const Invoices = () => {
         />
       )}
 
-      {actionInvoice && showSMSModal && (
-        <SendSMSModal
+      {actionInvoice && (
+        <SendSmsModal
           isOpen={showSMSModal}
           onClose={() => {
             setShowSMSModal(false);
             setActionInvoice(null);
           }}
-          phoneNumber={actionInvoice.customerPhone || ""}
-          customerName={actionInvoice.customerName}
+          customerPhone={actionInvoice.customerPhone || ""}
+          customerCountryCode="+1"
+          entityId={actionInvoice.id}
+          entityType="invoice"
         />
       )}
 

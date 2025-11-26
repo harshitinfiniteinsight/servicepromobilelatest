@@ -9,8 +9,13 @@ interface PaymentSuccessModalProps {
 
 const PaymentSuccessModal = ({ isOpen, onClose, total }: PaymentSuccessModalProps) => {
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-sm w-[calc(100%-2rem)] p-6 gap-0 rounded-2xl [&>button]:hidden">
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      // Only allow closing via the Continue button, not by clicking outside
+      if (!open) {
+        onClose();
+      }
+    }}>
+      <DialogContent className="max-w-sm w-[calc(100%-2rem)] p-6 gap-0 rounded-2xl [&>button]:hidden" onInteractOutside={(e) => e.preventDefault()}>
         <DialogTitle className="sr-only">Success</DialogTitle>
         <DialogDescription className="sr-only">
           Payment success modal for amount ${total.toFixed(2)}

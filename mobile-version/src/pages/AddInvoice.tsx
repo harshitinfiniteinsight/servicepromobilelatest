@@ -1,5 +1,5 @@
-import { useState, ChangeEvent, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useState, ChangeEvent, useEffect, useRef } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -19,6 +19,7 @@ import { showSuccessToast } from "@/utils/toast";
 
 const AddInvoice = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id?: string }>();
   const isEditMode = !!id;
   const invoice = isEditMode ? mockInvoices.find(inv => inv.id === id) : null;
@@ -150,13 +151,56 @@ const AddInvoice = () => {
   const [cancellationPolicy, setCancellationPolicy] = useState("");
   const [showAddExisting, setShowAddExisting] = useState(false);
   const [showAddCustom, setShowAddCustom] = useState(false);
-  const [showAddToInventory, setShowAddToInventory] = useState(false);
   const [customItemName, setCustomItemName] = useState("");
   const [customItemPrice, setCustomItemPrice] = useState("");
   const [customItemImage, setCustomItemImage] = useState<string | null>(null);
   const [showVariablePriceDialog, setShowVariablePriceDialog] = useState(false);
   const [pendingVariableItem, setPendingVariableItem] = useState<typeof mockInventory[0] | null>(null);
   const [variableItemPrice, setVariableItemPrice] = useState("");
+  const processedReturnStateRef = useRef<string | null>(null);
+
+  // Handle return from Add Inventory page
+  useEffect(() => {
+    const state = location.state as { newInventoryItem?: any; returnTo?: string } | null;
+    if (state?.newInventoryItem && state?.returnTo === "invoice") {
+      const newItem = state.newInventoryItem;
+      const stateKey = `${newItem.id}-${newItem.name}`;
+      
+      // Prevent processing the same state multiple times
+      if (processedReturnStateRef.current === stateKey) {
+        return;
+      }
+      
+      // Check if item already exists and add it if not
+      setItems(prev => {
+        // Check if item already exists in items list
+        if (prev.find(i => i.id === newItem.id)) {
+          return prev;
+        }
+        
+        processedReturnStateRef.current = stateKey;
+        
+        // Add the new item to the items list
+        const price = parseFloat(newItem.price) || 0;
+        const updatedItems = [...prev, {
+          id: newItem.id,
+          name: newItem.name,
+          quantity: 1,
+          price: price
+        }];
+        
+        // Ensure we're on step 2
+        setStep(2);
+        
+        // Clear the state to prevent re-adding on re-render
+        window.history.replaceState({}, document.title);
+        
+        toast.success("Item added to inventory and selected");
+        
+        return updatedItems;
+      });
+    }
+  }, [location.state]);
 
   const sortedCustomers = [...customerList].sort((a, b) => {
     const dateA = new Date(a.joinedDate).getTime();
@@ -298,20 +342,6 @@ const AddInvoice = () => {
       setCustomItemPrice("");
       setCustomItemImage(null);
       setShowAddCustom(false);
-    }
-  };
-
-  const addToInventoryAndItem = () => {
-    if (customItemName && customItemPrice) {
-      const newId = `INV-ITEM-${Date.now()}`;
-      setItems([
-        ...items,
-        { id: newId, name: customItemName, quantity: 1, price: parseFloat(customItemPrice) },
-      ]);
-      setCustomItemName("");
-      setCustomItemPrice("");
-      setShowAddToInventory(false);
-      toast.success("Item added to inventory and invoice");
     }
   };
 
@@ -1003,56 +1033,28 @@ const AddInvoice = () => {
                 </DialogContent>
               </Dialog>
 
-              <Dialog
-                open={showAddToInventory}
-                onOpenChange={open => {
-                  setShowAddToInventory(open);
-                  if (!open) {
-                    setCustomItemName("");
-                    setCustomItemPrice("");
-                  }
+              <Button 
+                variant="outline" 
+                className="flex-1 flex-col h-auto py-2 px-1 min-h-[60px]"
+                onClick={() => {
+                  // Navigate to Add Inventory page with return state
+                  const returnPath = isEditMode ? `/invoices/${id}/edit` : "/invoices/new";
+                  navigate("/inventory/new", {
+                    state: {
+                      returnTo: "invoice",
+                      returnPath: returnPath,
+                      returnStep: 2,
+                      currentItems: items,
+                      preserveState: true
+                    }
+                  });
                 }}
               >
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="flex-1 flex-col h-auto py-2 px-1 min-h-[60px]">
-                    <Save className="h-3.5 w-3.5 mb-1 flex-shrink-0" />
-                    <span className="text-[10px] leading-tight text-center whitespace-normal break-words w-full px-0.5">
-                      Add to Inventory
-                    </span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Add to Inventory</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 mt-4">
-                    <div>
-                      <Label>Item Name</Label>
-                      <Input
-                        placeholder="Enter item name"
-                        value={customItemName}
-                        onChange={e => setCustomItemName(e.target.value)}
-                        className="mt-2"
-                      />
-                    </div>
-                    <div>
-                      <Label>Price</Label>
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        value={customItemPrice}
-                        onChange={e => setCustomItemPrice(e.target.value)}
-                        className="mt-2"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    <Button className="w-full" onClick={addToInventoryAndItem} disabled={!customItemName || !customItemPrice}>
-                      Add to Inventory & Invoice
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+                <Save className="h-3.5 w-3.5 mb-1 flex-shrink-0" />
+                <span className="text-[10px] leading-tight text-center whitespace-normal break-words w-full px-0.5">
+                  Add to Inventory
+                </span>
+              </Button>
 
               <Dialog open={showVariablePriceDialog} onOpenChange={setShowVariablePriceDialog}>
                 <DialogContent className="max-w-md">

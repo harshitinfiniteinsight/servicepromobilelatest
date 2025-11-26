@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
@@ -64,13 +64,13 @@ const AddEstimate = () => {
   const [newCustomerEmail, setNewCustomerEmail] = useState("");
   const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [showAddCustom, setShowAddCustom] = useState(false);
-  const [showAddToInventory, setShowAddToInventory] = useState(false);
   const [customItemName, setCustomItemName] = useState("");
   const [customItemPrice, setCustomItemPrice] = useState("");
   const [customItemImage, setCustomItemImage] = useState<string | null>(null);
   const [showVariablePriceDialog, setShowVariablePriceDialog] = useState(false);
   const [pendingVariableItem, setPendingVariableItem] = useState<typeof mockInventory[0] | null>(null);
   const [variableItemPrice, setVariableItemPrice] = useState("");
+  const processedReturnStateRef = useRef<string | null>(null);
 
   // Load estimate data when in edit mode
   useEffect(() => {
@@ -111,6 +111,48 @@ const AddEstimate = () => {
     }
   }, [isEditMode, id]);
 
+  // Handle return from Add Inventory page
+  useEffect(() => {
+    const state = location.state as { newInventoryItem?: any; returnTo?: string } | null;
+    if (state?.newInventoryItem && state?.returnTo === "estimate") {
+      const newItem = state.newInventoryItem;
+      const stateKey = `${newItem.id}-${newItem.name}`;
+      
+      // Prevent processing the same state multiple times
+      if (processedReturnStateRef.current === stateKey) {
+        return;
+      }
+      
+      // Check if item already exists and add it if not
+      setItems(prev => {
+        // Check if item already exists in items list
+        if (prev.find(i => i.id === newItem.id)) {
+          return prev;
+        }
+        
+        processedReturnStateRef.current = stateKey;
+        
+        // Add the new item to the items list
+        const price = parseFloat(newItem.price) || 0;
+        const updatedItems = [...prev, {
+          id: newItem.id,
+          name: newItem.name,
+          quantity: 1,
+          price: price
+        }];
+        
+        // Ensure we're on step 2
+        setStep(2);
+        
+        // Clear the state to prevent re-adding on re-render
+        window.history.replaceState({}, document.title);
+        
+        toast.success("Item added to inventory and selected");
+        
+        return updatedItems;
+      });
+    }
+  }, [location.state]);
 
   const filteredInventory = mockInventory.filter(i =>
     i.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
@@ -260,23 +302,6 @@ const AddEstimate = () => {
       setCustomItemPrice("");
       setCustomItemImage(null);
       setShowAddCustom(false);
-    }
-  };
-
-  const addToInventoryAndItem = () => {
-    if (customItemName && customItemPrice) {
-      const newId = `INV-ITEM-${Date.now()}`;
-      // Add to items list
-      setItems([...items, { 
-        id: newId, 
-        name: customItemName, 
-        quantity: 1, 
-        price: parseFloat(customItemPrice)
-      }]);
-      setCustomItemName("");
-      setCustomItemPrice("");
-      setShowAddToInventory(false);
-      toast.success("Item added to inventory and estimate");
     }
   };
 
@@ -814,49 +839,26 @@ const AddEstimate = () => {
                 </DialogContent>
               </Dialog>
 
-              <Dialog open={showAddToInventory} onOpenChange={setShowAddToInventory}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full flex-col h-auto py-2.5 px-1 min-h-[70px]">
-                    <Save className="h-4 w-4 mb-1.5 flex-shrink-0" />
-                    <span className="text-[11px] leading-tight text-center whitespace-normal break-words w-full px-0.5">Add to Inventory</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Add to Inventory</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 mt-4">
-                    <div>
-                      <Label>Item Name</Label>
-                      <Input
-                        placeholder="Enter item name"
-                        value={customItemName}
-                        onChange={(e) => setCustomItemName(e.target.value)}
-                        className="mt-2"
-                      />
-                    </div>
-                    <div>
-                      <Label>Price</Label>
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        value={customItemPrice}
-                        onChange={(e) => setCustomItemPrice(e.target.value)}
-                        className="mt-2"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    <Button
-                      className="w-full" 
-                      onClick={addToInventoryAndItem}
-                      disabled={!customItemName || !customItemPrice}
-                    >
-                      Add to Inventory & Estimate
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button 
+                variant="outline" 
+                className="w-full flex-col h-auto py-2.5 px-1 min-h-[70px]"
+                onClick={() => {
+                  // Navigate to Add Inventory page with return state
+                  const returnPath = isEditMode ? `/estimates/${id}/edit` : "/estimates/new";
+                  navigate("/inventory/new", {
+                    state: {
+                      returnTo: "estimate",
+                      returnPath: returnPath,
+                      returnStep: 2,
+                      currentItems: items,
+                      preserveState: true
+                    }
+                  });
+                }}
+              >
+                <Save className="h-4 w-4 mb-1.5 flex-shrink-0" />
+                <span className="text-[11px] leading-tight text-center whitespace-normal break-words w-full px-0.5">Add to Inventory</span>
+              </Button>
 
               {/* Variable Price Dialog */}
               <Dialog open={showVariablePriceDialog} onOpenChange={setShowVariablePriceDialog}>
