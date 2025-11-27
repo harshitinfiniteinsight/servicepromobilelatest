@@ -33,8 +33,6 @@ const AddServicePicturesModal = ({
   const fileInputBeforeRef = useRef<HTMLInputElement>(null);
   const fileInputAfterRef = useRef<HTMLInputElement>(null);
 
-  const isCompleted = jobStatus === "Completed";
-
   const handleImageUpload = (type: "before" | "after", source: "camera" | "gallery") => {
     if (source === "gallery") {
       // Open file picker
@@ -93,10 +91,6 @@ const AddServicePicturesModal = ({
     e.preventDefault();
     e.stopPropagation();
 
-    if (type === "after" && !isCompleted) {
-      return;
-    }
-
     if (type === "before") {
       setDragOverBefore(false);
     } else {
@@ -112,10 +106,6 @@ const AddServicePicturesModal = ({
   const handleDragOver = (type: "before" | "after", e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
-
-    if (type === "after" && !isCompleted) {
-      return;
-    }
 
     if (type === "before") {
       setDragOverBefore(true);
@@ -136,10 +126,6 @@ const AddServicePicturesModal = ({
   };
 
   const handleDropzoneClick = (type: "before" | "after") => {
-    if (type === "after" && !isCompleted) {
-      return;
-    }
-
     if (type === "before" && fileInputBeforeRef.current) {
       fileInputBeforeRef.current.click();
     } else if (type === "after" && fileInputAfterRef.current) {
@@ -181,15 +167,24 @@ const AddServicePicturesModal = ({
   return (
     <>
       <Dialog open={open} onOpenChange={handleCancel}>
-        <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto p-0" onInteractOutside={handleCancel}>
-          <DialogHeader className="px-6 pt-6 pb-4 border-b">
-            <DialogTitle className="text-lg font-semibold">Add Service Pictures</DialogTitle>
-            <DialogDescription className="sr-only">
-              Upload before and after service pictures for this job
-            </DialogDescription>
+        <DialogContent className="w-[90%] max-w-sm mx-auto p-5 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[85vh] overflow-y-auto" onInteractOutside={handleCancel}>
+          <DialogDescription className="sr-only">
+            Upload before and after service pictures for this job
+          </DialogDescription>
+          {/* Header */}
+          <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b border-gray-100">
+            <DialogTitle className="text-lg font-semibold text-gray-800">Add Service Pictures</DialogTitle>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 rounded-full hover:bg-gray-100"
+              onClick={handleCancel}
+            >
+              <X className="h-5 w-5 text-gray-600" />
+            </Button>
           </DialogHeader>
 
-          <div className="px-6 py-4 space-y-6">
+          <div className="space-y-4 mt-3">
             {/* Hidden file inputs */}
             <input
               type="file"
@@ -221,15 +216,15 @@ const AddServicePicturesModal = ({
             />
 
             {/* Before Service Section */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold">Before Service</Label>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-4 space-y-3">
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-700">Before Service</Label>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
                 {localBeforeImage ? (
                   <div className="relative">
                     <img
                       src={localBeforeImage}
                       alt="Before service"
-                      className="w-full h-48 object-cover rounded-lg"
+                      className="w-full h-40 object-cover rounded-lg"
                     />
                     <button
                       onClick={() => handleRemoveImage("before")}
@@ -246,13 +241,13 @@ const AddServicePicturesModal = ({
                     onDragOver={(e) => handleDragOver("before", e)}
                     onDragLeave={(e) => handleDragLeave("before", e)}
                     className={cn(
-                      "flex flex-col items-center justify-center h-48 bg-white rounded-lg border-2 border-dashed transition-colors cursor-pointer",
+                      "flex flex-col items-center justify-center h-40 bg-white rounded-lg border-2 border-dashed transition-colors cursor-pointer",
                       dragOverBefore
                         ? "border-primary bg-primary/5 border-primary"
                         : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
                     )}
                   >
-                    <Camera className={cn("h-12 w-12 mb-2 transition-colors", dragOverBefore ? "text-primary" : "text-gray-400")} />
+                    <Camera className={cn("h-10 w-10 mb-2 transition-colors", dragOverBefore ? "text-primary" : "text-gray-400")} />
                     <span className={cn("text-sm transition-colors", dragOverBefore ? "text-primary font-medium" : "text-gray-500")}>
                       {dragOverBefore ? "Drop image here" : "Dropzone"}
                     </span>
@@ -270,18 +265,15 @@ const AddServicePicturesModal = ({
             </div>
 
             {/* After Service Section */}
-            <div className="space-y-3">
-              <Label className="text-sm font-semibold">After Service</Label>
-              <div className={cn(
-                "rounded-xl border p-4 space-y-3",
-                isCompleted ? "border-gray-200 bg-gray-50" : "border-gray-200 bg-gray-100 opacity-60"
-              )}>
+            <div className="space-y-2">
+              <Label className="text-sm font-semibold text-gray-700">After Service</Label>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
                 {localAfterImage ? (
                   <div className="relative">
                     <img
                       src={localAfterImage}
                       alt="After service"
-                      className="w-full h-48 object-cover rounded-lg"
+                      className="w-full h-40 object-cover rounded-lg"
                     />
                     <button
                       onClick={() => handleRemoveImage("after")}
@@ -298,25 +290,21 @@ const AddServicePicturesModal = ({
                     onDragOver={(e) => handleDragOver("after", e)}
                     onDragLeave={(e) => handleDragLeave("after", e)}
                     className={cn(
-                      "flex flex-col items-center justify-center h-48 bg-white rounded-lg border-2 border-dashed transition-colors",
-                      !isCompleted && "cursor-not-allowed opacity-60",
-                      isCompleted && "cursor-pointer",
-                      dragOverAfter && isCompleted
+                      "flex flex-col items-center justify-center h-40 bg-white rounded-lg border-2 border-dashed transition-colors cursor-pointer",
+                      dragOverAfter
                         ? "border-primary bg-primary/5 border-primary"
-                        : isCompleted
-                        ? "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                        : "border-gray-300"
+                        : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
                     )}
                   >
                     <Camera className={cn(
-                      "h-12 w-12 mb-2 transition-colors",
-                      dragOverAfter && isCompleted ? "text-primary" : "text-gray-400"
+                      "h-10 w-10 mb-2 transition-colors",
+                      dragOverAfter ? "text-primary" : "text-gray-400"
                     )} />
                     <span className={cn(
                       "text-sm transition-colors",
-                      dragOverAfter && isCompleted ? "text-primary font-medium" : "text-gray-500"
+                      dragOverAfter ? "text-primary font-medium" : "text-gray-500"
                     )}>
-                      {dragOverAfter && isCompleted ? "Drop image here" : "Dropzone"}
+                      {dragOverAfter ? "Drop image here" : "Dropzone"}
                     </span>
                   </div>
                 )}
@@ -324,25 +312,27 @@ const AddServicePicturesModal = ({
                   variant="outline"
                   className="w-full"
                   onClick={() => setShowUploadSheet("after")}
-                  disabled={!isCompleted}
                 >
                   <Upload className="h-4 w-4 mr-2" />
                   {localAfterImage ? "Replace Image" : "Upload"}
                 </Button>
-                {!isCompleted && (
-                  <p className="text-xs text-muted-foreground text-center">
-                    Available only when job status is Completed
-                  </p>
-                )}
               </div>
             </div>
           </div>
 
-          <div className="px-6 pb-6 pt-4 border-t flex gap-2">
-            <Button variant="outline" className="flex-1" onClick={handleCancel}>
+          {/* Footer Buttons */}
+          <div className="flex gap-2 pt-2 border-t border-gray-100">
+            <Button
+              variant="outline"
+              onClick={handleCancel}
+              className="flex-1 rounded-lg text-gray-700 border-gray-300 hover:bg-gray-50"
+            >
               Cancel
             </Button>
-            <Button className="flex-1" onClick={handleSave}>
+            <Button
+              onClick={handleSave}
+              className="flex-1 bg-orange-500 hover:bg-orange-600 text-white rounded-lg shadow-sm"
+            >
               Save
             </Button>
           </div>

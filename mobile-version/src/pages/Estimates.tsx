@@ -539,6 +539,7 @@ const Estimates = () => {
           customerCountryCode="+1"
           entityId={selectedEstimateForAction.id}
           entityType="estimate"
+          customerName={selectedEstimateForAction.customerName}
         />
       )}
 

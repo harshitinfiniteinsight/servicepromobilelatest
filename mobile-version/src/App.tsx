@@ -60,6 +60,9 @@ import TermsConditions from "./pages/TermsConditions";
 import ReturnPolicy from "./pages/ReturnPolicy";
 import BusinessPolicies from "./pages/BusinessPolicies";
 import PaymentMethods from "./pages/PaymentMethods";
+import ConfigureCardReader from "./pages/ConfigureCardReader";
+import ScanForDevices from "./pages/ScanForDevices";
+import MyCardReaders from "./pages/MyCardReaders";
 import Walkthrough from "./pages/Walkthrough";
 import NotFound from "./pages/NotFound";
 import CustomerSelection from "./pages/CustomerSelection";
@@ -145,6 +148,9 @@ const AppContent = () => {
             <Route path="/settings/return-policy" element={<ReturnPolicy />} />
             <Route path="/settings/business-policies" element={<BusinessPolicies />} />
             <Route path="/settings/payment-methods" element={<PaymentMethods />} />
+            <Route path="/settings/configure-card-reader" element={<ConfigureCardReader />} />
+            <Route path="/settings/configure-card-reader/scan" element={<ScanForDevices />} />
+            <Route path="/settings/card-readers" element={<MyCardReaders />} />
             <Route path="/settings/language" element={<ChangeLanguage />} />
             <Route path="/settings/help" element={<Help />} />
             <Route path="/settings/help/app-benefits" element={<AppBenefits />} />

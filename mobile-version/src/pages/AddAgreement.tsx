@@ -39,6 +39,7 @@ const AddAgreement = () => {
   const [customerOpen, setCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
+  const [jobAddress, setJobAddress] = useState("");
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
   const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
   const [newCustomerLastName, setNewCustomerLastName] = useState("");
@@ -62,6 +63,14 @@ const AddAgreement = () => {
       }
     }
   }, [isEmployee, currentEmployeeId, selectedEmployee, isEditMode]);
+
+  // Clear job address when customer changes in NEW mode (don't auto-fill)
+  useEffect(() => {
+    if (selectedCustomer && !isEditMode) {
+      // In NEW mode, keep job address empty when customer changes
+      setJobAddress("");
+    }
+  }, [selectedCustomer, isEditMode]);
   const [agreementType, setAgreementType] = useState("One Time");
   const [serviceRequirement, setServiceRequirement] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
@@ -80,6 +89,14 @@ const AddAgreement = () => {
       // Pre-fill customer
       if (agreement.customerId) {
         setSelectedCustomer(agreement.customerId);
+      }
+
+      // Pre-fill job address (use stored jobAddress or fall back to customer address)
+      const customer = mockCustomers.find(c => c.id === agreement.customerId);
+      if ((agreement as any).jobAddress) {
+        setJobAddress((agreement as any).jobAddress);
+      } else if (customer?.address) {
+        setJobAddress(customer.address);
       }
 
       // Pre-fill employee (if available in agreement, otherwise use current employee)
@@ -205,13 +222,6 @@ const AddAgreement = () => {
     toast.success("Customer added successfully.");
   };
 
-  const selectedCustomerDetails = selectedCustomer
-    ? customerList.find(customer => customer.id === selectedCustomer)
-    : null;
-
-  const selectedEmployeeDetails = selectedEmployee
-    ? mockEmployees.find(employee => employee.id === selectedEmployee)
-    : null;
 
   const filteredServiceCatalog = serviceCatalog.filter(service =>
     service.name.toLowerCase().includes(serviceSearch.toLowerCase())
@@ -253,9 +263,6 @@ const AddAgreement = () => {
   };
 
   const selectedServicesList = Object.values(selectedServices);
-
-  const formattedStartDate = startDate ? new Date(startDate).toLocaleDateString() : "Start not set";
-  const formattedEndDate = endDate ? new Date(endDate).toLocaleDateString() : "End not set";
 
   const steps = [
     { number: 1, title: "Customer & Employee" },
@@ -566,6 +573,19 @@ const AddAgreement = () => {
               </Popover>
             </div>
 
+            {selectedCustomer && (
+              <div>
+                <Label>Job Address</Label>
+                <Input
+                  type="text"
+                  value={jobAddress}
+                  onChange={(e) => setJobAddress(e.target.value)}
+                  placeholder="Enter job address"
+                  className="mt-2 h-11"
+                />
+              </div>
+            )}
+
             <div>
               <Label>Assign Employee</Label>
               {isEmployee ? (
@@ -659,25 +679,6 @@ const AddAgreement = () => {
               )}
             </div>
 
-            {isEditMode && (
-              <div>
-                <Label>Status</Label>
-                <Select
-                  value={agreementStatus}
-                  onValueChange={(value) => {
-                    setAgreementStatus(value as "Open" | "Paid");
-                  }}
-                >
-                  <SelectTrigger className="mt-2 h-11">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Open">Open</SelectItem>
-                    <SelectItem value="Paid">Paid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
         )}
 
@@ -931,64 +932,6 @@ const AddAgreement = () => {
               </p>
             </div>
 
-            <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-5 space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Agreement Summary</h3>
-                <span className="text-xs font-medium text-muted-foreground">Review before submitting</span>
-              </div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Customer</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedCustomerDetails ? selectedCustomerDetails.name : "Not selected"}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Assigned Employee</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {selectedEmployeeDetails ? selectedEmployeeDetails.name : "Not assigned"}
-                  </p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Agreement Type</p>
-                  <p className="text-sm font-medium text-gray-900">{agreementType}</p>
-                </div>
-                <div className="space-y-1">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Duration</p>
-                  <p className="text-sm font-medium text-gray-900">
-                    {formattedStartDate} — {formattedEndDate}
-                  </p>
-                </div>
-                {agreementType === "Service" && (
-                  <div className="space-y-1 sm:col-span-2">
-                    <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Service Requirements</p>
-                    <p className="text-sm font-medium text-gray-900">
-                      {serviceRequirement.length > 0
-                        ? serviceRequirement
-                            .map(val => (val === "snapshot" ? "Take a snapshot" : "Upload or capture a picture of Photo ID"))
-                            .join(" · ")
-                        : "Not selected"}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {selectedServicesList.length > 0 && (
-                <div className="space-y-2 border-t border-gray-200 pt-4">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                    Services ({selectedServicesList.length})
-                  </p>
-                  <div className="space-y-2">
-                    {selectedServicesList.map(service => (
-                      <div key={service.id} className="flex items-center justify-between text-sm">
-                        <span className="text-gray-900">{service.name}</span>
-                        <span className="font-semibold text-gray-900">${service.price.toFixed(2)}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
           </div>
         )}
       </div>
@@ -1006,7 +949,7 @@ const AddAgreement = () => {
               className="flex-1"
               onClick={() => setStep(step + 1)}
               disabled={
-                (step === 1 && (!selectedCustomer || !selectedEmployee || (isEditMode && !agreementStatus))) ||
+                (step === 1 && (!selectedCustomer || !selectedEmployee)) ||
                 (step === 2 && (!startDate || !endDate || !billingCycle || !monthlyAmount || (agreementType === "Service" && serviceRequirement.length === 0))) ||
                 (step === 3 && selectedServicesList.length === 0) ||
                 (step === 4 && !workDescription.trim())

@@ -165,14 +165,20 @@ const Customers = () => {
         )}
       </div>
 
-      <SendSMSModal
-        open={sendSMSModalOpen}
-        onClose={() => {
-          setSendSMSModalOpen(false);
-          setSelectedCustomerForSMS(null);
-        }}
-        customer={selectedCustomerForSMS}
-      />
+      {selectedCustomerForSMS && (
+        <SendSMSModal
+          isOpen={sendSMSModalOpen}
+          onClose={() => {
+            setSendSMSModalOpen(false);
+            setSelectedCustomerForSMS(null);
+          }}
+          customerPhone={selectedCustomerForSMS.phone || ""}
+          customerCountryCode="+1"
+          entityId={selectedCustomerForSMS.id}
+          entityType="customer"
+          customerName={selectedCustomerForSMS.name}
+        />
+      )}
 
       <CustomerAddNoteModal
         open={addNoteModalOpen}

@@ -1,6 +1,8 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, RotateCcw } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import EnterCardDetailsModal from "./EnterCardDetailsModal";
 import EnterACHPaymentDetailsModal from "./EnterACHPaymentDetailsModal";
 import CashPaymentModal from "./CashPaymentModal";
@@ -14,10 +16,12 @@ interface PaymentModalProps {
 }
 
 const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect }: PaymentModalProps) => {
+  const navigate = useNavigate();
   const [showCardDetailsModal, setShowCardDetailsModal] = useState(false);
   const [showACHPaymentDetailsModal, setShowACHPaymentDetailsModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showTapToPayModal, setShowTapToPayModal] = useState(false);
+  const [showNoReaderModal, setShowNoReaderModal] = useState(false);
 
   const paymentOptions = [
     {
@@ -44,8 +48,15 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect }: Paymen
 
   const handlePaymentMethodClick = (methodId: string) => {
     if (methodId === "tap-to-pay") {
-      // Show Tap to Pay modal instead of closing
-      setShowTapToPayModal(true);
+      // Check if card reader is connected
+      const currentConnectedReaderId = localStorage.getItem("currentConnectedReaderId");
+      if (!currentConnectedReaderId) {
+        // No reader connected - show no reader modal
+        setShowNoReaderModal(true);
+      } else {
+        // Reader is connected - show Tap to Pay modal
+        setShowTapToPayModal(true);
+      }
     } else if (methodId === "enter-card") {
       // Show card details modal instead of closing
       setShowCardDetailsModal(true);
@@ -131,9 +142,16 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect }: Paymen
     }
   };
 
+  const handleNoReaderContinue = () => {
+    setShowNoReaderModal(false);
+    onClose();
+    // Navigate to Configure Card Reader screen
+    navigate("/settings/configure-card-reader");
+  };
+
   return (
     <>
-      <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal} onOpenChange={onClose}>
+      <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal && !showNoReaderModal} onOpenChange={onClose}>
         <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden [&>div]:p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">
             Service Pro911 - Payment
@@ -233,6 +251,33 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect }: Paymen
         amount={amount}
         onPaymentComplete={handleTapToPayComplete}
       />
+
+      {/* No Card Reader Connected Modal */}
+      <Dialog open={showNoReaderModal} onOpenChange={setShowNoReaderModal}>
+        <DialogContent className="w-[90%] max-w-sm mx-auto p-5 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[85vh] overflow-y-auto">
+          <DialogTitle className="sr-only">Card Reader Not Connected</DialogTitle>
+          <DialogDescription className="sr-only">
+            Modal informing user that card reader is not connected
+          </DialogDescription>
+          
+          {/* Content */}
+          <div className="flex flex-col items-center text-center space-y-4 py-2">
+            <p className="text-sm text-gray-700 leading-relaxed">
+              Card reader is not connected. You may connect your reader via Bluetooth or USB at anytime.
+            </p>
+          </div>
+
+          {/* Continue Button */}
+          <div className="flex justify-center pt-4 mt-4">
+            <Button
+              onClick={handleNoReaderContinue}
+              className="w-full h-11 text-sm font-semibold rounded-full bg-primary text-white hover:bg-primary/90"
+            >
+              Continue
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

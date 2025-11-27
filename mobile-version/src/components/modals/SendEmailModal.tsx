@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { X } from "lucide-react";
-import { Dialog, DialogContent, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,26 +20,44 @@ const SendEmailModal = ({
   customerName,
 }: SendEmailModalProps) => {
   const [email, setEmail] = useState(customerEmail);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
       setEmail(customerEmail);
+      setIsLoading(false);
     }
   }, [customerEmail, isOpen]);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     if (!email || !email.includes("@")) {
       toast.error("Please enter a valid email address");
       return;
     }
     
-    toast.success(`Email sent successfully to ${email}`);
-    onClose();
+    setIsLoading(true);
+    
+    try {
+      // Simulate API call - replace with actual backend call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // In production, this would be:
+      // await sendAgreementEmail(email, agreementId);
+      
+      toast.success(`Email sent successfully to ${email}`);
+      onClose();
+    } catch (error) {
+      console.error("Error sending email:", error);
+      toast.error("Failed to send email. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden [&>button]:hidden">
+        <DialogTitle className="sr-only">Send email</DialogTitle>
         <DialogDescription className="sr-only">
           Send email to {customerName || customerEmail}
         </DialogDescription>
@@ -72,10 +90,11 @@ const SendEmailModal = ({
 
           <div className="px-8 sm:px-10 pt-2 pb-4">
             <Button 
-              onClick={handleSend} 
-              className="w-full border-2 border-orange-500 text-orange-500 bg-white hover:bg-orange-50 font-semibold py-4 px-6 text-base"
+              onClick={handleSend}
+              disabled={isLoading}
+              className="w-full border-2 border-orange-500 text-orange-500 bg-white hover:bg-orange-50 font-semibold py-4 px-6 text-base disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              SEND
+              {isLoading ? "SENDING..." : "SEND"}
             </Button>
           </div>
         </div>

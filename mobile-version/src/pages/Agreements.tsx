@@ -8,6 +8,7 @@ import MinimumDepositPercentageModal from "@/components/modals/MinimumDepositPer
 import { DocumentVerificationModal } from "@/components/modals/DocumentVerificationModal";
 import PaymentModal from "@/components/modals/PaymentModal";
 import SendSmsModal from "@/components/modals/SendSmsModal";
+import SendEmailModal from "@/components/modals/SendEmailModal";
 import { mockAgreements, mockCustomers } from "@/data/mobileMockData";
 import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -20,9 +21,11 @@ const Agreements = () => {
   const [showDocumentVerificationModal, setShowDocumentVerificationModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSmsModal, setShowSmsModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedAgreementId, setSelectedAgreementId] = useState<string | null>(null);
   const [selectedAgreementAmount, setSelectedAgreementAmount] = useState<number>(0);
-  const [selectedAgreementForSms, setSelectedAgreementForSms] = useState<{ id: string; customerId: string; customerPhone?: string } | null>(null);
+  const [selectedAgreementForSms, setSelectedAgreementForSms] = useState<{ id: string; customerId: string; customerPhone?: string; customerName?: string } | null>(null);
+  const [selectedAgreementForEmail, setSelectedAgreementForEmail] = useState<{ id: string; customerId: string; customerEmail?: string; customerName?: string } | null>(null);
 
   // Get user role
   const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
@@ -75,7 +78,21 @@ const Agreements = () => {
         navigate(`/agreements/${agreementId}`);
         break;
       case "send-email":
-        toast.success(`Sending agreement email for ${agreementId}`);
+        const agreementForEmail = mockAgreements.find(a => a.id === agreementId);
+        if (agreementForEmail) {
+          const customer = mockCustomers.find(c => c.id === agreementForEmail.customerId);
+          if (!customer?.email) {
+            toast.error("No email address available for this customer");
+            return;
+          }
+          setSelectedAgreementForEmail({
+            id: agreementId,
+            customerId: agreementForEmail.customerId,
+            customerEmail: customer.email,
+            customerName: customer.name,
+          });
+          setShowEmailModal(true);
+        }
         break;
       case "send-sms":
         const agreement = mockAgreements.find(a => a.id === agreementId);
@@ -89,6 +106,7 @@ const Agreements = () => {
             id: agreementId,
             customerId: agreement.customerId,
             customerPhone: customer.phone,
+            customerName: customer.name,
           });
           setShowSmsModal(true);
         }
@@ -260,6 +278,21 @@ const Agreements = () => {
           customerCountryCode="+1"
           entityId={selectedAgreementForSms.id}
           entityType="agreement"
+          customerName={selectedAgreementForSms.customerName}
+        />
+      ) : null}
+
+      {/* Send Email Modal - Always render when selectedAgreementForEmail exists */}
+      {selectedAgreementForEmail ? (
+        <SendEmailModal
+          key={`email-${selectedAgreementForEmail.id}`}
+          isOpen={showEmailModal}
+          onClose={() => {
+            setShowEmailModal(false);
+            setSelectedAgreementForEmail(null);
+          }}
+          customerEmail={selectedAgreementForEmail.customerEmail || ""}
+          customerName={selectedAgreementForEmail.customerName}
         />
       ) : null}
     </div>

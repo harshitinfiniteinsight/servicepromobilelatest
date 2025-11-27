@@ -569,6 +569,7 @@ const Invoices = () => {
           customerCountryCode="+1"
           entityId={actionInvoice.id}
           entityType="invoice"
+          customerName={actionInvoice.customerName}
         />
       )}
 
