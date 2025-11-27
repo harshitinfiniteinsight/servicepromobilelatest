@@ -7,7 +7,7 @@ import { mockJobs, mockCustomers, mockEmployees, mockEstimates, mockInvoices, mo
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Briefcase, Calendar as CalendarIcon, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Briefcase, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Filter } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import SendFeedbackFormModal from "@/components/modals/SendFeedbackFormModal";
@@ -46,6 +46,7 @@ const Jobs = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   
   // Filter states
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
@@ -368,6 +369,42 @@ const Jobs = () => {
   
   // Check if any filters are active
   const hasActiveFilters = dateRange.from || dateRange.to || jobTypeFilter !== "all" || (!isEmployee && employeeFilter !== "all") || statusFilter !== "all" || paymentStatusFilter !== "all";
+  
+  // Get active filters summary for collapsed view
+  const getActiveFiltersSummary = () => {
+    const activeFilters: string[] = [];
+    
+    if (dateRange.from || dateRange.to) {
+      if (dateRange.from && dateRange.to) {
+        activeFilters.push(`${format(dateRange.from, "MM/dd")} - ${format(dateRange.to, "MM/dd")}`);
+      } else if (dateRange.from) {
+        activeFilters.push(`From ${format(dateRange.from, "MM/dd")}`);
+      }
+    }
+    
+    if (!isEmployee && employeeFilter !== "all") {
+      activeFilters.push(employeeFilter);
+    }
+    
+    if (jobTypeFilter !== "all") {
+      activeFilters.push(jobTypeFilter.charAt(0).toUpperCase() + jobTypeFilter.slice(1));
+    }
+    
+    if (statusFilter !== "all") {
+      const statusLabel = statusFilter === "inprogress" 
+        ? "In Progress" 
+        : statusFilter === "feedbackreceived"
+          ? "Feedback Received"
+          : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1);
+      activeFilters.push(statusLabel);
+    }
+    
+    if (paymentStatusFilter !== "all") {
+      activeFilters.push(paymentStatusFilter.charAt(0).toUpperCase() + paymentStatusFilter.slice(1));
+    }
+    
+    return activeFilters.length > 0 ? activeFilters.join(", ") : "No filters";
+  };
 
   const summary = useMemo(() => ({
     total: filteredJobs.length,
@@ -831,160 +868,216 @@ const Jobs = () => {
       />
       
       <div className="flex-1 overflow-y-auto scrollable px-4 pb-6 space-y-2" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top) + 0.5rem)' }}>
-        {/* Row 1: Search + Date Range (side by side) */}
-        <div className="flex items-center gap-2">
-          {/* Search Field */}
-          <div className="flex-1 min-w-0">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input 
-                placeholder="Search jobs..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="pl-10 h-9 text-xs"
-              />
-            </div>
-          </div>
-
-          {/* Date Range Filter */}
-          <div className="flex-[0.48] min-w-0">
-            <Button
-              variant="outline"
-              onClick={() => setShowDateRangePicker(true)}
-              className="w-full h-9 px-2.5 text-xs font-normal justify-start gap-1.5"
-            >
-              <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              {dateRange.from && dateRange.to ? (
-                <span className="truncate text-left text-xs">
-                  {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
-                </span>
-              ) : dateRange.from ? (
-                <span className="truncate text-left text-xs">{format(dateRange.from, "MM/dd/yyyy")}</span>
-              ) : (
-                <span className="text-muted-foreground truncate text-left text-xs">Date Range</span>
-              )}
-            </Button>
-          </div>
+        {/* Search Field - Always Visible */}
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input 
+            placeholder="Search jobs..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-10 h-9 text-xs"
+          />
         </div>
 
-        {/* Row 2: Job Type + Job Status (side by side) - For Employee */}
-        {isEmployee ? (
-          <div className="flex items-center gap-2">
-            {/* Job Type Filter */}
-            <div className="flex-[0.48] min-w-0">
-              <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
-                <SelectTrigger className="w-full h-9 px-2.5 text-xs">
-                  <SelectValue placeholder="Job Type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="agreement">Agreement</SelectItem>
-                  <SelectItem value="estimate">Estimate</SelectItem>
-                  <SelectItem value="invoice">Invoice</SelectItem>
-                </SelectContent>
-              </Select>
+        {/* Collapsible Filters Section */}
+        <div className="border rounded-lg bg-card">
+          {/* Filter Header - Toggle Button */}
+          <Button
+            variant="ghost"
+            onClick={() => setFiltersExpanded(!filtersExpanded)}
+            className="w-full h-10 px-3 justify-between hover:bg-muted/50"
+          >
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <span className="text-sm font-medium">Filters</span>
+              {hasActiveFilters && (
+                <span className="text-xs text-muted-foreground">
+                  ({getActiveFiltersSummary()})
+                </span>
+              )}
             </div>
+            {filtersExpanded ? (
+              <ChevronUp className="h-4 w-4 text-muted-foreground" />
+            ) : (
+              <ChevronDown className="h-4 w-4 text-muted-foreground" />
+            )}
+          </Button>
 
-            {/* Job Status Filter */}
-            <div className="flex-[0.48] min-w-0">
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full h-9 px-2.5 text-xs">
-                  <SelectValue placeholder="Job Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="scheduled">Scheduled</SelectItem>
-                  <SelectItem value="inprogress">In Progress</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
-                  <SelectItem value="cancel">Cancel</SelectItem>
-                  <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
-                </SelectContent>
-              </Select>
+          {/* Collapsible Content */}
+          {filtersExpanded && (
+            <div className="px-3 pb-3 space-y-3 border-t pt-3">
+              {/* Date Range Filter */}
+              <div>
+                <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block">Date Range</label>
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDateRangePicker(true)}
+                  className="w-full h-9 px-2.5 text-xs font-normal justify-start gap-1.5"
+                >
+                  <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  {dateRange.from && dateRange.to ? (
+                    <span className="truncate text-left text-xs">
+                      {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
+                    </span>
+                  ) : dateRange.from ? (
+                    <span className="truncate text-left text-xs">{format(dateRange.from, "MM/dd/yyyy")}</span>
+                  ) : (
+                    <span className="text-muted-foreground truncate text-left text-xs">Select date range</span>
+                  )}
+                </Button>
+              </div>
+
+              {/* Filters Grid - For Employee */}
+              {isEmployee ? (
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Job Type Filter */}
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block">Job Type</label>
+                    <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
+                      <SelectTrigger className="w-full h-9 px-2.5 text-xs">
+                        <SelectValue>
+                          {jobTypeFilter === "all" ? "All Types" : jobTypeFilter.charAt(0).toUpperCase() + jobTypeFilter.slice(1)}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="agreement">Agreement</SelectItem>
+                        <SelectItem value="estimate">Estimate</SelectItem>
+                        <SelectItem value="invoice">Invoice</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Job Status Filter */}
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block">Status</label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-full h-9 px-2.5 text-xs">
+                        <SelectValue>
+                          {statusFilter === "all" 
+                            ? "All Statuses" 
+                            : statusFilter === "inprogress" 
+                              ? "In Progress" 
+                              : statusFilter === "feedbackreceived"
+                                ? "Feedback Received"
+                                : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="scheduled">Scheduled</SelectItem>
+                        <SelectItem value="inprogress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancel">Cancel</SelectItem>
+                        <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              ) : (
+                /* Filters Grid - For Merchant */
+                <div className="grid grid-cols-2 gap-3">
+                  {/* Employee Filter */}
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block">Employee</label>
+                    <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                      <SelectTrigger className="w-full h-9 px-2.5 text-xs">
+                        <SelectValue>
+                          {employeeFilter === "all" ? "All Employees" : employeeFilter}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Employees</SelectItem>
+                        {availableEmployees.map((employee) => (
+                          <SelectItem key={employee} value={employee}>
+                            {employee}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Job Type Filter */}
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block">Job Type</label>
+                    <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
+                      <SelectTrigger className="w-full h-9 px-2.5 text-xs">
+                        <SelectValue>
+                          {jobTypeFilter === "all" ? "All Types" : jobTypeFilter.charAt(0).toUpperCase() + jobTypeFilter.slice(1)}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Types</SelectItem>
+                        <SelectItem value="agreement">Agreement</SelectItem>
+                        <SelectItem value="estimate">Estimate</SelectItem>
+                        <SelectItem value="invoice">Invoice</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Job Status Filter */}
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block">Status</label>
+                    <Select value={statusFilter} onValueChange={setStatusFilter}>
+                      <SelectTrigger className="w-full h-9 px-2.5 text-xs">
+                        <SelectValue>
+                          {statusFilter === "all" 
+                            ? "All Statuses" 
+                            : statusFilter === "inprogress" 
+                              ? "In Progress" 
+                              : statusFilter === "feedbackreceived"
+                                ? "Feedback Received"
+                                : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Statuses</SelectItem>
+                        <SelectItem value="scheduled">Scheduled</SelectItem>
+                        <SelectItem value="inprogress">In Progress</SelectItem>
+                        <SelectItem value="completed">Completed</SelectItem>
+                        <SelectItem value="cancel">Cancel</SelectItem>
+                        <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Payment Status Filter */}
+                  <div>
+                    <label className="text-[10px] font-medium text-muted-foreground mb-1.5 block">Payment</label>
+                    <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                      <SelectTrigger className="w-full h-9 px-2.5 text-xs">
+                        <SelectValue>
+                          {paymentStatusFilter === "all" 
+                            ? "All Payments" 
+                            : paymentStatusFilter.charAt(0).toUpperCase() + paymentStatusFilter.slice(1)}
+                        </SelectValue>
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Payments</SelectItem>
+                        <SelectItem value="open">Open</SelectItem>
+                        <SelectItem value="paid">Paid</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              )}
+
+              {/* Clear Filters Button */}
+              {hasActiveFilters && (
+                <div className="flex justify-end pt-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={clearFilters}
+                    className="h-8 px-3 text-xs text-muted-foreground hover:text-foreground"
+                  >
+                    Clear All Filters
+                  </Button>
+                </div>
+              )}
             </div>
-          </div>
-        ) : (
-          <>
-            {/* Row 2: Employees + Type of Job + Job Status + Payment Status - For Merchant */}
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Employee Filter */}
-              <div className="flex-[0.48] min-w-0">
-                <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-                  <SelectTrigger className="w-full h-9 px-2.5 text-xs">
-                    <SelectValue placeholder="Employee" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Employees</SelectItem>
-                    {availableEmployees.map((employee) => (
-                      <SelectItem key={employee} value={employee}>
-                        {employee}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Job Type Filter */}
-              <div className="flex-[0.48] min-w-0">
-                <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
-                  <SelectTrigger className="w-full h-9 px-2.5 text-xs">
-                    <SelectValue placeholder="Job Type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="agreement">Agreement</SelectItem>
-                    <SelectItem value="estimate">Estimate</SelectItem>
-                    <SelectItem value="invoice">Invoice</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Job Status Filter */}
-              <div className="flex-[0.48] min-w-0">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-full h-9 px-2.5 text-xs">
-                    <SelectValue placeholder="Job Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="scheduled">Scheduled</SelectItem>
-                    <SelectItem value="inprogress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="cancel">Cancel</SelectItem>
-                    <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Payment Status Filter */}
-              <div className="flex-[0.48] min-w-0">
-                <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
-                  <SelectTrigger className="w-full h-9 px-2.5 text-xs">
-                    <SelectValue placeholder="Payment Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All</SelectItem>
-                    <SelectItem value="open">Open</SelectItem>
-                    <SelectItem value="paid">Paid</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </>
-        )}
-
-        {/* Clear Filters Button - Only show if filters are active */}
-        {hasActiveFilters && (
-          <div className="flex justify-end">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="h-9 px-3 text-xs text-muted-foreground hover:text-foreground"
-            >
-              Clear Filters
-            </Button>
-          </div>
-        )}
+          )}
+        </div>
         
         {/* Summary Cards - Carousel with 3 Metrics at a Time */}
         <div className="relative mb-4 px-10">
