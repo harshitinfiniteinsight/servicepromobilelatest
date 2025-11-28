@@ -7,7 +7,7 @@ import PaymentModal from "@/components/modals/PaymentModal";
 import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
-import SendSmsModal from "@/components/modals/SendSmsModal";
+import SendSMSModal from "@/components/modals/SendSMSModal";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import ShareAddressModal from "@/components/modals/ShareAddressModal";
 import { mockEstimates, mockCustomers, mockEmployees, mockInvoices } from "@/data/mobileMockData";
@@ -693,7 +693,7 @@ const Estimates = () => {
 
       {/* Send SMS Modal */}
       {selectedEstimateForAction && (
-        <SendSmsModal
+        <SendSMSModal
           isOpen={showSMSModal}
           onClose={() => {
             setShowSMSModal(false);
