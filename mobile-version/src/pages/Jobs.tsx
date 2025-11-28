@@ -97,19 +97,23 @@ const Jobs = () => {
       location: getCustomerAddress(invoice.customerId),
     }));
 
-    // Transform estimates to jobs
-    const estimateJobs = mockEstimates.map((estimate, index) => ({
-      id: estimate.id,
-      title: `Estimate ${estimate.id}`,
-      customerId: estimate.customerId,
-      customerName: estimate.customerName,
-      technicianId: "1",
-      technicianName: assignTechnician(estimate.customerId, index),
-      date: estimate.date,
-      time: "10:00 AM",
-      status: estimate.status === "Paid" ? "Completed" : "Scheduled",
-      location: getCustomerAddress(estimate.customerId),
-    }));
+    // Transform estimates to jobs (exclude converted estimates)
+    const convertedEstimates = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
+    const convertedEstimatesSet = new Set(convertedEstimates);
+    const estimateJobs = mockEstimates
+      .filter(estimate => !convertedEstimatesSet.has(estimate.id))
+      .map((estimate, index) => ({
+        id: estimate.id,
+        title: `Estimate ${estimate.id}`,
+        customerId: estimate.customerId,
+        customerName: estimate.customerName,
+        technicianId: "1",
+        technicianName: assignTechnician(estimate.customerId, index),
+        date: estimate.date,
+        time: "10:00 AM",
+        status: estimate.status === "Paid" ? "Completed" : "Scheduled",
+        location: getCustomerAddress(estimate.customerId),
+      }));
 
     // Transform agreements to jobs
     const agreementJobs = mockAgreements.map((agreement, index) => ({

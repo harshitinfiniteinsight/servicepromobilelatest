@@ -10,7 +10,7 @@ import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import InvoiceDueAlertModal from "@/components/modals/InvoiceDueAlertModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
-import { mockCustomers, mockInvoices } from "@/data/mobileMockData";
+import { mockCustomers, mockInvoices, mockEmployees } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +30,7 @@ import {
   XCircle,
   Bell,
   Calendar as CalendarIcon,
+  FilePlus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -224,6 +225,22 @@ const Invoices = () => {
       case "activate":
         toast.success("Invoice activated");
         break;
+      case "create-new-invoice":
+        // Find employee by name if employeeName exists, otherwise use first employee
+        const employee = (invoice as any).employeeName 
+          ? mockEmployees.find(emp => emp.name === (invoice as any).employeeName)
+          : mockEmployees[0];
+        
+        navigate("/invoices/new", {
+          state: {
+            prefill: {
+              customerId: invoice.customerId,
+              jobAddress: (invoice as any).jobAddress || customer?.address || "",
+              employeeId: employee?.id || mockEmployees[0]?.id || "1",
+            }
+          }
+        });
+        break;
       default:
         break;
     }
@@ -303,6 +320,14 @@ const Invoices = () => {
           }
         );
       }
+
+      // Add "Create New Invoice" option for paid invoices
+      items.push({
+        label: "Create New Invoice",
+        icon: FilePlus,
+        action: () => handleMenuAction(invoice, "create-new-invoice"),
+        separator: true,
+      });
 
       return <KebabMenu items={items} menuWidth="w-48" />;
     }

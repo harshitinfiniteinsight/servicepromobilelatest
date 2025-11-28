@@ -48,6 +48,59 @@ const AddInvoice = () => {
   // Payment status state (for edit mode)
   const [paymentStatus, setPaymentStatus] = useState<"Open" | "Paid" | "Overdue">("Open");
 
+  // Handle prefill data from location.state (when creating new from paid item or converting estimate)
+  useEffect(() => {
+    if (!isEditMode) {
+      const prefill = (location.state as any)?.prefill;
+      if (prefill) {
+        // Prefill customer
+        if (prefill.customerId) {
+          setSelectedCustomer(prefill.customerId);
+        }
+        
+        // Prefill job address
+        if (prefill.jobAddress) {
+          setJobAddress(prefill.jobAddress);
+        }
+        
+        // Prefill employee (only if not employee mode, as employees are auto-filled)
+        if (!isEmployee && prefill.employeeId) {
+          setSelectedEmployee(prefill.employeeId);
+        }
+        
+        // Prefill items (from estimate conversion)
+        if (prefill.items && Array.isArray(prefill.items) && prefill.items.length > 0) {
+          setItems(prefill.items);
+        }
+        
+        // Prefill notes
+        if (prefill.notes) {
+          setNotes(prefill.notes);
+        }
+        
+        // Prefill terms and conditions
+        if (prefill.termsAndConditions) {
+          setTermsAndConditions(prefill.termsAndConditions);
+        }
+        
+        // Prefill cancellation policy
+        if (prefill.cancellationPolicy) {
+          setCancellationPolicy(prefill.cancellationPolicy);
+        }
+        
+        // Prefill tax
+        if (prefill.tax !== undefined) {
+          setTax(prefill.tax);
+        }
+        
+        // Prefill discount
+        if (prefill.discount) {
+          setSelectedDiscount(prefill.discount);
+        }
+      }
+    }
+  }, [location.state, isEditMode, isEmployee]);
+
   // Load invoice data in edit mode
   useEffect(() => {
     if (isEditMode && invoice) {
@@ -1525,6 +1578,30 @@ const AddInvoice = () => {
                   showSuccessToast("Invoice updated successfully");
                 } else {
                   showSuccessToast("Invoice created successfully");
+                  
+                  // If this invoice was created from an estimate, mark the estimate as converted
+                  const prefill = (location.state as any)?.prefill;
+                  if (prefill?.estimateId) {
+                    // Store the converted estimate ID in localStorage so Estimates page can update it
+                    const convertedEstimates = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
+                    if (!convertedEstimates.includes(prefill.estimateId)) {
+                      convertedEstimates.push(prefill.estimateId);
+                      localStorage.setItem("convertedEstimates", JSON.stringify(convertedEstimates));
+                    }
+                    
+                    // Store the mapping of estimate ID to invoice ID
+                    // Find the most recent invoice ID or generate a new one
+                    // In a real app, this would come from the backend response
+                    const existingInvoices = mockInvoices.map(inv => inv.id);
+                    const maxInvoiceNum = existingInvoices.reduce((max, id) => {
+                      const num = parseInt(id.replace("INV-", "")) || 0;
+                      return num > max ? num : max;
+                    }, 0);
+                    const newInvoiceId = `INV-${String(maxInvoiceNum + 1).padStart(3, "0")}`;
+                    const estimateToInvoiceMap = JSON.parse(localStorage.getItem("estimateToInvoiceMap") || "{}");
+                    estimateToInvoiceMap[prefill.estimateId] = newInvoiceId;
+                    localStorage.setItem("estimateToInvoiceMap", JSON.stringify(estimateToInvoiceMap));
+                  }
                 }
                 navigate("/invoices");
               }}

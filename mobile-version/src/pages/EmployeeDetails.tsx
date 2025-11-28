@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
@@ -8,11 +8,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mockEmployees, mockJobs } from "@/data/mobileMockData";
-import { Phone, Mail, Calendar, Star, Briefcase, MapPin, Clock } from "lucide-react";
+import { mockEmployees, mockJobs, mockInvoices, mockEstimates, mockAgreements, mockCustomers } from "@/data/mobileMockData";
+import { Phone, Mail, Calendar, Star, Briefcase, MapPin, Clock, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
+import StarRating from "@/components/common/StarRating";
+import EmptyState from "@/components/cards/EmptyState";
 
 const EmployeeDetails = () => {
   const { id } = useParams();
@@ -324,8 +326,127 @@ const EmployeeDetails = () => {
   }
 
   const initials = employee.name.split(" ").map(n => n[0]).join("");
-  const employeeJobs = mockJobs.filter(j => j.technicianId === id);
-  const upcomingJobs = employeeJobs.filter(j => new Date(j.date) >= new Date()).slice(0, 5);
+  
+  // Get all jobs assigned to this employee (from mockJobs, invoices, estimates, agreements)
+  const allEmployeeJobs = useMemo(() => {
+    // Helper to assign technician based on customer or random assignment (same logic as Jobs page)
+    const assignTechnician = (customerId: string, index: number) => {
+      const technicians = ["Mike Johnson", "Tom Wilson", "Chris Davis", "Sarah Martinez"];
+      const techIndex = (parseInt(customerId) + index) % technicians.length;
+      return technicians[techIndex];
+    };
+
+    // Helper to get customer address
+    const getCustomerAddress = (customerId: string): string => {
+      const customer = mockCustomers.find(c => c.id === customerId);
+      return customer?.address || "";
+    };
+
+    // Transform invoices to jobs
+    const invoiceJobs = mockInvoices.map((invoice, index) => ({
+      id: invoice.id,
+      title: `Invoice ${invoice.id}`,
+      customerId: invoice.customerId,
+      customerName: invoice.customerName,
+      technicianId: "1",
+      technicianName: assignTechnician(invoice.customerId, index),
+      date: invoice.issueDate,
+      time: "09:00 AM",
+      status: invoice.status === "Paid" ? "Completed" : invoice.status === "Overdue" ? "In Progress" : "Scheduled",
+      location: getCustomerAddress(invoice.customerId),
+    }));
+
+    // Transform estimates to jobs (exclude converted estimates)
+    const convertedEstimates = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
+    const convertedEstimatesSet = new Set(convertedEstimates);
+    const estimateJobs = mockEstimates
+      .filter(estimate => !convertedEstimatesSet.has(estimate.id))
+      .map((estimate, index) => ({
+        id: estimate.id,
+        title: `Estimate ${estimate.id}`,
+        customerId: estimate.customerId,
+        customerName: estimate.customerName,
+        technicianId: "1",
+        technicianName: assignTechnician(estimate.customerId, index),
+        date: estimate.date,
+        time: "10:00 AM",
+        status: estimate.status === "Paid" ? "Completed" : "Scheduled",
+        location: getCustomerAddress(estimate.customerId),
+      }));
+
+    // Transform agreements to jobs
+    const agreementJobs = mockAgreements.map((agreement, index) => ({
+      id: agreement.id,
+      title: agreement.type,
+      customerId: agreement.customerId,
+      customerName: agreement.customerName,
+      technicianId: "1",
+      technicianName: assignTechnician(agreement.customerId, index),
+      date: agreement.startDate,
+      time: "11:00 AM",
+      status: agreement.status === "Paid" ? "Completed" : "In Progress",
+      location: getCustomerAddress(agreement.customerId),
+    }));
+
+    // Combine all jobs
+    const allJobs = [...mockJobs, ...invoiceJobs, ...estimateJobs, ...agreementJobs];
+
+    // Filter by employee ID or name (prefer ID if available, fallback to name)
+    const filtered = allJobs.filter(job => 
+      job.technicianId === id || job.technicianName === employee.name
+    );
+    
+    // Sort by date descending (most recent first)
+    return filtered.sort((a, b) => {
+      const dateA = new Date(a.date).getTime();
+      const dateB = new Date(b.date).getTime();
+      return dateB - dateA; // Descending order
+    });
+  }, [employee.name, id]);
+
+  const employeeJobs = allEmployeeJobs;
+  // Count all scheduled jobs for "Upcoming" metric
+  const upcomingJobs = employeeJobs.filter(j => j.status === "Scheduled");
+
+  // Load feedback data for this employee
+  const employeeFeedback = useMemo(() => {
+    try {
+      const jobFeedbackStatus = JSON.parse(localStorage.getItem("jobFeedbackStatus") || "{}");
+      const feedbackList: Array<{
+        jobId: string;
+        jobTitle: string;
+        customerName: string;
+        rating: number;
+        comment: string;
+        submittedAt: string;
+      }> = [];
+
+      // Iterate through all jobs assigned to this employee
+      allEmployeeJobs.forEach(job => {
+        const feedback = jobFeedbackStatus[job.id];
+        if (feedback?.exists && feedback.feedback) {
+          feedbackList.push({
+            jobId: job.id,
+            jobTitle: job.title,
+            customerName: job.customerName,
+            rating: feedback.feedback.rating,
+            comment: feedback.feedback.comment,
+            submittedAt: feedback.feedback.submittedAt,
+          });
+        }
+      });
+
+      // Sort by submitted date descending (most recent first)
+      return feedbackList.sort((a, b) => {
+        const dateA = new Date(a.submittedAt).getTime();
+        const dateB = new Date(b.submittedAt).getTime();
+        return dateB - dateA; // Descending order
+      });
+    } catch (error) {
+      console.warn("Failed to load feedback:", error);
+      return [];
+    }
+  }, [allEmployeeJobs]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -350,9 +471,9 @@ const EmployeeDetails = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3 px-4 py-4">
-          <Button variant="outline" className="gap-2" onClick={() => window.location.href = `tel:${employee.phone}`}>
-            <Phone className="h-4 w-4" />
-            Call
+          <Button variant="outline" className="gap-2" onClick={() => window.location.href = `sms:${employee.phone}`}>
+            <MessageSquare className="h-4 w-4" />
+            SMS
           </Button>
           <Button variant="outline" className="gap-2" onClick={() => window.location.href = `mailto:${employee.email}`}>
             <Mail className="h-4 w-4" />
@@ -381,9 +502,10 @@ const EmployeeDetails = () => {
 
         {/* Tabs */}
         <Tabs defaultValue="info" className="px-4">
-          <TabsList className="w-full grid grid-cols-2 mb-4">
+          <TabsList className="w-full grid grid-cols-3 mb-4">
             <TabsTrigger value="info">Info</TabsTrigger>
             <TabsTrigger value="jobs">Jobs</TabsTrigger>
+            <TabsTrigger value="feedback">Feedback</TabsTrigger>
           </TabsList>
 
           <TabsContent value="info" className="space-y-4 pb-6">
@@ -404,21 +526,15 @@ const EmployeeDetails = () => {
                 </div>
               </div>
             </div>
-
-            <div className="p-4 rounded-xl border bg-card">
-              <h3 className="font-semibold mb-3">Specialties</h3>
-              <div className="flex flex-wrap gap-2">
-                {employee.specialties.map(spec => (
-                  <Badge key={spec} variant="outline">{spec}</Badge>
-                ))}
-              </div>
-            </div>
           </TabsContent>
 
           <TabsContent value="jobs" className="space-y-3 pb-6">
-            {upcomingJobs.length > 0 ? (
-              upcomingJobs.map(job => (
-                <div key={job.id} className="p-4 rounded-xl border bg-card">
+            {employeeJobs.length > 0 ? (
+              employeeJobs.map(job => (
+                <div 
+                  key={job.id} 
+                  className="p-4 rounded-xl border bg-card"
+                >
                   <div className="flex items-start justify-between mb-2">
                     <div className="flex-1">
                       <h4 className="font-semibold">{job.title}</h4>
@@ -439,7 +555,58 @@ const EmployeeDetails = () => {
                 </div>
               ))
             ) : (
-              <p className="text-center text-muted-foreground py-8">No upcoming jobs</p>
+              <EmptyState
+                icon={<Briefcase className="h-8 w-8 text-muted-foreground" />}
+                title="No jobs assigned"
+                description="This employee has no assigned jobs yet"
+              />
+            )}
+          </TabsContent>
+
+          <TabsContent value="feedback" className="space-y-3 pb-6">
+            {employeeFeedback.length > 0 ? (
+              employeeFeedback.map((feedback, index) => (
+                <div key={`${feedback.jobId}-${index}`} className="p-4 rounded-xl border bg-card">
+                  <div className="flex items-start justify-between mb-3">
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-sm mb-1">{feedback.customerName}</h4>
+                      <p className="text-xs text-muted-foreground">{feedback.jobTitle}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground mb-1">
+                        {new Date(feedback.submittedAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  <div className="mb-3">
+                    <div className="flex items-center gap-2">
+                      <StarRating
+                        rating={feedback.rating}
+                        onRatingChange={() => {}}
+                        maxRating={5}
+                        size="sm"
+                        disabled={true}
+                      />
+                      <span className="text-sm font-medium">{feedback.rating}/5</span>
+                    </div>
+                  </div>
+
+                  {feedback.comment && (
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                        {feedback.comment}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              ))
+            ) : (
+              <EmptyState
+                icon={<MessageSquare className="h-8 w-8 text-muted-foreground" />}
+                title="No feedback yet"
+                description="This employee hasn't received any feedback yet"
+              />
             )}
           </TabsContent>
         </Tabs>

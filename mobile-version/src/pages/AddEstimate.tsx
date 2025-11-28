@@ -73,6 +73,29 @@ const AddEstimate = () => {
   const [variableItemPrice, setVariableItemPrice] = useState("");
   const processedReturnStateRef = useRef<string | null>(null);
 
+  // Handle prefill data from location.state (when creating new from paid item)
+  useEffect(() => {
+    if (!isEditMode) {
+      const prefill = (location.state as any)?.prefill;
+      if (prefill) {
+        // Prefill customer
+        if (prefill.customerId) {
+          setSelectedCustomer(prefill.customerId);
+        }
+        
+        // Prefill job address
+        if (prefill.jobAddress) {
+          setJobAddress(prefill.jobAddress);
+        }
+        
+        // Prefill employee (only if not employee mode, as employees are auto-filled)
+        if (!isEmployee && prefill.employeeId) {
+          setSelectedEmployee(prefill.employeeId);
+        }
+      }
+    }
+  }, [location.state, isEditMode, isEmployee]);
+
   // Load estimate data when in edit mode
   useEffect(() => {
     if (isEditMode && id) {

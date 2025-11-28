@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +30,7 @@ const BASE_SERVICE_CATALOG = [
 
 const AddAgreement = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { id } = useParams<{ id?: string }>();
   const isEditMode = !!id;
   const agreement = isEditMode ? mockAgreements.find(ag => ag.id === id) : null;
@@ -82,6 +83,29 @@ const AddAgreement = () => {
   const [agreementStatus, setAgreementStatus] = useState<"Open" | "Paid">("Open");
   const [monthlyAmount, setMonthlyAmount] = useState(0);
   const [billingCycle, setBillingCycle] = useState("Monthly");
+
+  // Handle prefill data from location.state (when creating new from paid item)
+  useEffect(() => {
+    if (!isEditMode) {
+      const prefill = (location.state as any)?.prefill;
+      if (prefill) {
+        // Prefill customer
+        if (prefill.customerId) {
+          setSelectedCustomer(prefill.customerId);
+        }
+        
+        // Prefill job address
+        if (prefill.jobAddress) {
+          setJobAddress(prefill.jobAddress);
+        }
+        
+        // Prefill employee (only if not employee mode, as employees are auto-filled)
+        if (!isEmployee && prefill.employeeId) {
+          setSelectedEmployee(prefill.employeeId);
+        }
+      }
+    }
+  }, [location.state, isEditMode, isEmployee]);
 
   // Load agreement data in edit mode
   useEffect(() => {

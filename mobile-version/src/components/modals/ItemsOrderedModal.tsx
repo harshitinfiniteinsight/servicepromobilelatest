@@ -71,3 +71,4 @@ const ItemsOrderedModal = ({ isOpen, onClose, items, orderId, totalAmount }: Ite
 export default ItemsOrderedModal;
 
 
+

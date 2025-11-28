@@ -13,15 +13,56 @@ interface PaymentModalProps {
   onClose: () => void;
   amount: number;
   onPaymentMethodSelect?: (method: string) => void;
+  entityType?: "agreement" | "estimate" | "invoice";
+  agreement?: {
+    id?: string;
+    totalPayable?: number;
+    minimumDepositFraction?: number;
+    [key: string]: any;
+  };
 }
 
-const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect }: PaymentModalProps) => {
+const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityType, agreement }: PaymentModalProps) => {
   const navigate = useNavigate();
   const [showCardDetailsModal, setShowCardDetailsModal] = useState(false);
   const [showACHPaymentDetailsModal, setShowACHPaymentDetailsModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showTapToPayModal, setShowTapToPayModal] = useState(false);
   const [showNoReaderModal, setShowNoReaderModal] = useState(false);
+
+  // Calculate minimum amount payable for agreements
+  const minimumAmountPayable = (() => {
+    // Only show for agreement payments
+    if (entityType !== "agreement" && !agreement) {
+      return null;
+    }
+
+    // Get totalPayable from agreement or use amount as fallback
+    const totalPayable = agreement?.totalPayable || amount;
+    
+    // Get minimumDepositFraction from agreement or from localStorage/default
+    let minimumDepositFraction = agreement?.minimumDepositFraction;
+    
+    // If not in agreement, try to get from localStorage (from MinimumDepositPercentageModal)
+    if (minimumDepositFraction === undefined) {
+      const storedPercentage = localStorage.getItem("minimumDepositPercentage");
+      if (storedPercentage) {
+        minimumDepositFraction = parseFloat(storedPercentage) / 100; // Convert percentage to fraction
+      } else {
+        // Default to 0.25 (25%) if nothing is set
+        minimumDepositFraction = 0.25;
+      }
+    }
+
+    // If still no valid fraction, don't show the line
+    if (minimumDepositFraction === undefined || minimumDepositFraction <= 0) {
+      return null;
+    }
+
+    // Calculate minimum amount
+    const minimumAmount = totalPayable * minimumDepositFraction;
+    return minimumAmount;
+  })();
 
   const paymentOptions = [
     {
@@ -188,6 +229,12 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect }: Paymen
               <div className="text-center">
                 <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Amount</p>
                 <p className="text-2xl sm:text-3xl font-bold text-gray-900">${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                {/* Minimum Amount Payable - Only for Agreements */}
+                {minimumAmountPayable !== null && (
+                  <p className="text-xs sm:text-sm text-gray-600 mt-2">
+                    Minimum Amount Payable ${minimumAmountPayable.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                )}
               </div>
             </div>
 

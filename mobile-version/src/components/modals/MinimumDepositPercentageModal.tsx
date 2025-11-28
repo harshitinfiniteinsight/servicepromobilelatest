@@ -21,7 +21,9 @@ const MinimumDepositPercentageModal = ({ isOpen, onClose }: MinimumDepositPercen
       return;
     }
     
-    // Persist the deposit percentage (connect to backend if applicable)
+    // Persist the deposit percentage to localStorage
+    localStorage.setItem("minimumDepositPercentage", value.toString());
+    
     toast.success(`Minimum deposit percentage set to ${value}%`);
     onClose();
   };

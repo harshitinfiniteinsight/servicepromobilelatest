@@ -5,16 +5,17 @@ import EstimateCard from "@/components/cards/EstimateCard";
 import EmptyState from "@/components/cards/EmptyState";
 import PaymentModal from "@/components/modals/PaymentModal";
 import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
+import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
 import SendSmsModal from "@/components/modals/SendSmsModal";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import ShareAddressModal from "@/components/modals/ShareAddressModal";
-import { mockEstimates, mockCustomers } from "@/data/mobileMockData";
+import { mockEstimates, mockCustomers, mockEmployees, mockInvoices } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt } from "lucide-react";
+import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt, FilePlus } from "lucide-react";
 import { toast } from "sonner";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 
@@ -33,6 +34,9 @@ const Estimates = () => {
   const [selectedEstimateForAction, setSelectedEstimateForAction] = useState<any>(null);
   const [deactivatedEstimates, setDeactivatedEstimates] = useState<Set<string>>(new Set());
   const [statusFilterValue, setStatusFilterValue] = useState<string>("all");
+  const [convertedEstimates, setConvertedEstimates] = useState<Set<string>>(new Set());
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [previewInvoice, setPreviewInvoice] = useState<any>(null);
 
   // Get user role from localStorage
   const userRole = localStorage.getItem("userType") || "merchant";
@@ -45,7 +49,26 @@ const Estimates = () => {
     }
   }, [isEmployee]);
   
-  const filteredEstimates = mockEstimates.filter(est => {
+  // Load converted estimates from localStorage on mount
+  useEffect(() => {
+    const converted = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
+    if (converted.length > 0) {
+      setConvertedEstimates(new Set(converted));
+    }
+  }, []);
+  
+  const filteredEstimates = mockEstimates.map(est => {
+    // Check if estimate has been converted
+    const isConverted = convertedEstimates.has(est.id);
+    // Only update status if it's currently Unpaid and has been converted
+    if (isConverted && est.status === "Unpaid") {
+      return {
+        ...est,
+        status: "Converted to Invoice" as const,
+      };
+    }
+    return est;
+  }).filter(est => {
     const matchesSearch = est.id.toLowerCase().includes(search.toLowerCase()) ||
                          est.customerName.toLowerCase().includes(search.toLowerCase());
     
@@ -160,7 +183,116 @@ const Estimates = () => {
         toast.success("Processing refund...");
         break;
       case "convert-to-invoice":
-        navigate(`/invoices/new?estimateId=${estimateId}`);
+        const convertEstimate = mockEstimates.find(est => est.id === estimateId);
+        if (convertEstimate) {
+          const customer = mockCustomers.find(c => c.id === convertEstimate.customerId);
+          // Find employee by name if employeeName exists, otherwise use first employee
+          const employee = (convertEstimate as any).employeeName 
+            ? mockEmployees.find(emp => emp.name === (convertEstimate as any).employeeName)
+            : mockEmployees[0];
+          
+          // Get job address from estimate or customer address
+          const jobAddress = (convertEstimate as any).jobAddress || customer?.address || "";
+          
+          // Convert estimate items to invoice items format
+          // If estimate has items array, use it; otherwise create a single item from amount
+          const estimateItems = (convertEstimate as any).items || [];
+          const invoiceItems = estimateItems.length > 0
+            ? estimateItems.map((item: any, index: number) => ({
+                id: item.id || `item-${index}`,
+                name: item.name || item.description || "Service Item",
+                quantity: item.quantity || 1,
+                price: item.price || item.rate || item.amount || 0,
+                isCustom: !item.id,
+              }))
+            : [{
+                id: `item-${convertEstimate.id}`,
+                name: "Service Item",
+                quantity: 1,
+                price: convertEstimate.amount,
+              }];
+          
+          navigate("/invoices/new", {
+            state: {
+              prefill: {
+                customerId: convertEstimate.customerId,
+                jobAddress: jobAddress,
+                employeeId: employee?.id || mockEmployees[0]?.id || "1",
+                items: invoiceItems,
+                notes: (convertEstimate as any).notes || (convertEstimate as any).memo || "",
+                termsAndConditions: (convertEstimate as any).termsAndConditions || (convertEstimate as any).terms || "",
+                cancellationPolicy: (convertEstimate as any).cancellationPolicy || "",
+                tax: (convertEstimate as any).taxRate || 0,
+                discount: (convertEstimate as any).discount ? 
+                  (typeof (convertEstimate as any).discount === 'object' ? (convertEstimate as any).discount : null) : null,
+                estimateId: estimateId, // Pass estimateId to track conversion
+              }
+            }
+          });
+        }
+        break;
+      case "create-new-estimate":
+        const createEstimate = mockEstimates.find(est => est.id === estimateId);
+        if (createEstimate) {
+          const customer = mockCustomers.find(c => c.id === createEstimate.customerId);
+          // Find employee by name if employeeName exists, otherwise use first employee
+          const employee = (createEstimate as any).employeeName 
+            ? mockEmployees.find(emp => emp.name === (createEstimate as any).employeeName)
+            : mockEmployees[0];
+          
+          navigate("/estimates/new", {
+            state: {
+              prefill: {
+                customerId: createEstimate.customerId,
+                jobAddress: (createEstimate as any).jobAddress || customer?.address || "",
+                employeeId: employee?.id || mockEmployees[0]?.id || "1",
+              }
+            }
+          });
+        }
+        break;
+      case "view-invoice":
+        // Get the invoice ID from the conversion mapping
+        const estimateToInvoiceMap = JSON.parse(localStorage.getItem("estimateToInvoiceMap") || "{}");
+        const invoiceId = estimateToInvoiceMap[estimateId];
+        
+        // If no mapping exists, try to find invoice by matching customer and amount
+        // This handles cases where estimate was converted but mapping wasn't saved
+        let invoice = invoiceId ? mockInvoices.find(inv => inv.id === invoiceId) : null;
+        
+        // If invoice not found by ID, try to find by matching estimate data
+        if (!invoice) {
+          const estimate = mockEstimates.find(est => est.id === estimateId);
+          if (estimate) {
+            // Try to find invoice with same customer and similar amount
+            invoice = mockInvoices.find(inv => 
+              inv.customerId === estimate.customerId && 
+              Math.abs(inv.amount - estimate.amount) < 1
+            );
+            
+            // If still not found, create a temporary invoice from estimate data
+            if (!invoice) {
+              invoice = {
+                id: invoiceId || `INV-EST-${estimateId}`,
+                customerId: estimate.customerId,
+                customerName: estimate.customerName,
+                issueDate: new Date().toISOString().split('T')[0],
+                dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                amount: estimate.amount,
+                status: "Open" as const,
+                paymentMethod: "Credit Card",
+                type: "single" as const,
+              };
+            }
+          }
+        }
+        
+        if (invoice) {
+          setPreviewInvoice(invoice);
+          setShowInvoicePreview(true);
+        } else {
+          toast.error("Invoice not found for this estimate");
+        }
         break;
       case "activate":
         setDeactivatedEstimates(prev => {
@@ -228,6 +360,14 @@ const Estimates = () => {
         );
       }
 
+      // Add "Create New Estimate" option for paid estimates
+      items.push({
+        label: "Create New Estimate",
+        icon: FilePlus,
+        action: () => handleMenuAction("create-new-estimate", estimate.id),
+        separator: true,
+      });
+
       return <KebabMenu items={items} menuWidth="w-48" />;
     }
 
@@ -268,19 +408,43 @@ const Estimates = () => {
             label: "Reassign Employee",
             icon: UserCog,
             action: () => handleMenuAction("reassign", estimate.id),
-          },
-          {
+          }
+        );
+        
+        // Only show "Convert to Invoice" for Unpaid estimates (not already converted)
+        if (estimate.status === "Unpaid") {
+          items.push({
             label: "Convert to Invoice",
             icon: Receipt,
             action: () => handleMenuAction("convert-to-invoice", estimate.id),
-          },
-          {
-            label: "Deactivate",
-            icon: XCircle,
-            action: () => handleMenuAction("deactivate", estimate.id),
-          }
-        );
+            separator: true,
+          });
+        }
+        
+        items.push({
+          label: "Deactivate",
+          icon: XCircle,
+          action: () => handleMenuAction("deactivate", estimate.id),
+        });
       }
+
+      return <KebabMenu items={items} menuWidth="w-56" />;
+    }
+
+    // Handle "Converted to Invoice" status - only show Preview Estimate and View Invoice
+    if (estimate.status === "Converted to Invoice") {
+      const items: KebabMenuItem[] = [
+        {
+          label: "Preview Estimate",
+          icon: Eye,
+          action: () => handleMenuAction("preview", estimate.id),
+        },
+        {
+          label: "View Invoice",
+          icon: Receipt,
+          action: () => handleMenuAction("view-invoice", estimate.id),
+        },
+      ];
 
       return <KebabMenu items={items} menuWidth="w-56" />;
     }
@@ -566,6 +730,24 @@ const Estimates = () => {
           }}
           jobAddress={selectedEstimateForAction.jobAddress}
           estimateId={selectedEstimateForAction.id}
+        />
+      )}
+
+      {/* Preview Invoice Modal */}
+      {previewInvoice && (
+        <PreviewInvoiceModal
+          isOpen={showInvoicePreview}
+          onClose={() => {
+            setShowInvoicePreview(false);
+            setPreviewInvoice(null);
+          }}
+          invoice={previewInvoice}
+          onAction={(action) => {
+            if (action === "close" || action === "edit") {
+              setShowInvoicePreview(false);
+              setPreviewInvoice(null);
+            }
+          }}
         />
       )}
     </div>

@@ -9,8 +9,8 @@ import { DocumentVerificationModal } from "@/components/modals/DocumentVerificat
 import PaymentModal from "@/components/modals/PaymentModal";
 import SendSmsModal from "@/components/modals/SendSmsModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
-import { mockAgreements, mockCustomers } from "@/data/mobileMockData";
-import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard } from "lucide-react";
+import { mockAgreements, mockCustomers, mockEmployees } from "@/data/mobileMockData";
+import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
@@ -24,6 +24,7 @@ const Agreements = () => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedAgreementId, setSelectedAgreementId] = useState<string | null>(null);
   const [selectedAgreementAmount, setSelectedAgreementAmount] = useState<number>(0);
+  const [selectedAgreement, setSelectedAgreement] = useState<typeof mockAgreements[0] | null>(null);
   const [selectedAgreementForSms, setSelectedAgreementForSms] = useState<{ id: string; customerId: string; customerPhone?: string; customerName?: string } | null>(null);
   const [selectedAgreementForEmail, setSelectedAgreementForEmail] = useState<{ id: string; customerId: string; customerEmail?: string; customerName?: string } | null>(null);
 
@@ -36,6 +37,7 @@ const Agreements = () => {
     if (agreement) {
       setSelectedAgreementId(agreementId);
       setSelectedAgreementAmount(agreement.monthlyAmount || 0);
+      setSelectedAgreement(agreement);
       setShowDocumentVerificationModal(true);
     }
   };
@@ -63,6 +65,7 @@ const Agreements = () => {
     setShowPaymentModal(false);
     setSelectedAgreementId(null);
     setSelectedAgreementAmount(0);
+    setSelectedAgreement(null);
     toast.success("Payment processed successfully");
   };
 
@@ -118,6 +121,26 @@ const Agreements = () => {
       case "pay":
         handlePayNow(agreementId);
         break;
+      case "create-new-agreement":
+        const createAgreement = mockAgreements.find(ag => ag.id === agreementId);
+        if (createAgreement) {
+          const customer = mockCustomers.find(c => c.id === createAgreement.customerId);
+          // Find employee by name if employeeName exists, otherwise use first employee
+          const employee = (createAgreement as any).employeeName 
+            ? mockEmployees.find(emp => emp.name === (createAgreement as any).employeeName)
+            : mockEmployees[0];
+          
+          navigate("/agreements/new", {
+            state: {
+              prefill: {
+                customerId: createAgreement.customerId,
+                jobAddress: (createAgreement as any).jobAddress || customer?.address || "",
+                employeeId: employee?.id || mockEmployees[0]?.id || "1",
+              }
+            }
+          });
+        }
+        break;
       default:
         break;
     }
@@ -159,8 +182,9 @@ const Agreements = () => {
             // Build menu items based on payment status and user role
             const kebabMenuItems: KebabMenuItem[] = isPaid
               ? [
-                  // Paid agreements: Only Preview
+                  // Paid agreements: Preview and Create New Agreement
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
+                  { label: "Create New Agreement", icon: FilePlus, action: () => handleMenuAction(agreement.id, "create-new-agreement"), separator: true },
                 ]
               : [
                   // Unpaid agreements: Preview, Send Email, Send SMS, Edit Agreement
@@ -258,9 +282,16 @@ const Agreements = () => {
               setShowPaymentModal(false);
               setSelectedAgreementId(null);
               setSelectedAgreementAmount(0);
+              setSelectedAgreement(null);
             }}
             amount={selectedAgreementAmount}
             onPaymentMethodSelect={handlePaymentComplete}
+            entityType="agreement"
+            agreement={selectedAgreement ? {
+              id: selectedAgreement.id,
+              totalPayable: selectedAgreement.monthlyAmount || selectedAgreementAmount,
+              minimumDepositFraction: (selectedAgreement as any).minimumDepositFraction,
+            } : undefined}
           />
         </>
       )}

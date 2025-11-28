@@ -498,6 +498,7 @@ export const statusColors: Record<string, string> = {
   Confirmed: "bg-success/10 text-success border-success/20",
   Pending: "bg-warning/10 text-warning border-warning/20",
   "Expiring Soon": "bg-warning/10 text-warning border-warning/20",
+  "Converted to Invoice": "bg-primary/10 text-primary border-primary/20",
 };
 
 
