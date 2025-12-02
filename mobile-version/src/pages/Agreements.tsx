@@ -7,7 +7,7 @@ import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import MinimumDepositPercentageModal from "@/components/modals/MinimumDepositPercentageModal";
 import { DocumentVerificationModal } from "@/components/modals/DocumentVerificationModal";
 import PaymentModal from "@/components/modals/PaymentModal";
-import SendSmsModal from "@/components/modals/SendSmsModal";
+import SendSMSModal from "@/components/modals/SendSMSModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
 import { mockAgreements, mockCustomers, mockEmployees } from "@/data/mobileMockData";
 import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus } from "lucide-react";
@@ -298,7 +298,7 @@ const Agreements = () => {
 
       {/* Send SMS Modal - Always render when selectedAgreementForSms exists */}
       {selectedAgreementForSms ? (
-        <SendSmsModal
+        <SendSMSModal
           key={`sms-${selectedAgreementForSms.id}`}
           isOpen={showSmsModal}
           onClose={() => {
