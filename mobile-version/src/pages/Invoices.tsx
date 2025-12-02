@@ -365,7 +365,7 @@ const Invoices = () => {
             separator: true,
           },
           {
-            label: "Doc History",
+            label: "Customer History",
             icon: History,
             action: () => handleMenuAction(invoice, "doc-history"),
           },

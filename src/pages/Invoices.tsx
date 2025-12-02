@@ -256,7 +256,7 @@ const Invoices = () => {
                             onClick={() => handleDocHistory(invoice)}
                           >
                             <FileText className="h-4 w-4" />
-                            Doc History
+                            Customer History
                           </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2" onClick={() => handlePayNow(invoice)}>
                             <CreditCard className="h-4 w-4" />
@@ -405,7 +405,7 @@ const Invoices = () => {
                             onClick={() => handleDocHistory(invoice)}
                           >
                             <FileText className="h-4 w-4" />
-                            Doc History
+                            Customer History
                           </DropdownMenuItem>
                           <DropdownMenuItem className="gap-2" onClick={() => handlePayNow(invoice)}>
                             <CreditCard className="h-4 w-4" />

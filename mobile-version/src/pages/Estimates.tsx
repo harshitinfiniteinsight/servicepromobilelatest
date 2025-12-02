@@ -400,7 +400,7 @@ const Estimates = () => {
             separator: true,
           },
           {
-            label: "Doc History",
+            label: "Customer History",
             icon: History,
             action: () => handleMenuAction("doc-history", estimate.id),
           },

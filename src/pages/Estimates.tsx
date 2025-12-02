@@ -704,7 +704,7 @@ const Estimates = () => {
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleDocHistory(estimate)}>
                                     <History className="mr-2 h-4 w-4" />
-                                    Doc History
+                                    Customer History
                                   </DropdownMenuItem>
                                   <DropdownMenuItem onClick={() => handleDeactivate(estimate)}>
                                     <XCircle className="mr-2 h-4 w-4" />
