@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,14 +12,40 @@ import { cn } from "@/lib/utils";
 
 const AddJob = () => {
   const navigate = useNavigate();
+  const locationState = useLocation();
   const [customerSearch, setCustomerSearch] = useState("");
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [serviceType, setServiceType] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
-  const [location, setLocation] = useState("");
+  const [jobLocation, setJobLocation] = useState("");
   const [technician, setTechnician] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Handle prefill data from location.state (when converting from notification)
+  useEffect(() => {
+    const prefill = (locationState.state as any)?.prefill;
+    if (prefill) {
+      // Prefill customer
+      if (prefill.customerId) {
+        setSelectedCustomer(prefill.customerId);
+        const customer = mockCustomers.find(c => c.id === prefill.customerId);
+        if (customer) {
+          setCustomerSearch(customer.name);
+        }
+      }
+      
+      // Prefill job address
+      if (prefill.jobAddress) {
+        setJobLocation(prefill.jobAddress);
+      }
+      
+      // Prefill employee/technician
+      if (prefill.employeeId) {
+        setTechnician(prefill.employeeId);
+      }
+    }
+  }, [locationState.state]);
 
   const filteredCustomers = mockCustomers.filter(c =>
     c.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
@@ -64,7 +90,7 @@ const AddJob = () => {
                   onClick={() => {
                     setSelectedCustomer(customer.id);
                     setCustomerSearch(customer.name);
-                    setLocation(customer.address);
+                    setJobLocation(customer.address);
                   }}
                 >
                   <div className="flex items-center justify-between">
@@ -136,8 +162,8 @@ const AddJob = () => {
             <MapPin className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Textarea
               placeholder="Job location address"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
+              value={jobLocation}
+              onChange={(e) => setJobLocation(e.target.value)}
               className="pl-10 min-h-[80px]"
             />
           </div>
@@ -178,7 +204,7 @@ const AddJob = () => {
           className="w-full"
           size="lg"
           onClick={handleSubmit}
-          disabled={!selectedCustomer || !serviceType || !date || !time || !location || !technician}
+          disabled={!selectedCustomer || !serviceType || !date || !time || !jobLocation || !technician}
         >
           Create Job
         </Button>

@@ -4,6 +4,7 @@ import MobileHeader from "@/components/layout/MobileHeader";
 import EstimateCard from "@/components/cards/EstimateCard";
 import EmptyState from "@/components/cards/EmptyState";
 import PaymentModal from "@/components/modals/PaymentModal";
+import CashPaymentModal from "@/components/modals/CashPaymentModal";
 import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
@@ -15,15 +16,18 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt, FilePlus } from "lucide-react";
+import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt, FilePlus, CreditCard, DollarSign, Briefcase } from "lucide-react";
 import { toast } from "sonner";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
+import { createPaymentNotification } from "@/services/notificationService";
+import { convertToJob } from "@/services/jobConversionService";
 
 const Estimates = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("activate");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [selectedEstimate, setSelectedEstimate] = useState<{ id: string; amount: number } | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [previewEstimate, setPreviewEstimate] = useState<any>(null);
@@ -103,9 +107,36 @@ const Estimates = () => {
     if (selectedEstimate) {
       // Payment processing toast removed - only success toast shown after payment completes
       // No processing toast for cash payments
+      // Create payment notification
+      createPaymentNotification("estimate", selectedEstimate.id);
       // Navigate to payment processing page or handle payment
       // navigate(`/payment/${selectedEstimate.id}?method=${method}`);
     }
+  };
+
+  const handlePayCash = (estimateId: string) => {
+    const estimate = mockEstimates.find(est => est.id === estimateId);
+    if (!estimate) {
+      toast.error("Estimate not found");
+      return;
+    }
+    setSelectedEstimate({ id: estimateId, amount: estimate.amount });
+    setShowCashPaymentModal(true);
+  };
+
+  const handleCashPaymentComplete = () => {
+    if (selectedEstimate) {
+      // Create payment notification
+      createPaymentNotification("estimate", selectedEstimate.id);
+    }
+    setShowCashPaymentModal(false);
+    setSelectedEstimate(null);
+    toast.success("Payment completed");
+  };
+
+  const handleCashPaymentClose = () => {
+    setShowCashPaymentModal(false);
+    setSelectedEstimate(null);
   };
 
 
@@ -214,6 +245,7 @@ const Estimates = () => {
           
           navigate("/invoices/new", {
             state: {
+              fromEstimate: true, // Flag to disable Recurring invoice type
               prefill: {
                 customerId: convertEstimate.customerId,
                 jobAddress: jobAddress,
@@ -302,6 +334,25 @@ const Estimates = () => {
         });
         toast.success("Estimate activated");
         break;
+      case "pay-now":
+        const payNowEstimate = mockEstimates.find(est => est.id === estimateId);
+        if (payNowEstimate) {
+          setSelectedEstimate({ id: estimateId, amount: payNowEstimate.amount });
+          setShowPaymentModal(true);
+        }
+        break;
+      case "pay-cash":
+        handlePayCash(estimateId);
+        break;
+      case "convert-to-job":
+        const result = convertToJob("estimate", estimateId);
+        if (result.success) {
+          toast.success("Job created successfully");
+          navigate("/jobs");
+        } else {
+          toast.error(result.error || "Failed to convert to job");
+        }
+        break;
       default:
         break;
     }
@@ -330,6 +381,11 @@ const Estimates = () => {
           label: "Preview",
           icon: Eye,
           action: () => handleMenuAction("preview", estimate.id),
+        },
+        {
+          label: "Convert to Job",
+          icon: Briefcase,
+          action: () => handleMenuAction("convert-to-job", estimate.id),
         },
         {
           label: "Send Email",
@@ -377,6 +433,21 @@ const Estimates = () => {
           label: "Preview",
           icon: Eye,
           action: () => handleMenuAction("preview", estimate.id),
+        },
+        {
+          label: "Pay Now",
+          icon: CreditCard,
+          action: () => handleMenuAction("pay-now", estimate.id),
+        },
+        {
+          label: "Pay Cash",
+          icon: DollarSign,
+          action: () => handleMenuAction("pay-cash", estimate.id),
+        },
+        {
+          label: "Convert to Job",
+          icon: Briefcase,
+          action: () => handleMenuAction("convert-to-job", estimate.id),
         },
         {
           label: "Send Email",
@@ -643,15 +714,24 @@ const Estimates = () => {
 
       {/* Payment Modal */}
       {selectedEstimate && (
-        <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={() => {
-            setShowPaymentModal(false);
-            setSelectedEstimate(null);
-          }}
-          amount={selectedEstimate.amount}
-          onPaymentMethodSelect={handlePaymentMethodSelect}
-        />
+        <>
+          <PaymentModal
+            isOpen={showPaymentModal}
+            onClose={() => {
+              setShowPaymentModal(false);
+              setSelectedEstimate(null);
+            }}
+            amount={selectedEstimate.amount}
+            onPaymentMethodSelect={handlePaymentMethodSelect}
+          />
+          <CashPaymentModal
+            isOpen={showCashPaymentModal}
+            onClose={handleCashPaymentClose}
+            onBack={handleCashPaymentClose}
+            amount={selectedEstimate.amount}
+            onPaymentComplete={handleCashPaymentComplete}
+          />
+        </>
       )}
 
       {/* Preview Estimate Modal */}

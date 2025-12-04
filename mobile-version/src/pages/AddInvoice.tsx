@@ -51,7 +51,19 @@ const AddInvoice = () => {
   // Handle prefill data from location.state (when creating new from paid item or converting estimate)
   useEffect(() => {
     if (!isEditMode) {
-      const prefill = (location.state as any)?.prefill;
+      const state = location.state as any;
+      const fromEstimateFlag = state?.fromEstimate === true;
+      
+      // If converting from estimate, ensure invoice type is set to "single"
+      if (fromEstimateFlag) {
+        setInvoiceType("single");
+        setIsRecurringEnabled(false);
+        setRecurringEndOption("date");
+        setRecurringEndDate("");
+        setRecurringOccurrences("");
+      }
+      
+      const prefill = state?.prefill;
       if (prefill) {
         // Prefill customer
         if (prefill.customerId) {
@@ -202,6 +214,9 @@ const AddInvoice = () => {
   const [items, setItems] = useState<Array<{ id: string; name: string; quantity: number; price: number; isCustom?: boolean }>>([]);
   const [itemSearch, setItemSearch] = useState("");
   const [invoiceType, setInvoiceType] = useState<"single" | "recurring">("single");
+  
+  // Check if invoice is being created from an estimate conversion
+  const fromEstimate = (location.state as any)?.fromEstimate === true;
   const [isRecurringEnabled, setIsRecurringEnabled] = useState(false);
   const [recurringInterval, setRecurringInterval] = useState("Daily");
   const [recurringEndOption, setRecurringEndOption] = useState<"date" | "occurrences">("date");
@@ -810,6 +825,10 @@ const AddInvoice = () => {
                 value={invoiceType}
                 onValueChange={value => {
                   const nextType = value as "single" | "recurring";
+                  // Prevent changing to recurring if fromEstimate is true
+                  if (fromEstimate && nextType === "recurring") {
+                    return;
+                  }
                   setInvoiceType(nextType);
                   if (nextType === "single") {
                     setIsRecurringEnabled(false);
@@ -823,23 +842,44 @@ const AddInvoice = () => {
                 {[
                   { value: "single", label: "Single" },
                   { value: "recurring", label: "Recurring" },
-                ].map(option => (
-                  <div
-                    key={option.value}
-                  className={cn(
-                      "flex-1 p-4 rounded-xl border cursor-pointer transition-colors",
-                      invoiceType === option.value ? "bg-primary/10 border-primary" : "bg-card hover:bg-accent/5"
-                    )}
-                    onClick={() => setInvoiceType(option.value as "single" | "recurring")}
-                  >
-                    <div className="flex items-center gap-3">
-                      <RadioGroupItem value={option.value} id={`invoice-type-${option.value}`} />
-                      <Label htmlFor={`invoice-type-${option.value}`} className="cursor-pointer">
-                        <span className="font-semibold">{option.label}</span>
-                      </Label>
+                ].map(option => {
+                  const isRecurring = option.value === "recurring";
+                  const isDisabled = fromEstimate && isRecurring;
+                  return (
+                    <div
+                      key={option.value}
+                      className={cn(
+                        "flex-1 p-4 rounded-xl border transition-colors",
+                        isDisabled 
+                          ? "bg-muted/50 border-muted cursor-not-allowed opacity-60" 
+                          : invoiceType === option.value 
+                            ? "bg-primary/10 border-primary cursor-pointer" 
+                            : "bg-card hover:bg-accent/5 cursor-pointer"
+                      )}
+                      onClick={() => {
+                        if (!isDisabled) {
+                          setInvoiceType(option.value as "single" | "recurring");
+                        }
+                      }}
+                    >
+                      <div className="flex items-center gap-3">
+                        <RadioGroupItem 
+                          value={option.value} 
+                          id={`invoice-type-${option.value}`}
+                          disabled={isDisabled}
+                        />
+                        <Label 
+                          htmlFor={`invoice-type-${option.value}`} 
+                          className={cn(
+                            isDisabled ? "cursor-not-allowed" : "cursor-pointer"
+                          )}
+                        >
+                          <span className="font-semibold">{option.label}</span>
+                        </Label>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </RadioGroup>
                       </div>
 

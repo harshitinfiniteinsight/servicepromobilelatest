@@ -10,10 +10,12 @@ import PaymentModal from "@/components/modals/PaymentModal";
 import SendSMSModal from "@/components/modals/SendSMSModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
 import { mockAgreements, mockCustomers, mockEmployees } from "@/data/mobileMockData";
-import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus } from "lucide-react";
+import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
+import { createPaymentNotification } from "@/services/notificationService";
+import { convertToJob } from "@/services/jobConversionService";
 
 const Agreements = () => {
   const navigate = useNavigate();
@@ -62,6 +64,10 @@ const Agreements = () => {
   };
 
   const handlePaymentComplete = () => {
+    if (selectedAgreementId) {
+      // Create payment notification
+      createPaymentNotification("agreement", selectedAgreementId);
+    }
     setShowPaymentModal(false);
     setSelectedAgreementId(null);
     setSelectedAgreementAmount(0);
@@ -141,6 +147,15 @@ const Agreements = () => {
           });
         }
         break;
+      case "convert-to-job":
+        const result = convertToJob("agreement", agreementId);
+        if (result.success) {
+          toast.success("Job created successfully");
+          navigate("/jobs");
+        } else {
+          toast.error(result.error || "Failed to convert to job");
+        }
+        break;
       default:
         break;
     }
@@ -182,13 +197,15 @@ const Agreements = () => {
             // Build menu items based on payment status and user role
             const kebabMenuItems: KebabMenuItem[] = isPaid
               ? [
-                  // Paid agreements: Preview and Create New Agreement
+                  // Paid agreements: Preview, Convert to Job, and Create New Agreement
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
+                  { label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") },
                   { label: "Create New Agreement", icon: FilePlus, action: () => handleMenuAction(agreement.id, "create-new-agreement"), separator: true },
                 ]
               : [
-                  // Unpaid agreements: Preview, Send Email, Send SMS, Edit Agreement
+                  // Unpaid agreements: Preview, Convert to Job, Send Email, Send SMS, Edit Agreement
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
+                  { label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") },
                   { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
                   { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
                   // Edit Agreement: Only for merchants, not employees

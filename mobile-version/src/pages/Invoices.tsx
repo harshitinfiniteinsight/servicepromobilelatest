@@ -4,6 +4,7 @@ import MobileHeader from "@/components/layout/MobileHeader";
 import InvoiceCard from "@/components/cards/InvoiceCard";
 import EmptyState from "@/components/cards/EmptyState";
 import PaymentModal from "@/components/modals/PaymentModal";
+import CashPaymentModal from "@/components/modals/CashPaymentModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
 import SendSMSModal from "@/components/modals/SendSMSModal";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
@@ -31,9 +32,14 @@ import {
   Bell,
   Calendar as CalendarIcon,
   FilePlus,
+  CreditCard,
+  DollarSign,
+  Briefcase,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { createPaymentNotification } from "@/services/notificationService";
+import { convertToJob } from "@/services/jobConversionService";
 
 type InvoiceTab = "single" | "recurring" | "deactivated";
 type InvoiceStatusFilter = "all" | "paid" | "open";
@@ -50,6 +56,7 @@ const Invoices = () => {
   });
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [selectedInvoice, setSelectedInvoice] = useState<{ id: string; amount: number } | null>(null);
   const [actionInvoice, setActionInvoice] = useState<(Invoice & { customerEmail?: string; customerPhone?: string }) | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -159,10 +166,39 @@ const Invoices = () => {
   const handlePaymentMethodSelect = (method: string) => {
     // Payment processing toast removed - only success toast shown after payment completes
     // No processing toast for cash payments
+    if (selectedInvoice) {
+      // Create payment notification
+      createPaymentNotification("invoice", selectedInvoice.id);
+    }
   };
 
   const handlePaymentModalClose = () => {
     setShowPaymentModal(false);
+    setSelectedInvoice(null);
+  };
+
+  const handlePayCash = (invoiceId: string) => {
+    const invoice = mockInvoices.find(inv => inv.id === invoiceId);
+    if (!invoice) {
+      toast.error("Invoice not found");
+      return;
+    }
+    setSelectedInvoice({ id: invoiceId, amount: invoice.amount });
+    setShowCashPaymentModal(true);
+  };
+
+  const handleCashPaymentComplete = () => {
+    if (selectedInvoice) {
+      // Create payment notification
+      createPaymentNotification("invoice", selectedInvoice.id);
+    }
+    setShowCashPaymentModal(false);
+    setSelectedInvoice(null);
+    toast.success("Payment completed");
+  };
+
+  const handleCashPaymentClose = () => {
+    setShowCashPaymentModal(false);
     setSelectedInvoice(null);
   };
 
@@ -241,6 +277,21 @@ const Invoices = () => {
           }
         });
         break;
+      case "pay-now":
+        handlePayNow(invoice.id);
+        break;
+      case "pay-cash":
+        handlePayCash(invoice.id);
+        break;
+      case "convert-to-job":
+        const result = convertToJob("invoice", invoice.id);
+        if (result.success) {
+          toast.success("Job created successfully");
+          navigate("/jobs");
+        } else {
+          toast.error(result.error || "Failed to convert to job");
+        }
+        break;
       default:
         break;
     }
@@ -293,6 +344,11 @@ const Invoices = () => {
           action: () => handleMenuAction(invoice, "preview"),
         },
         {
+          label: "Convert to Job",
+          icon: Briefcase,
+          action: () => handleMenuAction(invoice, "convert-to-job"),
+        },
+        {
           label: "Send Email",
           icon: Mail,
           action: () => handleMenuAction(invoice, "send-email"),
@@ -342,6 +398,21 @@ const Invoices = () => {
           label: "Preview",
           icon: Eye,
           action: () => handleMenuAction(invoice, "preview"),
+        },
+        {
+          label: "Pay Now",
+          icon: CreditCard,
+          action: () => handleMenuAction(invoice, "pay-now"),
+        },
+        {
+          label: "Pay Cash",
+          icon: DollarSign,
+          action: () => handleMenuAction(invoice, "pay-cash"),
+        },
+        {
+          label: "Convert to Job",
+          icon: Briefcase,
+          action: () => handleMenuAction(invoice, "convert-to-job"),
         },
         {
           label: "Send Email",
@@ -563,12 +634,21 @@ const Invoices = () => {
       </div>
 
       {selectedInvoice && (
-        <PaymentModal
-          isOpen={showPaymentModal}
-          onClose={handlePaymentModalClose}
-          amount={selectedInvoice.amount}
-          onPaymentMethodSelect={handlePaymentMethodSelect}
-        />
+        <>
+          <PaymentModal
+            isOpen={showPaymentModal}
+            onClose={handlePaymentModalClose}
+            amount={selectedInvoice.amount}
+            onPaymentMethodSelect={handlePaymentMethodSelect}
+          />
+          <CashPaymentModal
+            isOpen={showCashPaymentModal}
+            onClose={handleCashPaymentClose}
+            onBack={handleCashPaymentClose}
+            amount={selectedInvoice.amount}
+            onPaymentComplete={handleCashPaymentComplete}
+          />
+        </>
       )}
 
       {actionInvoice && showEmailModal && (

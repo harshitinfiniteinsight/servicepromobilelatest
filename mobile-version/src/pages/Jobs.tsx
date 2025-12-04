@@ -67,6 +67,9 @@ const Jobs = () => {
   const currentEmployee = mockEmployees.find(emp => emp.id === currentEmployeeId);
   const currentEmployeeName = currentEmployee?.name || "";
   
+  // State to trigger job list refresh when new jobs are created
+  const [jobListRefreshTrigger, setJobListRefreshTrigger] = useState(0);
+  
   // Transform invoices, estimates, and agreements into job format
   const transformDocumentsToJobs = useMemo(() => {
     // Helper to assign technician based on customer or random assignment
@@ -83,62 +86,34 @@ const Jobs = () => {
       return customer?.address || "";
     };
 
-    // Transform invoices to jobs
-    const invoiceJobs = mockInvoices.map((invoice, index) => ({
-      id: invoice.id,
-      title: `Invoice ${invoice.id}`,
-      customerId: invoice.customerId,
-      customerName: invoice.customerName,
-      technicianId: "1", // Default, can be enhanced
-      technicianName: assignTechnician(invoice.customerId, index),
-      date: invoice.issueDate,
-      time: "09:00 AM", // Default time
-      status: invoice.status === "Paid" ? "Completed" : invoice.status === "Overdue" ? "In Progress" : "Scheduled",
-      location: getCustomerAddress(invoice.customerId),
-    }));
+    // Load jobs from localStorage (jobs created manually via "Convert to Job" action)
+    // Only show manually converted jobs, not auto-generated ones
+    const storedJobs: typeof mockJobs = (() => {
+      try {
+        const stored = localStorage.getItem("mockJobs");
+        return stored ? JSON.parse(stored) : [];
+      } catch (error) {
+        console.warn("Failed to load jobs from localStorage:", error);
+        return [];
+      }
+    })();
 
-    // Transform estimates to jobs (exclude converted estimates)
-    const convertedEstimates = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
-    const convertedEstimatesSet = new Set(convertedEstimates);
-    const estimateJobs = mockEstimates
-      .filter(estimate => !convertedEstimatesSet.has(estimate.id))
-      .map((estimate, index) => ({
-        id: estimate.id,
-        title: `Estimate ${estimate.id}`,
-        customerId: estimate.customerId,
-        customerName: estimate.customerName,
-        technicianId: "1",
-        technicianName: assignTechnician(estimate.customerId, index),
-        date: estimate.date,
-        time: "10:00 AM",
-        status: estimate.status === "Paid" ? "Completed" : "Scheduled",
-        location: getCustomerAddress(estimate.customerId),
-      }));
+    // Only show manually converted jobs (storedJobs) and mockJobs
+    // Do NOT auto-transform invoices, estimates, or agreements into jobs
+    const allJobs = [...storedJobs, ...mockJobs];
 
-    // Transform agreements to jobs
-    const agreementJobs = mockAgreements.map((agreement, index) => ({
-      id: agreement.id,
-      title: agreement.type,
-      customerId: agreement.customerId,
-      customerName: agreement.customerName,
-      technicianId: "1",
-      technicianName: assignTechnician(agreement.customerId, index),
-      date: agreement.startDate,
-      time: "11:00 AM",
-      status: agreement.status === "Paid" ? "Completed" : "In Progress",
-      location: getCustomerAddress(agreement.customerId),
-    }));
-
-    // Combine all jobs
-    const allJobs = [...mockJobs, ...invoiceJobs, ...estimateJobs, ...agreementJobs];
+    // Remove duplicates based on job ID (prioritize stored jobs)
+    const uniqueJobs = Array.from(
+      new Map(allJobs.map(job => [job.id, job])).values()
+    );
 
     // For employees, filter to only their assigned jobs
     if (isEmployee && currentEmployeeName) {
-      return allJobs.filter(job => job.technicianName === currentEmployeeName);
+      return uniqueJobs.filter(job => job.technicianName === currentEmployeeName);
     }
 
-    return allJobs;
-  }, [isEmployee, currentEmployeeName]);
+    return uniqueJobs;
+  }, [isEmployee, currentEmployeeName, jobListRefreshTrigger]);
 
   // Manage job statuses (initialize from combined jobs, but allow updates)
   const [jobs, setJobs] = useState(transformDocumentsToJobs);
@@ -147,6 +122,20 @@ const Jobs = () => {
   useEffect(() => {
     setJobs(transformDocumentsToJobs);
   }, [transformDocumentsToJobs]);
+
+  // Listen for jobCreated event (when a job is created from notification)
+  useEffect(() => {
+    const handleJobCreated = () => {
+      // Trigger refresh by updating the trigger state
+      // This will cause transformDocumentsToJobs to recalculate
+      setJobListRefreshTrigger(prev => prev + 1);
+    };
+
+    window.addEventListener("jobCreated", handleJobCreated);
+    return () => {
+      window.removeEventListener("jobCreated", handleJobCreated);
+    };
+  }, []);
   
   // Track feedback status for completed jobs
   // Load from localStorage if available (for persistence across page reloads)

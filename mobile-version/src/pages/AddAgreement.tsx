@@ -83,6 +83,8 @@ const AddAgreement = () => {
   const [agreementStatus, setAgreementStatus] = useState<"Open" | "Paid">("Open");
   const [monthlyAmount, setMonthlyAmount] = useState(0);
   const [billingCycle, setBillingCycle] = useState("Monthly");
+  const [agreementTerms, setAgreementTerms] = useState("");
+  const [cancellationPolicy, setCancellationPolicy] = useState("");
 
   // Handle prefill data from location.state (when creating new from paid item)
   useEffect(() => {
@@ -165,6 +167,16 @@ const AddAgreement = () => {
       // Pre-fill work description (if available)
       if ((agreement as any).description) {
         setWorkDescription((agreement as any).description);
+      }
+
+      // Pre-fill agreement terms (if available)
+      if ((agreement as any).agreementTerms) {
+        setAgreementTerms((agreement as any).agreementTerms);
+      }
+
+      // Pre-fill cancellation policy (if available)
+      if ((agreement as any).cancellationPolicy) {
+        setCancellationPolicy((agreement as any).cancellationPolicy);
       }
 
       // Pre-fill services (if available)
@@ -290,9 +302,10 @@ const AddAgreement = () => {
 
   const steps = [
     { number: 1, title: "Customer & Employee" },
-    { number: 2, title: "Agreement Type" },
-    { number: 3, title: "Select Services" },
-    { number: 4, title: "Work Description" },
+    { number: 2, title: "Job Details" },
+    { number: 3, title: "Pricing / Items" },
+    { number: 4, title: "Attachments" },
+    { number: 5, title: "Terms & Cancellation" },
   ];
 
   const handleSyncItem = () => {
@@ -340,6 +353,8 @@ const AddAgreement = () => {
           description: workDescription,
           services: selectedServicesList,
           serviceRequirement,
+          agreementTerms,
+          cancellationPolicy,
         };
 
         await updateAgreement(id, payload);
@@ -806,40 +821,6 @@ const AddAgreement = () => {
                   </div>
                 </div>
               </div>
-
-              <div className="space-y-3">
-                <Label className="text-base font-semibold tracking-tight">Billing Cycle *</Label>
-                <Select
-                  value={billingCycle}
-                  onValueChange={setBillingCycle}
-                >
-                  <SelectTrigger className="h-11">
-                    <SelectValue placeholder="Select billing cycle" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Monthly">Monthly</SelectItem>
-                    <SelectItem value="Quarterly">Quarterly</SelectItem>
-                    <SelectItem value="Annually">Annually</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3">
-                <Label className="text-base font-semibold tracking-tight">Monthly Amount *</Label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                  <Input
-                    type="number"
-                    inputMode="decimal"
-                    value={monthlyAmount || ""}
-                    onChange={e => setMonthlyAmount(Number(e.target.value) || 0)}
-                    placeholder="0.00"
-                    className="pl-8 h-11"
-                    min="0"
-                    step="0.01"
-                  />
-                </div>
-              </div>
             </div>
           </div>
         )}
@@ -958,6 +939,31 @@ const AddAgreement = () => {
 
           </div>
         )}
+
+        {/* Step 5: Terms & Cancellation */}
+        {step === 5 && (
+          <div className="space-y-4">
+            <div>
+              <Label>Terms & Conditions</Label>
+              <textarea
+                className="w-full min-h-[120px] p-3 rounded-lg border bg-background mt-2"
+                placeholder="Enter terms and conditions..."
+                value={agreementTerms}
+                onChange={e => setAgreementTerms(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label>Cancellation & Return Policy</Label>
+              <textarea
+                className="w-full min-h-[120px] p-3 rounded-lg border bg-background mt-2"
+                placeholder="Enter cancellation and return policy..."
+                value={cancellationPolicy}
+                onChange={e => setCancellationPolicy(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Bottom Actions */}
@@ -968,13 +974,13 @@ const AddAgreement = () => {
               Back
             </Button>
           )}
-          {step < 4 ? (
+          {step < 5 ? (
             <Button
               className="flex-1"
               onClick={() => setStep(step + 1)}
               disabled={
                 (step === 1 && (!selectedCustomer || !selectedEmployee)) ||
-                (step === 2 && (!startDate || !endDate || !billingCycle || !monthlyAmount || (agreementType === "Service" && serviceRequirement.length === 0))) ||
+                (step === 2 && (!startDate || !endDate || (agreementType === "Service" && serviceRequirement.length === 0))) ||
                 (step === 3 && selectedServicesList.length === 0) ||
                 (step === 4 && !workDescription.trim())
               }
