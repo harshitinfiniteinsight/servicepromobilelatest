@@ -6,18 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { X, Camera } from "lucide-react";
 import { toast } from "sonner";
-
-interface Note {
-  id: string;
-  text: string;
-  createdBy: string;
-  createdAt: string;
-  attachment?: {
-    name: string;
-    url: string;
-    type: string;
-  };
-}
+import { getNotesByCustomer, addNote, type Note } from "@/services/noteService";
+import { format } from "date-fns";
 
 interface CustomerAddNoteModalProps {
   open: boolean;
@@ -43,22 +33,14 @@ const CustomerAddNoteModal = ({
   const [notes, setNotes] = useState<Note[]>(existingNotes);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const prevOpenRef = useRef<boolean>(false);
-  const existingNotesRef = useRef<Note[]>(existingNotes);
 
-  // Update ref when existingNotes changes
+  // Load all customer notes when modal opens
   useEffect(() => {
-    existingNotesRef.current = existingNotes;
-  }, [existingNotes]);
-
-  // Sync notes only when modal opens (not on every existingNotes change)
-  useEffect(() => {
-    if (open && !prevOpenRef.current) {
-      // Modal just opened, sync with existingNotes
-      setNotes(existingNotesRef.current);
+    if (open && customer) {
+      const allCustomerNotes = getNotesByCustomer(customer.id);
+      setNotes(allCustomerNotes);
     }
-    prevOpenRef.current = open;
-  }, [open]);
+  }, [open, customer]);
 
   // Reset form when modal closes
   useEffect(() => {
@@ -91,9 +73,9 @@ const CustomerAddNoteModal = ({
     fileInputRef.current?.click();
   };
 
-  const handleAddNote = () => {
-    if (!noteText.trim()) {
-      toast.error("Please enter a note");
+  const handleAddNote = async () => {
+    if (!noteText.trim() && !uploadedFile) {
+      toast.error("Please enter a note or upload a file");
       return;
     }
 
@@ -102,48 +84,75 @@ const CustomerAddNoteModal = ({
       return;
     }
 
-    const now = new Date();
-    const formattedDate = now.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-    });
-    const formattedTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    
-    const newNote: Note = {
-      id: Date.now().toString(),
-      text: noteText.trim(),
-      createdBy: "Current User", // Replace with actual user name from context/auth
-      createdAt: `${formattedDate} ${formattedTime}`,
-      ...(uploadedFile && {
-        attachment: {
-          name: uploadedFile.name,
-          url: URL.createObjectURL(uploadedFile), // In real app, upload to server and get URL
-          type: uploadedFile.type,
-        },
-      }),
-    };
-    
-    setNotes([newNote, ...notes]);
-    
-    if (onAddNote) {
-      onAddNote(customer.id, noteText.trim());
-    } else {
-      // Mock save - in real app, this would call an API
-      console.info("Saving note for customer", customer.id, noteText.trim(), uploadedFile?.name);
-      toast.success("Note added successfully");
-      // Note: If onAddNote is provided, the parent component handles the toast
-    }
-    
-    setNoteText("");
-    setUploadedFile(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+    try {
+      // Prepare attachment if file is uploaded
+      const attachment = uploadedFile
+        ? {
+            name: uploadedFile.name,
+            url: URL.createObjectURL(uploadedFile), // In real app, upload to server and get URL
+            type: uploadedFile.type,
+          }
+        : undefined;
+
+      // Add note (will create if noteText is empty but file exists)
+      const noteToSave = noteText.trim() || `File: ${uploadedFile?.name || "Attachment"}`;
+      const newNote = addNote(
+        customer.id, // entityId (customer ID for customer notes)
+        "customer", // entityType
+        customer.id, // customerId
+        noteToSave,
+        attachment
+      );
+
+      // Reload all customer notes to get updated list
+      const updatedNotes = getNotesByCustomer(customer.id);
+      setNotes(updatedNotes);
+      
+      if (onAddNote) {
+        onAddNote(customer.id, noteText.trim());
+      } else {
+        toast.success("Note added successfully");
+      }
+      
+      setNoteText("");
+      setUploadedFile(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    } catch (error) {
+      console.error("Error adding note:", error);
+      toast.error("Failed to add note");
     }
   };
 
   const formatDate = (dateString: string) => {
-    return dateString; // Already formatted in the note object
+    try {
+      // Try to parse as ISO string first
+      const date = new Date(dateString);
+      if (!isNaN(date.getTime())) {
+        return format(date, "MMM d, yyyy h:mm a");
+      }
+      // If not ISO, return as-is (legacy format)
+      return dateString;
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Get source label for note
+  const getNoteSource = (note: Note) => {
+    if (note.entityType === "invoice") {
+      return "Invoice";
+    } else if (note.entityType === "estimate") {
+      return "Estimate";
+    } else if (note.entityType === "customer") {
+      return "Customer";
+    } else if (note.entityType === "job") {
+      return "Job";
+    } else if (note.entityType === "equipment") {
+      return "Equipment";
+    }
+    return "";
   };
 
   if (!customer) return null;
@@ -227,7 +236,7 @@ const CustomerAddNoteModal = ({
           <div className="pt-2 flex justify-center">
             <Button
               onClick={handleAddNote}
-              disabled={!noteText.trim()}
+              disabled={!noteText.trim() && !uploadedFile}
               className="bg-orange-500 text-white px-6 py-2 rounded-lg text-sm font-medium shadow hover:bg-orange-600 transition-all disabled:bg-gray-300 disabled:cursor-not-allowed min-h-[44px]"
             >
               Add Note
@@ -238,27 +247,58 @@ const CustomerAddNoteModal = ({
           {notes.length > 0 && (
             <div className="space-y-3 mt-4">
               <h3 className="text-sm font-semibold text-gray-700 border-b border-gray-200 pb-1">Existing Notes</h3>
-              {notes.map((note) => (
-                <div
-                  key={note.id}
-                  className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm space-y-1"
-                >
-                  <p className="text-gray-800 leading-relaxed">{note.text}</p>
-                  <p className="text-xs text-gray-500">Created by: {note.createdBy}</p>
-                  <p className="text-xs text-gray-500">Created at: {formatDate(note.createdAt)}</p>
-                  {note.attachment && (
-                    <a
-                      href={note.attachment.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-xs text-blue-600 underline cursor-pointer flex items-center gap-1"
-                    >
-                      <span>📎</span>
-                      <span>Document: {note.attachment.name}</span>
-                    </a>
-                  )}
-                </div>
-              ))}
+              {notes.map((note) => {
+                // Get all attachments (support both old and new format)
+                const allAttachments = note.attachments || (note.attachment ? [note.attachment] : []);
+                
+                return (
+                  <div
+                    key={note.id}
+                    className="bg-gray-50 p-3 rounded-lg border border-gray-200 text-sm space-y-1"
+                  >
+                    {/* Header: Entity Type and ID */}
+                    <div className="flex items-center justify-between mb-1 pb-1 border-b border-gray-200">
+                      <span className="text-xs font-medium text-orange-600 capitalize">
+                        {getNoteSource(note)}
+                      </span>
+                      {note.entityType !== "customer" && (
+                        <span className="text-xs text-gray-400">{note.entityId}</span>
+                      )}
+                    </div>
+                    
+                    {/* Body: Text */}
+                    {note.text && (
+                      <p className="text-gray-800 leading-relaxed mb-2">{note.text}</p>
+                    )}
+                    
+                    {/* Body: Attachments */}
+                    {allAttachments.length > 0 && (
+                      <div className="mt-2 space-y-1">
+                        <p className="text-xs font-medium text-gray-600 mb-1">
+                          Attachment{allAttachments.length > 1 ? "s" : ""}:
+                        </p>
+                        {allAttachments.map((attachment, idx) => (
+                          <a
+                            key={idx}
+                            href={attachment.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 underline cursor-pointer flex items-center gap-1"
+                          >
+                            <span>📎</span>
+                            <span>Document: {attachment.name}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {/* Footer: Creator and Timestamp */}
+                    <p className="text-xs text-gray-500 mt-2 pt-1 border-t border-gray-200">
+                      {note.createdBy} • {formatDate(note.createdAt)}
+                    </p>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

@@ -88,7 +88,6 @@ const Settings = () => {
         { label: "Estimates", route: "/estimates", icon: TrendingUp },
         { label: "Agreements", route: "/agreements", icon: ClipboardList },
         { label: "Sell Product", route: "/sales/sell-product", icon: ShoppingCart },
-        { label: "View Product Orders", route: "/sales/product-orders", icon: ListOrdered },
       ],
     },
     {

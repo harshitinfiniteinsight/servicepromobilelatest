@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import BottomActionBar from "@/components/layout/BottomActionBar";
@@ -31,8 +31,15 @@ const CheckoutSummary = () => {
   // Notes state
   const [notes, setNotes] = useState("");
 
+  // Redirect if no customer or items - must be in useEffect
+  useEffect(() => {
+    if (!customer || items.length === 0) {
+      navigate("/checkout/customer", { replace: true });
+    }
+  }, [customer, items.length, navigate]);
+
+  // Early return if no customer or items (after useEffect handles redirect)
   if (!customer || items.length === 0) {
-    navigate("/checkout/customer", { replace: true });
     return null;
   }
 

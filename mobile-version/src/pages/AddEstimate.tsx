@@ -11,6 +11,7 @@ import { Search, Plus, Minus, X, RefreshCw, List, Check, ChevronsUpDown, Package
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { showSuccessToast } from "@/utils/toast";
+import { addNotes } from "@/services/noteService";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -486,20 +487,22 @@ const AddEstimate = () => {
       </Dialog>
       
       {/* Progress Indicator */}
-      <div className="px-4 pt-16 pb-4">
-        <div className="flex items-center justify-center mb-2">
-          <div className="flex items-center max-w-full">
+      <div className="px-2 sm:px-4 pt-16 pb-4">
+        <div className="flex items-center justify-center mb-2 overflow-x-auto">
+          <div className="flex items-center justify-between w-full min-w-max px-1">
             {steps.map((s, idx) => (
-              <div key={s.number} className="flex items-center">
-                <div className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold shrink-0",
-                  step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                )}>
-                  {step > s.number ? "✓" : s.number}
+              <div key={s.number} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center flex-1 min-w-0">
+                  <div className={cn(
+                    "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-semibold shrink-0",
+                    step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {step > s.number ? "✓" : s.number}
+                  </div>
                 </div>
                 {idx < steps.length - 1 && (
                   <div className={cn(
-                    "w-8 sm:w-12 h-1 mx-2",
+                    "h-0.5 flex-1 mx-1 sm:mx-2 min-w-[12px] sm:min-w-[16px] max-w-[24px] sm:max-w-[32px]",
                     step > s.number ? "bg-primary" : "bg-muted"
                   )} />
                 )}
@@ -507,7 +510,7 @@ const AddEstimate = () => {
             ))}
           </div>
         </div>
-        <p className="text-sm text-muted-foreground text-center">
+        <p className="text-xs sm:text-sm text-muted-foreground text-center whitespace-nowrap px-2">
           Step {step} of {steps.length}: {steps[step - 1].title}
         </p>
       </div>
@@ -1361,13 +1364,105 @@ const AddEstimate = () => {
               Next
             </Button>
           ) : (
-            <Button className="flex-1" onClick={() => {
+            <Button className="flex-1" onClick={async () => {
               if (isEditMode) {
                 showSuccessToast("Estimate updated successfully");
+                navigate("/estimates");
               } else {
+                // Create estimate and save notes
+                if (!selectedCustomer) {
+                  toast.error("Please select a customer");
+                  return;
+                }
+                
+                const selectedCustomerData = customerList.find(c => c.id === selectedCustomer);
+                if (!selectedCustomerData) {
+                  toast.error("Customer not found");
+                  return;
+                }
+
+                // Generate estimate ID (similar to invoice ID format)
+                const existingEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+                const allEstimateIds = [
+                  ...existingEstimates.map((est: any) => est.id),
+                  ...mockEstimates.map(est => est.id)
+                ];
+                const maxNum = allEstimateIds.reduce((max: number, id: string) => {
+                  const match = id.match(/EST-(\d+)/);
+                  if (match) {
+                    return Math.max(max, parseInt(match[1], 10));
+                  }
+                  return max;
+                }, 0);
+                const newEstimateId = `EST-${String(maxNum + 1).padStart(3, '0')}`;
+
+                // Save estimate to localStorage (basic structure)
+                const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const taxAmount = subtotal * (tax / 100);
+                const discountAmount = discountType === "%" 
+                  ? subtotal * (discount / 100)
+                  : discount;
+                const total = subtotal + taxAmount - discountAmount;
+
+                const estimateData = {
+                  id: newEstimateId,
+                  customerId: selectedCustomer,
+                  customerName: selectedCustomerData.name,
+                  issueDate: new Date().toISOString().split("T")[0],
+                  dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+                  amount: total,
+                  status: "Unpaid" as const,
+                  items: items.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    amount: item.price * item.quantity,
+                  })),
+                  subtotal,
+                  tax: taxAmount,
+                  total,
+                  discount: discountAmount,
+                  discountType: discountType as "%" | "$",
+                  notes: notes || undefined,
+                  employeeId: selectedEmployee || undefined,
+                  employeeName: selectedEmployee ? mockEmployees.find(e => e.id === selectedEmployee)?.name : undefined,
+                  createdAt: new Date().toISOString(),
+                };
+
+                // Save estimate to localStorage
+                existingEstimates.push(estimateData);
+                localStorage.setItem("servicepro_estimates", JSON.stringify(existingEstimates));
+
+                // Save notes if they exist (text + all attachments as single note)
+                if (notes.trim() || uploadedDocs.length > 0) {
+                  // Prepare attachments array
+                  const attachments = uploadedDocs.map((docUrl) => {
+                    // Extract filename from data URL or use default
+                    const fileName = docUrl.includes(";base64,") 
+                      ? `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${docUrl.match(/data:([^;]+)/)?.[1]?.split("/")[1] || "file"}`
+                      : `attachment-${Date.now()}`;
+                    
+                    return {
+                      name: fileName,
+                      url: docUrl,
+                      type: docUrl.startsWith("data:image") ? "image/png" : "application/octet-stream",
+                    };
+                  });
+                  
+                  // Save as single note with text + all attachments
+                  await addNotes([{
+                    entityId: newEstimateId,
+                    entityType: "estimate" as const,
+                    customerId: selectedCustomer,
+                    text: notes.trim() || "", // Empty text if only attachments
+                    attachments: attachments.length > 0 ? attachments : undefined,
+                  }]);
+                }
+                
                 showSuccessToast("Estimate created successfully");
+                navigate("/estimates");
               }
-              navigate("/estimates");
             }}>
               {isEditMode ? "Update Estimate" : "Create Estimate"}
             </Button>

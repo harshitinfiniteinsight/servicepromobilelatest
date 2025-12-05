@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import PaymentModal from "@/components/modals/PaymentModal";
 import { useCart } from "@/contexts/CartContext";
-import { createOrder } from "@/services/orderService";
+import { createInvoice } from "@/services/invoiceService";
 import { toast } from "sonner";
 
 const CheckoutPayment = () => {
@@ -23,9 +23,15 @@ const CheckoutPayment = () => {
   const [paymentModalOpen, setPaymentModalOpen] = useState(true);
   const [isPaymentComplete, setIsPaymentComplete] = useState(false);
 
-  // Don't redirect if payment is complete (navigation will happen in handleSuccessClose)
+  // Redirect if no customer or items - must be in useEffect
+  useEffect(() => {
+    if (!isPaymentComplete && (!customer || items.length === 0)) {
+      navigate("/checkout/customer");
+    }
+  }, [isPaymentComplete, customer, items.length, navigate]);
+
+  // Early return if no customer or items (after useEffect handles redirect)
   if (!isPaymentComplete && (!customer || items.length === 0)) {
-    navigate("/checkout/customer");
     return null;
   }
 
@@ -49,14 +55,14 @@ const CheckoutPayment = () => {
       const calculatedTax = tax ?? 0;
       const calculatedTotal = total ?? calculatedSubtotal + calculatedTax;
 
-      // Create order record
-      const orderItems = items.map(item => ({
+      // Create invoice items from cart items
+      const invoiceItems = items.map(item => ({
         id: item.id,
         name: item.name,
         sku: item.sku,
         price: item.price,
         quantity: item.quantity,
-        image: item.image,
+        amount: item.price * item.quantity,
         type: item.type,
       }));
 
@@ -64,13 +70,24 @@ const CheckoutPayment = () => {
       const currentEmployeeId = localStorage.getItem("currentEmployeeId");
       const currentEmployeeName = localStorage.getItem("currentEmployeeName") || "System";
 
-      const newOrder = await createOrder({
-        type: "cart",
-        orderType: "Cart",
-        source: "cart",
+      // Calculate due date (30 days from today)
+      const issueDate = new Date().toISOString().split("T")[0];
+      const dueDateObj = new Date();
+      dueDateObj.setDate(dueDateObj.getDate() + 30);
+      const dueDate = dueDateObj.toISOString().split("T")[0];
+
+      // Create invoice with type = "single" and source = "sell_product"
+      const newInvoice = await createInvoice({
         customerId: customer.id,
         customerName: customer.name,
-        items: orderItems,
+        issueDate,
+        dueDate,
+        amount: calculatedTotal,
+        status: "Paid",
+        paymentMethod: methodName,
+        type: "single",
+        source: "sell_product",
+        items: invoiceItems,
         subtotal: calculatedSubtotal,
         tax: calculatedTax,
         total: calculatedTotal,
@@ -79,45 +96,28 @@ const CheckoutPayment = () => {
         notes: notes,
         employeeId: currentEmployeeId || undefined,
         employeeName: currentEmployeeName,
-        status: "Paid",
-        paymentMethod: methodName,
       });
 
       // Close payment modal and mark payment as complete
       setPaymentModalOpen(false);
       setIsPaymentComplete(true);
       
-      // Show success message briefly, then navigate
-      toast.success("Payment received successfully!");
+      // Show success message
+      toast.success("Invoice created successfully!");
       
       // Clear the cart immediately
       clearCart();
       
-      // Navigate to Product Orders screen with the new order data
-      // Use replace: true to prevent going back to checkout
-      const orderData = {
-        id: newOrder.id,
-        items: newOrder.items.map((item: any) => ({
-          name: item.name,
-          price: item.price * item.quantity, // Total price for the item
-        })),
-        customerName: newOrder.customerName,
-        employeeName: newOrder.employeeName || "System",
-        totalAmount: newOrder.total,
-        date: newOrder.createdAt || newOrder.issueDate || new Date().toISOString().split("T")[0],
-        paymentStatus: "Paid",
-      };
-
-      // Navigate immediately
-      navigate("/sales/product-orders", { 
+      // Navigate to Invoice List with "single" tab selected and highlight new invoice
+      navigate("/invoices?tab=single", { 
         replace: true,
         state: { 
-          newOrder: orderData
+          newInvoiceId: newInvoice.id
         } 
       });
     } catch (error) {
-      console.error("Error creating order:", error);
-      toast.error("Failed to create order. Please try again.");
+      console.error("Error creating invoice:", error);
+      toast.error("Failed to create invoice. Please try again.");
     }
   };
 

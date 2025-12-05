@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import InvoiceCard from "@/components/cards/InvoiceCard";
 import EmptyState from "@/components/cards/EmptyState";
@@ -11,6 +11,7 @@ import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import InvoiceDueAlertModal from "@/components/modals/InvoiceDueAlertModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
+import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import { mockCustomers, mockInvoices, mockEmployees } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -35,18 +36,22 @@ import {
   CreditCard,
   DollarSign,
   Briefcase,
+  StickyNote,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { createPaymentNotification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
+import { getAllInvoices, type Invoice as InvoiceType } from "@/services/invoiceService";
 
 type InvoiceTab = "single" | "recurring" | "deactivated";
 type InvoiceStatusFilter = "all" | "paid" | "open";
-type Invoice = (typeof mockInvoices)[number];
+type Invoice = (typeof mockInvoices)[number] | InvoiceType;
 
 const Invoices = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [search, setSearch] = useState("");
   const [activeTab, setActiveTab] = useState<InvoiceTab>("single");
   const [statusFilter, setStatusFilter] = useState<InvoiceStatusFilter>("all");
@@ -65,26 +70,130 @@ const Invoices = () => {
   const [previewInvoice, setPreviewInvoice] = useState<(Invoice & { customerEmail?: string; customerPhone?: string }) | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showInvoiceDueAlertModal, setShowInvoiceDueAlertModal] = useState(false);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [selectedInvoiceForNote, setSelectedInvoiceForNote] = useState<Invoice | null>(null);
+  const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
+  const [newInvoiceId, setNewInvoiceId] = useState<string | null>(null);
 
   // Get user role from localStorage
   const userRole = localStorage.getItem("userType") || "merchant";
   const isEmployee = userRole === "employee";
 
+  // Load invoices from both localStorage and mockData
+  useEffect(() => {
+    const loadInvoices = async () => {
+      try {
+        const storedInvoices = await getAllInvoices();
+        // Merge stored invoices with mock invoices, prioritizing stored ones
+        // Convert stored invoices to match mock invoice format
+        const mergedInvoices: Invoice[] = [
+          ...storedInvoices.map(inv => ({
+            ...inv,
+            // Ensure all required fields are present
+            issueDate: inv.issueDate || new Date().toISOString().split("T")[0],
+            dueDate: inv.dueDate || new Date().toISOString().split("T")[0],
+            status: inv.status || "Open",
+            type: inv.type || "single",
+          })),
+          // Add mock invoices that don't exist in stored invoices
+          ...mockInvoices.filter(mockInv => 
+            !storedInvoices.some(storedInv => storedInv.id === mockInv.id)
+          ),
+        ];
+        
+        // Sort by newest first (by issueDate or createdAt)
+        mergedInvoices.sort((a, b) => {
+          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.issueDate).getTime();
+          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.issueDate).getTime();
+          return dateB - dateA;
+        });
+        
+        setAllInvoices(mergedInvoices);
+      } catch (error) {
+        console.error("Error loading invoices:", error);
+        // Fallback to mock invoices only
+        setAllInvoices(mockInvoices);
+      }
+    };
+    
+    loadInvoices();
+  }, []);
+
+  // Handle tab query parameter and new invoice ID from navigation state
+  useEffect(() => {
+    const tabParam = searchParams.get("tab");
+    if (tabParam && (tabParam === "single" || tabParam === "recurring" || tabParam === "deactivated")) {
+      if (!isEmployee || tabParam !== "deactivated") {
+        setActiveTab(tabParam);
+      }
+    }
+    
+    // Get new invoice ID from navigation state
+    const state = location.state as { newInvoiceId?: string } | null;
+    if (state?.newInvoiceId) {
+      setNewInvoiceId(state.newInvoiceId);
+      // Reload invoices to include the new one
+      const loadInvoices = async () => {
+        try {
+          const storedInvoices = await getAllInvoices();
+          const mergedInvoices: Invoice[] = [
+            ...storedInvoices.map(inv => ({
+              ...inv,
+              issueDate: inv.issueDate || new Date().toISOString().split("T")[0],
+              dueDate: inv.dueDate || new Date().toISOString().split("T")[0],
+              status: inv.status || "Open",
+              type: inv.type || "single",
+            })),
+            ...mockInvoices.filter(mockInv => 
+              !storedInvoices.some(storedInv => storedInv.id === mockInv.id)
+            ),
+          ];
+          mergedInvoices.sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.issueDate).getTime();
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.issueDate).getTime();
+            return dateB - dateA;
+          });
+          setAllInvoices(mergedInvoices);
+        } catch (error) {
+          console.error("Error loading invoices:", error);
+          setAllInvoices(mockInvoices);
+        }
+      };
+      loadInvoices();
+      
+      // Clear the state after processing
+      window.history.replaceState({}, document.title);
+    }
+  }, [searchParams, location.state, isEmployee]);
+
   // Ensure employees don't start on deactivated tab
   useEffect(() => {
     if (isEmployee && activeTab === "deactivated") {
       setActiveTab("single");
+      setSearchParams({ tab: "single" });
     }
-  }, [isEmployee, activeTab]);
+  }, [isEmployee, activeTab, setSearchParams]);
+
+  // Clear highlight after 5 seconds
+  useEffect(() => {
+    if (newInvoiceId) {
+      const timer = setTimeout(() => {
+        setNewInvoiceId(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [newInvoiceId]);
 
   const handleTabChange = (value: string) => {
     const tabValue = value as InvoiceTab;
     // Prevent employees from accessing deactivated tab
     if (isEmployee && tabValue === "deactivated") {
       setActiveTab("single");
+      setSearchParams({ tab: "single" });
       return;
     }
     setActiveTab(tabValue);
+    setSearchParams({ tab: tabValue });
     if (tabValue !== "deactivated") {
       return;
     }
@@ -124,7 +233,7 @@ const Invoices = () => {
   };
 
   const getFilteredInvoices = (type: InvoiceTab) => {
-    return mockInvoices
+    return allInvoices
       .filter(inv => (inv.type ?? "single") === type)
       .filter(inv => {
         const matchesSearch =
@@ -132,7 +241,7 @@ const Invoices = () => {
           inv.customerName.toLowerCase().includes(search.toLowerCase());
 
         const matchesAllowedStatus =
-          type === "deactivated" ? true : ["Paid", "Open"].includes(inv.status);
+          type === "deactivated" ? true : ["Paid", "Open", "Overdue"].includes(inv.status);
 
         if (!matchesAllowedStatus) {
           return false;
@@ -154,7 +263,7 @@ const Invoices = () => {
   };
 
   const handlePayNow = (invoiceId: string) => {
-    const invoice = mockInvoices.find(inv => inv.id === invoiceId);
+    const invoice = allInvoices.find(inv => inv.id === invoiceId);
     if (!invoice) {
       toast.error("Invoice not found");
       return;
@@ -178,7 +287,7 @@ const Invoices = () => {
   };
 
   const handlePayCash = (invoiceId: string) => {
-    const invoice = mockInvoices.find(inv => inv.id === invoiceId);
+    const invoice = allInvoices.find(inv => inv.id === invoiceId);
     if (!invoice) {
       toast.error("Invoice not found");
       return;
@@ -243,6 +352,10 @@ const Invoices = () => {
         break;
       case "doc-history":
         navigate(`/customers/${invoice.customerId}`);
+        break;
+      case "add-note":
+        setSelectedInvoiceForNote(invoice);
+        setShowNoteModal(true);
         break;
       case "reassign":
         setActionInvoice({
@@ -343,11 +456,12 @@ const Invoices = () => {
           icon: Eye,
           action: () => handleMenuAction(invoice, "preview"),
         },
-        {
+        // Only show "Convert to Job" for non-Sell Product invoices
+        ...(invoice.source !== "sell_product" ? [{
           label: "Convert to Job",
           icon: Briefcase,
           action: () => handleMenuAction(invoice, "convert-to-job"),
-        },
+        }] : []),
         {
           label: "Send Email",
           icon: Mail,
@@ -363,6 +477,11 @@ const Invoices = () => {
       // Employees should NOT see sensitive admin actions on paid invoices
       if (!isEmployee) {
         items.push(
+          {
+            label: "Add Note",
+            icon: StickyNote,
+            action: () => handleMenuAction(invoice, "add-note"),
+          },
           {
             label: "Reassign Employee",
             icon: UserCog,
@@ -409,11 +528,12 @@ const Invoices = () => {
           icon: DollarSign,
           action: () => handleMenuAction(invoice, "pay-cash"),
         },
-        {
+        // Only show "Convert to Job" for non-Sell Product invoices
+        ...(invoice.source !== "sell_product" ? [{
           label: "Convert to Job",
           icon: Briefcase,
           action: () => handleMenuAction(invoice, "convert-to-job"),
-        },
+        }] : []),
         {
           label: "Send Email",
           icon: Mail,
@@ -439,6 +559,11 @@ const Invoices = () => {
             label: "Customer History",
             icon: History,
             action: () => handleMenuAction(invoice, "doc-history"),
+          },
+          {
+            label: "Add Note",
+            icon: StickyNote,
+            action: () => handleMenuAction(invoice, "add-note"),
           },
           {
             label: "Reassign Employee",
@@ -536,6 +661,7 @@ const Invoices = () => {
                 key={invoice.id}
                 invoice={invoice}
                 onClick={() => navigate(`/invoices/${invoice.id}`)}
+                className={newInvoiceId === invoice.id ? "ring-2 ring-primary ring-offset-2 bg-primary/5 border-primary" : ""}
                 payButton={
                   invoice.status === "Open" ? (
                     <Button
@@ -703,6 +829,24 @@ const Invoices = () => {
               setShowPreviewModal(false);
               setPreviewInvoice(null);
             }
+          }}
+        />
+      )}
+
+      {/* Document Note Modal */}
+      {selectedInvoiceForNote && (
+        <DocumentNoteModal
+          open={showNoteModal}
+          onClose={() => {
+            setShowNoteModal(false);
+            setSelectedInvoiceForNote(null);
+          }}
+          documentId={selectedInvoiceForNote.id}
+          documentType="invoice"
+          customerId={selectedInvoiceForNote.customerId}
+          customerName={selectedInvoiceForNote.customerName}
+          onNoteAdded={() => {
+            // Optionally refresh invoice data or show updated notes
           }}
         />
       )}

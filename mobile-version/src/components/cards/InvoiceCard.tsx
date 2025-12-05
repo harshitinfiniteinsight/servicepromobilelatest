@@ -15,20 +15,25 @@ interface InvoiceCardProps {
     status: string;
     paymentMethod: string;
     type?: "single" | "recurring" | "deactivated";
+    source?: "sell_product" | "manual" | "estimate" | "agreement";
   };
   onClick?: () => void;
   payButton?: ReactNode;
   actionButtons?: ReactNode;
+  className?: string;
 }
 
-const InvoiceCard = ({ invoice, onClick, payButton, actionButtons }: InvoiceCardProps) => {
+const InvoiceCard = ({ invoice, onClick, payButton, actionButtons, className }: InvoiceCardProps) => {
   const statusLabel = invoice.status === "Open" ? "Unpaid" : invoice.status;
   const isOverdue = statusLabel === "Overdue";
   const isPaid = statusLabel === "Paid";
 
   return (
     <div
-      className="p-3 rounded-lg border border-gray-200 bg-white active:scale-[0.98] transition-all duration-200 cursor-pointer hover:shadow-md hover:border-primary/30"
+      className={cn(
+        "p-3 rounded-lg border border-gray-200 bg-white active:scale-[0.98] transition-all duration-200 cursor-pointer hover:shadow-md hover:border-primary/30",
+        className
+      )}
       onClick={onClick}
     >
       <div className="flex items-start justify-between mb-2">

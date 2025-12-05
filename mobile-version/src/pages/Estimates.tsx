@@ -11,12 +11,13 @@ import SendEmailModal from "@/components/modals/SendEmailModal";
 import SendSMSModal from "@/components/modals/SendSMSModal";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import ShareAddressModal from "@/components/modals/ShareAddressModal";
+import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import { mockEstimates, mockCustomers, mockEmployees, mockInvoices } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt, FilePlus, CreditCard, DollarSign, Briefcase } from "lucide-react";
+import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt, FilePlus, CreditCard, DollarSign, Briefcase, StickyNote } from "lucide-react";
 import { toast } from "sonner";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import { createPaymentNotification } from "@/services/notificationService";
@@ -41,6 +42,8 @@ const Estimates = () => {
   const [convertedEstimates, setConvertedEstimates] = useState<Set<string>>(new Set());
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [previewInvoice, setPreviewInvoice] = useState<any>(null);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [selectedEstimateForNote, setSelectedEstimateForNote] = useState<string | null>(null);
 
   // Get user role from localStorage
   const userRole = localStorage.getItem("userType") || "merchant";
@@ -188,6 +191,10 @@ const Estimates = () => {
           });
           setShowShareAddressModal(true);
         }
+        break;
+      case "add-note":
+        setSelectedEstimateForNote(estimateId);
+        setShowNoteModal(true);
         break;
       case "reassign":
         const reassignEstimate = mockEstimates.find(est => est.id === estimateId);
@@ -403,6 +410,11 @@ const Estimates = () => {
       if (!isEmployee) {
         items.push(
           {
+            label: "Add Note",
+            icon: StickyNote,
+            action: () => handleMenuAction("add-note", estimate.id),
+          },
+          {
             label: "Reassign Employee",
             icon: UserCog,
             action: () => handleMenuAction("reassign", estimate.id),
@@ -476,6 +488,11 @@ const Estimates = () => {
             action: () => handleMenuAction("doc-history", estimate.id),
           },
           {
+            label: "Add Note",
+            icon: StickyNote,
+            action: () => handleMenuAction("add-note", estimate.id),
+          },
+          {
             label: "Reassign Employee",
             icon: UserCog,
             action: () => handleMenuAction("reassign", estimate.id),
@@ -535,6 +552,11 @@ const Estimates = () => {
         label: "Send SMS",
         icon: MessageSquare,
         action: () => handleMenuAction("send-sms", estimate.id),
+      },
+      {
+        label: "Add Note",
+        icon: StickyNote,
+        action: () => handleMenuAction("add-note", estimate.id),
       },
       {
         label: "Reassign Employee",
@@ -812,6 +834,28 @@ const Estimates = () => {
           estimateId={selectedEstimateForAction.id}
         />
       )}
+
+      {/* Document Note Modal */}
+      {selectedEstimateForNote && (() => {
+        const estimate = mockEstimates.find(est => est.id === selectedEstimateForNote);
+        if (!estimate) return null;
+        return (
+          <DocumentNoteModal
+            open={showNoteModal}
+            onClose={() => {
+              setShowNoteModal(false);
+              setSelectedEstimateForNote(null);
+            }}
+            documentId={selectedEstimateForNote}
+            documentType="estimate"
+            customerId={estimate.customerId}
+            customerName={estimate.customerName}
+            onNoteAdded={() => {
+              // Optionally refresh estimate data or show updated notes
+            }}
+          />
+        );
+      })()}
 
       {/* Preview Invoice Modal */}
       {previewInvoice && (

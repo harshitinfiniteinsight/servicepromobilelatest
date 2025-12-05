@@ -70,7 +70,6 @@ import CheckoutSummary from "./pages/CheckoutSummary";
 import CheckoutPayment from "./pages/CheckoutPayment";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import SellProduct from "./pages/SellProduct";
-import ProductOrders from "./pages/ProductOrders";
 
 const queryClient = new QueryClient();
 
@@ -121,7 +120,6 @@ const AppContent = () => {
             <Route path="/checkout/payment" element={<CheckoutPayment />} />
             <Route path="/checkout/confirmation" element={<OrderConfirmation />} />
             <Route path="/sales/sell-product" element={<SellProduct />} />
-            <Route path="/sales/product-orders" element={<ProductOrders />} />
             <Route path="/employees" element={<Employees />} />
             <Route path="/employees/new" element={<AddEmployee />} />
             <Route path="/employees/:id" element={<EmployeeDetails />} />

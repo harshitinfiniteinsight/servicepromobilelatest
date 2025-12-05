@@ -479,20 +479,22 @@ const AddAgreement = () => {
       </Dialog>
       
       {/* Progress Indicator */}
-      <div className="px-4 pt-16 pb-4">
-        <div className="flex items-center justify-center mb-2">
-          <div className="flex items-center max-w-full">
+      <div className="px-2 sm:px-4 pt-16 pb-4">
+        <div className="flex items-center justify-center mb-2 overflow-x-auto">
+          <div className="flex items-center justify-between w-full min-w-max px-1">
             {steps.map((s, idx) => (
-              <div key={s.number} className="flex items-center">
-                <div className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold shrink-0",
-                  step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                )}>
-                  {step > s.number ? "✓" : s.number}
+              <div key={s.number} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center flex-1 min-w-0">
+                  <div className={cn(
+                    "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-semibold shrink-0",
+                    step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {step > s.number ? "✓" : s.number}
+                  </div>
                 </div>
                 {idx < steps.length - 1 && (
                   <div className={cn(
-                    "w-8 sm:w-12 h-1 mx-2",
+                    "h-0.5 flex-1 mx-1 sm:mx-2 min-w-[8px] sm:min-w-[12px] max-w-[20px] sm:max-w-[28px]",
                     step > s.number ? "bg-primary" : "bg-muted"
                   )} />
                 )}
@@ -500,7 +502,7 @@ const AddAgreement = () => {
             ))}
           </div>
         </div>
-        <p className="text-sm text-muted-foreground text-center">
+        <p className="text-xs sm:text-sm text-muted-foreground text-center whitespace-nowrap px-2">
           Step {step} of {steps.length}: {steps[step - 1].title}
         </p>
       </div>

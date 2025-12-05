@@ -16,6 +16,8 @@ import { Search, Plus, Minus, X, ChevronsUpDown, Check, Package, FileText, Save,
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { showSuccessToast } from "@/utils/toast";
+import { createInvoice } from "@/services/invoiceService";
+import { addNotes } from "@/services/noteService";
 
 const AddInvoice = () => {
   const navigate = useNavigate();
@@ -571,27 +573,34 @@ const AddInvoice = () => {
         </DialogContent>
       </Dialog>
 
-      <div className="px-4 pt-16 pb-4">
-        <div className="flex items-center justify-center mb-2">
-          <div className="flex items-center max-w-full">
+      <div className="px-2 sm:px-4 pt-16 pb-4">
+        <div className="flex items-center justify-center mb-2 overflow-x-auto">
+          <div className="flex items-center justify-between w-full min-w-max px-1">
             {steps.map((s, idx) => (
-              <div key={s.number} className="flex items-center">
-                <div
-                  className={cn(
-                  "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold shrink-0",
-                  step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-                  )}
-                >
-                  {step > s.number ? "✓" : s.number}
+              <div key={s.number} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center flex-1 min-w-0">
+                  <div
+                    className={cn(
+                      "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-semibold shrink-0",
+                      step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                    )}
+                  >
+                    {step > s.number ? "✓" : s.number}
+                  </div>
                 </div>
                 {idx < steps.length - 1 && (
-                  <div className={cn("w-8 sm:w-12 h-1 mx-2", step > s.number ? "bg-primary" : "bg-muted")} />
+                  <div 
+                    className={cn(
+                      "h-0.5 flex-1 mx-1 sm:mx-2 min-w-[12px] sm:min-w-[16px] max-w-[24px] sm:max-w-[32px]",
+                      step > s.number ? "bg-primary" : "bg-muted"
+                    )} 
+                  />
                 )}
               </div>
             ))}
           </div>
         </div>
-        <p className="text-sm text-muted-foreground text-center">
+        <p className="text-xs sm:text-sm text-muted-foreground text-center whitespace-nowrap px-2">
           Step {step} of {steps.length}: {steps[step - 1].title}
         </p>
       </div>
@@ -1613,37 +1622,109 @@ const AddInvoice = () => {
           ) : (
             <Button
               className="flex-1 h-9 text-sm"
-              onClick={() => {
+              onClick={async () => {
                 if (isEditMode) {
                   showSuccessToast("Invoice updated successfully");
+                  navigate("/invoices");
                 } else {
-                  showSuccessToast("Invoice created successfully");
+                  // Create invoice
+                  if (!selectedCustomer) {
+                    toast.error("Please select a customer");
+                    return;
+                  }
                   
-                  // If this invoice was created from an estimate, mark the estimate as converted
-                  const prefill = (location.state as any)?.prefill;
-                  if (prefill?.estimateId) {
-                    // Store the converted estimate ID in localStorage so Estimates page can update it
-                    const convertedEstimates = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
-                    if (!convertedEstimates.includes(prefill.estimateId)) {
-                      convertedEstimates.push(prefill.estimateId);
-                      localStorage.setItem("convertedEstimates", JSON.stringify(convertedEstimates));
+                  const selectedCustomerData = customerList.find(c => c.id === selectedCustomer);
+                  if (!selectedCustomerData) {
+                    toast.error("Customer not found");
+                    return;
+                  }
+
+                  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                  const taxAmount = subtotal * (tax / 100);
+                  const discountAmount = discountType === "%" 
+                    ? subtotal * (discount / 100)
+                    : discount;
+                  const total = subtotal + taxAmount - discountAmount;
+
+                  const invoiceData = {
+                    customerId: selectedCustomer,
+                    customerName: selectedCustomerData.name,
+                    issueDate: new Date().toISOString().split("T")[0],
+                    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0], // 30 days from now
+                    amount: total,
+                    status: "Open" as const,
+                    type: invoiceType as "single" | "recurring",
+                    items: items.map(item => ({
+                      id: item.id,
+                      name: item.name,
+                      price: item.price,
+                      quantity: item.quantity,
+                      amount: item.price * item.quantity,
+                    })),
+                    subtotal,
+                    tax: taxAmount,
+                    total,
+                    discount: discountAmount,
+                    discountType: discountType as "%" | "$",
+                    notes: notes || undefined,
+                    employeeId: selectedEmployee || undefined,
+                    employeeName: selectedEmployee ? mockEmployees.find(e => e.id === selectedEmployee)?.name : undefined,
+                    source: "manual" as const,
+                  };
+
+                  try {
+                    const newInvoice = await createInvoice(invoiceData);
+                    
+                    // Save notes if they exist (text + all attachments as single note)
+                    if (notes.trim() || uploadedDocs.length > 0) {
+                      // Prepare attachments array
+                      const attachments = uploadedDocs.map((docUrl) => {
+                        // Extract filename from data URL or use default
+                        const fileName = docUrl.includes(";base64,") 
+                          ? `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${docUrl.match(/data:([^;]+)/)?.[1]?.split("/")[1] || "file"}`
+                          : `attachment-${Date.now()}`;
+                        
+                        return {
+                          name: fileName,
+                          url: docUrl,
+                          type: docUrl.startsWith("data:image") ? "image/png" : "application/octet-stream",
+                        };
+                      });
+                      
+                      // Save as single note with text + all attachments
+                      await addNotes([{
+                        entityId: newInvoice.id,
+                        entityType: "invoice" as const,
+                        customerId: selectedCustomer,
+                        text: notes.trim() || "", // Empty text if only attachments
+                        attachments: attachments.length > 0 ? attachments : undefined,
+                      }]);
                     }
                     
-                    // Store the mapping of estimate ID to invoice ID
-                    // Find the most recent invoice ID or generate a new one
-                    // In a real app, this would come from the backend response
-                    const existingInvoices = mockInvoices.map(inv => inv.id);
-                    const maxInvoiceNum = existingInvoices.reduce((max, id) => {
-                      const num = parseInt(id.replace("INV-", "")) || 0;
-                      return num > max ? num : max;
-                    }, 0);
-                    const newInvoiceId = `INV-${String(maxInvoiceNum + 1).padStart(3, "0")}`;
-                    const estimateToInvoiceMap = JSON.parse(localStorage.getItem("estimateToInvoiceMap") || "{}");
-                    estimateToInvoiceMap[prefill.estimateId] = newInvoiceId;
-                    localStorage.setItem("estimateToInvoiceMap", JSON.stringify(estimateToInvoiceMap));
+                    showSuccessToast("Invoice created successfully");
+                    
+                    // If this invoice was created from an estimate, mark the estimate as converted
+                    const prefill = (location.state as any)?.prefill;
+                    if (prefill?.estimateId) {
+                      const convertedEstimates = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
+                      if (!convertedEstimates.includes(prefill.estimateId)) {
+                        convertedEstimates.push(prefill.estimateId);
+                        localStorage.setItem("convertedEstimates", JSON.stringify(convertedEstimates));
+                      }
+                      
+                      const estimateToInvoiceMap = JSON.parse(localStorage.getItem("estimateToInvoiceMap") || "{}");
+                      estimateToInvoiceMap[prefill.estimateId] = newInvoice.id;
+                      localStorage.setItem("estimateToInvoiceMap", JSON.stringify(estimateToInvoiceMap));
+                    }
+                    
+                    navigate("/invoices", { 
+                      state: { newInvoiceId: newInvoice.id },
+                    });
+                  } catch (error) {
+                    console.error("Error creating invoice:", error);
+                    toast.error("Failed to create invoice");
                   }
                 }
-                navigate("/invoices");
               }}
             >
               {isEditMode ? "Update Invoice" : "Create Invoice"}

@@ -1,10 +1,11 @@
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useMemo, useRef } from "react";
+import { useEffect, useState, useMemo } from "react";
 import MobileHeader from "@/components/layout/MobileHeader";
 import MobileCard from "@/components/mobile/MobileCard";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
+import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import { getUnreadCount, getNotifications, markNotificationRead, type Notification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
 import { formatDistanceToNow } from "date-fns";
@@ -57,10 +58,12 @@ const Index = () => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [convertingJobId, setConvertingJobId] = useState<string | null>(null);
   const [notificationDropdownOpen, setNotificationDropdownOpen] = useState(false);
-  const dateInputRef = useRef<HTMLInputElement>(null);
-  const [selectedDate, setSelectedDate] = useState<string>(() => {
-    // Default to today's date in YYYY-MM-DD format
-    return new Date().toISOString().split('T')[0];
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  // Default to Today → Today (single day range)
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return { from: today, to: today };
   });
 
   // Get user's first name from localStorage or use fallback
@@ -250,22 +253,44 @@ const Index = () => {
     { label: "Help", icon: HelpCircle, path: "/settings/help" },
   ];
 
-  // Calculate real stats from mock data filtered by selected date
+  // Helper function to check if a date string falls within the date range
+  // Uses string comparison to avoid timezone issues
+  const isDateInRange = useMemo(() => {
+    return (dateString: string): boolean => {
+      if (!dateRange.from || !dateRange.to) return false;
+      
+      // Convert date range to YYYY-MM-DD format strings for comparison
+      const startDateStr = format(dateRange.from, "yyyy-MM-dd");
+      const endDateStr = format(dateRange.to, "yyyy-MM-dd");
+      
+      // Compare date strings directly (YYYY-MM-DD format)
+      // This avoids timezone issues with Date objects
+      const isInRange = dateString >= startDateStr && dateString <= endDateStr;
+      
+      return isInRange;
+    };
+  }, [dateRange]);
+
+  // Calculate real stats from mock data filtered by date range
   const filteredAppointments = useMemo(() => {
-    return mockAppointments.filter(apt => apt.date === selectedDate);
-  }, [selectedDate]);
+    if (!dateRange.from || !dateRange.to) return [];
+    return mockAppointments.filter(apt => isDateInRange(apt.date));
+  }, [dateRange, isDateInRange]);
 
   const filteredInvoices = useMemo(() => {
-    return mockInvoices.filter(inv => inv.issueDate === selectedDate);
-  }, [selectedDate]);
+    if (!dateRange.from || !dateRange.to) return [];
+    return mockInvoices.filter(inv => isDateInRange(inv.issueDate));
+  }, [dateRange, isDateInRange]);
 
   const filteredEstimates = useMemo(() => {
-    return mockEstimates.filter(est => est.date === selectedDate);
-  }, [selectedDate]);
+    if (!dateRange.from || !dateRange.to) return [];
+    return mockEstimates.filter(est => isDateInRange(est.date));
+  }, [dateRange, isDateInRange]);
 
   const filteredJobs = useMemo(() => {
-    return mockJobs.filter(job => job.date === selectedDate);
-  }, [selectedDate]);
+    if (!dateRange.from || !dateRange.to) return [];
+    return mockJobs.filter(job => isDateInRange(job.date));
+  }, [dateRange, isDateInRange]);
 
   // Stats based on selected date
   const todaysAppointments = filteredAppointments;
@@ -277,7 +302,7 @@ const Index = () => {
     { label: "New Estimates", value: sentEstimates.length.toString(), icon: FileText, color: "text-primary", path: "/estimates" },
     { label: "Active Jobs", value: activeJobs.length.toString(), icon: Briefcase, color: "text-accent", path: "/jobs" },
     { label: "Awaiting Payment", value: openInvoices.length.toString(), amount: `$${openInvoices.reduce((sum, inv) => sum + inv.amount, 0)}`, icon: DollarSign, color: "text-warning", path: "/invoices" },
-    { label: "Today's Appointments", value: todaysAppointments.length.toString(), icon: Calendar, color: "text-success", path: `/appointments/manage?view=calendar&tab=day&date=${selectedDate}` },
+    { label: "Today's Appointments", value: todaysAppointments.length.toString(), icon: Calendar, color: "text-success", path: `/appointments/manage?view=calendar&tab=day&date=${dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : ""}` },
   ];
 
   const operationalModules = [
@@ -296,33 +321,53 @@ const Index = () => {
     { label: "Job Route", path: "/employees/tracking", icon: Route },
   ];
 
-  // Format date for display
-  const formattedDate = useMemo(() => {
-    const date = new Date(selectedDate);
+  // Format date range for display
+  const formattedDateRange = useMemo(() => {
+    if (!dateRange.from || !dateRange.to) return "Select date range";
+    
     const today = new Date();
-    const isToday = selectedDate === today.toISOString().split('T')[0];
+    today.setHours(0, 0, 0, 0);
+    
+    const startDate = new Date(dateRange.from);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(dateRange.to);
+    endDate.setHours(0, 0, 0, 0);
+    
+    // Check if both dates are today
+    const isToday = startDate.getTime() === today.getTime() && endDate.getTime() === today.getTime();
     
     if (isToday) {
       return "Today";
     }
-    return format(date, "MMM d");
-  }, [selectedDate]);
+    
+    // Check if it's a single day range
+    if (startDate.getTime() === endDate.getTime()) {
+      return format(startDate, "MMM dd");
+    }
+    
+    // Format as range with zero-padded days (e.g., "Dec 01 – Dec 05")
+    return `${format(startDate, "MMM dd")} – ${format(endDate, "MMM dd")}`;
+  }, [dateRange]);
 
-  const handleDateButtonClick = () => {
-    // Trigger the hidden date input
-    if (dateInputRef.current) {
-      // Try modern showPicker API first (Chrome, Edge)
-      if (typeof dateInputRef.current.showPicker === 'function') {
-        dateInputRef.current.showPicker().catch(() => {
-          // Fallback if showPicker fails
-          dateInputRef.current?.click();
-        });
-      } else {
-        // Fallback for browsers without showPicker
-        dateInputRef.current.click();
-      }
+  const handleDateRangeConfirm = (range: { from: Date | undefined; to: Date | undefined }) => {
+    // Ensure both dates are set
+    if (range.from && range.to) {
+      setDateRange(range);
+      setShowDateRangePicker(false);
+      // Data will automatically refresh via useMemo dependencies when dateRange changes
     }
   };
+
+  // Helper function to format dates for API queries (for future backend integration)
+  // Format: ?startDate=YYYY-MM-DD&endDate=YYYY-MM-DD
+  const getDateRangeQueryParams = useMemo(() => {
+    if (!dateRange.from || !dateRange.to) return null;
+    return {
+      startDate: format(dateRange.from, "yyyy-MM-dd"),
+      endDate: format(dateRange.to, "yyyy-MM-dd"),
+    };
+  }, [dateRange]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -488,26 +533,16 @@ const Index = () => {
       <div className="flex-1 overflow-y-auto scrollable px-4 pb-6 space-y-4" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top) + 0.5rem)' }}>
         {/* Subheader Row: Date Range Filter */}
         <div className="flex items-center justify-end pt-1">
-          <div className="relative">
-            <input
-              ref={dateInputRef}
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="sr-only"
-              aria-label="Select date"
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDateButtonClick}
-              type="button"
-              className="h-7 sm:h-8 px-2 sm:px-2.5 text-xs font-medium border-gray-300 rounded-full hover:bg-gray-50 hover:border-gray-400 transition-colors flex items-center gap-1.5 shrink-0 shadow-sm"
-            >
-              <Calendar className="h-3.5 w-3.5 text-gray-600 flex-shrink-0" />
-              <span className="text-gray-700 whitespace-nowrap">{formattedDate}</span>
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowDateRangePicker(true)}
+            type="button"
+            className="h-7 sm:h-8 px-2 sm:px-2.5 text-xs font-medium border-gray-300 rounded-full hover:bg-gray-50 hover:border-gray-400 transition-colors flex items-center gap-1.5 shrink-0 shadow-sm"
+          >
+            <Calendar className="h-3.5 w-3.5 text-gray-600 flex-shrink-0" />
+            <span className="text-gray-700 whitespace-nowrap">{formattedDateRange}</span>
+          </Button>
         </div>
 
         {/* Stats Grid - Compact Single Row */}
@@ -683,19 +718,39 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Selected Date's Appointments */}
+        {/* Selected Date Range's Appointments */}
         {todaysAppointments.length > 0 && (
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold">
-                {selectedDate === new Date().toISOString().split('T')[0] 
-                  ? "Today's Appointments" 
-                  : `Appointments (${new Date(selectedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`}
+                {(() => {
+                  const today = new Date();
+                  today.setHours(0, 0, 0, 0);
+                  const isToday = dateRange.from && dateRange.to && 
+                    dateRange.from.getTime() === today.getTime() && 
+                    dateRange.to.getTime() === today.getTime();
+                  
+                  if (isToday) {
+                    return "Today's Appointments";
+                  }
+                  
+                  if (dateRange.from && dateRange.to) {
+                    if (dateRange.from.getTime() === dateRange.to.getTime()) {
+                      return `Appointments (${format(dateRange.from, "MMM d")})`;
+                    }
+                    return `Appointments (${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d")})`;
+                  }
+                  
+                  return "Appointments";
+                })()}
               </h3>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => navigate(`/appointments/manage?view=calendar&tab=day&date=${selectedDate}`)}
+                onClick={() => {
+                  const dateParam = dateRange.from ? format(dateRange.from, "yyyy-MM-dd") : "";
+                  navigate(`/appointments/manage?view=calendar&tab=day&date=${dateParam}`);
+                }}
               >
                 View All
               </Button>
@@ -722,6 +777,14 @@ const Index = () => {
         )}
       </div>
 
+
+      {/* Date Range Picker Modal */}
+      <DateRangePickerModal
+        open={showDateRangePicker}
+        onOpenChange={setShowDateRangePicker}
+        initialRange={dateRange}
+        onConfirm={handleDateRangeConfirm}
+      />
 
       {/* Logout Confirmation Dialog */}
       <Dialog open={showLogoutDialog} onOpenChange={setShowLogoutDialog}>
