@@ -194,18 +194,24 @@ const Agreements = () => {
             // Check if agreement is paid (case-insensitive)
             const isPaid = agreement.status?.toLowerCase() === "paid";
             
+            // Check if agreement has already been converted to job
+            const isConverted = agreement.status?.toLowerCase() === "job created / converted" || 
+                               agreement.status?.toLowerCase() === "job created" ||
+                               agreement.status?.toLowerCase() === "converted";
+            
             // Build menu items based on payment status and user role
             const kebabMenuItems: KebabMenuItem[] = isPaid
               ? [
-                  // Paid agreements: Preview, Convert to Job, and Create New Agreement
+                  // Paid agreements: Preview, Convert to Job (if not converted), and Create New Agreement
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
-                  { label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") },
+                  // Only show "Convert to Job" if not already converted
+                  ...(!isConverted ? [{ label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") }] : []),
                   { label: "Create New Agreement", icon: FilePlus, action: () => handleMenuAction(agreement.id, "create-new-agreement"), separator: true },
                 ]
               : [
-                  // Unpaid agreements: Preview, Convert to Job, Send Email, Send SMS, Edit Agreement
+                  // Unpaid agreements: Preview, Send Email, Send SMS, Edit Agreement
+                  // "Convert to Job" should only appear for Paid agreements, not Unpaid
                   { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
-                  { label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") },
                   { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
                   { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
                   // Edit Agreement: Only for merchants, not employees

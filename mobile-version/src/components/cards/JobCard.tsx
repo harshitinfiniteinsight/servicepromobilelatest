@@ -149,118 +149,190 @@ const JobCard = ({
     }
   };
 
-  // Build menu items for three-dot menu
+  // Build menu items for three-dot menu based on job status
   const buildMenuItems = (): KebabMenuItem[] => {
     const items: KebabMenuItem[] = [];
     
     // Get global feedback auto-send setting
-    const feedbackAutoSendEnabled = typeof window !== "undefined" 
+    // feedbackSettingsEnabled = false means auto-send is OFF (show manual send option)
+    // feedbackSettingsEnabled = true means auto-send is ON (don't show manual send option)
+    const feedbackSettingsEnabled = typeof window !== "undefined" 
       ? localStorage.getItem("autoSendFeedback") === "true" 
       : false;
     
-    // Preview - always visible
-    items.push({
-      label: "Preview",
-      icon: Eye,
-      action: handlePreview,
-      separator: false,
-    });
+    const jobStatus = job.status;
     
-    // Edit - only if payment status is Open AND user is NOT an employee
-    if (paymentStatus === "Open" && onQuickAction && !isEmployee) {
+    // Status-based menu logic
+    if (jobStatus === "Scheduled") {
+      // Scheduled: Preview, Edit, Reassign Employee, Share, Show on Map, Add Pictures, View Pictures (if exists)
+      
+      // Preview - always first
       items.push({
-        label: "Edit",
-        icon: Edit,
-        action: () => onQuickAction("edit"),
+        label: "Preview",
+        icon: Eye,
+        action: handlePreview,
         separator: false,
       });
-    }
-    
-    // Reassign Employee - only for merchant, only when status is Scheduled
-    if (!isEmployee && job.status === "Scheduled" && onReassignEmployee) {
-      items.push({
-        label: "Reassign Employee",
-        icon: UserCog,
-        action: () => onReassignEmployee(),
-        separator: false,
-      });
-    }
-    
-    // Share - always visible
-    if (onQuickAction) {
-      items.push({
-        label: "Share",
-        icon: Share2,
-        action: () => onQuickAction("share"),
-        separator: false,
-      });
-    }
-    
-    // Show on Map - always visible
-    items.push({
-      label: "Show on Map",
-      icon: MapPin,
-      action: () => openGoogleMaps(job.location),
-      separator: false,
-    });
-    
-    // Add Pictures - always visible
-    if (onAddPictures) {
-      items.push({
-        label: "Add Pictures",
-        icon: ImageIcon,
-        action: () => onAddPictures(),
-        separator: false,
-      });
-    }
-    
-    // View Pictures - only if pictures exist
-    if (hasPictures && onViewPictures) {
-      items.push({
-        label: "View Pictures",
-        icon: ImageIcon,
-        action: () => onViewPictures(),
-        separator: false,
-      });
-    }
-    
-    // Reactivate - only for merchant, only when status is Cancel
-    if (!isEmployee && job.status === "Cancel" && onStatusChange) {
-      items.push({
-        label: "Reactivate",
-        icon: Edit,
-        action: () => {
-          // Change status back to Scheduled to reactivate
-          onStatusChange("Scheduled");
-        },
-        separator: false,
-      });
-    }
-    
-    // Feedback menu options based on global setting and feedback existence
-    if (feedbackAutoSendEnabled) {
-      // Auto-send is ON: Don't show "Send Feedback Form", only show "View Feedback" if feedback exists
-      if (hasFeedback && onViewFeedback) {
+      
+      // Edit - only if payment status is Open AND user is NOT an employee
+      if (paymentStatus === "Open" && onQuickAction && !isEmployee) {
         items.push({
-          label: "View Feedback",
-          icon: MessageSquare,
-          action: () => onViewFeedback(),
-          separator: false,
-        });
-      }
-    } else {
-      // Auto-send is OFF: Show "Send Feedback Form" for completed jobs, and "View Feedback" if feedback exists
-      if (hasFeedback && onViewFeedback) {
-        items.push({
-          label: "View Feedback",
-          icon: MessageSquare,
-          action: () => onViewFeedback(),
+          label: "Edit",
+          icon: Edit,
+          action: () => onQuickAction("edit"),
           separator: false,
         });
       }
       
-      // Show "Send Feedback Form" for completed jobs (but not if feedback already exists)
-      if (job.status === "Completed" && !hasFeedback && onSendFeedbackForm) {
+      // Reassign Employee - only for merchant
+      if (!isEmployee && onReassignEmployee) {
+        items.push({
+          label: "Reassign Employee",
+          icon: UserCog,
+          action: () => onReassignEmployee(),
+          separator: false,
+        });
+      }
+      
+      // Share
+      if (onQuickAction) {
+        items.push({
+          label: "Share",
+          icon: Share2,
+          action: () => onQuickAction("share"),
+          separator: false,
+        });
+      }
+      
+      // Show on Map
+      items.push({
+        label: "Show on Map",
+        icon: MapPin,
+        action: () => openGoogleMaps(job.location),
+        separator: false,
+      });
+      
+      // Add Pictures
+      if (onAddPictures) {
+        items.push({
+          label: "Add Pictures",
+          icon: ImageIcon,
+          action: () => onAddPictures(),
+          separator: false,
+        });
+      }
+      
+      // View Pictures - only if pictures exist
+      if (hasPictures && onViewPictures) {
+        items.push({
+          label: "View Pictures",
+          icon: ImageIcon,
+          action: () => onViewPictures(),
+          separator: false,
+        });
+      }
+      
+    } else if (jobStatus === "In Progress") {
+      // In Progress: Preview, Share, Show on Map, Add Pictures, View Pictures (if exists)
+      
+      // Preview
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreview,
+        separator: false,
+      });
+      
+      // Share
+      if (onQuickAction) {
+        items.push({
+          label: "Share",
+          icon: Share2,
+          action: () => onQuickAction("share"),
+          separator: false,
+        });
+      }
+      
+      // Show on Map
+      items.push({
+        label: "Show on Map",
+        icon: MapPin,
+        action: () => openGoogleMaps(job.location),
+        separator: false,
+      });
+      
+      // Add Pictures
+      if (onAddPictures) {
+        items.push({
+          label: "Add Pictures",
+          icon: ImageIcon,
+          action: () => onAddPictures(),
+          separator: false,
+        });
+      }
+      
+      // View Pictures - only if pictures exist
+      if (hasPictures && onViewPictures) {
+        items.push({
+          label: "View Pictures",
+          icon: ImageIcon,
+          action: () => onViewPictures(),
+          separator: false,
+        });
+      }
+      
+    } else if (jobStatus === "Completed") {
+      // Completed: Preview, Share, Show on Map, Add Pictures, View Pictures (if exists), Send Feedback Form (if feedback settings OFF)
+      
+      // Preview
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreview,
+        separator: false,
+      });
+      
+      // Share
+      if (onQuickAction) {
+        items.push({
+          label: "Share",
+          icon: Share2,
+          action: () => onQuickAction("share"),
+          separator: false,
+        });
+      }
+      
+      // Show on Map
+      items.push({
+        label: "Show on Map",
+        icon: MapPin,
+        action: () => openGoogleMaps(job.location),
+        separator: false,
+      });
+      
+      // Add Pictures
+      if (onAddPictures) {
+        items.push({
+          label: "Add Pictures",
+          icon: ImageIcon,
+          action: () => onAddPictures(),
+          separator: false,
+        });
+      }
+      
+      // View Pictures - only if pictures exist
+      if (hasPictures && onViewPictures) {
+        items.push({
+          label: "View Pictures",
+          icon: ImageIcon,
+          action: () => onViewPictures(),
+          separator: false,
+        });
+      }
+      
+      // Send Feedback Form - ONLY IF feedback settings = OFF (autoSendFeedback !== "true")
+      // This means feedbackSettingsEnabled = false
+      if (!feedbackSettingsEnabled && onSendFeedbackForm) {
         items.push({
           label: "Send Feedback Form",
           icon: FileText,
@@ -268,6 +340,26 @@ const JobCard = ({
           separator: false,
         });
       }
+      
+    } else if (jobStatus === "Cancel" || jobStatus === "Canceled") {
+      // Cancel/Canceled: Preview only
+      
+      // Preview - only option
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreview,
+        separator: false,
+      });
+      
+    } else {
+      // Fallback for any other status: Show Preview at minimum
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreview,
+        separator: false,
+      });
     }
     
     return items;

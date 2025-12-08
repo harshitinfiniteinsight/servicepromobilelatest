@@ -450,18 +450,41 @@ const Invoices = () => {
     }
 
     if (invoice.status === "Paid") {
+      // Check if invoice has already been converted to job
+      // The jobConversionService changes status to "Job Created" when converted
+      const invoiceStatus = (invoice as any).status || invoice.status;
+      const isConverted = invoiceStatus === "Job Created";
+      
+      // Check if invoice is from sell_product (should not show Convert to Job)
+      // source is optional, so undefined means it's not from sell_product
+      const invoiceSource = (invoice as any).source;
+      const isSellProduct = invoiceSource === "sell_product";
+      
       const items: KebabMenuItem[] = [
         {
           label: "Preview",
           icon: Eye,
           action: () => handleMenuAction(invoice, "preview"),
         },
-        // Only show "Convert to Job" for non-Sell Product invoices
-        ...(invoice.source !== "sell_product" ? [{
+      ];
+      
+      // Add "Convert to Job" right after Preview for all paid invoices
+      // Only exclude if:
+      // 1. Invoice is from sell_product (source === "sell_product")
+      // 2. Invoice has already been converted (status === "Job Created")
+      // For all other paid invoices, show the option
+      const shouldShowConvertToJob = !isSellProduct && !isConverted;
+      
+      if (shouldShowConvertToJob) {
+        items.push({
           label: "Convert to Job",
           icon: Briefcase,
           action: () => handleMenuAction(invoice, "convert-to-job"),
-        }] : []),
+        });
+      }
+      
+      // Add remaining menu items
+      items.push(
         {
           label: "Send Email",
           icon: Mail,
@@ -471,8 +494,8 @@ const Invoices = () => {
           label: "Send SMS",
           icon: MessageSquare,
           action: () => handleMenuAction(invoice, "send-sms"),
-        },
-      ];
+        }
+      );
 
       // Employees should NOT see sensitive admin actions on paid invoices
       if (!isEmployee) {
@@ -528,12 +551,7 @@ const Invoices = () => {
           icon: DollarSign,
           action: () => handleMenuAction(invoice, "pay-cash"),
         },
-        // Only show "Convert to Job" for non-Sell Product invoices
-        ...(invoice.source !== "sell_product" ? [{
-          label: "Convert to Job",
-          icon: Briefcase,
-          action: () => handleMenuAction(invoice, "convert-to-job"),
-        }] : []),
+        // "Convert to Job" should only appear for Paid invoices, not Unpaid
         {
           label: "Send Email",
           icon: Mail,
