@@ -714,10 +714,16 @@ const Estimates = () => {
                               )}
                               
                               {estimate.status === "Paid" && (
-                                <DropdownMenuItem onClick={() => handleRefund(estimate)}>
-                                  <RotateCcw className="mr-2 h-4 w-4" />
-                                  Refund
-                                </DropdownMenuItem>
+                                <>
+                                  <DropdownMenuItem onClick={() => handleDocHistory(estimate)}>
+                                    <History className="mr-2 h-4 w-4" />
+                                    Customer History
+                                  </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleRefund(estimate)}>
+                                    <RotateCcw className="mr-2 h-4 w-4" />
+                                    Refund
+                                  </DropdownMenuItem>
+                                </>
                               )}
                             </DropdownMenuContent>
                           </DropdownMenu>

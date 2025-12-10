@@ -501,6 +501,11 @@ const Invoices = () => {
       if (!isEmployee) {
         items.push(
           {
+            label: "Customer History",
+            icon: History,
+            action: () => handleMenuAction(invoice, "doc-history"),
+          },
+          {
             label: "Add Note",
             icon: StickyNote,
             action: () => handleMenuAction(invoice, "add-note"),

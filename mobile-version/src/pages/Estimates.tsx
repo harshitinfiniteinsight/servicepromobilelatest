@@ -415,6 +415,11 @@ const Estimates = () => {
       if (!isEmployee) {
         items.push(
           {
+            label: "Customer History",
+            icon: History,
+            action: () => handleMenuAction("doc-history", estimate.id),
+          },
+          {
             label: "Add Note",
             icon: StickyNote,
             action: () => handleMenuAction("add-note", estimate.id),

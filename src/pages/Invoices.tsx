@@ -12,7 +12,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Plus, Eye, Mail, MessageSquare, Edit, UserCog, FileText, CreditCard, Banknote, MoreVertical, Trash2, Check, X, CheckCircle2, Bell, Settings, FileCheck, RotateCcw } from "lucide-react";
+import { Plus, Eye, Mail, MessageSquare, Edit, UserCog, FileText, CreditCard, Banknote, MoreVertical, Trash2, Check, X, CheckCircle2, Bell, Settings, FileCheck, RotateCcw, History } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
@@ -277,10 +277,19 @@ const Invoices = () => {
                         </>
                       )}
                       {invoice.status === "Paid" && (
-                        <DropdownMenuItem className="gap-2 text-warning focus:text-warning">
-                          <RotateCcw className="h-4 w-4" />
-                          Refund
-                        </DropdownMenuItem>
+                        <>
+                          <DropdownMenuItem 
+                            className="gap-2"
+                            onClick={() => handleDocHistory(invoice)}
+                          >
+                            <History className="h-4 w-4" />
+                            Customer History
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="gap-2 text-warning focus:text-warning">
+                            <RotateCcw className="h-4 w-4" />
+                            Refund
+                          </DropdownMenuItem>
+                        </>
                       )}
                     </DropdownMenuContent>
                   </DropdownMenu>

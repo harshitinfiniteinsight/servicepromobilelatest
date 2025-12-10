@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, RotateCcw } from "lucide-react";
+import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import EnterCardDetailsModal from "./EnterCardDetailsModal";
@@ -224,7 +224,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
             {/* Total Amount Section */}
             <div className="flex flex-col items-center space-y-2 sm:space-y-3 px-6 sm:px-8 mt-2 sm:mt-4">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-orange-100 flex items-center justify-center">
-                <RotateCcw className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500" />
+                <CreditCard className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500" />
               </div>
               <div className="text-center">
                 <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Amount</p>
