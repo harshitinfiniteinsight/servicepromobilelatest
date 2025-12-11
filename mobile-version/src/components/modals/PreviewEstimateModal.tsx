@@ -1,4 +1,4 @@
-import { X, Printer, Edit, Mail, MessageSquare, UserCog, XCircle } from "lucide-react";
+import { X, Printer, Mail, MessageSquare, UserCog, FileText, Image as ImageIcon, Paperclip } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { mockCustomers } from "@/data/mobileMockData";
@@ -35,18 +35,20 @@ interface PreviewEstimateModalProps {
     messageOnEstimate?: string;
     termsAndConditions?: string;
     cancellationPolicy?: string;
+    notesText?: string;
+    attachments?: { fileName: string; fileUrl: string; fileType: string; }[];
   };
   onAction?: (action: string) => void;
 }
 
 const PreviewEstimateModal = ({ isOpen, onClose, estimate, onAction }: PreviewEstimateModalProps) => {
   const customer = mockCustomers.find(c => c.id === estimate.customerId);
-  
+
   // Default data if not provided
   const estimateDate = estimate.date ? format(new Date(estimate.date), "MM/dd/yyyy") : "10/20/2024";
   const validUntil = estimate.validUntil ? format(new Date(estimate.validUntil), "MM/dd/yyyy") : "11/15/2024";
   const terms = estimate.terms || "Due On Receipt";
-  
+
   // Default items if not provided
   const items: EstimateItem[] = estimate.items || [
     {
@@ -90,6 +92,15 @@ const PreviewEstimateModal = ({ isOpen, onClose, estimate, onAction }: PreviewEs
   const customerPhone = customer?.phone || "+1 (555) 234-5678";
   const customerName = estimate.customerName || "Mike Williams";
 
+  const notesText = estimate.notesText || "Please ensure the area is clear before arrival. Call 30 mins prior.";
+  const attachments = estimate.attachments || [
+    {
+      fileName: "site_condition.jpg",
+      fileUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      fileType: "image/jpeg"
+    }
+  ];
+
   const itemTotal = items.reduce((sum, item) => sum + item.subTotal, 0);
   const totalDiscount = items.reduce((sum, item) => sum + (item.subTotal * item.discount / 100), 0);
   const subtotalAfterDiscount = itemTotal - totalDiscount;
@@ -114,7 +125,7 @@ const PreviewEstimateModal = ({ isOpen, onClose, estimate, onAction }: PreviewEs
         <DialogDescription className="sr-only">
           Preview estimate {estimate.id}
         </DialogDescription>
-        
+
         {/* Orange Header */}
         <div className="bg-orange-500 px-4 py-3 flex items-center justify-between safe-top">
           <h2 className="text-lg font-bold text-white">Preview Estimate</h2>
@@ -174,7 +185,7 @@ const PreviewEstimateModal = ({ isOpen, onClose, estimate, onAction }: PreviewEs
                 </div>
               </div>
               <div>
-                <p className="text-xs font-semibold text-gray-700 mb-2">Ship To</p>
+                <p className="text-xs font-semibold text-gray-700 mb-2">Ship To/Job Address</p>
                 <div className="text-xs space-y-1">
                   <p className="font-medium">{customerName}</p>
                   <p className="text-gray-600">{customerEmail}</p>
@@ -270,18 +281,6 @@ const PreviewEstimateModal = ({ isOpen, onClose, estimate, onAction }: PreviewEs
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="pt-2 border-t space-y-2">
-              <div className="flex items-start gap-2">
-                <p className="text-xs text-gray-600 min-w-[140px]">Message on Statement:</p>
-                <p className="text-xs text-gray-900">-</p>
-              </div>
-              <div className="flex items-start gap-2">
-                <p className="text-xs text-gray-600 min-w-[140px]">Message on Estimate:</p>
-                <p className="text-xs text-gray-900">-</p>
-              </div>
-            </div>
-
             {/* Summary of Charges */}
             <div className="pt-2 border-t">
               <div className="flex flex-col items-end space-y-1 text-xs">
@@ -310,6 +309,51 @@ const PreviewEstimateModal = ({ isOpen, onClose, estimate, onAction }: PreviewEs
                   <span className="font-medium">${totalBalance.toFixed(2)}</span>
                 </div>
               </div>
+            </div>
+
+            {/* Messages */}
+            <div className="pt-2 border-t space-y-2">
+              <div className="flex items-start gap-2">
+                <p className="text-xs text-gray-600 min-w-[140px]">Message on Statement:</p>
+                <p className="text-xs text-gray-900">-</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <p className="text-xs text-gray-600 min-w-[140px]">Message on Estimate:</p>
+                <p className="text-xs text-gray-900">-</p>
+              </div>
+            </div>
+
+            {/* Notes Section */}
+            <div className="pt-2 border-t space-y-2">
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-1">Notes</p>
+                <div className="text-xs text-gray-900">
+                  {notesText || "–"}
+                </div>
+              </div>
+
+              {attachments && attachments.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {attachments.map((file, index) => (
+                    <a
+                      key={index}
+                      href={file.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 border rounded-lg hover:bg-gray-50 transition-colors text-xs text-blue-600"
+                    >
+                      {file.fileType.includes('image') ? (
+                        <ImageIcon className="h-4 w-4 text-gray-500" />
+                      ) : file.fileType.includes('pdf') ? (
+                        <FileText className="h-4 w-4 text-gray-500" />
+                      ) : (
+                        <Paperclip className="h-4 w-4 text-gray-500" />
+                      )}
+                      <span className="truncate">{file.fileName}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Pay Now Button and Status Stamp */}

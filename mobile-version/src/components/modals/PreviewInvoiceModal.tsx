@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Printer, X, Mail, MessageSquare, UserCog, Edit } from "lucide-react";
+import { Printer, X, Mail, MessageSquare, UserCog, Edit, FileText, Image as ImageIcon, Paperclip } from "lucide-react";
 import { format } from "date-fns";
 import { mockCustomers } from "@/data/mobileMockData";
 import { cn } from "@/lib/utils";
@@ -31,6 +31,8 @@ interface PreviewInvoiceModalProps {
     status: string;
     paymentMethod: string;
     items?: InvoiceItem[];
+    notesText?: string;
+    attachments?: { fileName: string; fileUrl: string; fileType: string; }[];
   };
   onAction?: (action: string) => void;
 }
@@ -73,6 +75,15 @@ const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvo
   const totalTax = items.reduce((sum, item) => sum + item.tax, 0);
   const invoiceTotal = subtotalAfterDiscount + totalTax;
   const balanceDue = invoice.status === "Paid" ? 0 : invoiceTotal;
+
+  const notesText = invoice.notesText || "Thank you for your business. Please include invoice number on check.";
+  const attachments = invoice.attachments || [
+    {
+      fileName: "completed_work.jpg",
+      fileUrl: "https://images.unsplash.com/photo-1581094794329-cd11179a28fa?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      fileType: "image/jpeg"
+    }
+  ];
 
   const handleAction = (action: string) => {
     onAction?.(action);
@@ -145,7 +156,7 @@ const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvo
                   </div>
                 </div>
                 <div>
-                  <p className="text-[10px] font-semibold text-[#0E1E3E] uppercase mb-1.5">Ship To</p>
+                  <p className="text-[10px] font-semibold text-[#0E1E3E] uppercase mb-1.5">Ship To/Job Address</p>
                   <div className="space-y-0.5 text-xs text-[#1D3A6B]">
                     <p className="font-semibold">{customer?.name || invoice.customerName}</p>
                     <p>{customer?.email || "info@email.com"}</p>
@@ -248,6 +259,36 @@ const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvo
                   <p>
                     <span className="font-semibold text-[#0E1E3E]">Message on Invoice:</span> –
                   </p>
+
+                  {/* Notes Section */}
+                  <div className="pt-1.5 pb-1.5">
+                    <p className="font-semibold text-[#0E1E3E] mb-1">Notes:</p>
+                    <p className="mb-2">{notesText || "–"}</p>
+
+                    {attachments && attachments.length > 0 && (
+                      <div className="space-y-1">
+                        {attachments.map((file, index) => (
+                          <a
+                            key={index}
+                            href={file.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-1.5 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-xs text-blue-600 bg-white"
+                          >
+                            {file.fileType.includes('image') ? (
+                              <ImageIcon className="h-3.5 w-3.5 text-gray-500" />
+                            ) : file.fileType.includes('pdf') ? (
+                              <FileText className="h-3.5 w-3.5 text-gray-500" />
+                            ) : (
+                              <Paperclip className="h-3.5 w-3.5 text-gray-500" />
+                            )}
+                            <span className="truncate">{file.fileName}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
                   <p>
                     <span className="font-semibold text-[#0E1E3E]">Terms & Conditions:</span>{" "}
                     <span className="text-orange-500">from global settings</span>
