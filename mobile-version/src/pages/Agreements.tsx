@@ -53,10 +53,10 @@ const Agreements = () => {
     // 1. Upload the signature and document to backend
     // 2. Link verification data to the agreement
     // The upload is already handled in DocumentVerificationModal's handleSend
-    
+
     // Close document verification modal
     setShowDocumentVerificationModal(false);
-    
+
     // Immediately open payment modal (modal swap, no navigation)
     setTimeout(() => {
       setShowPaymentModal(true);
@@ -81,7 +81,7 @@ const Agreements = () => {
       event.stopPropagation();
       event.preventDefault();
     }
-    
+
     switch (action) {
       case "preview":
         navigate(`/agreements/${agreementId}`);
@@ -132,10 +132,10 @@ const Agreements = () => {
         if (createAgreement) {
           const customer = mockCustomers.find(c => c.id === createAgreement.customerId);
           // Find employee by name if employeeName exists, otherwise use first employee
-          const employee = (createAgreement as any).employeeName 
+          const employee = (createAgreement as any).employeeName
             ? mockEmployees.find(emp => emp.name === (createAgreement as any).employeeName)
             : mockEmployees[0];
-          
+
           navigate("/agreements/new", {
             state: {
               prefill: {
@@ -193,37 +193,37 @@ const Agreements = () => {
           {mockAgreements.map(agreement => {
             // Check if agreement is paid (case-insensitive)
             const isPaid = agreement.status?.toLowerCase() === "paid";
-            
+
             // Check if agreement has already been converted to job
-            const isConverted = agreement.status?.toLowerCase() === "job created / converted" || 
-                               agreement.status?.toLowerCase() === "job created" ||
-                               agreement.status?.toLowerCase() === "converted";
-            
+            const isConverted = agreement.status?.toLowerCase() === "job created / converted" ||
+              agreement.status?.toLowerCase() === "job created" ||
+              agreement.status?.toLowerCase() === "converted";
+
             // Build menu items based on payment status and user role
             const kebabMenuItems: KebabMenuItem[] = isPaid
               ? [
-                  // Paid agreements: Preview, Convert to Job (if not converted), and Create New Agreement
-                  { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
-                  // Only show "Convert to Job" if not already converted
-                  ...(!isConverted ? [{ label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") }] : []),
-                  { label: "Create New Agreement", icon: FilePlus, action: () => handleMenuAction(agreement.id, "create-new-agreement"), separator: true },
-                ]
+                // Paid agreements: Preview, Convert to Job (if not converted), and Create New Agreement
+                { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
+                // Only show "Convert to Job" if not already converted
+                ...(!isConverted ? [{ label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") }] : []),
+                { label: "Create New Agreement", icon: FilePlus, action: () => handleMenuAction(agreement.id, "create-new-agreement"), separator: true },
+              ]
               : [
-                  // Unpaid agreements: Preview, Send Email, Send SMS, Edit Agreement
-                  // "Convert to Job" should only appear for Paid agreements, not Unpaid
-                  { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
-                  { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
-                  { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
-                  // Edit Agreement: Only for merchants, not employees
-                  ...(isEmployee ? [] : [{ 
-                    label: "Edit Agreement", 
-                    icon: Edit, 
-                    action: () => {
-                      // Directly navigate to edit screen, skipping details screen
-                      handleMenuAction(agreement.id, "edit");
-                    }
-                  }]),
-                ];
+                // Unpaid agreements: Preview, Send Email, Send SMS, Edit Agreement
+                // "Convert to Job" should only appear for Paid agreements, not Unpaid
+                { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
+                { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
+                { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
+                // Edit Agreement: Only for merchants, not employees
+                ...(isEmployee ? [] : [{
+                  label: "Edit Agreement",
+                  icon: Edit,
+                  action: () => {
+                    // Directly navigate to edit screen, skipping details screen
+                    handleMenuAction(agreement.id, "edit");
+                  }
+                }]),
+              ];
 
             return (
               <div
@@ -241,7 +241,7 @@ const Agreements = () => {
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-0.5">
-                      <h3 className="font-semibold text-base truncate">{agreement.type}</h3>
+                      <h3 className="font-semibold text-base truncate">{agreement.id}</h3>
                       <Badge className={cn("text-[10px] px-2 py-0.5 h-5 flex-shrink-0", statusColors[agreement.status])}>
                         {agreement.status}
                       </Badge>
@@ -298,7 +298,7 @@ const Agreements = () => {
             agreementId={selectedAgreementId}
             onVerificationComplete={handleVerificationComplete}
           />
-          
+
           <PaymentModal
             isOpen={showPaymentModal}
             onClose={() => {

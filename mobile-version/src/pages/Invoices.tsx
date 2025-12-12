@@ -42,7 +42,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { createPaymentNotification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
-import { getAllInvoices, type Invoice as InvoiceType } from "@/services/invoiceService";
+import { getAllInvoices, updateInvoice, type Invoice as InvoiceType } from "@/services/invoiceService";
 
 type InvoiceTab = "single" | "recurring" | "deactivated";
 type InvoiceStatusFilter = "all" | "paid" | "open";
@@ -96,18 +96,18 @@ const Invoices = () => {
             type: inv.type || "single",
           })),
           // Add mock invoices that don't exist in stored invoices
-          ...mockInvoices.filter(mockInv => 
+          ...mockInvoices.filter(mockInv =>
             !storedInvoices.some(storedInv => storedInv.id === mockInv.id)
           ),
         ];
-        
+
         // Sort by newest first (by issueDate or createdAt)
         mergedInvoices.sort((a, b) => {
           const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.issueDate).getTime();
           const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.issueDate).getTime();
           return dateB - dateA;
         });
-        
+
         setAllInvoices(mergedInvoices);
       } catch (error) {
         console.error("Error loading invoices:", error);
@@ -115,7 +115,7 @@ const Invoices = () => {
         setAllInvoices(mockInvoices);
       }
     };
-    
+
     loadInvoices();
   }, []);
 
@@ -127,7 +127,7 @@ const Invoices = () => {
         setActiveTab(tabParam);
       }
     }
-    
+
     // Get new invoice ID from navigation state
     const state = location.state as { newInvoiceId?: string } | null;
     if (state?.newInvoiceId) {
@@ -144,7 +144,7 @@ const Invoices = () => {
               status: inv.status || "Open",
               type: inv.type || "single",
             })),
-            ...mockInvoices.filter(mockInv => 
+            ...mockInvoices.filter(mockInv =>
               !storedInvoices.some(storedInv => storedInv.id === mockInv.id)
             ),
           ];
@@ -160,7 +160,7 @@ const Invoices = () => {
         }
       };
       loadInvoices();
-      
+
       // Clear the state after processing
       window.history.replaceState({}, document.title);
     }
@@ -204,10 +204,10 @@ const Invoices = () => {
   const isWithinDateRange = (dateString: string) => {
     // If no date range is selected, show all invoices
     if (!dateRange.from && !dateRange.to) return true;
-    
+
     const targetDate = new Date(dateString);
     targetDate.setHours(0, 0, 0, 0);
-    
+
     // Check if target date is within the selected range
     if (dateRange.from && dateRange.to) {
       const start = new Date(dateRange.from);
@@ -224,7 +224,7 @@ const Invoices = () => {
       end.setHours(23, 59, 59, 999);
       return targetDate <= end;
     }
-    
+
     return true;
   };
 
@@ -369,17 +369,61 @@ const Invoices = () => {
         toast.success("Processing refund...");
         break;
       case "deactivate":
-        toast.success("Invoice deactivated");
+        // Update invoice status using service
+        const deactivateInvoice = async () => {
+          await updateInvoice(invoice.id, { status: "Deactivated" });
+
+          // Log activity
+          const { addActivityLog } = await import("@/services/activityLogService");
+          addActivityLog({
+            type: "invoice",
+            action: "deactivated",
+            documentId: invoice.id,
+            customerName: invoice.customerName,
+            amount: invoice.amount,
+          });
+
+          toast.success("Invoice deactivated");
+
+          // Refresh list by effectively reloading
+          const updatedInvoices = allInvoices.map(inv =>
+            inv.id === invoice.id ? { ...inv, status: "Deactivated" } : inv
+          );
+          setAllInvoices(updatedInvoices as Invoice[]);
+        };
+        deactivateInvoice();
         break;
       case "activate":
-        toast.success("Invoice activated");
+        // Update invoice status using service
+        const activateInvoice = async () => {
+          await updateInvoice(invoice.id, { status: "Open" }); // Or previous status if tracked
+
+          // Log activity
+          const { addActivityLog } = await import("@/services/activityLogService");
+          addActivityLog({
+            type: "invoice",
+            action: "reactivated",
+            documentId: invoice.id,
+            customerName: invoice.customerName,
+            amount: invoice.amount,
+          });
+
+          toast.success("Invoice activated");
+
+          // Refresh list
+          const updatedInvoices = allInvoices.map(inv =>
+            inv.id === invoice.id ? { ...inv, status: "Open" } : inv
+          );
+          setAllInvoices(updatedInvoices as Invoice[]);
+        };
+        activateInvoice();
         break;
       case "create-new-invoice":
         // Find employee by name if employeeName exists, otherwise use first employee
-        const employee = (invoice as any).employeeName 
+        const employee = (invoice as any).employeeName
           ? mockEmployees.find(emp => emp.name === (invoice as any).employeeName)
           : mockEmployees[0];
-        
+
         navigate("/invoices/new", {
           state: {
             prefill: {
@@ -454,12 +498,12 @@ const Invoices = () => {
       // The jobConversionService changes status to "Job Created" when converted
       const invoiceStatus = (invoice as any).status || invoice.status;
       const isConverted = invoiceStatus === "Job Created";
-      
+
       // Check if invoice is from sell_product (should not show Convert to Job)
       // source is optional, so undefined means it's not from sell_product
       const invoiceSource = (invoice as any).source;
       const isSellProduct = invoiceSource === "sell_product";
-      
+
       const items: KebabMenuItem[] = [
         {
           label: "Preview",
@@ -467,14 +511,14 @@ const Invoices = () => {
           action: () => handleMenuAction(invoice, "preview"),
         },
       ];
-      
+
       // Add "Convert to Job" right after Preview for all paid invoices
       // Only exclude if:
       // 1. Invoice is from sell_product (source === "sell_product")
       // 2. Invoice has already been converted (status === "Job Created")
       // For all other paid invoices, show the option
       const shouldShowConvertToJob = !isSellProduct && !isConverted;
-      
+
       if (shouldShowConvertToJob) {
         items.push({
           label: "Convert to Job",
@@ -482,7 +526,7 @@ const Invoices = () => {
           action: () => handleMenuAction(invoice, "convert-to-job"),
         });
       }
-      
+
       // Add remaining menu items
       items.push(
         {
@@ -719,7 +763,7 @@ const Invoices = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader 
+      <MobileHeader
         title="Invoices"
         showBack={true}
         actions={
@@ -728,13 +772,13 @@ const Invoices = () => {
           </Button>
         }
       />
-      
+
       <div className="flex-1 overflow-y-auto scrollable px-3 pb-4 space-y-3" style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top) + 0.5rem)' }}>
         {/* Search and Invoice Due Alert Button */}
         <div className="flex gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input 
+            <Input
               placeholder="Search invoices..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -755,7 +799,7 @@ const Invoices = () => {
             </Button>
           )}
         </div>
-        
+
         {/* Invoice Type Tabs */}
         <Tabs value={activeTab} onValueChange={handleTabChange} className="space-y-3">
           <TabsList className={`w-full grid h-9 ${isEmployee ? 'grid-cols-2' : 'grid-cols-3'}`}>

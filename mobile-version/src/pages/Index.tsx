@@ -46,6 +46,7 @@ import {
   Route,
   Bell,
   Loader2,
+  RotateCw,
 } from "lucide-react";
 import { mockAppointments, mockInvoices, mockEstimates, mockJobs } from "@/data/mobileMockData";
 import { cn } from "@/lib/utils";
@@ -96,7 +97,7 @@ const Index = () => {
     const isAuthenticated = localStorage.getItem("isAuthenticated");
     const showWalkthrough = localStorage.getItem("showWalkthrough");
     const userType = localStorage.getItem("userType");
-    
+
     if (!isAuthenticated) {
       navigate("/signin");
     } else if (showWalkthrough === "true") {
@@ -112,36 +113,36 @@ const Index = () => {
     const updateUnreadCount = () => {
       setUnreadNotificationCount(getUnreadCount());
     };
-    
+
     const loadNotifications = () => {
       const allNotifications = getNotifications();
       // Show most recent 5 notifications
       setNotifications(allNotifications.slice(0, 5));
     };
-    
+
     // Initial load
     updateUnreadCount();
     loadNotifications();
-    
+
     // Update when notification dropdown opens
     if (notificationDropdownOpen) {
       loadNotifications();
     }
-    
+
     // Listen for notification events
     const handleNotificationCreated = () => {
       updateUnreadCount();
       loadNotifications();
     };
-    
+
     const handleNotificationUpdated = () => {
       updateUnreadCount();
       loadNotifications();
     };
-    
+
     window.addEventListener("notificationCreated", handleNotificationCreated);
     window.addEventListener("notificationUpdated", handleNotificationUpdated);
-    
+
     // Poll for changes as fallback (since localStorage events don't fire in same tab)
     const interval = setInterval(() => {
       updateUnreadCount();
@@ -149,7 +150,7 @@ const Index = () => {
         loadNotifications();
       }
     }, 2000);
-    
+
     return () => {
       window.removeEventListener("notificationCreated", handleNotificationCreated);
       window.removeEventListener("notificationUpdated", handleNotificationUpdated);
@@ -170,7 +171,7 @@ const Index = () => {
 
   const handleConvertToJob = async (notification: Notification, e: React.MouseEvent) => {
     e.stopPropagation();
-    
+
     // Prevent multiple clicks
     if (convertingJobId === notification.id) {
       return;
@@ -258,15 +259,15 @@ const Index = () => {
   const isDateInRange = useMemo(() => {
     return (dateString: string): boolean => {
       if (!dateRange.from || !dateRange.to) return false;
-      
+
       // Convert date range to YYYY-MM-DD format strings for comparison
       const startDateStr = format(dateRange.from, "yyyy-MM-dd");
       const endDateStr = format(dateRange.to, "yyyy-MM-dd");
-      
+
       // Compare date strings directly (YYYY-MM-DD format)
       // This avoids timezone issues with Date objects
       const isInRange = dateString >= startDateStr && dateString <= endDateStr;
-      
+
       return isInRange;
     };
   }, [dateRange]);
@@ -277,10 +278,42 @@ const Index = () => {
     return mockAppointments.filter(apt => isDateInRange(apt.date));
   }, [dateRange, isDateInRange]);
 
+  const [invoices, setInvoices] = useState<any[]>(mockInvoices);
+
+  // Load invoices from service on mount to get latest status (including Deactivated)
+  useEffect(() => {
+    const loadInvoices = async () => {
+      try {
+        const { getAllInvoices } = await import("@/services/invoiceService");
+        const storedInvoices = await getAllInvoices();
+
+        // Merge stored invoices with mock invoices same as Invoices page
+        const mergedInvoices = [
+          ...storedInvoices.map(inv => ({
+            ...inv,
+            // Ensure all required fields are present
+            issueDate: inv.issueDate || new Date().toISOString().split("T")[0],
+            dueDate: inv.dueDate || new Date().toISOString().split("T")[0],
+            status: inv.status || "Open",
+            type: inv.type || "single",
+          })),
+          // Add mock invoices that don't exist in stored invoices
+          ...mockInvoices.filter(mockInv =>
+            !storedInvoices.some(storedInv => storedInv.id === mockInv.id)
+          ),
+        ];
+        setInvoices(mergedInvoices);
+      } catch (error) {
+        console.error("Error loading invoices:", error);
+      }
+    };
+    loadInvoices();
+  }, []);
+
   const filteredInvoices = useMemo(() => {
     if (!dateRange.from || !dateRange.to) return [];
-    return mockInvoices.filter(inv => isDateInRange(inv.issueDate));
-  }, [dateRange, isDateInRange]);
+    return invoices.filter(inv => isDateInRange(inv.issueDate));
+  }, [dateRange, isDateInRange, invoices]);
 
   const filteredEstimates = useMemo(() => {
     if (!dateRange.from || !dateRange.to) return [];
@@ -324,28 +357,28 @@ const Index = () => {
   // Format date range for display
   const formattedDateRange = useMemo(() => {
     if (!dateRange.from || !dateRange.to) return "Select date range";
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const startDate = new Date(dateRange.from);
     startDate.setHours(0, 0, 0, 0);
-    
+
     const endDate = new Date(dateRange.to);
     endDate.setHours(0, 0, 0, 0);
-    
+
     // Check if both dates are today
     const isToday = startDate.getTime() === today.getTime() && endDate.getTime() === today.getTime();
-    
+
     if (isToday) {
       return "Today";
     }
-    
+
     // Check if it's a single day range
     if (startDate.getTime() === endDate.getTime()) {
       return format(startDate, "MMM dd");
     }
-    
+
     // Format as range with zero-padded days (e.g., "Dec 01 – Dec 05")
     return `${format(startDate, "MMM dd")} – ${format(endDate, "MMM dd")}`;
   }, [dateRange]);
@@ -371,7 +404,7 @@ const Index = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader 
+      <MobileHeader
         title="Dashboard"
         actions={
           <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap justify-end">
@@ -382,10 +415,10 @@ const Index = () => {
             <div className="relative">
               <DropdownMenu open={notificationDropdownOpen} onOpenChange={setNotificationDropdownOpen}>
                 <DropdownMenuTrigger asChild>
-                  <Button 
-                    size="sm" 
-                    variant="ghost" 
-                    className="h-8 w-8 p-0 shrink-0 touch-target relative" 
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="h-8 w-8 p-0 shrink-0 touch-target relative"
                     onClick={(e) => {
                       e.stopPropagation();
                     }}
@@ -432,7 +465,7 @@ const Index = () => {
                               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center mt-0.5">
                                 <IconComponent className="h-4 w-4" />
                               </div>
-                              
+
                               {/* Content */}
                               <div className="flex-1 min-w-0">
                                 <p className={cn(
@@ -551,8 +584,8 @@ const Index = () => {
             const Icon = stat.icon;
             const isPrimary = index === 0;
             return (
-              <MobileCard 
-                key={index} 
+              <MobileCard
+                key={index}
                 className={cn(
                   "p-2.5 cursor-pointer relative overflow-hidden",
                   isPrimary && "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/30"
@@ -606,25 +639,55 @@ const Index = () => {
           <div className="space-y-2">
             {(() => {
               // Get recent activity items for selected date
-              const dateInvoices = filteredInvoices.filter(inv => inv.status === "Paid");
-              const dateEstimates = filteredEstimates.filter(est => est.status === "Paid" || est.status === "Unpaid");
-              const activities: Array<{ type: "payment" | "estimate"; data: any }> = [];
+              // Include Deactivated status for Invoices
+              const dateInvoices = filteredInvoices.filter(inv => inv.status === "Paid" || inv.status === "Deactivated");
 
-              // Add paid invoices as payment activities
-              dateInvoices.slice(0, 2).forEach(inv => {
-                activities.push({ type: "payment", data: inv });
+              // Get deactivated estimates set from localStorage to check status
+              const deactivatedEstimatesSet = new Set(JSON.parse(localStorage.getItem("deactivatedEstimates") || "[]"));
+
+              // Include Deactivated status for Estimates (check against localStorage set)
+              const dateEstimates = filteredEstimates.filter(est =>
+                est.status === "Paid" ||
+                est.status === "Unpaid" ||
+                deactivatedEstimatesSet.has(est.id)
+              );
+
+              const activities: Array<{ type: "payment" | "estimate" | "log"; data: any }> = [];
+
+              // Add activity logs (Deactivated/Reactivated events)
+              // We need to import this but inside the render is tricky, so we'll access localStorage directly for sync re-renders
+              const activityLogs = JSON.parse(localStorage.getItem("activity_logs") || "[]");
+
+              // Filter logs by date if range is selected
+              const filteredLogs = activityLogs.filter((log: any) => isDateInRange(log.date.split('T')[0]));
+
+              filteredLogs.forEach((log: any) => {
+                activities.push({ type: "log", data: log });
               });
 
-              // Add estimates as estimate activities
-              dateEstimates.slice(0, 2).forEach(est => {
-                activities.push({ type: "estimate", data: est });
+              // Add paid and deactivated invoices (fallback if not in logs)
+              dateInvoices.forEach(inv => {
+                // specific check to avoid duplicates if we have logs for this
+                const hasLog = activityLogs.some((l: any) => l.documentId === inv.id && l.action === "deactivated" && l.date.startsWith(inv.issueDate));
+                if (!hasLog && (inv.status === "Paid")) {
+                  activities.push({ type: "payment", data: inv });
+                }
               });
 
-              // Sort by date (most recent first) and limit to 2
+              // Add estimates
+              dateEstimates.forEach(est => {
+                // specific check to avoid duplicates if we have logs for this
+                const hasLog = activityLogs.some((l: any) => l.documentId === est.id && l.action === "deactivated" && l.date.startsWith(est.date));
+                if (!hasLog) {
+                  activities.push({ type: "estimate", data: est });
+                }
+              });
+
+              // Sort by date/timestamp (most recent first)
               activities.sort((a, b) => {
-                const dateA = a.type === "payment" ? a.data.issueDate : a.data.date;
-                const dateB = b.type === "payment" ? b.data.issueDate : b.data.date;
-                return dateB.localeCompare(dateA);
+                const dateA = a.type === "log" ? a.data.timestamp : new Date(a.type === "payment" ? a.data.issueDate : a.data.date).getTime();
+                const dateB = b.type === "log" ? b.data.timestamp : new Date(b.type === "payment" ? b.data.issueDate : b.data.date).getTime();
+                return dateB - dateA;
               });
 
               if (activities.length === 0) {
@@ -635,31 +698,60 @@ const Index = () => {
                 );
               }
 
-              return activities.slice(0, 2).map((activity, index) => {
-                if (activity.type === "payment") {
+              return activities.slice(0, 5).map((activity, index) => { // Increased limit to 5 to see more
+                if (activity.type === "log") {
+                  const isDeactivated = activity.data.action === "deactivated";
+                  const isReactivated = activity.data.action === "reactivated";
+                  return (
+                    <MobileCard key={`log-${activity.data.id}`} className="cursor-pointer active:scale-98 transition-transform" onClick={() => navigate(activity.data.type === "invoice" ? "/invoices" : "/estimates")}>
+                      <div className="flex items-center gap-3">
+                        <div className={cn("p-2 rounded-lg",
+                          isDeactivated ? "bg-muted text-muted-foreground" :
+                            isReactivated ? "bg-blue-100 text-blue-600" :
+                              "bg-primary/10"
+                        )}>
+                          {activity.data.type === "invoice" ? (
+                            <DollarSign className="h-5 w-5" />
+                          ) : (
+                            <FileText className="h-5 w-5" />
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium capitalize">{activity.data.type} {activity.data.action}</p>
+                          <p className="text-sm text-muted-foreground">${activity.data.amount?.toFixed(2)} • {activity.data.customerName}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5">{new Date(activity.data.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</p>
+                        </div>
+                      </div>
+                    </MobileCard>
+                  );
+                } else if (activity.type === "payment") {
+                  const isDeactivated = activity.data.status === "Deactivated";
                   return (
                     <MobileCard key={`payment-${activity.data.id}`} className="cursor-pointer active:scale-98 transition-transform" onClick={() => navigate("/invoices")}>
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-success/10">
-                          <DollarSign className="h-5 w-5 text-success" />
+                        <div className={cn("p-2 rounded-lg", isDeactivated ? "bg-muted text-muted-foreground" : "bg-success/10")}>
+                          <DollarSign className={cn("h-5 w-5", isDeactivated ? "text-muted-foreground" : "text-success")} />
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium">Payment Received</p>
+                          <p className="font-medium">{isDeactivated ? "Invoice Deactivated" : "Payment Received"}</p>
                           <p className="text-sm text-muted-foreground">${activity.data.amount.toFixed(2)} • {activity.data.customerName}</p>
                         </div>
                       </div>
                     </MobileCard>
                   );
                 } else {
+                  const isDeactivated = deactivatedEstimatesSet.has(activity.data.id);
                   return (
                     <MobileCard key={`estimate-${activity.data.id}`} className="cursor-pointer active:scale-98 transition-transform" onClick={() => navigate("/estimates")}>
                       <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <FileText className="h-5 w-5 text-primary" />
+                        <div className={cn("p-2 rounded-lg", isDeactivated ? "bg-muted text-muted-foreground" : "bg-primary/10")}>
+                          <FileText className={cn("h-5 w-5", isDeactivated ? "text-muted-foreground" : "text-primary")} />
                         </div>
                         <div className="flex-1">
-                          <p className="font-medium">Estimate {activity.data.status === "Paid" ? "Paid" : "Sent"}</p>
-                          <p className="text-sm text-muted-foreground">{activity.data.customerName} • ${activity.data.amount.toFixed(2)}</p>
+                          <p className="font-medium">
+                            {isDeactivated ? "Estimate Deactivated" : `Estimate ${activity.data.status === "Paid" ? "Paid" : "Sent"}`}
+                          </p>
+                          <p className="text-sm text-muted-foreground">{activity.data.customerName || (activity.data as any).customName} • ${activity.data.amount.toFixed(2)}</p>
                         </div>
                       </div>
                     </MobileCard>
@@ -726,21 +818,21 @@ const Index = () => {
                 {(() => {
                   const today = new Date();
                   today.setHours(0, 0, 0, 0);
-                  const isToday = dateRange.from && dateRange.to && 
-                    dateRange.from.getTime() === today.getTime() && 
+                  const isToday = dateRange.from && dateRange.to &&
+                    dateRange.from.getTime() === today.getTime() &&
                     dateRange.to.getTime() === today.getTime();
-                  
+
                   if (isToday) {
                     return "Today's Appointments";
                   }
-                  
+
                   if (dateRange.from && dateRange.to) {
                     if (dateRange.from.getTime() === dateRange.to.getTime()) {
                       return `Appointments (${format(dateRange.from, "MMM d")})`;
                     }
                     return `Appointments (${format(dateRange.from, "MMM d")} - ${format(dateRange.to, "MMM d")})`;
                   }
-                  
+
                   return "Appointments";
                 })()}
               </h3>

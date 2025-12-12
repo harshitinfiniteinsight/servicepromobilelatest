@@ -11,9 +11,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Phone, Mail, MapPin, DollarSign, Calendar, Edit, Camera, ChevronDown, ChevronUp, Plus, Upload } from "lucide-react";
+import { Calendar, Edit, Camera, ChevronDown, ChevronUp, Plus, Upload } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { statusColors } from "@/data/mobileMockData";
+
 import { toast } from "sonner";
 import { showSuccessToast } from "@/utils/toast";
 import CustomerAddNoteModal from "@/components/modals/CustomerAddNoteModal";
@@ -29,7 +29,7 @@ const CustomerDetails = () => {
   const location = useLocation();
   const [searchParams] = useSearchParams();
   const customer = mockCustomers.find(c => c.id === id);
-  
+
   if (!customer) {
     return (
       <div className="h-full flex items-center justify-center">
@@ -39,8 +39,8 @@ const CustomerDetails = () => {
   }
 
   const customerInvoices = mockInvoices.filter(i => i.customerId === id);
-  const initials = customer.name.split(" ").map(n => n[0]).join("");
-  
+
+
   // Check for edit parameter in URL
   const editParam = searchParams.get("edit");
   const [isEditing, setIsEditing] = useState(editParam === "true");
@@ -58,7 +58,7 @@ const CustomerDetails = () => {
   const [viewerModalOpen, setViewerModalOpen] = useState(false);
   const [viewerImages, setViewerImages] = useState<string[]>([]);
   const [viewerInitialIndex, setViewerInitialIndex] = useState(0);
-  
+
   const [formState, setFormState] = useState({
     name: customer.name,
     email: customer.email,
@@ -230,7 +230,7 @@ const CustomerDetails = () => {
       // Update jobPictures in localStorage (same storage used by Jobs page)
       const jobPicturesStorage = localStorage.getItem("jobPictures");
       const jobPictures = jobPicturesStorage ? JSON.parse(jobPicturesStorage) : {};
-      
+
       const currentPictures = jobPictures[jobId] || { beforeImage: null, afterImage: null };
       jobPictures[jobId] = {
         ...currentPictures,
@@ -253,12 +253,12 @@ const CustomerDetails = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader 
+      <MobileHeader
         title={`Customer History of ${customer.name}`}
         showBack={true}
         onBack={handleBack}
       />
-      
+
       <div className="flex-1 overflow-y-auto scrollable pt-12 pb-6 space-y-4 px-4">
         {/* Customer Details Card */}
         <Card className="bg-white shadow-sm rounded-xl border border-gray-100 overflow-hidden">
@@ -289,7 +289,7 @@ const CustomerDetails = () => {
               </div>
             </div>
           </CardHeader>
-          
+
           {isDetailsExpanded && (
             <CardContent className="p-3 space-y-2">
               <div className="grid grid-cols-2 gap-x-4 gap-y-2 text-sm">
@@ -491,7 +491,7 @@ const CustomerDetails = () => {
 
               {isEditing && (
                 <div className="flex justify-end pt-3 border-t border-gray-200 mt-3">
-                  <Button 
+                  <Button
                     size="sm"
                     onClick={() => {
                       console.info("Saving customer", formState);
@@ -514,14 +514,14 @@ const CustomerDetails = () => {
           <CardContent className="p-3">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="grid w-full grid-cols-2 h-10 mb-4 bg-gray-100">
-                <TabsTrigger 
-                  value="orders" 
+                <TabsTrigger
+                  value="orders"
                   className="text-sm data-[state=active]:bg-primary data-[state=active]:text-white"
                 >
                   Orders
                 </TabsTrigger>
-                <TabsTrigger 
-                  value="service-pictures" 
+                <TabsTrigger
+                  value="service-pictures"
                   className="text-sm data-[state=active]:bg-primary data-[state=active]:text-white"
                 >
                   Service Pictures
@@ -573,6 +573,7 @@ const CustomerDetails = () => {
                       issueDate: inv.issueDate,
                       status: inv.status,
                       paymentMethod: inv.paymentMethod,
+                      employeeName: (inv as any).employeeName,
                     }));
 
                     // Combine all orders and sort by date (newest first)
@@ -606,6 +607,7 @@ const CustomerDetails = () => {
                             <TableHead>Employee Name</TableHead>
                             <TableHead>Amount</TableHead>
                             <TableHead>Type</TableHead>
+                            <TableHead>Status</TableHead>
                             <TableHead className="text-right">Date</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -618,6 +620,19 @@ const CustomerDetails = () => {
                               <TableCell>
                                 <Badge variant="outline" className="capitalize">
                                   {order.orderType || order.type || "Invoice"}
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                <Badge
+                                  variant="outline"
+                                  className={cn(
+                                    "capitalize",
+                                    order.status === "Deactivated"
+                                      ? "bg-muted text-muted-foreground border-muted"
+                                      : "bg-success/10 text-success border-success/20"
+                                  )}
+                                >
+                                  {order.status === "Deactivated" ? "Deactivated" : "Active"}
                                 </Badge>
                               </TableCell>
                               <TableCell className="text-right">
@@ -643,20 +658,20 @@ const CustomerDetails = () => {
                     <p className="text-sm">No service pictures available for this customer.</p>
                   </div>
                 ) : (
-                  <Accordion 
-                    type="single" 
-                    collapsible 
+                  <Accordion
+                    type="single"
+                    collapsible
                     className="w-full"
                     defaultValue={servicePictures.length > 0 ? servicePictures[0].jobId : undefined}
                   >
-                    {servicePictures.map((picture, index) => {
+                    {servicePictures.map((picture) => {
                       const images: string[] = [];
                       if (picture.beforeImageUrl) images.push(picture.beforeImageUrl);
                       if (picture.afterImageUrl) images.push(picture.afterImageUrl);
 
                       return (
-                        <AccordionItem 
-                          key={picture.jobId} 
+                        <AccordionItem
+                          key={picture.jobId}
                           value={picture.jobId}
                           className="border border-gray-200 rounded-lg mb-3 bg-white px-3"
                         >

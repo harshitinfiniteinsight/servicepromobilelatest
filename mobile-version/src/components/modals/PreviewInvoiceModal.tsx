@@ -44,30 +44,46 @@ const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvo
   const dueDate = invoice.dueDate ? format(new Date(invoice.dueDate), "MM/dd/yyyy") : "09/12/2024";
   const terms = "Due On Receipt";
 
-  const items: InvoiceItem[] = invoice.items || [
-    {
-      serviceDate: "09/12/2024",
-      productService: "Ceiling fan installation",
-      sku: "N/A",
-      description: "Ceiling fan installation",
-      qty: 1,
-      rate: 500,
-      discount: 0,
-      subTotal: 500,
-      tax: 0,
-    },
-    {
-      serviceDate: "09/12/2024",
-      productService: "Ceiling fan unit",
-      sku: "N/A",
-      description: "Ceiling fan unit",
-      qty: 1,
-      rate: 180,
-      discount: 0,
-      subTotal: 180,
-      tax: 0,
-    },
-  ];
+  const items = useMemo(() => {
+    if (!invoice.items || invoice.items.length === 0) {
+      return [
+        {
+          serviceDate: "09/12/2024",
+          productService: "Ceiling fan installation",
+          sku: "N/A",
+          description: "Ceiling fan installation",
+          qty: 1,
+          rate: 500,
+          discount: 0,
+          subTotal: 500,
+          tax: 0,
+        },
+        {
+          serviceDate: "09/12/2024",
+          productService: "Ceiling fan unit",
+          sku: "N/A",
+          description: "Ceiling fan unit",
+          qty: 1,
+          rate: 180,
+          discount: 0,
+          subTotal: 180,
+          tax: 0,
+        },
+      ];
+    }
+
+    return invoice.items.map((item: any) => ({
+      serviceDate: item.serviceDate || (invoice.issueDate ? format(new Date(invoice.issueDate), "MM/dd/yyyy") : "09/12/2024"),
+      productService: item.productService || item.name || "Service",
+      sku: item.sku || "N/A",
+      description: item.description || item.name || "Description",
+      qty: item.qty ?? item.quantity ?? 1,
+      rate: item.rate ?? item.price ?? 0,
+      discount: item.discount ?? 0,
+      subTotal: item.subTotal ?? item.amount ?? item.total ?? 0,
+      tax: item.tax ?? 0,
+    }));
+  }, [invoice.items, invoice.issueDate]);
 
   const itemTotal = items.reduce((sum, item) => sum + item.subTotal, 0);
   const totalDiscount = items.reduce((sum, item) => sum + (item.subTotal * item.discount / 100), 0);

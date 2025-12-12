@@ -55,15 +55,28 @@ const Estimates = () => {
       setStatusFilter("activate");
     }
   }, [isEmployee]);
-  
-  // Load converted estimates from localStorage on mount
+
+  // Load converted and deactivated estimates from localStorage on mount
   useEffect(() => {
     const converted = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
     if (converted.length > 0) {
       setConvertedEstimates(new Set(converted));
     }
+
+    // Load deactivated estimates
+    const deactivated = JSON.parse(localStorage.getItem("deactivatedEstimates") || "[]");
+    if (deactivated.length > 0) {
+      setDeactivatedEstimates(new Set(deactivated));
+    }
   }, []);
-  
+
+  // Persist deactivated estimates
+  useEffect(() => {
+    if (deactivatedEstimates.size > 0) {
+      localStorage.setItem("deactivatedEstimates", JSON.stringify(Array.from(deactivatedEstimates)));
+    }
+  }, [deactivatedEstimates]);
+
   const filteredEstimates = mockEstimates.map(est => {
     // Check if estimate has been converted
     const isConverted = convertedEstimates.has(est.id);
@@ -77,11 +90,11 @@ const Estimates = () => {
     return est;
   }).filter(est => {
     const matchesSearch = est.id.toLowerCase().includes(search.toLowerCase()) ||
-                         est.customerName.toLowerCase().includes(search.toLowerCase());
-    
+      est.customerName.toLowerCase().includes(search.toLowerCase());
+
     // Filter by status (All / Paid / Unpaid)
     const matchesStatus = statusFilterValue === "all" || est.status === statusFilterValue;
-    
+
     // Filter by tab
     // Activate: Both Paid and Unpaid estimates that are NOT deactivated
     // Deactivated: Only Unpaid estimates that ARE deactivated
@@ -93,7 +106,7 @@ const Estimates = () => {
       // Activate tab: exclude deactivated estimates
       matchesTab = !isDeactivated;
     }
-    
+
     return matchesSearch && matchesStatus && matchesTab;
   });
 
@@ -225,31 +238,31 @@ const Estimates = () => {
         if (convertEstimate) {
           const customer = mockCustomers.find(c => c.id === convertEstimate.customerId);
           // Find employee by name if employeeName exists, otherwise use first employee
-          const employee = (convertEstimate as any).employeeName 
+          const employee = (convertEstimate as any).employeeName
             ? mockEmployees.find(emp => emp.name === (convertEstimate as any).employeeName)
             : mockEmployees[0];
-          
+
           // Get job address from estimate or customer address
           const jobAddress = (convertEstimate as any).jobAddress || customer?.address || "";
-          
+
           // Convert estimate items to invoice items format
           // If estimate has items array, use it; otherwise create a single item from amount
           const estimateItems = (convertEstimate as any).items || [];
           const invoiceItems = estimateItems.length > 0
             ? estimateItems.map((item: any, index: number) => ({
-                id: item.id || `item-${index}`,
-                name: item.name || item.description || "Service Item",
-                quantity: item.quantity || 1,
-                price: item.price || item.rate || item.amount || 0,
-                isCustom: !item.id,
-              }))
+              id: item.id || `item-${index}`,
+              name: item.name || item.description || "Service Item",
+              quantity: item.quantity || 1,
+              price: item.price || item.rate || item.amount || 0,
+              isCustom: !item.id,
+            }))
             : [{
-                id: `item-${convertEstimate.id}`,
-                name: "Service Item",
-                quantity: 1,
-                price: convertEstimate.amount,
-              }];
-          
+              id: `item-${convertEstimate.id}`,
+              name: "Service Item",
+              quantity: 1,
+              price: convertEstimate.amount,
+            }];
+
           navigate("/invoices/new", {
             state: {
               fromEstimate: true, // Flag to disable Recurring invoice type
@@ -262,7 +275,7 @@ const Estimates = () => {
                 termsAndConditions: (convertEstimate as any).termsAndConditions || (convertEstimate as any).terms || "",
                 cancellationPolicy: (convertEstimate as any).cancellationPolicy || "",
                 tax: (convertEstimate as any).taxRate || 0,
-                discount: (convertEstimate as any).discount ? 
+                discount: (convertEstimate as any).discount ?
                   (typeof (convertEstimate as any).discount === 'object' ? (convertEstimate as any).discount : null) : null,
                 estimateId: estimateId, // Pass estimateId to track conversion
               }
@@ -275,10 +288,10 @@ const Estimates = () => {
         if (createEstimate) {
           const customer = mockCustomers.find(c => c.id === createEstimate.customerId);
           // Find employee by name if employeeName exists, otherwise use first employee
-          const employee = (createEstimate as any).employeeName 
+          const employee = (createEstimate as any).employeeName
             ? mockEmployees.find(emp => emp.name === (createEstimate as any).employeeName)
             : mockEmployees[0];
-          
+
           navigate("/estimates/new", {
             state: {
               prefill: {
@@ -294,21 +307,21 @@ const Estimates = () => {
         // Get the invoice ID from the conversion mapping
         const estimateToInvoiceMap = JSON.parse(localStorage.getItem("estimateToInvoiceMap") || "{}");
         const invoiceId = estimateToInvoiceMap[estimateId];
-        
+
         // If no mapping exists, try to find invoice by matching customer and amount
         // This handles cases where estimate was converted but mapping wasn't saved
         let invoice = invoiceId ? mockInvoices.find(inv => inv.id === invoiceId) : null;
-        
+
         // If invoice not found by ID, try to find by matching estimate data
         if (!invoice) {
           const estimate = mockEstimates.find(est => est.id === estimateId);
           if (estimate) {
             // Try to find invoice with same customer and similar amount
-            invoice = mockInvoices.find(inv => 
-              inv.customerId === estimate.customerId && 
+            invoice = mockInvoices.find(inv =>
+              inv.customerId === estimate.customerId &&
               Math.abs(inv.amount - estimate.amount) < 1
             );
-            
+
             // If still not found, create a temporary invoice from estimate data
             if (!invoice) {
               invoice = {
@@ -325,7 +338,7 @@ const Estimates = () => {
             }
           }
         }
-        
+
         if (invoice) {
           setPreviewInvoice(invoice);
           setShowInvoicePreview(true);
@@ -339,6 +352,23 @@ const Estimates = () => {
           newSet.delete(estimateId);
           return newSet;
         });
+
+        // Log activity
+        const activateEstimate = async () => {
+          const { addActivityLog } = await import("@/services/activityLogService");
+          const estimate = mockEstimates.find(e => e.id === estimateId);
+          if (estimate) {
+            addActivityLog({
+              type: "estimate",
+              action: "reactivated",
+              documentId: estimate.id,
+              customerName: estimate.customerName,
+              amount: estimate.amount,
+            });
+          }
+        };
+        activateEstimate();
+
         toast.success("Estimate activated");
         break;
       case "pay-now":
@@ -386,7 +416,7 @@ const Estimates = () => {
       // Check if estimate has already been converted to job
       const convertedEstimates = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
       const isConverted = estimate.status === "Converted to Job" || convertedEstimates.includes(estimate.id);
-      
+
       const items: KebabMenuItem[] = [
         {
           label: "Preview",
@@ -504,7 +534,7 @@ const Estimates = () => {
             action: () => handleMenuAction("reassign", estimate.id),
           }
         );
-        
+
         // Only show "Convert to Invoice" for Unpaid estimates (not already converted)
         if (estimate.status === "Unpaid") {
           items.push({
@@ -514,7 +544,7 @@ const Estimates = () => {
             separator: true,
           });
         }
-        
+
         items.push({
           label: "Deactivate",
           icon: XCircle,
@@ -581,7 +611,7 @@ const Estimates = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader 
+      <MobileHeader
         title="Estimates"
         showBack={true}
         actions={
@@ -590,13 +620,13 @@ const Estimates = () => {
           </Button>
         }
       />
-      
+
       <div className="flex-1 overflow-y-auto scrollable px-3 pb-4 space-y-3" style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top) + 0.5rem)' }}>
         {/* Search */}
         <div className="flex gap-2">
           <div className="relative flex-1 min-w-0">
             <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input 
+            <Input
               placeholder="Search estimates..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -607,9 +637,9 @@ const Estimates = () => {
 
         {/* Status Tabs - Hidden for employees */}
         {!isEmployee ? (
-          <Tabs 
-            value={statusFilter} 
-            onValueChange={setStatusFilter} 
+          <Tabs
+            value={statusFilter}
+            onValueChange={setStatusFilter}
             className="space-y-3"
           >
             <TabsList className="w-full grid grid-cols-2 h-9">
@@ -644,7 +674,7 @@ const Estimates = () => {
                     {estimates.length > 0 ? (
                       <div className="space-y-2">
                         {estimates.map(estimate => (
-                          <EstimateCard 
+                          <EstimateCard
                             key={estimate.id}
                             estimate={estimate}
                             onClick={() => navigate(`/estimates/${estimate.id}`)}
@@ -704,7 +734,7 @@ const Estimates = () => {
             {filteredEstimates.length > 0 ? (
               <div className="space-y-2">
                 {filteredEstimates.map(estimate => (
-                  <EstimateCard 
+                  <EstimateCard
                     key={estimate.id}
                     estimate={estimate}
                     onClick={() => navigate(`/estimates/${estimate.id}`)}
