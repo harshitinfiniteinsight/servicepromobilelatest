@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import {
@@ -44,6 +44,9 @@ import {
   Pencil,
   Upload,
   Wand2,
+  Camera,
+  Paperclip,
+  RefreshCw,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -127,12 +130,15 @@ const Invoices = () => {
   const [subtotal, setSubtotal] = useState(0);
   const [taxRate, setTaxRate] = useState("10");
   const [discount, setDiscount] = useState("");
+  const [showDiscount, setShowDiscount] = useState(false);
   const [newInvoiceDueDate, setNewInvoiceDueDate] = useState("");
   
   // Step 4: Terms & Cancellation
-  const [paymentTerms, setPaymentTerms] = useState("");
+  const [paymentTerms, setPaymentTerms] = useState("Due on Receipt");
+  const [termsConditions, setTermsConditions] = useState("");
   const [cancellationPolicy, setCancellationPolicy] = useState("");
   const [invoiceNotes, setInvoiceNotes] = useState("");
+  const [invoiceAttachments, setInvoiceAttachments] = useState<File[]>([]);
   const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Get user role from localStorage
@@ -332,11 +338,11 @@ const Invoices = () => {
   };
 
   const isStep3Valid = () => {
-    return newInvoiceDueDate && calculateTotal() > 0;
+    return true; // All fields in Step 3 are optional
   };
 
   const isStep4Valid = () => {
-    return termsAccepted;
+    return true; // All fields in Step 4 are optional
   };
 
   // Stepper navigation
@@ -371,25 +377,25 @@ const Invoices = () => {
       return;
     }
 
-    // Navigate to create invoice page with all collected data
-    navigate("/invoices/new", {
-      state: {
-        customerId: newInvoiceCustomer,
-        jobAddress: newInvoiceJobAddress,
-        employeeId: newInvoiceEmployee,
-        type: newInvoiceType,
-        services: selectedServices,
-        subtotal: subtotal,
-        tax: calculateTax(),
-        discount: calculateDiscount(),
-        total: calculateTotal(),
-        dueDate: newInvoiceDueDate,
-        paymentTerms: paymentTerms,
-        cancellationPolicy: cancellationPolicy,
-        notes: invoiceNotes,
-      }
-    });
+    // Create new invoice object
+    const newInvoice: Invoice = {
+      id: `INV-${Date.now()}`,
+      customerId: newInvoiceCustomer,
+      customerName: mockCustomers.find(c => c.id === newInvoiceCustomer)?.name || "Unknown Customer",
+      jobAddress: newInvoiceJobAddress,
+      employeeId: newInvoiceEmployee,
+      employeeName: mockEmployees.find(e => e.id === newInvoiceEmployee)?.name || "Unassigned",
+      amount: calculateTotal(),
+      status: "Open" as const,
+      issueDate: new Date().toISOString().split("T")[0],
+      dueDate: newInvoiceDueDate || new Date().toISOString().split("T")[0],
+      type: newInvoiceType as "single" | "recurring",
+    };
 
+    // Add new invoice to the top of the list
+    setAllInvoices([newInvoice, ...allInvoices]);
+
+    // Show success toast
     toast.success("Invoice created successfully");
 
     // Reset form
@@ -407,9 +413,11 @@ const Invoices = () => {
     setTaxRate("10");
     setDiscount("");
     setNewInvoiceDueDate("");
-    setPaymentTerms("");
+    setPaymentTerms("Due on Receipt");
+    setTermsConditions("");
     setCancellationPolicy("");
     setInvoiceNotes("");
+    setInvoiceAttachments([]);
     setTermsAccepted(false);
   };
 
@@ -1118,7 +1126,21 @@ const Invoices = () => {
         {/* Left Panel: Add Invoice - Tablet Only */}
         <aside className="tablet:w-[32%] bg-gray-50/80 border-r overflow-y-auto flex flex-col">
           <div className="sticky top-0 bg-gray-50/95 backdrop-blur-sm border-b px-4 py-3 z-10">
-            <h3 className="font-semibold text-sm text-foreground mb-3">Add Invoice</h3>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-sm text-foreground">Add Invoice</h3>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  toast.info("Syncing items...");
+                  // Placeholder for sync functionality
+                }}
+                className="flex items-center gap-1.5 text-xs h-7"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Sync Item
+              </Button>
+            </div>
             
             {/* Stepper Progress */}
             <div className="flex items-center justify-between">
@@ -1342,29 +1364,33 @@ const Invoices = () => {
                 <div className="grid grid-cols-3 gap-2">
                   <Button
                     variant="outline"
-                    className="h-10 text-xs font-medium hover:bg-primary/5 hover:border-primary flex flex-col items-center justify-center gap-1 py-2"
+                    className="min-h-[56px] h-auto text-xs font-medium hover:bg-primary/5 hover:border-primary flex flex-col items-center justify-center gap-1 py-2.5 px-2"
                     onClick={() => setShowExistingItemModal(true)}
                   >
-                    <ListPlus className="h-4 w-4" />
-                    <span className="leading-tight">Add Existing Item</span>
+                    <ListPlus className="h-4 w-4 flex-shrink-0" />
+                    <span className="leading-tight text-center">
+                      Add Existing<br />Item
+                    </span>
                   </Button>
 
                   <Button
                     variant="outline"
-                    className="h-10 text-xs font-medium hover:bg-primary/5 hover:border-primary flex flex-col items-center justify-center gap-1 py-2"
+                    className="min-h-[56px] h-auto text-xs font-medium hover:bg-primary/5 hover:border-primary flex flex-col items-center justify-center gap-1 py-2.5 px-2"
                     onClick={() => setShowCustomItemModal(true)}
                   >
-                    <Pencil className="h-4 w-4" />
-                    <span className="leading-tight">Add Custom Item</span>
+                    <Pencil className="h-4 w-4 flex-shrink-0" />
+                    <span className="leading-tight text-center">
+                      Add Custom<br />Item
+                    </span>
                   </Button>
 
                   <Button
                     variant="outline"
-                    className="h-10 text-xs font-medium hover:bg-primary/5 hover:border-primary flex flex-col items-center justify-center gap-1 py-2"
+                    className="min-h-[56px] h-auto text-xs font-medium hover:bg-primary/5 hover:border-primary flex flex-col items-center justify-center gap-1 py-2.5 px-2"
                     onClick={() => setShowInventoryModal(true)}
                   >
-                    <Package className="h-4 w-4" />
-                    <span className="leading-tight">Add Inventory</span>
+                    <Package className="h-4 w-4 flex-shrink-0" />
+                    <span className="leading-tight text-center">Add Inventory</span>
                   </Button>
                 </div>
 
@@ -1456,122 +1482,211 @@ const Invoices = () => {
 
             {/* Step 3: Pricing */}
             {currentStep === 3 && (
-              <div className="space-y-3">
-                {/* Service Breakdown */}
+              <div className="space-y-4">
+                {/* Terms Section */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Terms</label>
+                  <Select value={paymentTerms} onValueChange={setPaymentTerms}>
+                    <SelectTrigger className="h-9 text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Due on Receipt">Due on Receipt</SelectItem>
+                      <SelectItem value="Net 15">Net 15</SelectItem>
+                      <SelectItem value="Net 30">Net 30</SelectItem>
+                      <SelectItem value="Net 45">Net 45</SelectItem>
+                      <SelectItem value="Net 60">Net 60</SelectItem>
+                      <SelectItem value="Net 90">Net 90</SelectItem>
+                      <SelectItem value="Net 120">Net 120</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Add Order Discount Button */}
+                {!showDiscount && (
+                  <Button
+                    variant="outline"
+                    className="w-full h-9 text-xs font-medium hover:bg-primary/5 hover:border-primary"
+                    onClick={() => setShowDiscount(true)}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Order Discount
+                  </Button>
+                )}
+
+                {/* Discount Input - Shown when Add Order Discount is clicked */}
+                {showDiscount && (
+                  <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-200">
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Discount ($)</label>
+                      <button
+                        onClick={() => {
+                          setShowDiscount(false);
+                          setDiscount("");
+                        }}
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                    <div className="relative">
+                      <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        value={discount}
+                        onChange={(e) => setDiscount(e.target.value)}
+                        className="pl-9 h-9 text-sm"
+                        step="0.01"
+                        min="0"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Order Summary Card */}
                 <div className="space-y-2">
-                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Service Breakdown</div>
-                  <div className="bg-background rounded border p-3 space-y-2">
-                    {selectedServices.map((service, idx) => (
-                      <div key={idx} className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">{service.name} x{service.quantity}</span>
-                        <span className="font-medium">${(service.price * service.quantity).toFixed(2)}</span>
+                  <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Order Summary</div>
+                  <div className="bg-background rounded border p-3 space-y-2.5">
+                    {/* Subtotal */}
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Subtotal</span>
+                      <span className="font-medium">${subtotal.toFixed(2)}</span>
+                    </div>
+
+                    {/* Tax with Inline Input */}
+                    <div className="flex justify-between items-center text-sm">
+                      <div className="flex items-center gap-2">
+                        <span className="text-muted-foreground">Tax</span>
+                        <Input
+                          type="number"
+                          placeholder="10"
+                          value={taxRate}
+                          onChange={(e) => setTaxRate(e.target.value)}
+                          className="h-7 w-14 text-xs px-2"
+                          step="0.1"
+                          min="0"
+                        />
+                        <span className="text-xs text-muted-foreground">%</span>
                       </div>
-                    ))}
-                    <div className="border-t pt-2 flex justify-between text-sm font-medium">
-                      <span>Subtotal</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span className="font-medium">${calculateTax().toFixed(2)}</span>
+                    </div>
+
+                    {/* Discount Display (if applied) */}
+                    {showDiscount && discount && parseFloat(discount) > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Discount</span>
+                        <span className="font-medium text-destructive">-${parseFloat(discount).toFixed(2)}</span>
+                      </div>
+                    )}
+
+                    {/* Total */}
+                    <div className="border-t pt-2 flex justify-between items-center">
+                      <span className="text-sm font-semibold text-foreground">Total</span>
+                      <span className="text-lg font-bold text-primary">${calculateTotal().toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Tax */}
+                {/* Notes Section with Attachment */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tax Rate (%)</label>
-                  <Input
-                    type="number"
-                    placeholder="10"
-                    value={taxRate}
-                    onChange={(e) => setTaxRate(e.target.value)}
-                    className="h-9 text-sm"
-                    step="0.1"
-                    min="0"
-                  />
-                  <div className="text-xs text-muted-foreground">Tax: ${calculateTax().toFixed(2)}</div>
-                </div>
-
-                {/* Discount */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Discount ($)</label>
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Notes</label>
                   <div className="relative">
-                    <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="number"
-                      placeholder="0.00"
-                      value={discount}
-                      onChange={(e) => setDiscount(e.target.value)}
-                      className="pl-9 h-9 text-sm"
-                      step="0.01"
-                      min="0"
+                    <textarea
+                      placeholder="Add any notes or special instructions…"
+                      value={invoiceNotes}
+                      onChange={(e) => setInvoiceNotes(e.target.value)}
+                      className="w-full min-h-[80px] px-3 py-2 pb-10 text-sm rounded-md border border-input bg-background resize-none"
                     />
+                    {/* Attachment Icon */}
+                    <div className="absolute bottom-2 right-2 flex items-center gap-2">
+                      {invoiceAttachments.length > 0 && (
+                        <span className="text-xs text-primary font-medium">
+                          {invoiceAttachments.length} file{invoiceAttachments.length > 1 ? 's' : ''}
+                        </span>
+                      )}
+                      <label
+                        htmlFor="invoice-attachment"
+                        className="cursor-pointer p-1.5 rounded hover:bg-primary/10 transition-colors group"
+                        title="Attach file or image"
+                      >
+                        <Camera className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                        <input
+                          id="invoice-attachment"
+                          type="file"
+                          accept="image/jpeg,image/jpg,image/png,application/pdf"
+                          multiple
+                          className="hidden"
+                          onChange={(e) => {
+                            if (e.target.files) {
+                              const newFiles = Array.from(e.target.files);
+                              const validFiles = newFiles.filter(file => {
+                                const maxSize = 10 * 1024 * 1024; // 10MB
+                                if (file.size > maxSize) {
+                                  toast.error(`${file.name} exceeds 10MB limit`);
+                                  return false;
+                                }
+                                return true;
+                              });
+                              setInvoiceAttachments(prev => [...prev, ...validFiles]);
+                              if (validFiles.length > 0) {
+                                toast.success(`${validFiles.length} file(s) attached`);
+                              }
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
                   </div>
-                </div>
-
-                {/* Total */}
-                <div className="bg-primary/5 border border-primary/20 rounded p-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-semibold text-foreground">Total Amount</span>
-                    <span className="text-lg font-bold text-primary">${calculateTotal().toFixed(2)}</span>
-                  </div>
-                </div>
-
-                {/* Due Date */}
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Due Date *</label>
-                  <Input
-                    type="date"
-                    value={newInvoiceDueDate}
-                    onChange={(e) => setNewInvoiceDueDate(e.target.value)}
-                    className="h-9 text-sm"
-                  />
+                  {/* Display attached files */}
+                  {invoiceAttachments.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 mt-1.5">
+                      {invoiceAttachments.map((file, idx) => (
+                        <div
+                          key={idx}
+                          className="flex items-center gap-1 px-2 py-1 bg-primary/5 border border-primary/20 rounded text-xs"
+                        >
+                          <span className="text-muted-foreground truncate max-w-[120px]">{file.name}</span>
+                          <button
+                            onClick={() => {
+                              setInvoiceAttachments(prev => prev.filter((_, i) => i !== idx));
+                              toast.success('Attachment removed');
+                            }}
+                            className="text-muted-foreground hover:text-destructive"
+                          >
+                            <XCircle className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
 
             {/* Step 4: Terms & Cancellation */}
             {currentStep === 4 && (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                {/* Terms & Conditions */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payment Terms</label>
-                  <Input
-                    placeholder="e.g., Net 30"
-                    value={paymentTerms}
-                    onChange={(e) => setPaymentTerms(e.target.value)}
-                    className="h-9 text-sm"
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Terms & Conditions</label>
+                  <textarea
+                    placeholder="Enter terms and conditions..."
+                    value={termsConditions}
+                    onChange={(e) => setTermsConditions(e.target.value)}
+                    className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background resize-y"
                   />
                 </div>
 
+                {/* Cancellation & Return Policy */}
                 <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cancellation Policy</label>
-                  <Input
-                    placeholder="e.g., 24 hours notice"
+                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Cancellation & Return Policy</label>
+                  <textarea
+                    placeholder="Enter cancellation and return policy..."
                     value={cancellationPolicy}
                     onChange={(e) => setCancellationPolicy(e.target.value)}
-                    className="h-9 text-sm"
+                    className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background resize-y"
                   />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Notes / Comments</label>
-                  <textarea
-                    placeholder="Additional notes..."
-                    value={invoiceNotes}
-                    onChange={(e) => setInvoiceNotes(e.target.value)}
-                    className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background resize-none"
-                  />
-                </div>
-
-                {/* Agreement Checkbox */}
-                <div className="flex items-start gap-2 p-3 bg-amber-50 border border-amber-200 rounded">
-                  <input
-                    type="checkbox"
-                    id="terms-accept"
-                    checked={termsAccepted}
-                    onChange={(e) => setTermsAccepted(e.target.checked)}
-                    className="mt-0.5 h-4 w-4 rounded border-gray-300"
-                  />
-                  <label htmlFor="terms-accept" className="text-xs text-foreground cursor-pointer">
-                    I agree to the terms and conditions and confirm that all invoice details are correct.
-                  </label>
                 </div>
               </div>
             )}
@@ -1782,6 +1897,9 @@ const Invoices = () => {
         <DialogContent className="max-w-md max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Add Existing Item</DialogTitle>
+            <DialogDescription>
+              Search and select items from your inventory to add to this invoice.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="flex-1 overflow-hidden flex flex-col space-y-3">
@@ -1849,6 +1967,9 @@ const Invoices = () => {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Add Custom Item</DialogTitle>
+            <DialogDescription>
+              Create a one-time custom item for this invoice.
+            </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
@@ -1926,7 +2047,26 @@ const Invoices = () => {
       <Dialog open={showInventoryModal} onOpenChange={setShowInventoryModal}>
         <DialogContent className="max-w-md max-h-[80vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Add Inventory</DialogTitle>
+            <div className="flex items-center justify-between">
+              <div>
+                <DialogTitle>Add Inventory</DialogTitle>
+                <DialogDescription>
+                  Add a new inventory item and include it in this invoice.
+                </DialogDescription>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  toast.info("Syncing inventory...");
+                  // Placeholder for sync functionality
+                }}
+                className="flex items-center gap-1.5 text-xs"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Sync Item
+              </Button>
+            </div>
           </DialogHeader>
           
           <div className="space-y-4">
