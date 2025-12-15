@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import JobCard from "@/components/cards/JobCard";
 import EmptyState from "@/components/cards/EmptyState";
 import { mockJobs, mockCustomers, mockEmployees, mockEstimates, mockInvoices, mockAgreements } from "@/data/mobileMockData";
@@ -859,21 +859,32 @@ const Jobs = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-background">
-      <MobileHeader
+      <TabletHeader
         title="Jobs"
+        actions={
+          <div className="hidden tablet:flex items-center gap-2 tablet:w-80">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search jobs, customers..."
+                className="pl-9 h-9 bg-secondary/50 border-0"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+        }
       />
 
-      {/* Search & Filter Header - Fixed with scrolling content */}
-      <div className="px-4 py-3 bg-background border-b z-10 space-y-3 shadow-sm" style={{ display: 'block', visibility: 'visible' }}>
-        {/* Search Bar */}
-        <div className="relative" style={{ marginBottom: '12px' }}>
+      {/* Mobile Layout: Search & Filter Header - Fixed with scrolling content */}
+      <div className="px-4 py-3 bg-background border-b z-10 space-y-3 shadow-sm tablet:hidden">
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search jobs, customers..."
-            className="pl-9 bg-secondary/50 border-0 h-10"
+            className="pl-9 bg-secondary/50 border-0"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            style={{ width: '100%' }}
           />
         </div>
 
@@ -1006,128 +1017,313 @@ const Jobs = () => {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollable bg-gray-50/50">
-        {/* Metrics Section - Scrollable Carousel */}
-        <div className="relative border-b bg-background shadow-sm mb-2">
-          {/* Navigation Arrows - Absolute Positioned */}
-          {metricsGroupIndex > 0 && (
-            <button
-              onClick={handlePreviousGroup}
-              className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-background/80 shadow-md flex items-center justify-center border text-muted-foreground hover:text-primary transition-colors"
-              aria-label="Previous metrics"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-          )}
+      {/* Tablet Layout: Two-column grid */}
+      <div className="flex-1 overflow-hidden tablet:grid tablet:grid-cols-[32%_68%] tablet:gap-0">
+        {/* Left Panel: Filters - Tablet Only */}
+        <aside className="hidden tablet:flex tablet:flex-col bg-gray-50/80 border-r overflow-y-auto">
+          <div className="sticky top-0 bg-gray-50/95 backdrop-blur-sm border-b px-4 py-3 z-10">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-sm text-foreground">Filters</h3>
+              {hasActiveFilters && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={clearFilters}
+                >
+                  Clear All
+                </Button>
+              )}
+            </div>
+          </div>
 
-          {metricsGroupIndex < totalGroups - 1 && (
-            <button
-              onClick={handleNextGroup}
-              className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-background/80 shadow-md flex items-center justify-center border text-muted-foreground hover:text-primary transition-colors"
-              aria-label="Next metrics"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          )}
+          {/* Filter Options */}
+          <div className="px-4 py-4 space-y-3">
+            {/* Date Range */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Date Range</label>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "w-full justify-start text-left font-normal h-9 text-sm",
+                  !dateRange.from && "text-muted-foreground"
+                )}
+                onClick={() => setShowDateRangePicker(true)}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {dateRange.from ? (
+                  dateRange.to ? (
+                    <span className="truncate">
+                      {format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd, yyyy")}
+                    </span>
+                  ) : (
+                    format(dateRange.from, "MMM dd, yyyy")
+                  )
+                ) : (
+                  <span>Pick a date</span>
+                )}
+              </Button>
+            </div>
 
-          {/* Horizontal Scroll Container (Hidden Scrollbar) */}
-          <div
-            ref={metricsCarouselRef}
-            className="flex overflow-x-hidden snap-x snap-mandatory scroll-smooth"
-          >
-            {/* Group 1: Scheduled, In Progress, Completed */}
-            <div className="min-w-full flex justify-around p-4 snap-center">
-              <div className="text-center w-1/3">
-                <p className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 animate-in zoom-in duration-500">
+            {/* Job Type */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Job Type</label>
+              <Select value={jobTypeFilter} onValueChange={setJobTypeFilter}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Job Type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Types</SelectItem>
+                  <SelectItem value="agreement">Agreement</SelectItem>
+                  <SelectItem value="estimate">Estimate</SelectItem>
+                  <SelectItem value="invoice">Invoice</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Status */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Statuses</SelectItem>
+                  <SelectItem value="scheduled">Scheduled</SelectItem>
+                  <SelectItem value="inprogress">In Progress</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                  <SelectItem value="feedbackreceived">Feedback Received</SelectItem>
+                  <SelectItem value="cancel">Cancelled</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Payment */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Payment</label>
+              <Select value={paymentStatusFilter} onValueChange={setPaymentStatusFilter}>
+                <SelectTrigger className="h-9 text-sm">
+                  <SelectValue placeholder="Payment" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Any Payment</SelectItem>
+                  <SelectItem value="open">Open / Unpaid</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Employee */}
+            {!isEmployee && (
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Employee</label>
+                <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                  <SelectTrigger className="h-9 text-sm">
+                    <SelectValue placeholder="Employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Employees</SelectItem>
+                    {availableEmployees.map(emp => (
+                      <SelectItem key={emp} value={emp}>{emp}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Active Filters Summary */}
+            {hasActiveFilters && (
+              <div className="pt-2 border-t">
+                <p className="text-xs text-muted-foreground mb-2">Active Filters:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {dateRange.from && (
+                    <Badge variant="secondary" className="text-xs">
+                      Date: {format(dateRange.from, "MMM dd")}
+                      {dateRange.to && ` - ${format(dateRange.to, "MMM dd")}`}
+                    </Badge>
+                  )}
+                  {jobTypeFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs capitalize">{jobTypeFilter}</Badge>
+                  )}
+                  {statusFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs capitalize">{statusFilter}</Badge>
+                  )}
+                  {paymentStatusFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs capitalize">{paymentStatusFilter}</Badge>
+                  )}
+                  {!isEmployee && employeeFilter !== "all" && (
+                    <Badge variant="secondary" className="text-xs">{employeeFilter}</Badge>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* Right Panel: Jobs List */}
+        <div className="flex-1 overflow-y-auto scrollable bg-gray-50/50">
+          {/* Metrics Section - Mobile: Scrollable Carousel, Tablet: Static Grid */}
+          <div className="relative border-b bg-background shadow-sm mb-2">
+            {/* Mobile: Carousel with Navigation */}
+            <div className="tablet:hidden">
+              {/* Navigation Arrows - Absolute Positioned */}
+              {metricsGroupIndex > 0 && (
+                <button
+                  onClick={handlePreviousGroup}
+                  className="absolute left-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-background/80 shadow-md flex items-center justify-center border text-muted-foreground hover:text-primary transition-colors"
+                  aria-label="Previous metrics"
+                >
+                  <ChevronLeft className="h-4 w-4" />
+                </button>
+              )}
+
+              {metricsGroupIndex < totalGroups - 1 && (
+                <button
+                  onClick={handleNextGroup}
+                  className="absolute right-1 top-1/2 -translate-y-1/2 z-10 w-6 h-6 rounded-full bg-background/80 shadow-md flex items-center justify-center border text-muted-foreground hover:text-primary transition-colors"
+                  aria-label="Next metrics"
+                >
+                  <ChevronRight className="h-4 w-4" />
+                </button>
+              )}
+
+              {/* Horizontal Scroll Container (Hidden Scrollbar) */}
+              <div
+                ref={metricsCarouselRef}
+                className="flex overflow-x-hidden snap-x snap-mandatory scroll-smooth"
+              >
+                {/* Group 1: Scheduled, In Progress, Completed */}
+                <div className="min-w-full flex justify-around p-4 snap-center">
+                  <div className="text-center w-1/3">
+                    <p className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 animate-in zoom-in duration-500">
+                      {summary.scheduled}
+                    </p>
+                    <p className="text-xs font-medium text-muted-foreground mt-1">Scheduled</p>
+                  </div>
+                  <div className="w-px bg-border h-10 self-center" />
+                  <div className="text-center w-1/3">
+                    <p className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-amber-500 animate-in zoom-in duration-500 delay-75">
+                      {summary.inProgress}
+                    </p>
+                    <p className="text-xs font-medium text-muted-foreground mt-1">In Progress</p>
+                  </div>
+                  <div className="w-px bg-border h-10 self-center" />
+                  <div className="text-center w-1/3">
+                    <p className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-emerald-600 animate-in zoom-in duration-500 delay-150">
+                      {summary.completed}
+                    </p>
+                    <p className="text-xs font-medium text-muted-foreground mt-1">Completed</p>
+                  </div>
+                </div>
+
+                {/* Group 2: Cancelled, Feedback Received */}
+                <div className="min-w-full flex justify-around p-4 snap-center">
+                  <div className="text-center w-1/2">
+                    <p className="text-2xl font-bold text-destructive animate-in zoom-in duration-500">
+                      {summary.cancelled}
+                    </p>
+                    <p className="text-xs font-medium text-muted-foreground mt-1">Cancelled</p>
+                  </div>
+                  <div className="w-px bg-border h-10 self-center" />
+                  <div className="text-center w-1/2">
+                    <p className="text-2xl font-bold text-yellow-500 animate-in zoom-in duration-500 delay-75">
+                      {summary.feedbackReceived}
+                    </p>
+                    <p className="text-xs font-medium text-muted-foreground mt-1">Feedback Received</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Pagination Indicators */}
+              <div className="flex justify-center gap-1.5 pb-2">
+                {[...Array(totalGroups)].map((_, idx) => (
+                  <div
+                    key={idx}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${idx === metricsGroupIndex ? 'w-4 bg-primary' : 'w-1.5 bg-muted'}`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Tablet: Static Grid - All metrics visible */}
+            <div className="hidden tablet:grid tablet:grid-cols-5 tablet:gap-0 tablet:py-3 tablet:px-4">
+              <div className="text-center px-2">
+                <p className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
                   {summary.scheduled}
                 </p>
-                <p className="text-xs font-medium text-muted-foreground mt-1">Scheduled</p>
+                <p className="text-[10px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wide">Scheduled</p>
               </div>
-              <div className="w-px bg-border h-10 self-center" />
-              <div className="text-center w-1/3">
-                <p className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-amber-500 animate-in zoom-in duration-500 delay-75">
+              <div className="text-center px-2 border-l">
+                <p className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-amber-500">
                   {summary.inProgress}
                 </p>
-                <p className="text-xs font-medium text-muted-foreground mt-1">In Progress</p>
+                <p className="text-[10px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wide">In Progress</p>
               </div>
-              <div className="w-px bg-border h-10 self-center" />
-              <div className="text-center w-1/3">
-                <p className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-emerald-600 animate-in zoom-in duration-500 delay-150">
+              <div className="text-center px-2 border-l">
+                <p className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-green-600 to-emerald-600">
                   {summary.completed}
                 </p>
-                <p className="text-xs font-medium text-muted-foreground mt-1">Completed</p>
+                <p className="text-[10px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wide">Completed</p>
               </div>
-            </div>
-
-            {/* Group 2: Cancelled, Feedback Received */}
-            <div className="min-w-full flex justify-around p-4 snap-center">
-              <div className="text-center w-1/2">
-                <p className="text-2xl font-bold text-destructive animate-in zoom-in duration-500">
+              <div className="text-center px-2 border-l">
+                <p className="text-xl font-bold text-destructive">
                   {summary.cancelled}
                 </p>
-                <p className="text-xs font-medium text-muted-foreground mt-1">Cancelled</p>
+                <p className="text-[10px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wide">Cancelled</p>
               </div>
-              <div className="w-px bg-border h-10 self-center" />
-              <div className="text-center w-1/2">
-                <p className="text-2xl font-bold text-yellow-500 animate-in zoom-in duration-500 delay-75">
+              <div className="text-center px-2 border-l">
+                <p className="text-xl font-bold text-yellow-500">
                   {summary.feedbackReceived}
                 </p>
-                <p className="text-xs font-medium text-muted-foreground mt-1">Feedback Received</p>
+                <p className="text-[10px] font-medium text-muted-foreground mt-0.5 uppercase tracking-wide">Feedback</p>
               </div>
             </div>
           </div>
 
-          {/* Pagination Indicators */}
-          <div className="flex justify-center gap-1.5 pb-2">
-            {[...Array(totalGroups)].map((_, idx) => (
-              <div
-                key={idx}
-                className={`h-1.5 rounded-full transition-all duration-300 ${idx === metricsGroupIndex ? 'w-4 bg-primary' : 'w-1.5 bg-muted'}`}
+          {/* Jobs List Container with constrained width */}
+          <div className="px-4 pb-20 space-y-3 tablet:max-w-5xl tablet:mx-auto tablet:px-6">
+            {filteredJobs.length === 0 ? (
+              <EmptyState
+                title="No jobs found"
+                description={
+                  search || hasActiveFilters
+                    ? "Try adjusting your search or filters"
+                    : "Get started by creating your first job"
+                }
+                actionLabel={search || hasActiveFilters ? "Clear Filters" : "Create Job"}
+                onAction={search || hasActiveFilters ? clearFilters : () => navigate("/jobs/new")}
               />
-            ))}
+            ) : (
+              filteredJobs.map((job, index) => (
+                <JobCard
+                  key={job.id}
+                  job={{
+                    ...job,
+                    title: (job.id.startsWith("AG") || job.id.includes("AGR")) ? job.id : job.title,
+                    status: job.status as any,
+                  }}
+                  onStatusChange={handleStatusChange}
+                  index={index}
+                  showAnimation={true}
+                  userRole={userRole as "merchant" | "employee"}
+                  onSendFeedback={() => handleSendFeedbackForm(job.id)}
+                  onFillFeedback={() => handleFillFeedbackForm(job.id)}
+                  onViewFeedback={() => handleViewFeedback(job.id)}
+                  hasFeedback={hasFeedback(job.id)}
+                  hasPictures={hasPictures(job.id)}
+                  onAddPictures={() => handleAddPictures(job.id)}
+                  onViewPictures={() => handleViewPictures(job.id)}
+                  previewEstimate={() => handlePreview(job.id, "Estimate")}
+                  previewInvoice={() => handlePreview(job.id, "Invoice")}
+                  previewAgreement={() => handlePreview(job.id, "Agreement")}
+                  onEdit={() => handleEditJob(job.id)}
+                  onReassign={() => handleReassignEmployee(job.id)}
+                />
+              ))
+            )}
           </div>
-        </div>
-
-        <div className="px-4 pb-20 space-y-3">
-          {filteredJobs.length === 0 ? (
-            <EmptyState
-              title="No jobs found"
-              description={
-                search || hasActiveFilters
-                  ? "Try adjusting your search or filters"
-                  : "Get started by creating your first job"
-              }
-              actionLabel={search || hasActiveFilters ? "Clear Filters" : "Create Job"}
-              onAction={search || hasActiveFilters ? clearFilters : () => navigate("/jobs/new")}
-            />
-          ) : (
-            filteredJobs.map((job, index) => (
-              <JobCard
-                key={job.id}
-                job={{
-                  ...job,
-                  title: (job.id.startsWith("AG") || job.id.includes("AGR")) ? job.id : job.title,
-                  status: job.status as any,
-                }}
-                onStatusChange={handleStatusChange}
-                index={index}
-                showAnimation={true}
-                userRole={userRole as "merchant" | "employee"}
-                onSendFeedback={() => handleSendFeedbackForm(job.id)}
-                onFillFeedback={() => handleFillFeedbackForm(job.id)}
-                onViewFeedback={() => handleViewFeedback(job.id)}
-                hasFeedback={hasFeedback(job.id)}
-                hasPictures={hasPictures(job.id)}
-                onAddPictures={() => handleAddPictures(job.id)}
-                onViewPictures={() => handleViewPictures(job.id)}
-                previewEstimate={() => handlePreview(job.id, "Estimate")}
-                previewInvoice={() => handlePreview(job.id, "Invoice")}
-                previewAgreement={() => handlePreview(job.id, "Agreement")}
-                onEdit={() => handleEditJob(job.id)}
-                onReassign={() => handleReassignEmployee(job.id)}
-              />
-            ))
-          )}
         </div>
       </div>
 
@@ -1140,60 +1336,41 @@ const Jobs = () => {
       />
 
       {/* Send Feedback Form Modal */}
-      {selectedJobForFeedback && (
-        <SendFeedbackFormModal
-          isOpen={showFeedbackFormModal}
-          onClose={() => {
-            setShowFeedbackFormModal(false);
-            setSelectedJobForFeedback(null);
-          }}
-          job={{
-            id: selectedJobForFeedback.id,
-            title: selectedJobForFeedback.title,
-            customerName: selectedJobForFeedback.customerName,
-            technicianName: selectedJobForFeedback.technicianName,
-          }}
-          customerEmail={mockCustomers.find(c => c.id === selectedJobForFeedback.customerId)?.email || ""}
-          onSend={() => handleFeedbackFormSent(selectedJobForFeedback.id)}
-          onFillForm={() => handleFillFeedbackForm(selectedJobForFeedback.id)}
-        />
-      )}
+      <SendFeedbackFormModal
+        isOpen={showFeedbackFormModal}
+        onClose={() => {
+          setShowFeedbackFormModal(false);
+          setSelectedJobForFeedback(null);
+        }}
+        onSend={() => selectedJobForFeedback && handleFeedbackFormSent(selectedJobForFeedback.id)}
+        onFillNow={() => selectedJobForFeedback && handleFillFeedbackForm(selectedJobForFeedback.id)}
+        customerName={selectedJobForFeedback?.customerName || ""}
+        customerEmail={mockCustomers.find(c => c.id === selectedJobForFeedback?.customerId)?.email || ""}
+        customerPhone={mockCustomers.find(c => c.id === selectedJobForFeedback?.customerId)?.phone || ""}
+      />
 
       {/* Fill Feedback Form Modal */}
-      {selectedJobForFeedback && (
-        <FeedbackFormModal
-          isOpen={showFillFeedbackFormModal}
-          onClose={() => {
-            setShowFillFeedbackFormModal(false);
-            setSelectedJobForFeedback(null);
-          }}
-          job={{
-            id: selectedJobForFeedback.id,
-            title: selectedJobForFeedback.title,
-            customerName: selectedJobForFeedback.customerName,
-            technicianName: selectedJobForFeedback.technicianName,
-          }}
-          onSubmit={handleFeedbackSubmit}
-        />
-      )}
+      <FeedbackFormModal
+        isOpen={showFillFeedbackFormModal}
+        onClose={() => {
+          setShowFillFeedbackFormModal(false);
+          setSelectedJobForFeedback(null);
+        }}
+        onSubmit={handleFeedbackSubmit}
+        jobId={selectedJobForFeedback?.id || ""}
+        customerName={selectedJobForFeedback?.customerName || ""}
+      />
 
       {/* View Feedback Modal */}
-      {selectedJobForFeedback && (
-        <ViewFeedbackModal
-          isOpen={showViewFeedbackModal}
-          onClose={() => {
-            setShowViewFeedbackModal(false);
-            setSelectedJobForFeedback(null);
-          }}
-          job={{
-            id: selectedJobForFeedback.id,
-            title: selectedJobForFeedback.title,
-            customerName: selectedJobForFeedback.customerName,
-            technicianName: selectedJobForFeedback.technicianName,
-          }}
-          feedback={jobFeedbackStatus[selectedJobForFeedback.id]?.feedback}
-        />
-      )}
+      <ViewFeedbackModal
+        isOpen={showViewFeedbackModal}
+        onClose={() => {
+          setShowViewFeedbackModal(false);
+          setSelectedJobForFeedback(null);
+        }}
+        feedback={selectedJobForFeedback ? jobFeedbackStatus[selectedJobForFeedback.id]?.feedback : undefined}
+        customerName={selectedJobForFeedback?.customerName || ""}
+      />
 
       {/* Add Pictures Modal */}
       {selectedJobForPictures && (
