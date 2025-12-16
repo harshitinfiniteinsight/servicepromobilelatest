@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,40 @@ import { statusColors } from "@/data/mobileMockData";
 const EstimateDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const estimate = mockEstimates.find(e => e.id === id);
+  const [estimate, setEstimate] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchEstimate = async () => {
+      try {
+        // Try to load from localStorage first
+        const storedEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+        const foundStored = storedEstimates.find((e: any) => e.id === id);
+
+        if (foundStored) {
+          setEstimate(foundStored);
+        } else {
+          // Fall back to mock data
+          const foundMock = mockEstimates.find(e => e.id === id);
+          setEstimate(foundMock || null);
+        }
+      } catch (error) {
+        console.error("Error fetching estimate:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchEstimate();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="h-full flex items-center justify-center">
+        <p>Loading...</p>
+      </div>
+    );
+  }
 
   if (!estimate) {
     return (
@@ -22,15 +56,17 @@ const EstimateDetails = () => {
 
   const customer = mockCustomers.find(c => c.id === estimate.customerId);
 
-  // Mock estimate items
-  const estimateItems = [
+  // Use stored items if available, otherwise use mock items
+  const estimateItems = estimate.items || [
     { name: "HVAC Installation", quantity: 1, price: 800, total: 800 },
     { name: "Materials", quantity: 1, price: 200, total: 200 },
     { name: "Labor", quantity: 4, price: 50, total: 200 },
   ];
 
-  const subtotal = estimateItems.reduce((sum, item) => sum + item.total, 0);
-  const total = subtotal;
+  const subtotal = estimate.subtotal || estimateItems.reduce((sum: number, item: any) => sum + (item.total || item.amount || 0), 0);
+  const tax = estimate.tax !== undefined ? estimate.tax : 0;
+  const discount = estimate.discount || 0;
+  const total = estimate.total || estimate.amount || (subtotal + tax - discount);
 
   const handleConvertToInvoice = () => {
     navigate(`/ invoices / new? estimate = ${estimate.id} `);
@@ -170,25 +206,25 @@ const EstimateDetails = () => {
                 </div>
                 
                 {/* Discount - only show if applicable */}
-                {(estimate as any).discount && (estimate as any).discount > 0 && (
+                {discount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="font-medium text-muted-foreground">Discount:</span>
-                    <span className="font-semibold text-success">-${(estimate as any).discount.toFixed(2)}</span>
+                    <span className="font-semibold text-success">-${discount.toFixed(2)}</span>
                   </div>
                 )}
                 
                 {/* Tax - only show if applicable */}
-                {(estimate as any).tax && (estimate as any).tax > 0 && (
+                {tax > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="font-medium text-muted-foreground">Tax:</span>
-                    <span className="font-semibold">${(estimate as any).tax.toFixed(2)}</span>
+                    <span className="font-semibold">${tax.toFixed(2)}</span>
                   </div>
                 )}
                 
                 {/* Total Amount - emphasized */}
                 <div className="flex justify-between pt-2 border-t mt-2">
                   <span className="font-bold text-base">Total Amount:</span>
-                  <span className="font-bold text-lg text-primary">${estimate.amount.toFixed(2)}</span>
+                  <span className="font-bold text-lg text-primary">${total.toFixed(2)}</span>
                 </div>
               </div>
             </div>

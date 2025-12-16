@@ -1369,9 +1369,54 @@ const AddEstimate = () => {
             </Button>
           ) : (
             <Button className="flex-1" onClick={async () => {
+              // Calculate amounts (used for both create and update)
+              const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+              const taxAmount = subtotal * (tax / 100);
+              const discountAmount = selectedDiscount
+                ? selectedDiscount.type === "%"
+                  ? subtotal * (selectedDiscount.value / 100)
+                  : selectedDiscount.value
+                : discountType === "%"
+                  ? subtotal * (discount / 100)
+                  : discount;
+              const total = subtotal + taxAmount - discountAmount;
+
               if (isEditMode) {
-                showSuccessToast("Estimate updated successfully");
-                navigate("/estimates");
+                // Update existing estimate
+                try {
+                  const existingEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+                  const estimateIndex = existingEstimates.findIndex((est: any) => est.id === id);
+                  
+                  if (estimateIndex !== -1) {
+                    // Update the estimate
+                    existingEstimates[estimateIndex] = {
+                      ...existingEstimates[estimateIndex],
+                      items: items.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        amount: item.price * item.quantity,
+                      })),
+                      subtotal,
+                      tax: taxAmount,
+                      total,
+                      amount: total,
+                      discount: discountAmount,
+                      discountType: discountType as "%" | "$",
+                      notes: notes || undefined,
+                    };
+                    
+                    localStorage.setItem("servicepro_estimates", JSON.stringify(existingEstimates));
+                    showSuccessToast("Estimate updated successfully");
+                    navigate("/estimates");
+                  } else {
+                    toast.error("Estimate not found");
+                  }
+                } catch (error) {
+                  console.error("Error updating estimate:", error);
+                  toast.error("Failed to update estimate");
+                }
               } else {
                 // Create estimate and save notes
                 if (!selectedCustomer) {
@@ -1399,14 +1444,6 @@ const AddEstimate = () => {
                   return max;
                 }, 0);
                 const newEstimateId = `EST-${String(maxNum + 1).padStart(3, '0')}`;
-
-                // Save estimate to localStorage (basic structure)
-                const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                const taxAmount = subtotal * (tax / 100);
-                const discountAmount = discountType === "%" 
-                  ? subtotal * (discount / 100)
-                  : discount;
-                const total = subtotal + taxAmount - discountAmount;
 
                 const estimateData = {
                   id: newEstimateId,
