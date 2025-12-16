@@ -69,7 +69,8 @@ const InvoiceDetails = () => {
 
   const subtotal = invoice.subtotal || invoiceItems.reduce((sum: number, item: any) => sum + (item.total || item.amount || 0), 0);
   const tax = invoice.tax !== undefined ? invoice.tax : subtotal * 0.08;
-  const total = invoice.total || subtotal + tax;
+  const discount = invoice.discount || 0;
+  const total = invoice.total || (subtotal + tax - discount);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -184,10 +185,10 @@ const InvoiceDetails = () => {
                 </div>
                 
                 {/* Discount - only show if applicable */}
-                {invoice.discount && invoice.discount > 0 && (
+                {discount > 0 && (
                   <div className="flex justify-between text-sm">
                     <span className="font-medium text-muted-foreground">Discount:</span>
-                    <span className="font-semibold text-success">-${invoice.discount.toFixed(2)}</span>
+                    <span className="font-semibold text-success">-${discount.toFixed(2)}</span>
                   </div>
                 )}
                 
