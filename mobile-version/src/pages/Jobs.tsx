@@ -864,9 +864,9 @@ const Jobs = () => {
       />
 
       {/* Search & Filter Header - Fixed with scrolling content */}
-      <div className="px-4 pt-4 pb-3 bg-background border-b z-10 shadow-sm">
+      <div className="px-4 pt-3 pb-2 bg-background border-b z-10 shadow-sm">
         {/* Search Bar */}
-        <div className="relative mb-5">
+        <div className="relative mb-3">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-600" />
           <Input
             placeholder="Search jobs, customers..."
@@ -922,7 +922,7 @@ const Jobs = () => {
 
         {/* Expanded Filters Section */}
         {filtersExpanded && (
-          <div className="space-y-3 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="space-y-2 pt-2 animate-in fade-in slide-in-from-top-2 duration-200">
             <div className="grid grid-cols-2 gap-2">
               <Button
                 variant="outline"
@@ -1007,7 +1007,7 @@ const Jobs = () => {
 
       <div className="flex-1 overflow-y-auto scrollable bg-gray-50/50" style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top) + 0.5rem)' }}>
         {/* Metrics Section - Scrollable Carousel */}
-        <div className="relative border-b bg-background shadow-sm mb-2">
+        <div className="relative border-b bg-background shadow-sm mb-1">
           {/* Navigation Arrows - Absolute Positioned */}
           {metricsGroupIndex > 0 && (
             <button
@@ -1035,7 +1035,7 @@ const Jobs = () => {
             className="flex overflow-x-hidden snap-x snap-mandatory scroll-smooth"
           >
             {/* Group 1: Scheduled, In Progress, Completed */}
-            <div className="min-w-full flex justify-around p-4 snap-center">
+            <div className="min-w-full flex justify-around py-3 px-2 snap-center">
               <div className="text-center w-1/3">
                 <p className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 animate-in zoom-in duration-500">
                   {summary.scheduled}
@@ -1059,7 +1059,7 @@ const Jobs = () => {
             </div>
 
             {/* Group 2: Cancelled, Feedback Received */}
-            <div className="min-w-full flex justify-around p-4 snap-center">
+            <div className="min-w-full flex justify-around py-3 px-2 snap-center">
               <div className="text-center w-1/2">
                 <p className="text-2xl font-bold text-destructive animate-in zoom-in duration-500">
                   {summary.cancelled}
@@ -1077,7 +1077,7 @@ const Jobs = () => {
           </div>
 
           {/* Pagination Indicators */}
-          <div className="flex justify-center gap-1.5 pb-2">
+          <div className="flex justify-center gap-1.5 pb-1.5">
             {[...Array(totalGroups)].map((_, idx) => (
               <div
                 key={idx}
@@ -1087,7 +1087,7 @@ const Jobs = () => {
           </div>
         </div>
 
-        <div className="px-4 pb-20 space-y-3">
+        <div className="px-3 pb-20 space-y-2.5">
           {filteredJobs.length === 0 ? (
             <EmptyState
               title="No jobs found"
