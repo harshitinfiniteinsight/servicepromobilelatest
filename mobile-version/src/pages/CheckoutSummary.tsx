@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { useCart } from "@/contexts/CartContext";
 import { Image as ImageIcon, Tag, Plus } from "lucide-react";
 import { mockDiscounts } from "@/data/mobileMockData";
@@ -241,8 +241,11 @@ const CheckoutSummary = () => {
         <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Discount</DialogTitle>
-            <p className="text-sm text-muted-foreground mt-1">Select an existing discount or create a custom one</p>
+            <DialogDescription className="sr-only">
+              Select an existing discount or create a custom one
+            </DialogDescription>
           </DialogHeader>
+          <p className="text-sm text-muted-foreground mt-1">Select an existing discount or create a custom one</p>
           <div className="space-y-6 mt-4">
             {/* Add Custom Discount */}
             <div className="border-t pt-4">

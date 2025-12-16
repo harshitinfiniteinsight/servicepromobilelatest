@@ -3,22 +3,33 @@ import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import MinimumDepositPercentageModal from "@/components/modals/MinimumDepositPercentageModal";
 import { DocumentVerificationModal } from "@/components/modals/DocumentVerificationModal";
 import PaymentModal from "@/components/modals/PaymentModal";
 import SendSMSModal from "@/components/modals/SendSMSModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
+import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import { mockAgreements, mockCustomers, mockEmployees } from "@/data/mobileMockData";
-import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase } from "lucide-react";
+import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import { createPaymentNotification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
 
 const Agreements = () => {
   const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | "Paid" | "Open">("all");
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showDocumentVerificationModal, setShowDocumentVerificationModal] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
@@ -33,6 +44,52 @@ const Agreements = () => {
   // Get user role
   const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
   const isEmployee = userType === "employee";
+
+  // Date range filtering helper
+  const isWithinDateRange = (dateString: string) => {
+    if (!dateRange.from && !dateRange.to) return true;
+    
+    const date = new Date(dateString);
+    date.setHours(0, 0, 0, 0);
+    
+    if (dateRange.from && dateRange.to) {
+      const start = new Date(dateRange.from);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+      return date >= start && date <= end;
+    } else if (dateRange.from) {
+      const start = new Date(dateRange.from);
+      start.setHours(0, 0, 0, 0);
+      return date >= start;
+    } else if (dateRange.to) {
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+      return date <= end;
+    }
+    return true;
+  };
+
+  const handleDateRangeConfirm = (range: { from: Date | undefined; to: Date | undefined }) => {
+    setDateRange(range);
+    setShowDateRangePicker(false);
+  };
+
+  // Filter agreements
+  const filteredAgreements = mockAgreements.filter(agreement => {
+    // Search filter - by agreement ID or customer name
+    const matchesSearch = search === "" || 
+      agreement.id.toLowerCase().includes(search.toLowerCase()) ||
+      agreement.customerName.toLowerCase().includes(search.toLowerCase());
+
+    // Status filter
+    const matchesStatus = statusFilter === "all" || agreement.status === statusFilter;
+
+    // Date range filter - check start date
+    const matchesDateRange = isWithinDateRange(agreement.startDate);
+
+    return matchesSearch && matchesStatus && matchesDateRange;
+  });
 
   const handlePayNow = (agreementId: string) => {
     const agreement = mockAgreements.find(a => a.id === agreementId);
@@ -186,11 +243,58 @@ const Agreements = () => {
       />
 
       <div
-        className="flex-1 overflow-y-auto scrollable px-3 pb-4 space-y-2"
+        className="flex-1 overflow-y-auto scrollable px-3 pb-4 space-y-3"
         style={{ paddingTop: "calc(3rem + env(safe-area-inset-top) + 0.5rem)" }}
       >
+        {/* Search Field */}
+        <div className="relative">
+          <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Input
+            placeholder="Search agreements…"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="pl-9 h-9 text-sm py-2"
+          />
+        </div>
+
+        {/* Date Range & Status Filter Row */}
+        <div className="flex gap-2">
+          <div className="flex-1 min-w-0">
+            <Button
+              variant="outline"
+              onClick={() => setShowDateRangePicker(true)}
+              className="w-full h-9 px-2.5 text-xs font-normal justify-start gap-1.5"
+            >
+              <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+              {dateRange.from && dateRange.to ? (
+                <span className="truncate text-left text-xs">
+                  {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
+                </span>
+              ) : dateRange.from ? (
+                <span className="truncate text-left text-xs">{format(dateRange.from, "MM/dd/yyyy")}</span>
+              ) : (
+                <span className="text-muted-foreground truncate text-left text-xs">Date Range</span>
+              )}
+            </Button>
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | "Paid" | "Open")}>
+              <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Statuses</SelectItem>
+                <SelectItem value="Paid">Paid</SelectItem>
+                <SelectItem value="Open">Open</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Agreements List */}
         <div className="space-y-2">
-          {mockAgreements.map(agreement => {
+          {filteredAgreements.map(agreement => {
             // Check if agreement is paid (case-insensitive)
             const isPaid = agreement.status?.toLowerCase() === "paid";
 
@@ -288,6 +392,14 @@ const Agreements = () => {
       <MinimumDepositPercentageModal
         isOpen={showDepositModal}
         onClose={() => setShowDepositModal(false)}
+      />
+
+      {/* Date Range Picker Modal */}
+      <DateRangePickerModal
+        isOpen={showDateRangePicker}
+        onClose={() => setShowDateRangePicker(false)}
+        dateRange={dateRange}
+        onConfirm={handleDateRangeConfirm}
       />
 
       {selectedAgreementId && (

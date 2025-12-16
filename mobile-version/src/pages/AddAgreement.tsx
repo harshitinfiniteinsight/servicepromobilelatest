@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { mockCustomers, serviceTypes, mockEmployees, mockAgreements } from "@/data/mobileMockData";
 import { RefreshCw, List, ChevronsUpDown, Check, Plus, Calendar, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -418,6 +418,7 @@ const AddAgreement = () => {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Quick Add Customer</DialogTitle>
+            <DialogDescription>Add a new customer to your list</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <div>

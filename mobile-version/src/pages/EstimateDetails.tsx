@@ -161,11 +161,34 @@ const EstimateDetails = () => {
                 ))}
               </div>
 
-              {/* Summary */}
+              {/* Pricing Breakdown */}
               <div className="pt-4 border-t space-y-2">
+                {/* Subtotal */}
                 <div className="flex justify-between text-sm">
-                  <span className="font-medium text-muted-foreground">Total:</span>
-                  <span className="font-bold text-lg">${total.toFixed(2)}</span>
+                  <span className="font-medium text-muted-foreground">Subtotal:</span>
+                  <span className="font-semibold">${subtotal.toFixed(2)}</span>
+                </div>
+                
+                {/* Discount - only show if applicable */}
+                {(estimate as any).discount && (estimate as any).discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-muted-foreground">Discount:</span>
+                    <span className="font-semibold text-success">-${(estimate as any).discount.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                {/* Tax - only show if applicable */}
+                {(estimate as any).tax && (estimate as any).tax > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-muted-foreground">Tax:</span>
+                    <span className="font-semibold">${(estimate as any).tax.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                {/* Total Amount - emphasized */}
+                <div className="flex justify-between pt-2 border-t mt-2">
+                  <span className="font-bold text-base">Total Amount:</span>
+                  <span className="font-bold text-lg text-primary">${estimate.amount.toFixed(2)}</span>
                 </div>
               </div>
             </div>

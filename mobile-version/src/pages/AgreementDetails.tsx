@@ -61,7 +61,23 @@ const AgreementDetails = () => {
             </div>
           </div>
 
+          {/* Work Description & Agreement Period - Combined Card */}
           <div className="p-4 rounded-xl border bg-card">
+            {/* Work Description Section */}
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              Work Description
+            </h3>
+            <div className="mb-4 text-sm">
+              <p className="text-muted-foreground leading-relaxed">
+                {(agreement as any).description || `${agreement.type} - Regular maintenance and service coverage including inspections, tune-ups, and priority support.`}
+              </p>
+            </div>
+
+            {/* Divider */}
+            <div className="border-t my-4"></div>
+
+            {/* Agreement Period Section */}
             <h3 className="font-semibold mb-3 flex items-center gap-2">
               <Calendar className="h-4 w-4 text-primary" />
               Agreement Period
@@ -92,11 +108,40 @@ const AgreementDetails = () => {
                 </div>
               </div>
 
-              {/* Summary */}
+              {/* Pricing Breakdown */}
               <div className="pt-4 border-t space-y-2">
+                {/* Subtotal (Monthly) */}
                 <div className="flex justify-between text-sm">
-                  <span className="font-medium text-muted-foreground">Total (Yearly):</span>
-                  <span className="font-bold text-lg">${(agreement.monthlyAmount * 12).toFixed(2)}</span>
+                  <span className="font-medium text-muted-foreground">Subtotal (Monthly):</span>
+                  <span className="font-semibold">${agreement.monthlyAmount.toFixed(2)}</span>
+                </div>
+                
+                {/* Discount - only show if applicable */}
+                {(agreement as any).discount && (agreement as any).discount > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-muted-foreground">Discount:</span>
+                    <span className="font-semibold text-success">-${(agreement as any).discount.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                {/* Tax - only show if applicable */}
+                {(agreement as any).tax && (agreement as any).tax > 0 && (
+                  <div className="flex justify-between text-sm">
+                    <span className="font-medium text-muted-foreground">Tax:</span>
+                    <span className="font-semibold">${(agreement as any).tax.toFixed(2)}</span>
+                  </div>
+                )}
+                
+                {/* Total Amount - Monthly emphasized */}
+                <div className="flex justify-between pt-2 border-t mt-2">
+                  <span className="font-bold text-base">Monthly Amount:</span>
+                  <span className="font-bold text-lg text-primary">${agreement.monthlyAmount.toFixed(2)}</span>
+                </div>
+                
+                {/* Yearly Total */}
+                <div className="flex justify-between text-sm pt-2">
+                  <span className="font-medium text-muted-foreground">Yearly Total:</span>
+                  <span className="font-semibold">${(agreement.monthlyAmount * 12).toFixed(2)}</span>
                 </div>
               </div>
             </div>

@@ -10,7 +10,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { mockCustomers, mockInventory, mockEmployees, mockDiscounts, mockInvoices } from "@/data/mobileMockData";
 import { Search, Plus, Minus, X, ChevronsUpDown, Check, Package, FileText, Save, Upload, Tag, Camera, RefreshCw, List } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -513,6 +513,7 @@ const AddInvoice = () => {
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Quick Add Customer</DialogTitle>
+            <DialogDescription>Add a new customer to your list</DialogDescription>
           </DialogHeader>
           <div className="space-y-3 mt-2">
             <div>
@@ -1011,6 +1012,7 @@ const AddInvoice = () => {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Add Existing Item</DialogTitle>
+                    <DialogDescription>Select items from your inventory</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div className="bg-muted/50 rounded-lg p-3">
@@ -1106,6 +1108,7 @@ const AddInvoice = () => {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Add Custom Item</DialogTitle>
+                    <DialogDescription>Create and add a custom item</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div>
@@ -1192,6 +1195,7 @@ const AddInvoice = () => {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Set Price for Variable Item</DialogTitle>
+                    <DialogDescription>Enter the price for this variable-priced item</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 mt-4">
                     {pendingVariableItem && (
@@ -1476,7 +1480,7 @@ const AddInvoice = () => {
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Discount</DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">Select an existing discount or create a custom one</p>
+              <DialogDescription>Select an existing discount or create a custom one</DialogDescription>
             </DialogHeader>
             <div className="space-y-6 mt-4">
               <div className="border-t pt-4">

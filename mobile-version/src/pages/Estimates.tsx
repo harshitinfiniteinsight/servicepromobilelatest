@@ -12,13 +12,15 @@ import SendSMSModal from "@/components/modals/SendSMSModal";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import ShareAddressModal from "@/components/modals/ShareAddressModal";
 import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
+import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import { mockEstimates, mockCustomers, mockEmployees, mockInvoices } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt, FilePlus, CreditCard, DollarSign, Briefcase, StickyNote } from "lucide-react";
+import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt, FilePlus, CreditCard, DollarSign, Briefcase, StickyNote, Calendar as CalendarIcon } from "lucide-react";
 import { toast } from "sonner";
+import { format } from "date-fns";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import { createPaymentNotification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
@@ -39,6 +41,11 @@ const Estimates = () => {
   const [selectedEstimateForAction, setSelectedEstimateForAction] = useState<any>(null);
   const [deactivatedEstimates, setDeactivatedEstimates] = useState<Set<string>>(new Set());
   const [statusFilterValue, setStatusFilterValue] = useState<string>("all");
+  const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
+    from: undefined,
+    to: undefined,
+  });
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [convertedEstimates, setConvertedEstimates] = useState<Set<string>>(new Set());
   const [showInvoicePreview, setShowInvoicePreview] = useState(false);
   const [previewInvoice, setPreviewInvoice] = useState<any>(null);
@@ -77,6 +84,36 @@ const Estimates = () => {
     }
   }, [deactivatedEstimates]);
 
+  // Date range filtering helper
+  const isWithinDateRange = (dateString: string) => {
+    if (!dateRange.from && !dateRange.to) return true;
+    
+    const date = new Date(dateString);
+    date.setHours(0, 0, 0, 0);
+    
+    if (dateRange.from && dateRange.to) {
+      const start = new Date(dateRange.from);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+      return date >= start && date <= end;
+    } else if (dateRange.from) {
+      const start = new Date(dateRange.from);
+      start.setHours(0, 0, 0, 0);
+      return date >= start;
+    } else if (dateRange.to) {
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+      return date <= end;
+    }
+    return true;
+  };
+
+  const handleDateRangeConfirm = (range: { from: Date | undefined; to: Date | undefined }) => {
+    setDateRange(range);
+    setShowDateRangePicker(false);
+  };
+
   const filteredEstimates = mockEstimates.map(est => {
     // Check if estimate has been converted
     const isConverted = convertedEstimates.has(est.id);
@@ -95,6 +132,9 @@ const Estimates = () => {
     // Filter by status (All / Paid / Unpaid)
     const matchesStatus = statusFilterValue === "all" || est.status === statusFilterValue;
 
+    // Filter by date range
+    const matchesDateRange = isWithinDateRange(est.issueDate);
+
     // Filter by tab
     // Activate: Both Paid and Unpaid estimates that are NOT deactivated
     // Deactivated: Only Unpaid estimates that ARE deactivated
@@ -107,7 +147,7 @@ const Estimates = () => {
       matchesTab = !isDeactivated;
     }
 
-    return matchesSearch && matchesStatus && matchesTab;
+    return matchesSearch && matchesStatus && matchesDateRange && matchesTab;
   });
 
   const handlePayNow = (estimateId: string, e: React.MouseEvent) => {
@@ -657,6 +697,25 @@ const Estimates = () => {
                     {showFilters && (
                       <div className="flex gap-2">
                         <div className="flex-1 min-w-0">
+                          <Button
+                            variant="outline"
+                            onClick={() => setShowDateRangePicker(true)}
+                            className="w-full h-9 px-2.5 text-xs font-normal justify-start gap-1.5"
+                          >
+                            <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                            {dateRange.from && dateRange.to ? (
+                              <span className="truncate text-left text-xs">
+                                {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
+                              </span>
+                            ) : dateRange.from ? (
+                              <span className="truncate text-left text-xs">{format(dateRange.from, "MM/dd/yyyy")}</span>
+                            ) : (
+                              <span className="text-muted-foreground truncate text-left text-xs">Date Range</span>
+                            )}
+                          </Button>
+                        </div>
+
+                        <div className="flex-1 min-w-0">
                           <Select value={statusFilterValue} onValueChange={setStatusFilterValue}>
                             <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
                               <SelectValue placeholder="Status" />
@@ -714,8 +773,27 @@ const Estimates = () => {
         ) : (
           // Employee view: No tabs, just the list with filters
           <div className="space-y-2.5">
-            {/* Status Filter */}
+            {/* Date Range & Status Filter */}
             <div className="flex gap-2">
+              <div className="flex-1 min-w-0">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDateRangePicker(true)}
+                  className="w-full h-9 px-2.5 text-xs font-normal justify-start gap-1.5"
+                >
+                  <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  {dateRange.from && dateRange.to ? (
+                    <span className="truncate text-left text-xs">
+                      {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
+                    </span>
+                  ) : dateRange.from ? (
+                    <span className="truncate text-left text-xs">{format(dateRange.from, "MM/dd/yyyy")}</span>
+                  ) : (
+                    <span className="text-muted-foreground truncate text-left text-xs">Date Range</span>
+                  )}
+                </Button>
+              </div>
+
               <div className="flex-1 min-w-0">
                 <Select value={statusFilterValue} onValueChange={setStatusFilterValue}>
                   <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
@@ -910,6 +988,14 @@ const Estimates = () => {
           }}
         />
       )}
+
+      {/* Date Range Picker Modal */}
+      <DateRangePickerModal
+        isOpen={showDateRangePicker}
+        onClose={() => setShowDateRangePicker(false)}
+        dateRange={dateRange}
+        onConfirm={handleDateRangeConfirm}
+      />
     </div>
   );
 };

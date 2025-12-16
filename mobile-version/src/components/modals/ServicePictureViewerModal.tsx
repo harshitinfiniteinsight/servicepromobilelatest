@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -58,6 +58,8 @@ const ServicePictureViewerModal = ({
   return (
     <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-full w-full h-full p-0 gap-0 bg-black/95 border-0 [&>button]:hidden">
+        <DialogTitle className="sr-only">Service Picture Viewer</DialogTitle>
+        <DialogDescription className="sr-only">Viewing service picture {currentIndex + 1} of {images.length}</DialogDescription>
         {/* Close Button */}
         <Button
           variant="ghost"
