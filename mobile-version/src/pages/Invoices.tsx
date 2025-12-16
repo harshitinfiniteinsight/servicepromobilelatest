@@ -584,6 +584,12 @@ const Invoices = () => {
       const isUnpaidInvoice = invoice.status === "Open" || invoice.status === "Unpaid";
       const shouldRestrictActions = isEmployee && isUnpaidInvoice;
 
+      // Check if invoice has been converted or is from sell_product
+      const invoiceStatus = (invoice as any).status || invoice.status;
+      const isConverted = invoiceStatus === "Job Created";
+      const invoiceSource = (invoice as any).source;
+      const isSellProduct = invoiceSource === "sell_product";
+
       const items: KebabMenuItem[] = [
         {
           label: "Preview",
@@ -600,7 +606,12 @@ const Invoices = () => {
           icon: DollarSign,
           action: () => handleMenuAction(invoice, "pay-cash"),
         },
-        // "Convert to Job" should only appear for Paid invoices, not Unpaid
+        // Add "Convert to Job" for unpaid invoices (same as paid)
+        ...(!isSellProduct && !isConverted ? [{
+          label: "Convert to Job",
+          icon: Briefcase,
+          action: () => handleMenuAction(invoice, "convert-to-job"),
+        }] : []),
         {
           label: "Send Email",
           icon: Mail,

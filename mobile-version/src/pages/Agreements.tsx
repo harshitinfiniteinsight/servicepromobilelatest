@@ -313,9 +313,10 @@ const Agreements = () => {
                 { label: "Create New Agreement", icon: FilePlus, action: () => handleMenuAction(agreement.id, "create-new-agreement"), separator: true },
               ]
               : [
-                // Unpaid agreements: Preview, Send Email, Send SMS, Edit Agreement
-                // "Convert to Job" should only appear for Paid agreements, not Unpaid
+                // Unpaid agreements: Preview, Convert to Job (if not converted), Send Email, Send SMS, Edit Agreement
                 { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
+                // Add "Convert to Job" for unpaid agreements (same as paid)
+                ...(!isConverted ? [{ label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") }] : []),
                 { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
                 { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
                 // Edit Agreement: Only for merchants, not employees

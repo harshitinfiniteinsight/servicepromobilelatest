@@ -567,6 +567,9 @@ const Estimates = () => {
     }
 
     if (estimate.status === "Unpaid") {
+      // Check if estimate has already been converted to job
+      const isConverted = estimate.status === "Converted to Job" || convertedEstimates.includes(estimate.id);
+
       const items: KebabMenuItem[] = [
         {
           label: "Preview",
@@ -583,7 +586,12 @@ const Estimates = () => {
           icon: DollarSign,
           action: () => handleMenuAction("pay-cash", estimate.id),
         },
-        // "Convert to Job" should only appear for Paid estimates, not Unpaid
+        // Add "Convert to Job" for unpaid estimates (same as paid)
+        ...(!isConverted ? [{
+          label: "Convert to Job",
+          icon: Briefcase,
+          action: () => handleMenuAction("convert-to-job", estimate.id),
+        }] : []),
         {
           label: "Send Email",
           icon: Mail,
