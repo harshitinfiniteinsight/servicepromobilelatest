@@ -16,7 +16,7 @@ import { Search, Plus, Minus, X, ChevronsUpDown, Check, Package, FileText, Save,
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { showSuccessToast } from "@/utils/toast";
-import { createInvoice } from "@/services/invoiceService";
+import { createInvoice, updateInvoice } from "@/services/invoiceService";
 import { addNotes } from "@/services/noteService";
 
 const AddInvoice = () => {
@@ -1627,9 +1627,46 @@ const AddInvoice = () => {
             <Button
               className="flex-1 h-9 text-sm"
               onClick={async () => {
+                // Calculate amounts (used for both create and update)
+                const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const taxAmount = subtotal * (tax / 100);
+                const discountAmount = selectedDiscount
+                  ? selectedDiscount.type === "%"
+                    ? subtotal * (selectedDiscount.value / 100)
+                    : selectedDiscount.value
+                  : discountType === "%"
+                    ? subtotal * (discount / 100)
+                    : discount;
+                const total = subtotal + taxAmount - discountAmount;
+
                 if (isEditMode) {
-                  showSuccessToast("Invoice updated successfully");
-                  navigate("/invoices");
+                  // Update existing invoice
+                  try {
+                    const updatedData = {
+                      items: items.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        amount: item.price * item.quantity,
+                      })),
+                      subtotal,
+                      tax: taxAmount,
+                      total,
+                      amount: total,
+                      discount: discountAmount,
+                      discountType: discountType as "%" | "$",
+                      notes: notes || undefined,
+                      type: invoiceType as "single" | "recurring",
+                    };
+
+                    await updateInvoice(id!, updatedData);
+                    showSuccessToast("Invoice updated successfully");
+                    navigate("/invoices");
+                  } catch (error) {
+                    console.error("Error updating invoice:", error);
+                    toast.error("Failed to update invoice");
+                  }
                 } else {
                   // Create invoice
                   if (!selectedCustomer) {
@@ -1642,13 +1679,6 @@ const AddInvoice = () => {
                     toast.error("Customer not found");
                     return;
                   }
-
-                  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-                  const taxAmount = subtotal * (tax / 100);
-                  const discountAmount = discountType === "%" 
-                    ? subtotal * (discount / 100)
-                    : discount;
-                  const total = subtotal + taxAmount - discountAmount;
 
                   const invoiceData = {
                     customerId: selectedCustomer,
