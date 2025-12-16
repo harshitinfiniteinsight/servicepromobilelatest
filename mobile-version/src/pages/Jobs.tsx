@@ -864,13 +864,13 @@ const Jobs = () => {
       />
 
       {/* Search & Filter Header - Fixed with scrolling content */}
-      <div className="px-4 py-3 bg-background border-b z-10 space-y-3 shadow-sm">
+      <div className="px-4 py-3 bg-background border-b z-10 shadow-sm">
         {/* Search Bar */}
-        <div className="relative mb-3">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-500" />
           <Input
             placeholder="Search jobs, customers..."
-            className="pl-10 bg-white border border-gray-200 h-10 rounded-lg"
+            className="w-full h-12 pl-11 pr-4 text-base bg-gray-50 border-2 border-gray-300 rounded-lg shadow-sm focus:border-primary focus:ring-2 focus:ring-primary/20 focus:bg-white transition-all"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
