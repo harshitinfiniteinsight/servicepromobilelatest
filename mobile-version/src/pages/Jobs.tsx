@@ -1005,7 +1005,7 @@ const Jobs = () => {
         )}
       </div>
 
-      <div className="flex-1 overflow-y-auto scrollable bg-gray-50/50">
+      <div className="flex-1 overflow-y-auto scrollable bg-gray-50/50" style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top) + 0.5rem)' }}>
         {/* Metrics Section - Scrollable Carousel */}
         <div className="relative border-b bg-background shadow-sm mb-2">
           {/* Navigation Arrows - Absolute Positioned */}
