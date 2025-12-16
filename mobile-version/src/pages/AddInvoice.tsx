@@ -227,7 +227,8 @@ const AddInvoice = () => {
   const [tax, setTax] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState<"%" | "$">("%");
-  const [selectedDiscount, setSelectedDiscount] = useState<typeof mockDiscounts[0] | null>(null);
+  const [selectedDiscounts, setSelectedDiscounts] = useState<Array<typeof mockDiscounts[0]>>([]);
+  const [customDiscounts, setCustomDiscounts] = useState<Array<{ name: string; type: "%" | "$"; value: number }>>([]);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [customDiscountValue, setCustomDiscountValue] = useState("");
   const [customDiscountType, setCustomDiscountType] = useState<"%" | "$">("%");
@@ -448,16 +449,28 @@ const AddInvoice = () => {
     setItems(prevItems => prevItems.filter(item => item.id !== id));
   };
 
-  const subtotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Calculate Item Total (sum of all line items)
+  const itemTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  
+  // Calculate total discount from all sources (based on item total)
+  const selectedDiscountsAmount = selectedDiscounts.reduce((sum, disc) => {
+    return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+  }, 0);
+  
+  const customDiscountsAmount = customDiscounts.reduce((sum, disc) => {
+    return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+  }, 0);
+  
+  const totalDiscounts = selectedDiscountsAmount + customDiscountsAmount;
+  
+  // Calculate Subtotal (after discounts)
+  const subtotal = Math.max(0, itemTotal - totalDiscounts);
+  
+  // Calculate Tax (on subtotal after discounts)
   const taxAmount = subtotal * (tax / 100);
-  const discountAmount = selectedDiscount
-    ? selectedDiscount.type === "%"
-      ? subtotal * (selectedDiscount.value / 100)
-      : selectedDiscount.value
-    : discountType === "%"
-      ? subtotal * (discount / 100)
-      : discount;
-  const total = Math.max(0, subtotal + taxAmount - discountAmount);
+  
+  // Calculate Total
+  const total = subtotal + taxAmount;
 
   const steps = [
     { number: 1, title: "Customer & Team" },
@@ -1369,35 +1382,96 @@ const AddInvoice = () => {
                 onClick={() => setShowDiscountModal(true)}
               >
                 <Tag className="h-4 w-4 mr-2" />
-                {selectedDiscount || discount > 0
-                  ? selectedDiscount
-                    ? `${selectedDiscount.name} (${selectedDiscount.type === "%" ? `${selectedDiscount.value}%` : `$${selectedDiscount.value}`})`
-                    : `Custom Discount (${discountType === "%" ? `${discount}%` : `$${discount}`})`
+                {selectedDiscounts.length > 0 || customDiscounts.length > 0
+                  ? `${selectedDiscounts.length + customDiscounts.length} Discount${selectedDiscounts.length + customDiscounts.length > 1 ? 's' : ''} Applied`
                   : "Add Order Discount"}
               </Button>
-              {(selectedDiscount || discount > 0) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-destructive"
-                  onClick={() => {
-                    setSelectedDiscount(null);
-                    setDiscount(0);
-                    setCustomDiscountValue("");
-                  }}
-                >
-                  Remove Discount
-                </Button>
-              )}
+              
+              {/* Display all applied discounts */}
+              {selectedDiscounts.map((disc) => (
+                <div key={disc.id} className="flex items-center justify-between p-2 bg-green-50 rounded-lg border border-green-200">
+                  <span className="text-sm font-medium text-green-900">
+                    {disc.name} ({disc.type === "%" ? `${disc.value}%` : `$${disc.value}`})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-100"
+                    onClick={() => {
+                      setSelectedDiscounts(prev => prev.filter(d => d.id !== disc.id));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              
+              {customDiscounts.map((disc, index) => (
+                <div key={`custom-${index}`} className="flex items-center justify-between p-2 bg-blue-50 rounded-lg border border-blue-200">
+                  <span className="text-sm font-medium text-blue-900">
+                    {disc.name} ({disc.type === "%" ? `${disc.value}%` : `$${disc.value}`})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-red-600 hover:text-red-700 hover:bg-red-100"
+                    onClick={() => {
+                      setCustomDiscounts(prev => prev.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
             <div className="p-4 rounded-xl bg-red-50/50 border border-red-100/50 shadow-sm">
               <h3 className="text-lg font-bold mb-4 text-gray-900">Order Summary</h3>
+              
+              {/* 1. Item Total */}
               <div className="flex justify-between mb-2">
-                <span className="text-sm text-gray-700">Subtotal:</span>
-                <span className="text-sm font-medium text-gray-900">${subtotal.toFixed(2)}</span>
+                <span className="text-sm text-gray-700">Item Total:</span>
+                <span className="text-sm font-medium text-gray-900">${itemTotal.toFixed(2)}</span>
               </div>
+              
+              {/* 2. Discounts - List each individually */}
+              {selectedDiscounts.length > 0 || customDiscounts.length > 0 ? (
+                <div className="mb-2">
+                  {selectedDiscounts.map((disc) => {
+                    const amount = disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value;
+                    return (
+                      <div key={disc.id} className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-600">  {disc.name}:</span>
+                        <span className="text-sm font-medium text-green-600">-${amount.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                  {customDiscounts.map((disc, index) => {
+                    const amount = disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value;
+                    return (
+                      <div key={`custom-${index}`} className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-600">  {disc.name}:</span>
+                        <span className="text-sm font-medium text-green-600">-${amount.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                  {/* Total Discounts */}
+                  <div className="flex justify-between mb-2 pt-1 border-t border-gray-200">
+                    <span className="text-sm font-semibold text-gray-700">Total Discounts:</span>
+                    <span className="text-sm font-semibold text-green-600">-${totalDiscounts.toFixed(2)}</span>
+                  </div>
+                </div>
+              ) : null}
+              
+              {/* 3. Subtotal (after discounts) */}
+              <div className="flex justify-between mb-2 pb-2 border-b border-gray-200">
+                <span className="text-sm font-semibold text-gray-700">Subtotal:</span>
+                <span className="text-sm font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
+              </div>
+              
+              {/* 4. Tax (calculated on subtotal) */}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-700">Tax:</span>
                 <div className="flex items-center gap-1">
@@ -1416,12 +1490,8 @@ const AddInvoice = () => {
                   <span className="text-sm font-medium text-gray-900 ml-2">${taxAmount.toFixed(2)}</span>
                 </div>
               </div>
-              {(selectedDiscount || discount > 0) && (
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm text-gray-700">Discount:</span>
-                  <span className="text-sm font-medium text-green-600">-${Math.min(discountAmount, subtotal).toFixed(2)}</span>
-                </div>
-              )}
+              
+              {/* 5. Total */}
               <div className="flex justify-between pt-2 mt-2 border-t border-gray-200 items-baseline">
                 <span className="text-lg font-bold text-gray-900">Total:</span>
                 <span className="text-2xl font-bold text-orange-600">${total.toFixed(2)}</span>
@@ -1516,13 +1586,12 @@ const AddInvoice = () => {
                   <Button
                     className="w-full"
                     onClick={() => {
-                      if (customDiscountValue) {
+                      if (customDiscountValue && parseFloat(customDiscountValue) > 0) {
                         const value = parseFloat(customDiscountValue);
-                        setDiscount(value);
-                        setDiscountType(customDiscountType);
-                        setSelectedDiscount(null);
+                        const discountName = `Custom ${customDiscountType === "%" ? "Percentage" : "Fixed"} Discount`;
+                        setCustomDiscounts(prev => [...prev, { name: discountName, type: customDiscountType, value }]);
                         setCustomDiscountValue("");
-                        setShowDiscountModal(false);
+                        toast.success("Custom discount added");
                       }
                     }}
                     disabled={!customDiscountValue || parseFloat(customDiscountValue) <= 0}
@@ -1541,19 +1610,23 @@ const AddInvoice = () => {
                       const calculatedDiscount = disc.type === "%" ? subtotal * (disc.value / 100) : disc.value;
                       const isExceedsSubtotal = calculatedDiscount > subtotal;
 
+                      const isSelected = selectedDiscounts.some(d => d.id === disc.id);
+                      
                       return (
                         <div
                           key={disc.id}
                           onClick={() => {
                             if (!isExceedsSubtotal) {
-                              setSelectedDiscount(disc);
-                              setDiscount(0);
-                              setShowDiscountModal(false);
+                              if (isSelected) {
+                                setSelectedDiscounts(prev => prev.filter(d => d.id !== disc.id));
+                              } else {
+                                setSelectedDiscounts(prev => [...prev, disc]);
+                              }
                             }
                           }}
                           className={cn(
                             "p-4 rounded-xl border cursor-pointer transition-colors",
-                            selectedDiscount?.id === disc.id
+                            isSelected
                               ? "bg-primary/10 border-primary"
                               : isExceedsSubtotal
                               ? "opacity-50 cursor-not-allowed"
@@ -1563,14 +1636,21 @@ const AddInvoice = () => {
                           <div className="flex items-center justify-between">
                             <div className="flex-1">
                               <div className="flex items-center gap-2">
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={() => {}}
+                                  className="h-4 w-4 rounded border-gray-300"
+                                  disabled={isExceedsSubtotal}
+                                />
                                 <p className="font-semibold">{disc.name}</p>
                               </div>
-                              <p className="text-sm text-primary font-medium mt-1">
+                              <p className="text-sm text-primary font-medium mt-1 ml-6">
                                 {disc.type} {disc.value}
                                 {disc.type === "%" ? "%" : ""}
                               </p>
                               {isExceedsSubtotal && (
-                                <p className="text-xs text-destructive mt-1">Exceeds subtotal amount</p>
+                                <p className="text-xs text-destructive mt-1 ml-6">Exceeds subtotal amount</p>
                               )}
                             </div>
                           </div>
@@ -1578,6 +1658,17 @@ const AddInvoice = () => {
                       );
                     })}
                 </div>
+              </div>
+              
+              <div className="flex gap-2 pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => setShowDiscountModal(false)}
+                >
+                  Done
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -1628,16 +1719,21 @@ const AddInvoice = () => {
               className="flex-1 h-9 text-sm"
               onClick={async () => {
                 // Calculate amounts (used for both create and update)
-                const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                const itemTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+                
+                // Calculate total discount from all sources
+                const selectedDiscountsTotal = selectedDiscounts.reduce((sum, disc) => {
+                  return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+                }, 0);
+                
+                const customDiscountsTotal = customDiscounts.reduce((sum, disc) => {
+                  return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+                }, 0);
+                
+                const discountAmount = selectedDiscountsTotal + customDiscountsTotal;
+                const subtotal = Math.max(0, itemTotal - discountAmount);
                 const taxAmount = subtotal * (tax / 100);
-                const discountAmount = selectedDiscount
-                  ? selectedDiscount.type === "%"
-                    ? subtotal * (selectedDiscount.value / 100)
-                    : selectedDiscount.value
-                  : discountType === "%"
-                    ? subtotal * (discount / 100)
-                    : discount;
-                const total = subtotal + taxAmount - discountAmount;
+                const total = subtotal + taxAmount;
 
                 if (isEditMode) {
                   // Update existing invoice

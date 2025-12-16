@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { mockCustomers, mockInventory, mockEmployees, mockDiscounts, mockEstimates } from "@/data/mobileMockData";
 import { Search, Plus, Minus, X, RefreshCw, List, Check, ChevronsUpDown, Package, FileText, Save, Upload, Tag, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -49,7 +50,8 @@ const AddEstimate = () => {
   const [tax, setTax] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState<"%" | "$">("%");
-  const [selectedDiscount, setSelectedDiscount] = useState<any>(null);
+  const [selectedDiscounts, setSelectedDiscounts] = useState<Array<typeof mockDiscounts[0]>>([]);
+  const [customDiscounts, setCustomDiscounts] = useState<Array<{ name: string; type: "%" | "$"; value: number }>>([]);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [customDiscountValue, setCustomDiscountValue] = useState("");
   const [customDiscountType, setCustomDiscountType] = useState<"%" | "$">("%");
@@ -133,7 +135,8 @@ const AddEstimate = () => {
         // Prefill tax and discount (defaults)
         setTax(0);
         setDiscount(0);
-        setSelectedDiscount(null);
+        setSelectedDiscounts([]);
+        setCustomDiscounts([]);
         
         // Prefill notes and other fields (empty by default, can be enhanced)
         setNotes("");
@@ -360,16 +363,28 @@ const AddEstimate = () => {
     setItems(items.filter(i => i.id !== id));
   };
 
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  // Calculate Item Total (sum of all line items)
+  const itemTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  // Calculate total discount from all sources (based on item total)
+  const selectedDiscountsAmount = selectedDiscounts.reduce((sum, disc) => {
+    return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+  }, 0);
+  
+  const customDiscountsAmount = customDiscounts.reduce((sum, disc) => {
+    return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+  }, 0);
+  
+  const totalDiscounts = selectedDiscountsAmount + customDiscountsAmount;
+  
+  // Calculate Subtotal (after discounts)
+  const subtotal = Math.max(0, itemTotal - totalDiscounts);
+  
+  // Calculate Tax (on subtotal after discounts)
   const taxAmount = subtotal * (tax / 100);
-  const discountAmount = selectedDiscount 
-    ? (selectedDiscount.type === "%" 
-        ? (subtotal * selectedDiscount.value / 100) 
-        : selectedDiscount.value)
-    : (discountType === "%" 
-        ? (subtotal * discount / 100) 
-        : discount);
-  const total = Math.max(0, subtotal + taxAmount - discountAmount);
+  
+  // Calculate Total
+  const total = subtotal + taxAmount;
 
   const handleSyncItem = () => {
     toast.success("Syncing items...");
@@ -1103,60 +1118,117 @@ const AddEstimate = () => {
                 onClick={() => setShowDiscountModal(true)}
               >
                 <Tag className="h-4 w-4 mr-2" />
-                {selectedDiscount || discount > 0 
-                  ? selectedDiscount 
-                    ? `${selectedDiscount.name} (${selectedDiscount.type === "%" ? `${selectedDiscount.value}%` : `$${selectedDiscount.value}`})`
-                    : `Custom Discount (${discountType === "%" ? `${discount}%` : `$${discount}`})`
+                {selectedDiscounts.length > 0 || customDiscounts.length > 0
+                  ? `Discounts (${selectedDiscounts.length + customDiscounts.length})`
                   : "Add Order Discount"}
               </Button>
-              {(selectedDiscount || discount > 0) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-destructive"
-                  onClick={() => {
-                    setSelectedDiscount(null);
-                    setDiscount(0);
-                    setCustomDiscountValue("");
-                  }}
-                >
-                  Remove Discount
-                </Button>
-              )}
+              
+              {/* Display all applied discounts */}
+              {selectedDiscounts.map((disc, index) => (
+                <div key={`selected-${index}`} className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                  <span className="text-sm text-gray-700">
+                    {disc.name} ({disc.type === "%" ? `${disc.value}%` : `$${disc.value}`})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-destructive"
+                    onClick={() => {
+                      setSelectedDiscounts(prev => prev.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              
+              {customDiscounts.map((disc, index) => (
+                <div key={`custom-${index}`} className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                  <span className="text-sm text-gray-700">
+                    Custom: {disc.name} ({disc.type === "%" ? `${disc.value}%` : `$${disc.value}`})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-destructive"
+                    onClick={() => {
+                      setCustomDiscounts(prev => prev.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
             {/* Order Summary */}
             <div className="p-4 rounded-xl bg-red-50/50 border border-red-100/50 shadow-sm">
               <h3 className="text-lg font-bold mb-4 text-gray-900">Order Summary</h3>
+              
+              {/* 1. Item Total */}
               <div className="flex justify-between mb-2">
-                <span className="text-sm text-gray-700">Subtotal:</span>
-                <span className="text-sm font-medium text-gray-900">${subtotal.toFixed(2)}</span>
+                <span className="text-sm text-gray-700">Item Total:</span>
+                <span className="text-sm font-medium text-gray-900">${itemTotal.toFixed(2)}</span>
               </div>
+              
+              {/* 2. Discounts - List each individually */}
+              {selectedDiscounts.length > 0 || customDiscounts.length > 0 ? (
+                <div className="mb-2">
+                  {selectedDiscounts.map((disc, index) => {
+                    const amount = disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value;
+                    return (
+                      <div key={`summary-selected-${index}`} className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-600">  {disc.name}:</span>
+                        <span className="text-sm font-medium text-green-600">-${amount.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                  {customDiscounts.map((disc, index) => {
+                    const amount = disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value;
+                    return (
+                      <div key={`summary-custom-${index}`} className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-600">  {disc.name}:</span>
+                        <span className="text-sm font-medium text-green-600">-${amount.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                  {/* Total Discounts */}
+                  <div className="flex justify-between mb-2 pt-1 border-t border-gray-200">
+                    <span className="text-sm font-semibold text-gray-700">Total Discounts:</span>
+                    <span className="text-sm font-semibold text-green-600">-${totalDiscounts.toFixed(2)}</span>
+                  </div>
+                </div>
+              ) : null}
+              
+              {/* 3. Subtotal (after discounts) */}
+              <div className="flex justify-between mb-2 pb-2 border-b border-gray-200">
+                <span className="text-sm font-semibold text-gray-700">Subtotal:</span>
+                <span className="text-sm font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
+              </div>
+              
+              {/* 4. Tax (calculated on subtotal) */}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-700">Tax:</span>
                 <div className="flex items-center gap-1">
-              <Input
-                type="number"
+                  <Input
+                    type="number"
                     value={tax}
                     onChange={(e) => {
                       const value = parseFloat(e.target.value);
                       setTax(isNaN(value) ? 0 : value);
                     }}
                     className="w-20 h-8 text-right text-sm p-1 border-gray-300 rounded"
-                min="0"
+                    min="0"
                     step="0.01"
                   />
                   <span className="text-sm text-gray-700">%</span>
                   <span className="text-sm font-medium text-gray-900 ml-2">${taxAmount.toFixed(2)}</span>
                 </div>
               </div>
-              {(selectedDiscount || discount > 0) && (
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm text-gray-700">Discount:</span>
-                  <span className="text-sm font-medium text-green-600">-${discountAmount.toFixed(2)}</span>
-                </div>
-              )}
+              
+              {/* 5. Total */}
               <div className="flex justify-between pt-2 mt-2 border-t border-gray-200 items-baseline">
                 <span className="text-lg font-bold text-gray-900">Total:</span>
                 <span className="text-2xl font-bold text-orange-600">${total.toFixed(2)}</span>
@@ -1215,64 +1287,14 @@ const AddEstimate = () => {
         <Dialog open={showDiscountModal} onOpenChange={setShowDiscountModal}>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add Discount</DialogTitle>
+              <DialogTitle>Add Discounts</DialogTitle>
               <DialogDescription>
-                Select an existing discount or create a custom one
+                Select multiple discounts or create custom ones
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 mt-4">
-              {/* Add Custom Discount */}
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Custom Discount
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Discount Value *</Label>
-                    <Input
-                      type="number"
-                      placeholder="Enter amount"
-                      value={customDiscountValue}
-                      onChange={(e) => setCustomDiscountValue(e.target.value)}
-                      className="mt-2"
-                      min="0"
-                      step="0.01"
-                    />
-            </div>
-                  <div>
-                    <Label>Type *</Label>
-                    <Select value={customDiscountType} onValueChange={(value: "%" | "$") => setCustomDiscountType(value)}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="%">Percentage (%)</SelectItem>
-                        <SelectItem value="$">Fixed Amount ($)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      if (customDiscountValue) {
-                        const value = parseFloat(customDiscountValue);
-                        setDiscount(value);
-                        setDiscountType(customDiscountType);
-                        setSelectedDiscount(null);
-                        setCustomDiscountValue("");
-                        setShowDiscountModal(false);
-                      }
-                    }}
-                    disabled={!customDiscountValue || parseFloat(customDiscountValue) <= 0}
-                  >
-                    Add Custom Discount
-                  </Button>
-                </div>
-              </div>
-
               {/* Select from Existing Discounts */}
-              <div className="border-t pt-4">
+              <div>
                 <h3 className="font-semibold mb-4">Select from Existing Discounts</h3>
                 <div className="space-y-2">
                   {mockDiscounts.filter(d => d.active).map((disc) => {
@@ -1280,20 +1302,23 @@ const AddEstimate = () => {
                       ? subtotal * (disc.value / 100)
                       : disc.value;
                     const isExceedsSubtotal = calculatedDiscount > subtotal;
+                    const isSelected = selectedDiscounts.some(d => d.id === disc.id);
                     
                     return (
                       <div
                         key={disc.id}
                         onClick={() => {
                           if (!isExceedsSubtotal) {
-                            setSelectedDiscount(disc);
-                            setDiscount(0);
-                            setShowDiscountModal(false);
+                            if (isSelected) {
+                              setSelectedDiscounts(prev => prev.filter(d => d.id !== disc.id));
+                            } else {
+                              setSelectedDiscounts(prev => [...prev, disc]);
+                            }
                           }
                         }}
                         className={cn(
                           "p-4 rounded-xl border cursor-pointer transition-colors",
-                          selectedDiscount?.id === disc.id
+                          isSelected
                             ? "bg-primary/10 border-primary"
                             : isExceedsSubtotal
                             ? "opacity-50 cursor-not-allowed"
@@ -1303,22 +1328,100 @@ const AddEstimate = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={isSelected}
+                                disabled={isExceedsSubtotal}
+                                className="pointer-events-none"
+                              />
                               <p className="font-semibold">{disc.name}</p>
-              </div>
-                            <p className="text-sm text-primary font-medium mt-1">
+                            </div>
+                            <p className="text-sm text-primary font-medium mt-1 ml-6">
                               {disc.type} {disc.value}{disc.type === "%" ? "%" : ""}
                             </p>
                             {isExceedsSubtotal && (
-                              <p className="text-xs text-destructive mt-1">
+                              <p className="text-xs text-destructive mt-1 ml-6">
                                 Exceeds subtotal amount
                               </p>
                             )}
                           </div>
                         </div>
-              </div>
+                      </div>
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Add Custom Discount */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Custom Discount
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Discount Name *</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., Special Offer"
+                      value={customDiscountValue}
+                      onChange={(e) => setCustomDiscountValue(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Value *</Label>
+                      <Input
+                        type="number"
+                        placeholder="Amount"
+                        value={discount}
+                        onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                        className="mt-2"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                      <Label>Type *</Label>
+                      <Select value={customDiscountType} onValueChange={(value: "%" | "$") => setCustomDiscountType(value)}>
+                        <SelectTrigger className="mt-2">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="%">Percentage (%)</SelectItem>
+                          <SelectItem value="$">Fixed Amount ($)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      if (customDiscountValue && discount > 0) {
+                        setCustomDiscounts(prev => [...prev, {
+                          name: customDiscountValue,
+                          type: customDiscountType,
+                          value: discount
+                        }]);
+                        setCustomDiscountValue("");
+                        setDiscount(0);
+                      }
+                    }}
+                    disabled={!customDiscountValue || discount <= 0}
+                  >
+                    Add Custom Discount
+                  </Button>
+                </div>
+              </div>
+
+              {/* Done Button */}
+              <div className="border-t pt-4">
+                <Button
+                  className="w-full"
+                  onClick={() => setShowDiscountModal(false)}
+                >
+                  Done
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -1370,16 +1473,21 @@ const AddEstimate = () => {
           ) : (
             <Button className="flex-1" onClick={async () => {
               // Calculate amounts (used for both create and update)
-              const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+              const itemTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+              
+              // Calculate total discount from all sources
+              const selectedDiscountsTotal = selectedDiscounts.reduce((sum, disc) => {
+                return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+              }, 0);
+              
+              const customDiscountsTotal = customDiscounts.reduce((sum, disc) => {
+                return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+              }, 0);
+              
+              const discountAmount = selectedDiscountsTotal + customDiscountsTotal;
+              const subtotal = Math.max(0, itemTotal - discountAmount);
               const taxAmount = subtotal * (tax / 100);
-              const discountAmount = selectedDiscount
-                ? selectedDiscount.type === "%"
-                  ? subtotal * (selectedDiscount.value / 100)
-                  : selectedDiscount.value
-                : discountType === "%"
-                  ? subtotal * (discount / 100)
-                  : discount;
-              const total = subtotal + taxAmount - discountAmount;
+              const total = subtotal + taxAmount;
 
               if (isEditMode) {
                 // Update existing estimate
@@ -1403,7 +1511,6 @@ const AddEstimate = () => {
                       total,
                       amount: total,
                       discount: discountAmount,
-                      discountType: discountType as "%" | "$",
                       notes: notes || undefined,
                     };
                     
@@ -1464,7 +1571,6 @@ const AddEstimate = () => {
                   tax: taxAmount,
                   total,
                   discount: discountAmount,
-                  discountType: discountType as "%" | "$",
                   notes: notes || undefined,
                   employeeId: selectedEmployee || undefined,
                   employeeName: selectedEmployee ? mockEmployees.find(e => e.id === selectedEmployee)?.name : undefined,
