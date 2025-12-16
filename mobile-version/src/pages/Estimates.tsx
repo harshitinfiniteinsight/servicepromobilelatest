@@ -501,8 +501,7 @@ const Estimates = () => {
 
     if (estimate.status === "Paid") {
       // Check if estimate has already been converted to job
-      const convertedEstimates = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
-      const isConverted = estimate.status === "Converted to Job" || convertedEstimates.includes(estimate.id);
+      const isConverted = estimate.status === "Converted to Job" || convertedEstimates.has(estimate.id);
 
       const items: KebabMenuItem[] = [
         {
@@ -568,7 +567,7 @@ const Estimates = () => {
 
     if (estimate.status === "Unpaid") {
       // Check if estimate has already been converted to job
-      const isConverted = estimate.status === "Converted to Job" || convertedEstimates.includes(estimate.id);
+      const isConverted = estimate.status === "Converted to Job" || convertedEstimates.has(estimate.id);
 
       const items: KebabMenuItem[] = [
         {
