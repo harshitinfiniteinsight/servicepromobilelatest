@@ -51,10 +51,57 @@ const Estimates = () => {
   const [previewInvoice, setPreviewInvoice] = useState<any>(null);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [selectedEstimateForNote, setSelectedEstimateForNote] = useState<string | null>(null);
+  const [allEstimates, setAllEstimates] = useState<any[]>([]);
 
   // Get user role from localStorage
   const userRole = localStorage.getItem("userType") || "merchant";
   const isEmployee = userRole === "employee";
+
+  // Load estimates from localStorage and merge with mock data
+  const loadEstimates = () => {
+    try {
+      const storedEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+      // Merge stored and mock estimates, avoiding duplicates
+      const estimateMap = new Map();
+      
+      // Add mock estimates first
+      mockEstimates.forEach(est => {
+        estimateMap.set(est.id, est);
+      });
+      
+      // Add/override with stored estimates
+      storedEstimates.forEach((est: any) => {
+        estimateMap.set(est.id, est);
+      });
+      
+      // Convert to array and sort by createdAt (most recent first)
+      const merged = Array.from(estimateMap.values()).sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.date || a.issueDate).getTime();
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.date || b.issueDate).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+      setAllEstimates(merged);
+    } catch (error) {
+      console.error("Error loading estimates:", error);
+      setAllEstimates(mockEstimates);
+    }
+  };
+
+  useEffect(() => {
+    loadEstimates();
+
+    // Reload when window gains focus (user navigates back)
+    const handleFocus = () => {
+      loadEstimates();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
 
   // Ensure employees always use "activate" filter (no tabs for employees)
   useEffect(() => {
@@ -114,7 +161,7 @@ const Estimates = () => {
     setShowDateRangePicker(false);
   };
 
-  const filteredEstimates = mockEstimates.map(est => {
+  const filteredEstimates = allEstimates.map(est => {
     // Check if estimate has been converted
     const isConverted = convertedEstimates.has(est.id);
     // Only update status if it's currently Unpaid and has been converted
@@ -152,7 +199,7 @@ const Estimates = () => {
 
   const handlePayNow = (estimateId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const estimate = mockEstimates.find(est => est.id === estimateId);
+    const estimate = allEstimates.find(est => est.id === estimateId);
     if (estimate) {
       setSelectedEstimate({ id: estimateId, amount: estimate.amount });
       setShowPaymentModal(true);
@@ -171,7 +218,7 @@ const Estimates = () => {
   };
 
   const handlePayCash = (estimateId: string) => {
-    const estimate = mockEstimates.find(est => est.id === estimateId);
+    const estimate = allEstimates.find(est => est.id === estimateId);
     if (!estimate) {
       toast.error("Estimate not found");
       return;
@@ -199,14 +246,14 @@ const Estimates = () => {
   const handleMenuAction = (action: string, estimateId: string) => {
     switch (action) {
       case "preview":
-        const estimate = mockEstimates.find(est => est.id === estimateId);
+        const estimate = allEstimates.find(est => est.id === estimateId);
         if (estimate) {
           setPreviewEstimate(estimate);
           setShowPreviewModal(true);
         }
         break;
       case "send-email":
-        const emailEstimate = mockEstimates.find(est => est.id === estimateId);
+        const emailEstimate = allEstimates.find(est => est.id === estimateId);
         if (emailEstimate) {
           const customer = mockCustomers.find(c => c.id === emailEstimate.customerId);
           setSelectedEstimateForAction({
@@ -219,7 +266,7 @@ const Estimates = () => {
         }
         break;
       case "send-sms":
-        const smsEstimate = mockEstimates.find(est => est.id === estimateId);
+        const smsEstimate = allEstimates.find(est => est.id === estimateId);
         if (smsEstimate) {
           const customer = mockCustomers.find(c => c.id === smsEstimate.customerId);
           setSelectedEstimateForAction({
@@ -235,7 +282,7 @@ const Estimates = () => {
         navigate(`/estimates/${estimateId}/edit`);
         break;
       case "share-address":
-        const shareEstimate = mockEstimates.find(est => est.id === estimateId);
+        const shareEstimate = allEstimates.find(est => est.id === estimateId);
         if (shareEstimate) {
           const customer = mockCustomers.find(c => c.id === shareEstimate.customerId);
           setSelectedEstimateForAction({
@@ -250,7 +297,7 @@ const Estimates = () => {
         setShowNoteModal(true);
         break;
       case "reassign":
-        const reassignEstimate = mockEstimates.find(est => est.id === estimateId);
+        const reassignEstimate = allEstimates.find(est => est.id === estimateId);
         if (reassignEstimate) {
           setSelectedEstimateForAction({
             ...reassignEstimate,
@@ -260,7 +307,7 @@ const Estimates = () => {
         }
         break;
       case "doc-history":
-        const docEstimate = mockEstimates.find(est => est.id === estimateId);
+        const docEstimate = allEstimates.find(est => est.id === estimateId);
         if (docEstimate) {
           // Navigate to customer profile
           navigate(`/customers/${docEstimate.customerId}`);
@@ -274,7 +321,7 @@ const Estimates = () => {
         toast.success("Processing refund...");
         break;
       case "convert-to-invoice":
-        const convertEstimate = mockEstimates.find(est => est.id === estimateId);
+        const convertEstimate = allEstimates.find(est => est.id === estimateId);
         if (convertEstimate) {
           const customer = mockCustomers.find(c => c.id === convertEstimate.customerId);
           // Find employee by name if employeeName exists, otherwise use first employee
@@ -324,7 +371,7 @@ const Estimates = () => {
         }
         break;
       case "create-new-estimate":
-        const createEstimate = mockEstimates.find(est => est.id === estimateId);
+        const createEstimate = allEstimates.find(est => est.id === estimateId);
         if (createEstimate) {
           const customer = mockCustomers.find(c => c.id === createEstimate.customerId);
           // Find employee by name if employeeName exists, otherwise use first employee
@@ -354,7 +401,7 @@ const Estimates = () => {
 
         // If invoice not found by ID, try to find by matching estimate data
         if (!invoice) {
-          const estimate = mockEstimates.find(est => est.id === estimateId);
+          const estimate = allEstimates.find(est => est.id === estimateId);
           if (estimate) {
             // Try to find invoice with same customer and similar amount
             invoice = mockInvoices.find(inv =>
@@ -396,7 +443,7 @@ const Estimates = () => {
         // Log activity
         const activateEstimate = async () => {
           const { addActivityLog } = await import("@/services/activityLogService");
-          const estimate = mockEstimates.find(e => e.id === estimateId);
+          const estimate = allEstimates.find(e => e.id === estimateId);
           if (estimate) {
             addActivityLog({
               type: "estimate",
@@ -412,7 +459,7 @@ const Estimates = () => {
         toast.success("Estimate activated");
         break;
       case "pay-now":
-        const payNowEstimate = mockEstimates.find(est => est.id === estimateId);
+        const payNowEstimate = allEstimates.find(est => est.id === estimateId);
         if (payNowEstimate) {
           setSelectedEstimate({ id: estimateId, amount: payNowEstimate.amount });
           setShowPaymentModal(true);
@@ -951,7 +998,7 @@ const Estimates = () => {
 
       {/* Document Note Modal */}
       {selectedEstimateForNote && (() => {
-        const estimate = mockEstimates.find(est => est.id === selectedEstimateForNote);
+        const estimate = allEstimates.find(est => est.id === selectedEstimateForNote);
         if (!estimate) return null;
         return (
           <DocumentNoteModal
