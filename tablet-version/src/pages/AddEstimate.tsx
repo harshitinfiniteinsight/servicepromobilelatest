@@ -15,6 +15,7 @@ import { addNotes } from "@/services/noteService";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import AddCustomerModal from "@/components/modals/AddCustomerModal";
 
 const AddEstimate = () => {
   const navigate = useNavigate();
@@ -60,11 +61,7 @@ const AddEstimate = () => {
   const [uploadedDocs, setUploadedDocs] = useState<string[]>([]);
   const [customerList, setCustomerList] = useState(() => [...mockCustomers]);
   const [showAddExisting, setShowAddExisting] = useState(false);
-  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
-  const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
-  const [newCustomerLastName, setNewCustomerLastName] = useState("");
-  const [newCustomerEmail, setNewCustomerEmail] = useState("");
-  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [showAddCustom, setShowAddCustom] = useState(false);
   const [customItemName, setCustomItemName] = useState("");
   const [customItemPrice, setCustomItemPrice] = useState("");
@@ -73,6 +70,18 @@ const AddEstimate = () => {
   const [pendingVariableItem, setPendingVariableItem] = useState<typeof mockInventory[0] | null>(null);
   const [variableItemPrice, setVariableItemPrice] = useState("");
   const processedReturnStateRef = useRef<string | null>(null);
+
+  // Load customers from shared store (localStorage) and merge with mock seed
+  useEffect(() => {
+    const storedCustomers = localStorage.getItem("servicepro_customers");
+    if (storedCustomers) {
+      const parsed = JSON.parse(storedCustomers);
+      const merged = [...parsed, ...mockCustomers.filter(mc => !parsed.find((pc: any) => pc.id === mc.id))];
+      setCustomerList(merged);
+    } else {
+      setCustomerList(mockCustomers);
+    }
+  }, []);
 
   // Handle prefill data from location.state (when creating new from paid item)
   useEffect(() => {
@@ -200,11 +209,11 @@ const AddEstimate = () => {
     i.sku.toLowerCase().includes(itemSearch.toLowerCase())
   );
 
-  // Sort customers by joinedDate (most recent first)
+  // Sort customers by createdAt/joinedDate (newest first)
   const sortedCustomers = [...customerList].sort((a, b) => {
-    const dateA = new Date(a.joinedDate).getTime();
-    const dateB = new Date(b.joinedDate).getTime();
-    return dateB - dateA; // Descending order (most recent first)
+    const dateA = new Date((a as any).createdAt || a.joinedDate).getTime();
+    const dateB = new Date((b as any).createdAt || b.joinedDate).getTime();
+    return dateB - dateA;
   });
 
   // Filter customers based on search
@@ -220,46 +229,11 @@ const AddEstimate = () => {
     employee.role.toLowerCase().includes(employeeSearch.toLowerCase())
   );
 
-  const resetQuickAddForm = () => {
-    setNewCustomerFirstName("");
-    setNewCustomerLastName("");
-    setNewCustomerEmail("");
-    setNewCustomerPhone("");
-  };
-
-  const handleQuickAddCustomer = () => {
-    if (
-      !newCustomerFirstName.trim() ||
-      !newCustomerLastName.trim() ||
-      !newCustomerEmail.trim() ||
-      !newCustomerPhone.trim()
-    ) {
-      toast.error("Please fill in all customer details.");
-      return;
-    }
-
-    const id = `CUST-${Date.now()}`;
-    const nowIso = new Date().toISOString();
-    const newCustomer = {
-      id,
-      name: `${newCustomerFirstName.trim()} ${newCustomerLastName.trim()}`,
-      email: newCustomerEmail.trim(),
-      phone: newCustomerPhone.trim(),
-      address: "",
-      status: "Active",
-      lastVisit: nowIso,
-      totalSpent: 0,
-      joinedDate: nowIso,
-      notes: "Added via quick add",
-    };
-
-    setCustomerList(prev => [newCustomer, ...prev]);
-    setSelectedCustomer(id);
-    setShowQuickAddCustomer(false);
+  const handleCustomerCreated = (customer: any) => {
+    setCustomerList(prev => [customer, ...prev.filter(c => c.id !== customer.id)]);
+    setSelectedCustomer(customer.id);
     setCustomerOpen(false);
     setCustomerSearch("");
-    resetQuickAddForm();
-    toast.success("Customer added successfully.");
   };
 
   const addItem = (item: typeof mockInventory[0]) => {
@@ -414,77 +388,11 @@ const AddEstimate = () => {
     <div className="h-full flex flex-col overflow-hidden">
       <MobileHeader title={isEditMode ? "Edit Estimate" : "New Estimate"} showBack={true} actions={headerActions} />
 
-      <Dialog
-        open={showQuickAddCustomer}
-        onOpenChange={(open) => {
-          setShowQuickAddCustomer(open);
-          if (!open) {
-            resetQuickAddForm();
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Quick Add Customer</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 mt-2">
-            <div>
-              <Label htmlFor="quick-first-name">First Name</Label>
-              <Input
-                id="quick-first-name"
-                value={newCustomerFirstName}
-                onChange={(e) => setNewCustomerFirstName(e.target.value)}
-                placeholder="Enter first name"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="quick-last-name">Last Name</Label>
-              <Input
-                id="quick-last-name"
-                value={newCustomerLastName}
-                onChange={(e) => setNewCustomerLastName(e.target.value)}
-                placeholder="Enter last name"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="quick-email">Email</Label>
-              <Input
-                id="quick-email"
-                type="email"
-                value={newCustomerEmail}
-                onChange={(e) => setNewCustomerEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="quick-phone">Phone Number</Label>
-              <Input
-                id="quick-phone"
-                type="tel"
-                value={newCustomerPhone}
-                onChange={(e) => setNewCustomerPhone(e.target.value)}
-                placeholder="(555) 123-4567"
-                className="mt-2"
-              />
-            </div>
-            <Button
-              className="w-full"
-              onClick={handleQuickAddCustomer}
-              disabled={
-                !newCustomerFirstName.trim() ||
-                !newCustomerLastName.trim() ||
-                !newCustomerEmail.trim() ||
-                !newCustomerPhone.trim()
-              }
-            >
-              Add Customer
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddCustomerModal
+        isOpen={showAddCustomerModal}
+        onClose={() => setShowAddCustomerModal(false)}
+        onCustomerCreated={handleCustomerCreated}
+      />
       
       {/* Progress Indicator */}
       <div className="px-2 sm:px-4 pt-16 pb-4">
@@ -522,12 +430,13 @@ const AddEstimate = () => {
             <div>
               <div className="flex items-center justify-between">
                 <Label>Customer</Label>
+                {/* Inline + Add action to create a customer from this flow */}
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2 text-sm font-semibold text-orange-500 hover:text-orange-600"
-                  onClick={() => setShowQuickAddCustomer(true)}
+                  className="h-8 px-2 text-sm font-semibold text-orange-500 hover:text-orange-600 shrink-0 whitespace-nowrap"
+                  onClick={() => setShowAddCustomerModal(true)}
                 >
                   <Plus className="h-4 w-4 mr-1.5" />
                   Add

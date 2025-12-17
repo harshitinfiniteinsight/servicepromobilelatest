@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import TabletHeader from "@/components/layout/TabletHeader";
 import CustomerCard from "@/components/cards/CustomerCard";
@@ -17,6 +17,7 @@ const Customers = () => {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"Active" | "Deactivated">("Active");
   const [sendSMSModalOpen, setSendSMSModalOpen] = useState(false);
+  const [customers, setCustomers] = useState<typeof mockCustomers>(mockCustomers);
   
   // Add Customer form state (tablet only)
   const [newCustomer, setNewCustomer] = useState({
@@ -36,7 +37,23 @@ const Customers = () => {
   const isActiveStatus = (status: string) => status === "Active";
   const isDeactivatedStatus = (status: string) => status === "Deactivated" || status === "Inactive";
 
-  const filteredCustomers = mockCustomers.filter(c => {
+  // Shared customer source: localStorage + mock seed (Sell Product adds here too)
+  useEffect(() => {
+    const loadCustomers = () => {
+      const stored = localStorage.getItem("servicepro_customers");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Merge stored (newest first) with mock (avoid duplicates by id)
+        const merged = [...parsed, ...mockCustomers.filter(mc => !parsed.find((pc: any) => pc.id === mc.id))];
+        setCustomers(merged);
+      } else {
+        setCustomers(mockCustomers);
+      }
+    };
+    loadCustomers();
+  }, []);
+
+  const filteredCustomers = customers.filter(c => {
     const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
                          c.email.toLowerCase().includes(search.toLowerCase()) ||
                          c.phone.includes(search);
@@ -50,8 +67,8 @@ const Customers = () => {
     return matchesSearch && matchesFilter;
   });
 
-  const activeCount = mockCustomers.filter(c => isActiveStatus(c.status)).length;
-  const deactivatedCount = mockCustomers.filter(c => isDeactivatedStatus(c.status)).length;
+  const activeCount = customers.filter(c => isActiveStatus(c.status)).length;
+  const deactivatedCount = customers.filter(c => isDeactivatedStatus(c.status)).length;
 
   const handleAddCustomer = () => {
     // Validate required fields
@@ -60,14 +77,34 @@ const Customers = () => {
       return;
     }
     
-    // In real app, this would save to backend
-    toast.success(`Customer ${newCustomer.firstName} ${newCustomer.lastName} added successfully`);
+    const createdAt = new Date().toISOString();
+    const createdCustomer = {
+      id: `cust-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      name: `${newCustomer.firstName} ${newCustomer.lastName}`,
+      email: newCustomer.email,
+      phone: newCustomer.phone,
+      address: "",
+      status: "Active",
+      lastVisit: createdAt.split("T")[0],
+      totalSpent: 0,
+      joinedDate: createdAt.split("T")[0],
+      notes: "",
+      createdAt,
+    };
+
+    // Persist globally so Sell Product and Customers share the same list
+    const stored = localStorage.getItem("servicepro_customers");
+    const parsed = stored ? JSON.parse(stored) : [];
+    const updated = [createdCustomer, ...parsed];
+    localStorage.setItem("servicepro_customers", JSON.stringify(updated));
+
+    // Update local list (top insertion keeps newest first)
+    setCustomers(prev => [createdCustomer, ...prev.filter(c => c.id !== createdCustomer.id)]);
+
+    toast.success(`Customer ${createdCustomer.name} added successfully`);
     
     // Reset form
     setNewCustomer({ firstName: "", lastName: "", email: "", phone: "" });
-    
-    // Navigate to customer details or refresh list
-    // navigate("/customers/new") // or handle differently
   };
 
   const handleQuickAction = (customerId: string, action: string) => {
@@ -79,21 +116,21 @@ const Customers = () => {
         toast.success("Opening email composer...");
         break;
       case "sms":
-        const customer = mockCustomers.find(c => c.id === customerId);
+        const customer = customers.find(c => c.id === customerId);
         if (customer) {
           setSelectedCustomerForSMS(customer);
           setSendSMSModalOpen(true);
         }
         break;
       case "memo":
-        const memoCustomer = mockCustomers.find(c => c.id === customerId);
+        const memoCustomer = customers.find(c => c.id === customerId);
         if (memoCustomer) {
           setSelectedCustomerForNote(memoCustomer);
           setAddNoteModalOpen(true);
         }
         break;
       case "appointment":
-        const appointmentCustomer = mockCustomers.find(c => c.id === customerId);
+        const appointmentCustomer = customers.find(c => c.id === customerId);
         if (appointmentCustomer) {
           navigate(`/appointments/new?customerId=${appointmentCustomer.id}&customerName=${encodeURIComponent(appointmentCustomer.name)}`);
         }

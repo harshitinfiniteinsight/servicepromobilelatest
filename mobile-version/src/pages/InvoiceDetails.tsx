@@ -166,17 +166,42 @@ const InvoiceDetails = () => {
                       </div>
                       <p className="font-bold">${(item.total || item.amount || 0).toFixed(2)}</p>
                     </div>
-                    {/* Item-level discount (mobile-only, for demo invoices like INV-033) */}
-                    {invoice.id === "INV-033" && item.discount && item.discount > 0 && (
+                    
+                    {/* Item-level discount - show for itemLevel invoices */}
+                    {(invoice as any).invoiceVariant === "itemLevel" && item.discount && item.discount > 0 && (
                       <div className="flex items-start justify-between mt-1">
                         <p className="text-xs text-muted-foreground">
-                          {item.discountName || "Discount"}
+                          {item.discountName || "Discount"} {item.discountType === "%" ? `(${item.discount}%)` : ""}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          -${item.discount.toFixed(2)}
+                          -{item.discountType === "$" ? "$" : ""}{item.discountType === "%" 
+                            ? ((item.price * item.quantity * item.discount) / 100).toFixed(2) 
+                            : item.discount.toFixed(2)}
                         </p>
                       </div>
                     )}
+                    
+                    {/* Item-level tax - show for itemLevel invoices */}
+                    {(invoice as any).invoiceVariant === "itemLevel" && item.taxRate && item.taxRate > 0 && (
+                      <div className="flex items-start justify-between mt-0.5">
+                        <p className="text-xs text-muted-foreground">
+                          Tax ({item.taxRate}%)
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          +${(() => {
+                            let itemTotal = item.price * item.quantity;
+                            if (item.discount && item.discount > 0) {
+                              const discountAmount = item.discountType === "%" 
+                                ? itemTotal * (item.discount / 100)
+                                : item.discount;
+                              itemTotal -= discountAmount;
+                            }
+                            return (itemTotal * (item.taxRate / 100)).toFixed(2);
+                          })()}
+                        </p>
+                      </div>
+                    )}
+                    
                     <p className="text-sm text-muted-foreground mt-1">
                       {item.quantity} × ${item.price.toFixed(2)}
                     </p>

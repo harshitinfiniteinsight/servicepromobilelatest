@@ -11,6 +11,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import AddCustomerModal from "@/components/modals/AddCustomerModal";
 import { mockCustomers, mockInventory, mockEmployees, mockDiscounts, mockInvoices } from "@/data/mobileMockData";
 import { Search, Plus, Minus, X, ChevronsUpDown, Check, Package, FileText, Save, Upload, Tag, Camera, RefreshCw, List } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -31,11 +32,7 @@ const AddInvoice = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [jobAddress, setJobAddress] = useState("");
-  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
-  const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
-  const [newCustomerLastName, setNewCustomerLastName] = useState("");
-  const [newCustomerEmail, setNewCustomerEmail] = useState("");
-  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState("");
@@ -49,6 +46,18 @@ const AddInvoice = () => {
   const [dueDate, setDueDate] = useState("");
   // Payment status state (for edit mode)
   const [paymentStatus, setPaymentStatus] = useState<"Open" | "Paid" | "Overdue">("Open");
+
+  // Load customers from shared store and merge with mock seed
+  useEffect(() => {
+    const storedCustomers = localStorage.getItem("servicepro_customers");
+    if (storedCustomers) {
+      const parsed = JSON.parse(storedCustomers);
+      const merged = [...parsed, ...mockCustomers.filter(mc => !parsed.find((pc: any) => pc.id === mc.id))];
+      setCustomerList(merged);
+    } else {
+      setCustomerList(mockCustomers);
+    }
+  }, []);
 
   // Handle prefill data from location.state (when creating new from paid item or converting estimate)
   useEffect(() => {
@@ -290,8 +299,8 @@ const AddInvoice = () => {
   }, [location.state]);
 
   const sortedCustomers = [...customerList].sort((a, b) => {
-    const dateA = new Date(a.joinedDate).getTime();
-    const dateB = new Date(b.joinedDate).getTime();
+    const dateA = new Date((a as any).createdAt || a.joinedDate).getTime();
+    const dateB = new Date((b as any).createdAt || b.joinedDate).getTime();
     return dateB - dateA;
   });
 
@@ -306,46 +315,11 @@ const AddInvoice = () => {
     employee.role.toLowerCase().includes(employeeSearch.toLowerCase())
   );
 
-  const resetQuickAddForm = () => {
-    setNewCustomerFirstName("");
-    setNewCustomerLastName("");
-    setNewCustomerEmail("");
-    setNewCustomerPhone("");
-  };
-
-  const handleQuickAddCustomer = () => {
-    if (
-      !newCustomerFirstName.trim() ||
-      !newCustomerLastName.trim() ||
-      !newCustomerEmail.trim() ||
-      !newCustomerPhone.trim()
-    ) {
-      toast.error("Please fill in all customer details.");
-      return;
-    }
-
-    const id = `CUST-${Date.now()}`;
-    const nowIso = new Date().toISOString();
-    const newCustomer = {
-      id,
-      name: `${newCustomerFirstName.trim()} ${newCustomerLastName.trim()}`,
-      email: newCustomerEmail.trim(),
-      phone: newCustomerPhone.trim(),
-      address: "",
-      status: "Active",
-      lastVisit: nowIso,
-      totalSpent: 0,
-      joinedDate: nowIso,
-      notes: "Added via quick add",
-    };
-
-    setCustomerList(prev => [newCustomer, ...prev]);
-    setSelectedCustomer(id);
-    setShowQuickAddCustomer(false);
+  const handleCustomerCreated = (customer: any) => {
+    setCustomerList(prev => [customer, ...prev.filter(c => c.id !== customer.id)]);
+    setSelectedCustomer(customer.id);
     setCustomerOpen(false);
     setCustomerSearch("");
-    resetQuickAddForm();
-    toast.success("Customer added successfully.");
   };
 
   const filteredInventory = mockInventory.filter(item =>
@@ -501,77 +475,11 @@ const AddInvoice = () => {
     <div className="h-full flex flex-col overflow-hidden">
       <MobileHeader title={isEditMode ? "Edit Invoice" : "New Invoice"} showBack={true} actions={headerActions} />
 
-      <Dialog
-        open={showQuickAddCustomer}
-        onOpenChange={open => {
-          setShowQuickAddCustomer(open);
-          if (!open) {
-            resetQuickAddForm();
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Quick Add Customer</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 mt-2">
-            <div>
-              <Label htmlFor="invoice-quick-first-name">First Name</Label>
-              <Input
-                id="invoice-quick-first-name"
-                value={newCustomerFirstName}
-                onChange={e => setNewCustomerFirstName(e.target.value)}
-                placeholder="Enter first name"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="invoice-quick-last-name">Last Name</Label>
-              <Input
-                id="invoice-quick-last-name"
-                value={newCustomerLastName}
-                onChange={e => setNewCustomerLastName(e.target.value)}
-                placeholder="Enter last name"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="invoice-quick-email">Email</Label>
-              <Input
-                id="invoice-quick-email"
-                type="email"
-                value={newCustomerEmail}
-                onChange={e => setNewCustomerEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="invoice-quick-phone">Phone Number</Label>
-              <Input
-                id="invoice-quick-phone"
-                type="tel"
-                value={newCustomerPhone}
-                onChange={e => setNewCustomerPhone(e.target.value)}
-                placeholder="(555) 123-4567"
-                className="mt-2"
-              />
-            </div>
-            <Button
-              className="w-full"
-              onClick={handleQuickAddCustomer}
-              disabled={
-                !newCustomerFirstName.trim() ||
-                !newCustomerLastName.trim() ||
-                !newCustomerEmail.trim() ||
-                !newCustomerPhone.trim()
-              }
-            >
-              Add Customer
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddCustomerModal
+        isOpen={showAddCustomerModal}
+        onClose={() => setShowAddCustomerModal(false)}
+        onCustomerCreated={handleCustomerCreated}
+      />
 
       <div className="px-2 sm:px-4 pt-16 pb-4">
         <div className="flex items-center justify-center mb-2 overflow-x-auto">
@@ -622,11 +530,12 @@ const AddInvoice = () => {
             <div>
               <div className="flex items-center justify-between">
                 <Label>Customer</Label>
+                {/* Inline + Add action to create a customer from this flow */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2 text-sm font-semibold text-orange-500 hover:text-orange-600"
-                  onClick={() => setShowQuickAddCustomer(true)}
+                  className="h-8 px-2 text-sm font-semibold text-orange-500 hover:text-orange-600 shrink-0 whitespace-nowrap"
+                  onClick={() => setShowAddCustomerModal(true)}
                 >
                   <Plus className="h-4 w-4 mr-1.5" />
                   Add
@@ -657,8 +566,8 @@ const AddInvoice = () => {
                 <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
                   <Command shouldFilter={false} value="">
                     <CommandInput
-                placeholder="Search customers..."
-                value={customerSearch}
+                      placeholder="Search customers..."
+                      value={customerSearch}
                       onValueChange={setCustomerSearch}
                     />
                     <CommandList>

@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AddCustomerModal from "@/components/modals/AddCustomerModal";
 import { mockAppointments, mockCustomers, mockEmployees, serviceTypes } from "@/data/mobileMockData";
-import { Plus, Users, UserCheck, UserRoundPlus, Calendar, Clock, Bell, Mail, Phone } from "lucide-react";
+import { Plus, Users, UserCheck, UserRoundPlus, Calendar, Clock, Bell, Mail, Phone, Pencil } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { showSuccessToast } from "@/utils/toast";
 
@@ -38,26 +40,55 @@ const AddAppointment = ({ mode = "create" }: AddAppointmentProps) => {
   const currentEmployeeId = localStorage.getItem("currentEmployeeId") || "1";
   const currentEmployee = mockEmployees.find(emp => emp.id === currentEmployeeId);
   
-  const [subject, setSubject] = useState("");
-  const [employeeId, setEmployeeId] = useState("");
-  const [customerId, setCustomerId] = useState("");
-  const [category, setCategory] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [date, setDate] = useState("");
-  const [time, setTime] = useState("");
-  const [reminder, setReminder] = useState("30 minutes");
-  const [note, setNote] = useState("");
+  const [subject, setSubject] = useState<string>("");
+  const [employeeId, setEmployeeId] = useState<string>("");
+  const [customerId, setCustomerId] = useState<string>("");
+  const [customers, setCustomers] = useState<typeof mockCustomers>(mockCustomers);
+  const [customerSelectOpen, setCustomerSelectOpen] = useState(false);
+  const [category, setCategory] = useState<string>("");
+  const [categories, setCategories] = useState<Array<{ id: string; name: string; color: string; employeeId: string }>>([]);
+  const [email, setEmail] = useState<string>("");
+  const [phone, setPhone] = useState<string>("");
+  const [address, setAddress] = useState<string>("");
+  const [date, setDate] = useState<string>("");
+  const [time, setTime] = useState<string>("");
+  const [reminder, setReminder] = useState<string>("30 minutes");
+  const [note, setNote] = useState<string>("");
+  const [categoryModalOpen, setCategoryModalOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+  const [newCategoryColor, setNewCategoryColor] = useState("#4f46e5");
+  const [categoryEmployeeId, setCategoryEmployeeId] = useState<string>("");
+  const [addCustomerModalOpen, setAddCustomerModalOpen] = useState(false);
 
   const activeEmployees = useMemo(
     () => mockEmployees.filter(emp => emp.status === "Active"),
     []
   );
   const selectedCustomerRecord = useMemo(
-    () => mockCustomers.find(customer => customer.id === customerId),
-    [customerId]
+    () => customers.find(customer => customer.id === customerId),
+    [customerId, customers]
   );
+
+  // Load categories from storage + seed with defaults
+  useEffect(() => {
+    const seed = serviceTypes.map((name, idx) => ({
+      id: `seed-${idx}-${name}`,
+      name,
+      color: "#f97316",
+      employeeId: "all",
+    }));
+    const stored = localStorage.getItem("servicepro_appointment_categories");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        setCategories([...seed, ...parsed]);
+      } catch (e) {
+        setCategories(seed);
+      }
+    } else {
+      setCategories(seed);
+    }
+  }, []);
 
   // Handle edit mode
   useEffect(() => {
@@ -98,22 +129,56 @@ const AddAppointment = ({ mode = "create" }: AddAppointmentProps) => {
     }
   }, [isEmployee, currentEmployeeId, mode]);
 
+  // Shared customers: merge persisted with mock and keep newest first
+  useEffect(() => {
+    const stored = localStorage.getItem("servicepro_customers");
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        const merged = [...parsed, ...mockCustomers.filter(mc => !parsed.find((pc: any) => pc.id === mc.id))];
+        setCustomers(merged);
+      } catch (e) {
+        setCustomers(mockCustomers);
+      }
+    } else {
+      setCustomers(mockCustomers);
+    }
+  }, []);
+
   // Handle pre-selected customer from query params
   useEffect(() => {
     if (mode === "create" && preselectedCustomerId && preselectedCustomerName) {
-      // Find the customer by ID to get full details
-      const customer = mockCustomers.find(c => c.id === preselectedCustomerId);
+      const customer = customers.find(c => c.id === preselectedCustomerId);
       if (customer) {
         setCustomerId(customer.id);
         setEmail(customer.email);
         setPhone(customer.phone);
         setAddress(customer.address || "");
       } else if (preselectedCustomerId) {
-        // If customer ID exists but not found in mock data, still set it
         setCustomerId(preselectedCustomerId);
       }
     }
-  }, [preselectedCustomerId, preselectedCustomerName, mode]);
+  }, [preselectedCustomerId, preselectedCustomerName, mode, customers]);
+
+  // Ensure dropdown closes when opening the add-customer modal
+  useEffect(() => {
+    if (addCustomerModalOpen) {
+      setCustomerSelectOpen(false);
+    }
+  }, [addCustomerModalOpen]);
+
+  // Default employee selection inside category modal follows current selection
+  useEffect(() => {
+    if (categoryModalOpen) {
+      if (employeeId) {
+        setCategoryEmployeeId(employeeId);
+      } else if (isEmployee && currentEmployeeId) {
+        setCategoryEmployeeId(currentEmployeeId);
+      } else {
+        setCategoryEmployeeId(activeEmployees[0]?.id || "");
+      }
+    }
+  }, [categoryModalOpen, employeeId, isEmployee, currentEmployeeId, activeEmployees]);
 
   const handleSubmit = () => {
     if (mode === "edit") {
@@ -138,251 +203,481 @@ const AddAppointment = ({ mode = "create" }: AddAppointmentProps) => {
 
   const isFormValid = subject && employeeId && customerId && category && email && phone && date && time;
 
+  const availableCategories = useMemo(() => {
+    return categories.filter(cat => cat.employeeId === "all" || cat.employeeId === employeeId || (!employeeId && cat.employeeId === "all"));
+  }, [categories, employeeId]);
+
+  // Filter appointments by selected employee for the right panel
+  const employeeAppointments = useMemo(() => {
+    if (!employeeId) return [];
+    return mockAppointments.filter(apt => apt.technicianId === employeeId);
+  }, [employeeId]);
+
+  const selectedEmployeeName = useMemo(() => {
+    return activeEmployees.find(emp => emp.id === employeeId)?.name || "";
+  }, [employeeId, activeEmployees]);
+
+  const handleEditAppointment = (appointmentId: string) => {
+    navigate(`/appointments/edit/${appointmentId}?fromView=${fromView}`);
+  };
+
+  const handleAddCategory = () => {
+    if (!newCategoryName || !newCategoryColor || !categoryEmployeeId) return;
+    const duplicate = categories.find(
+      c => c.name.trim().toLowerCase() === newCategoryName.trim().toLowerCase() && c.employeeId === categoryEmployeeId
+    );
+    if (duplicate) {
+      showSuccessToast("Category already exists for this employee");
+      return;
+    }
+    const created = {
+      id: `cat-${Date.now()}`,
+      name: newCategoryName.trim(),
+      color: newCategoryColor,
+      employeeId: categoryEmployeeId,
+    };
+    const updated = [...categories, created];
+    setCategories(updated);
+    localStorage.setItem("servicepro_appointment_categories", JSON.stringify(updated.filter(c => !c.id.startsWith("seed-"))));
+    setCategory(created.name);
+    setCategoryModalOpen(false);
+    setNewCategoryName("");
+    setNewCategoryColor("#4f46e5");
+    showSuccessToast("Category added");
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden bg-muted/10">
-      <MobileHeader 
-        title={mode === "edit" ? "Edit Appointment" : "Add Appointment"} 
-        showBack 
+      <TabletHeader
+        title={mode === "edit" ? "Edit Appointment" : "Add Appointment"}
+        showBack
         onBack={handleBack}
+        className="px-4 md:px-6 lg:px-8"
       />
 
-      <div className="flex-1 overflow-y-auto scrollable pt-16 pb-6">
-        <div className="mx-4 rounded-3xl border border-gray-100 bg-white shadow-sm">
-          <div className="px-4 pt-4 pb-4 space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="appointment-subject" className="inline-flex items-center gap-1 text-sm font-medium text-gray-700">
-                Appointment Subject <span className="text-destructive">*</span>
-              </Label>
-              <Input
-                id="appointment-subject"
-                placeholder="e.g., HVAC Maintenance Check"
-                value={subject}
-                onChange={(e) => setSubject(e.target.value)}
-                className="h-11 border-gray-300"
-              />
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
-                <div className="flex-1 space-y-2">
-                  <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                    <span>Employee</span>
-                    <span className="text-destructive">*</span>
-                  </Label>
-                  {/* Hidden input for employee ID (for form submission) */}
-                  {isEmployee && currentEmployeeId && (
-                    <input type="hidden" name="employeeId" value={currentEmployeeId} />
-                  )}
-                  {/* Employee field - disabled for employees, editable for merchants */}
-                  {isEmployee && currentEmployee ? (
+      <div className="flex-1 overflow-y-auto scrollable pb-8 pt-6">
+        <div className="px-4 md:px-6 lg:px-8">
+          {/* Split layout: ~48% form (left) + ~52% appointment list (right) for tablet/large screens */}
+          <div className="grid grid-cols-1 lg:grid-cols-[48%_52%] xl:grid-cols-[45%_55%] gap-6">
+            {/* LEFT SECTION: Add Appointment Form */}
+            <div className="space-y-6">
+            <div className="rounded-3xl border border-gray-100 bg-white shadow-sm">
+              <div className="px-4 md:px-6 lg:px-8 pt-5 pb-6 space-y-6">
+                {/* Row 1: Appointment Subject + Employee */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="appointment-subject" className="inline-flex items-center gap-1 text-sm font-medium text-gray-700">
+                      Appointment Subject <span className="text-destructive">*</span>
+                    </Label>
                     <Input
-                      value={currentEmployee.name}
-                      disabled
-                      readOnly
-                      className="h-11 border-gray-300 bg-gray-50 text-gray-700 cursor-not-allowed"
-                      style={{ backgroundColor: '#f7f7f7', color: '#444', opacity: 1 }}
+                      id="appointment-subject"
+                      placeholder="e.g., HVAC Maintenance Check"
+                      value={subject}
+                      onChange={(e) => setSubject(e.target.value)}
+                      className="h-11 border-gray-300"
                     />
-                  ) : (
-                    <Select value={employeeId} onValueChange={setEmployeeId}>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                      <span>Employee</span>
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    {/* Hidden input for employee ID (for form submission) */}
+                    {isEmployee && currentEmployeeId && (
+                      <input type="hidden" name="employeeId" value={currentEmployeeId} />
+                    )}
+                    {/* Employee field - disabled for employees, editable for merchants */}
+                    {isEmployee && currentEmployee ? (
+                      <Input
+                        value={currentEmployee.name}
+                        disabled
+                        readOnly
+                        className="h-11 border-gray-300 bg-gray-50 text-gray-700 cursor-not-allowed"
+                        style={{ backgroundColor: '#f7f7f7', color: '#444', opacity: 1 }}
+                      />
+                    ) : (
+                      <Select value={employeeId || ""} onValueChange={setEmployeeId}>
+                        <SelectTrigger className="h-11 border-gray-300">
+                          <SelectValue placeholder="Choose employee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {activeEmployees.map(emp => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              {emp.name} — {emp.role}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: Customers + Category */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                        <span>Customers</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg border border-dashed border-gray-300 text-primary hover:bg-gray-50"
+                        onClick={() => {
+                          setCustomerSelectOpen(false);
+                          setAddCustomerModalOpen(true);
+                        }}
+                      >
+                        <UserRoundPlus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Select
+                      value={customerId || ""}
+                      onValueChange={setCustomerId}
+                      open={customerSelectOpen}
+                      onOpenChange={setCustomerSelectOpen}
+                    >
                       <SelectTrigger className="h-11 border-gray-300">
-                        <SelectValue placeholder="Choose employee" />
+                        <SelectValue placeholder="Choose customer" />
                       </SelectTrigger>
                       <SelectContent>
-                        {activeEmployees.map(emp => (
-                          <SelectItem key={emp.id} value={emp.id}>
-                            {emp.name} — {emp.role}
+                        {customers.map(customer => (
+                          <SelectItem key={customer.id} value={customer.id}>
+                            {customer.name} — {customer.email}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
-                  )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                        <span>Category</span>
+                        <span className="text-destructive">*</span>
+                      </Label>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-lg border border-dashed border-gray-300 text-primary hover:bg-gray-50"
+                        onClick={() => setCategoryModalOpen(true)}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <Select value={category || ""} onValueChange={setCategory}>
+                      <SelectTrigger className="h-11 border-gray-300">
+                        <SelectValue placeholder="Choose category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableCategories.map(type => (
+                          <SelectItem key={type.id} value={type.name}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </div>
 
-                <div className="flex-1 space-y-2 mt-4 sm:mt-0">
-                  <div className="flex items-center justify-between">
+                {selectedCustomerRecord && (
+                  <p className="text-xs text-muted-foreground">
+                    {selectedCustomerRecord.phone} · {selectedCustomerRecord.address}
+                  </p>
+                )}
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Email *</Label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        className="pl-10 h-11 border-gray-300"
+                        placeholder="customer@example.com"
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Phone Number *</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        className="pl-10 h-11 border-gray-300"
+                        placeholder="+1 (555) 123-4567"
+                        value={phone}
+                        onChange={(e) => setPhone(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-sm font-medium text-gray-700">Address</Label>
+                    <Input
+                      placeholder="123 Main St, City, State"
+                      value={address}
+                      onChange={(e) => setAddress(e.target.value)}
+                      className="h-11 border-gray-300"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                  <div className="space-y-2">
                     <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                      <span>Customers</span>
+                      <span>Appointment Date</span>
                       <span className="text-destructive">*</span>
                     </Label>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-lg border border-dashed border-gray-300 text-primary hover:bg-gray-50"
-                      onClick={() => navigate("/customers/new")}
-                    >
-                      <UserRoundPlus className="h-4 w-4" />
-                    </Button>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        type="date"
+                        value={date}
+                        onChange={(e) => setDate(e.target.value)}
+                        min={new Date().toISOString().split("T")[0]}
+                        className="pl-10 h-11 border-gray-300"
+                      />
+                    </div>
                   </div>
-                  <Select value={customerId} onValueChange={setCustomerId}>
-                    <SelectTrigger className="h-11 border-gray-300">
-                      <SelectValue placeholder="Choose customer" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {mockCustomers.map(customer => (
-                        <SelectItem key={customer.id} value={customer.id}>
-                          {customer.name} — {customer.email}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                      <span>Appointment Time</span>
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Input
+                        type="time"
+                        value={time}
+                        onChange={(e) => setTime(e.target.value)}
+                        className="pl-10 h-11 border-gray-300"
+                      />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium text-gray-700">Reminder Before</Label>
+                    <div className="relative">
+                      <Bell className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                      <Select value={reminder || ""} onValueChange={setReminder}>
+                        <SelectTrigger className="pl-10 h-11 border-gray-300">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {reminderOptions.map(option => (
+                            <SelectItem key={option} value={option}>
+                              {option}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              {selectedCustomerRecord && (
-                <p className="text-xs text-muted-foreground">
-                  {selectedCustomerRecord.phone} · {selectedCustomerRecord.address}
-                </p>
-              )}
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                    <span>Category</span>
-                    <span className="text-destructive">*</span>
-                  </Label>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 rounded-lg border border-dashed border-gray-300 text-primary hover:bg-gray-50"
-                    onClick={() => navigate("/services/new")}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-                <Select value={category} onValueChange={setCategory}>
-                  <SelectTrigger className="h-11 border-gray-300">
-                    <SelectValue placeholder="Choose category" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {serviceTypes.map(type => (
-                      <SelectItem key={type} value={type}>
-                        {type}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Email *</Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    className="pl-10 h-11 border-gray-300"
-                    placeholder="customer@example.com"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700">Phone Number *</Label>
-                <div className="relative">
-                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    className="pl-10 h-11 border-gray-300"
-                    placeholder="+1 (555) 123-4567"
-                    value={phone}
-                    onChange={(e) => setPhone(e.target.value)}
-                  />
+                <div className="w-full md:grid md:grid-cols-2 md:gap-5">
+                  <div className="space-y-2 md:col-span-2">
+                    <Label className="text-sm font-medium text-gray-700">Appointment Note</Label>
+                    <Textarea
+                      placeholder="Additional notes or special instructions..."
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
+                      className="min-h-[80px] border-gray-300"
+                    />
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">Address</Label>
-              <Textarea
-                placeholder="123 Main St, City, State"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="min-h-[80px] border-gray-300"
-              />
+            <div className="flex flex-col md:flex-row md:justify-center md:gap-3 mx-1 md:mx-0 pb-2 safe-bottom">
+              <Button
+                className="w-full md:w-60 rounded-full py-3 text-sm font-semibold"
+                onClick={handleSubmit}
+                disabled={!isFormValid}
+              >
+                {mode === "edit" ? "Update Appointment" : "Add Appointment"}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full md:w-60 rounded-full py-3 text-sm font-semibold text-gray-700 border-gray-200 hover:bg-muted mt-2 md:mt-0"
+                onClick={handleBack}
+                type="button"
+              >
+                Cancel
+              </Button>
+            </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                  <span>Appointment Date</span>
-                  <span className="text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    min={new Date().toISOString().split("T")[0]}
-                    className="pl-10 h-11 border-gray-300"
-                  />
+            {/* RIGHT SECTION: Appointment List for Selected Employee */}
+            <div className="hidden lg:block">
+              <div className="rounded-3xl border border-gray-100 bg-white shadow-sm sticky top-6">
+                <div className="px-6 py-5 border-b border-gray-100">
+                  <h2 className="text-lg font-semibold text-gray-900">
+                    {employeeId && selectedEmployeeName
+                      ? `Appointment List of ${selectedEmployeeName}`
+                      : "Appointment List"}
+                  </h2>
                 </div>
-              </div>
-              <div className="space-y-2">
-                <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
-                  <span>Appointment Time</span>
-                  <span className="text-destructive">*</span>
-                </Label>
-                <div className="relative">
-                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                  <Input
-                    type="time"
-                    value={time}
-                    onChange={(e) => setTime(e.target.value)}
-                    className="pl-10 h-11 border-gray-300"
-                  />
+
+                <div className="p-6">
+                  {!employeeId ? (
+                    <div className="flex items-center justify-center py-12 text-center">
+                      <div className="space-y-3">
+                        <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
+                        <p className="text-sm text-gray-500">
+                          Select an employee to view appointments
+                        </p>
+                      </div>
+                    </div>
+                  ) : employeeAppointments.length === 0 ? (
+                    <div className="flex items-center justify-center py-12 text-center">
+                      <div className="space-y-3">
+                        <Calendar className="h-12 w-12 text-gray-300 mx-auto" />
+                        <p className="text-sm text-gray-500">
+                          No appointments found for {selectedEmployeeName}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200">
+                            <th className="text-left py-3 px-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                              Customer Name
+                            </th>
+                            <th className="text-left py-3 px-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                              Subject
+                            </th>
+                            <th className="text-left py-3 px-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="text-left py-3 px-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                              Time
+                            </th>
+                            <th className="text-center py-3 px-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                              Action
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {employeeAppointments.map((appointment) => (
+                            <tr key={appointment.id} className="hover:bg-gray-50 transition-colors">
+                              <td className="py-3 px-3 text-sm text-gray-900">
+                                {appointment.customerName}
+                              </td>
+                              <td className="py-3 px-3 text-sm text-gray-700">
+                                {appointment.service}
+                              </td>
+                              <td className="py-3 px-3 text-sm text-gray-700">
+                                {appointment.date}
+                              </td>
+                              <td className="py-3 px-3 text-sm text-gray-700">
+                                {appointment.time}
+                              </td>
+                              <td className="py-3 px-3 text-center">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                  onClick={() => handleEditAppointment(appointment.id)}
+                                >
+                                  <Pencil className="h-4 w-4" />
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
                 </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">Appointment Note</Label>
-              <Textarea
-                placeholder="Additional notes or special instructions..."
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                className="min-h-[80px] border-gray-300"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-medium text-gray-700">Reminder Before</Label>
-              <div className="relative">
-                <Bell className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Select value={reminder} onValueChange={setReminder}>
-                  <SelectTrigger className="pl-10 h-11 border-gray-300">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {reminderOptions.map(option => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="mx-4 mt-4 flex flex-col gap-2 pb-2 safe-bottom">
-          <Button
-            className="w-full rounded-full py-3 text-sm font-semibold"
-            onClick={handleSubmit}
-            disabled={!isFormValid}
-          >
-            {mode === "edit" ? "Update Appointment" : "Add Appointment"}
-          </Button>
-          <Button
-            variant="outline"
-            className="w-full rounded-full py-3 text-sm font-semibold text-gray-700 border-gray-200 hover:bg-muted"
-            onClick={handleBack}
-            type="button"
-          >
-            Cancel
-          </Button>
-        </div>
+        <Dialog open={categoryModalOpen} onOpenChange={setCategoryModalOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Add Appointment Category</DialogTitle>
+              <DialogDescription>Assign to an employee and pick a color to keep categories organized.</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Select Employee</Label>
+                <Select value={categoryEmployeeId || ""} onValueChange={setCategoryEmployeeId}>
+                  <SelectTrigger className="h-10 border-gray-300">
+                    <SelectValue placeholder="Choose employee" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {activeEmployees.map(emp => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Category Name</Label>
+                <Input
+                  value={newCategoryName}
+                  onChange={(e) => setNewCategoryName(e.target.value)}
+                  placeholder="e.g., HVAC Maintenance"
+                  className="h-10 border-gray-300"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Color</Label>
+                <div className="flex items-center gap-3">
+                  <Input
+                    type="color"
+                    value={newCategoryColor}
+                    onChange={(e) => setNewCategoryColor(e.target.value)}
+                    className="h-10 w-16 p-1 border-gray-300"
+                  />
+                  <Input
+                    value={newCategoryColor}
+                    onChange={(e) => setNewCategoryColor(e.target.value)}
+                    className="h-10 flex-1 border-gray-300"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter className="sm:justify-between sm:space-x-2">
+              <Button
+                variant="outline"
+                type="button"
+                className="sm:w-28"
+                onClick={() => setCategoryModalOpen(false)}
+              >
+                Close
+              </Button>
+              <Button
+                type="button"
+                className="sm:w-28"
+                disabled={!newCategoryName || !newCategoryColor || !categoryEmployeeId}
+                onClick={handleAddCategory}
+              >
+                Add
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <AddCustomerModal
+          isOpen={addCustomerModalOpen}
+          onClose={() => setAddCustomerModalOpen(false)}
+          onCustomerCreated={(customer) => {
+            setCustomers(prev => [customer, ...prev.filter(c => c.id !== customer.id)]);
+            setCustomerId(customer.id);
+          }}
+        />
       </div>
     </div>
   );

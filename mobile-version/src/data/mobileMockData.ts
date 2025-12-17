@@ -286,6 +286,7 @@ export const mockInvoices = [
     status: "Open",
     paymentMethod: "Credit Card",
     type: "single",
+    invoiceVariant: "standard",
     items: [
       {
         name: "HVAC Filter - Standard",
@@ -300,6 +301,56 @@ export const mockInvoices = [
     subtotal: 19.49,
     discount: 6.50,
     tax: 1.95
+  },
+  {
+    id: "INV-034",
+    customerId: "1",
+    customerName: "John Smith",
+    customerEmail: "john.smith@email.com",
+    customerPhone: "(555) 123-4567",
+    issueDate: "2024-01-30",
+    dueDate: "2024-03-01",
+    amount: 315.50,
+    status: "Open",
+    paymentMethod: "Credit Card",
+    type: "single",
+    invoiceVariant: "itemLevel",
+    items: [
+      {
+        id: "item-1",
+        name: "Air Filter Replacement",
+        quantity: 2,
+        price: 45.00,
+        amount: 90.00,
+        discount: 10,
+        discountType: "%",
+        discountName: "Bulk Discount",
+        taxRate: 8.5
+      },
+      {
+        id: "item-2",
+        name: "HVAC System Inspection",
+        quantity: 1,
+        price: 120.00,
+        amount: 120.00,
+        discount: 15,
+        discountType: "$",
+        discountName: "Service Discount",
+        taxRate: 8.5
+      },
+      {
+        id: "item-3",
+        name: "Thermostat Calibration",
+        quantity: 1,
+        price: 75.00,
+        amount: 75.00,
+        taxRate: 8.5
+      }
+    ],
+    subtotal: 285.00,
+    discount: 0,
+    tax: 30.50,
+    total: 315.50
   },
 ];
 

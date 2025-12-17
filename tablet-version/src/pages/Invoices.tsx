@@ -52,7 +52,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { createPaymentNotification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
-import { getAllInvoices, updateInvoice, type Invoice as InvoiceType } from "@/services/invoiceService";
+import { getAllInvoices, updateInvoice, createInvoice as saveInvoice, type Invoice as InvoiceType } from "@/services/invoiceService";
 
 type InvoiceTab = "single" | "recurring" | "deactivated";
 type InvoiceStatusFilter = "all" | "paid" | "open";
@@ -371,54 +371,62 @@ const Invoices = () => {
   };
 
   // Handle final invoice creation (Step 4)
-  const handleCreateInvoice = () => {
+  const handleCreateInvoice = async () => {
     if (!isStep4Valid()) {
       toast.error("Please accept the terms to continue");
       return;
     }
 
-    // Create new invoice object
-    const newInvoice: Invoice = {
-      id: `INV-${Date.now()}`,
-      customerId: newInvoiceCustomer,
-      customerName: mockCustomers.find(c => c.id === newInvoiceCustomer)?.name || "Unknown Customer",
-      jobAddress: newInvoiceJobAddress,
-      employeeId: newInvoiceEmployee,
-      employeeName: mockEmployees.find(e => e.id === newInvoiceEmployee)?.name || "Unassigned",
-      amount: calculateTotal(),
-      status: "Open" as const,
-      issueDate: new Date().toISOString().split("T")[0],
-      dueDate: newInvoiceDueDate || new Date().toISOString().split("T")[0],
-      type: newInvoiceType as "single" | "recurring",
-    };
+    try {
+      // Create new invoice object
+      const invoiceData = {
+        customerId: newInvoiceCustomer,
+        customerName: mockCustomers.find(c => c.id === newInvoiceCustomer)?.name || "Unknown Customer",
+        jobAddress: newInvoiceJobAddress,
+        employeeId: newInvoiceEmployee,
+        employeeName: mockEmployees.find(e => e.id === newInvoiceEmployee)?.name || "Unassigned",
+        amount: calculateTotal(),
+        status: "Open" as const,
+        issueDate: new Date().toISOString().split("T")[0],
+        dueDate: newInvoiceDueDate || new Date().toISOString().split("T")[0],
+        type: newInvoiceType as "single" | "recurring",
+        source: "manual" as const,
+      };
 
-    // Add new invoice to the top of the list
-    setAllInvoices([newInvoice, ...allInvoices]);
+      // Save invoice using the service
+      const newInvoice = await saveInvoice(invoiceData);
 
-    // Show success toast
-    toast.success("Invoice created successfully");
+      // Add new invoice to the top of the list (optimistic update)
+      setAllInvoices([newInvoice, ...allInvoices]);
 
-    // Reset form
-    setCurrentStep(1);
-    setNewInvoiceCustomer("");
-    setNewInvoiceJobAddress("");
-    setNewInvoiceEmployee("");
-    setNewInvoiceType("single");
-    setRecurringEnabled(false);
-    setRecurringInterval("");
-    setRecurringEndType("date");
-    setRecurringEndDate("");
-    setRecurringOccurrences("");
-    setSelectedServices([]);
-    setTaxRate("10");
-    setDiscount("");
-    setNewInvoiceDueDate("");
-    setPaymentTerms("Due on Receipt");
-    setTermsConditions("");
-    setCancellationPolicy("");
-    setInvoiceNotes("");
-    setInvoiceAttachments([]);
-    setTermsAccepted(false);
+      // Show success toast
+      toast.success("Invoice created successfully");
+
+      // Reset form
+      setCurrentStep(1);
+      setNewInvoiceCustomer("");
+      setNewInvoiceJobAddress("");
+      setNewInvoiceEmployee("");
+      setNewInvoiceType("single");
+      setRecurringEnabled(false);
+      setRecurringInterval("");
+      setRecurringEndType("date");
+      setRecurringEndDate("");
+      setRecurringOccurrences("");
+      setSelectedServices([]);
+      setTaxRate("10");
+      setDiscount("");
+      setNewInvoiceDueDate("");
+      setPaymentTerms("Due on Receipt");
+      setTermsConditions("");
+      setCancellationPolicy("");
+      setInvoiceNotes("");
+      setInvoiceAttachments([]);
+      setTermsAccepted(false);
+    } catch (error) {
+      console.error("Error creating invoice:", error);
+      toast.error("Failed to create invoice");
+    }
   };
 
   // Add service to selection
@@ -879,6 +887,12 @@ const Invoices = () => {
       const isUnpaidInvoice = invoice.status === "Open" || invoice.status === "Unpaid";
       const shouldRestrictActions = isEmployee && isUnpaidInvoice;
 
+      // Check if invoice has been converted or is from sell_product
+      const invoiceStatus = (invoice as any).status || invoice.status;
+      const isConverted = invoiceStatus === "Job Created";
+      const invoiceSource = (invoice as any).source;
+      const isSellProduct = invoiceSource === "sell_product";
+
       const items: KebabMenuItem[] = [
         {
           label: "Preview",
@@ -895,7 +909,12 @@ const Invoices = () => {
           icon: DollarSign,
           action: () => handleMenuAction(invoice, "pay-cash"),
         },
-        // "Convert to Job" should only appear for Paid invoices, not Unpaid
+        // Add "Convert to Job" for unpaid invoices (same as paid)
+        ...(!isSellProduct && !isConverted ? [{
+          label: "Convert to Job",
+          icon: Briefcase,
+          action: () => handleMenuAction(invoice, "convert-to-job"),
+        }] : []),
         {
           label: "Send Email",
           icon: Mail,
@@ -1124,8 +1143,8 @@ const Invoices = () => {
       {/* Tablet Layout: Two-column grid */}
       <div className="hidden tablet:flex tablet:flex-1 tablet:overflow-hidden">
         {/* Left Panel: Add Invoice - Tablet Only */}
-        <aside className="tablet:w-[32%] bg-gray-50/80 border-r overflow-y-auto flex flex-col">
-          <div className="sticky top-0 bg-gray-50/95 backdrop-blur-sm border-b px-4 py-3 z-10">
+        <aside className="tablet:w-[40%] bg-gray-50/80 border-r overflow-y-auto flex flex-col" style={{ contain: 'layout style paint' }}>
+          <div className="sticky top-0 bg-gray-50/95 border-b px-4 py-3 z-10" style={{ willChange: 'transform', backfaceVisibility: 'hidden' }}>
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-semibold text-sm text-foreground">Add Invoice</h3>
               <Button
@@ -1693,7 +1712,7 @@ const Invoices = () => {
           </div>
 
           {/* Navigation Buttons */}
-          <div className="sticky bottom-0 bg-gray-50/95 backdrop-blur-sm border-t px-4 py-3">
+          <div className="sticky bottom-0 bg-gray-50/95 border-t px-4 py-3" style={{ willChange: 'transform', backfaceVisibility: 'hidden' }}>
             <div className="flex gap-2">
               {currentStep > 1 && (
                 <Button
@@ -1731,7 +1750,7 @@ const Invoices = () => {
         </aside>
 
         {/* Right Panel: Invoice List */}
-        <div className="tablet:flex-1 tablet:overflow-y-auto scrollable bg-gray-50/50">
+        <div className="tablet:flex-1 tablet:overflow-y-auto scrollable bg-gray-50/50" style={{ contain: 'layout style paint' }}>
           <div className="px-4 py-4 space-y-3 tablet:max-w-5xl tablet:mx-auto">
             {/* Search and Invoice Due Alert Button */}
             <div className="flex gap-2">

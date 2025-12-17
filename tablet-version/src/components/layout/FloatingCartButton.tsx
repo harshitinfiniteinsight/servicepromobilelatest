@@ -2,18 +2,23 @@ import { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { ShoppingCart } from "lucide-react";
 import { useCart } from "@/contexts/CartContext";
+import { useIsTablet } from "@/hooks/use-tablet";
 import CartViewModal from "@/components/modals/CartViewModal";
 
 const FloatingCartButton = () => {
   const location = useLocation();
   const { getTotalItems } = useCart();
   const [cartModalOpen, setCartModalOpen] = useState(false);
+  const isTablet = useIsTablet();
   
+  const currentPath = location.pathname;
   const totalItems = getTotalItems();
-  
-  // Show on all pages when cart has items, except checkout/payment screens
-  const isCheckoutPage = location.pathname.startsWith("/checkout");
-  const shouldShow = totalItems > 0 && !isCheckoutPage;
+  const hasItems = totalItems > 0;
+  const isCheckoutPage = currentPath.startsWith("/checkout");
+  const isSellProduct = currentPath.startsWith("/sales/sell-product");
+
+  // Tablet: keep button hidden on Sell Product; show elsewhere only after items exist
+  const shouldShow = hasItems && !isCheckoutPage && (!isTablet || !isSellProduct);
   
   if (!shouldShow) return null;
 

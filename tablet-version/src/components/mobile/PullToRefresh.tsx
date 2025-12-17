@@ -13,23 +13,31 @@ const PullToRefresh = ({ onRefresh, children }: PullToRefreshProps) => {
   const [pullDistance, setPullDistance] = useState(0);
   const startY = useRef(0);
   const containerRef = useRef<HTMLDivElement>(null);
+  const isAtTopRef = useRef(false);
 
   const threshold = 80;
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (containerRef.current && containerRef.current.scrollTop === 0) {
-      startY.current = e.touches[0].clientY;
+    if (containerRef.current) {
+      // Cache scroll position to avoid repeated reads
+      isAtTopRef.current = containerRef.current.scrollTop === 0;
+      if (isAtTopRef.current) {
+        startY.current = e.touches[0].clientY;
+      }
     }
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (containerRef.current && containerRef.current.scrollTop === 0 && !refreshing) {
+    if (isAtTopRef.current && !refreshing) {
       const currentY = e.touches[0].clientY;
       const distance = Math.max(0, currentY - startY.current);
       
       if (distance > 0) {
-        setPulling(true);
-        setPullDistance(Math.min(distance, threshold * 1.5));
+        // Use requestAnimationFrame to batch DOM updates
+        requestAnimationFrame(() => {
+          setPulling(true);
+          setPullDistance(Math.min(distance, threshold * 1.5));
+        });
       }
     }
   };
@@ -40,9 +48,13 @@ const PullToRefresh = ({ onRefresh, children }: PullToRefreshProps) => {
       await onRefresh();
       setRefreshing(false);
     }
-    setPulling(false);
-    setPullDistance(0);
-    startY.current = 0;
+    // Use requestAnimationFrame to batch state updates
+    requestAnimationFrame(() => {
+      setPulling(false);
+      setPullDistance(0);
+      startY.current = 0;
+      isAtTopRef.current = false;
+    });
   };
 
   return (

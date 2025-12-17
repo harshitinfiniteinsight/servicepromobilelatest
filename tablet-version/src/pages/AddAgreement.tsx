@@ -9,6 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import AddCustomerModal from "@/components/modals/AddCustomerModal";
 import { mockCustomers, serviceTypes, mockEmployees, mockAgreements } from "@/data/mobileMockData";
 import { RefreshCw, List, ChevronsUpDown, Check, Plus, Calendar, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -41,11 +42,7 @@ const AddAgreement = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [jobAddress, setJobAddress] = useState("");
-  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
-  const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
-  const [newCustomerLastName, setNewCustomerLastName] = useState("");
-  const [newCustomerEmail, setNewCustomerEmail] = useState("");
-  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState("");
@@ -72,6 +69,18 @@ const AddAgreement = () => {
       setJobAddress("");
     }
   }, [selectedCustomer, isEditMode]);
+
+  // Load customers from shared store and merge with mock seed
+  useEffect(() => {
+    const storedCustomers = localStorage.getItem("servicepro_customers");
+    if (storedCustomers) {
+      const parsed = JSON.parse(storedCustomers);
+      const merged = [...parsed, ...mockCustomers.filter(mc => !parsed.find((pc: any) => pc.id === mc.id))];
+      setCustomerList(merged);
+    } else {
+      setCustomerList(mockCustomers);
+    }
+  }, []);
   const [agreementType, setAgreementType] = useState("One Time");
   const [serviceRequirement, setServiceRequirement] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
@@ -200,8 +209,8 @@ const AddAgreement = () => {
   }, [isEditMode, agreement, currentEmployeeId, isEmployee]);
 
   const sortedCustomers = [...customerList].sort((a, b) => {
-    const dateA = new Date(a.joinedDate).getTime();
-    const dateB = new Date(b.joinedDate).getTime();
+    const dateA = new Date((a as any).createdAt || a.joinedDate).getTime();
+    const dateB = new Date((b as any).createdAt || b.joinedDate).getTime();
     return dateB - dateA;
   });
 
@@ -216,46 +225,11 @@ const AddAgreement = () => {
     employee.role.toLowerCase().includes(employeeSearch.toLowerCase())
   );
 
-  const resetQuickAddForm = () => {
-    setNewCustomerFirstName("");
-    setNewCustomerLastName("");
-    setNewCustomerEmail("");
-    setNewCustomerPhone("");
-  };
-
-  const handleQuickAddCustomer = () => {
-    if (
-      !newCustomerFirstName.trim() ||
-      !newCustomerLastName.trim() ||
-      !newCustomerEmail.trim() ||
-      !newCustomerPhone.trim()
-    ) {
-      toast.error("Please fill in all customer details.");
-      return;
-    }
-
-    const id = `CUST-${Date.now()}`;
-    const nowIso = new Date().toISOString();
-    const newCustomer = {
-      id,
-      name: `${newCustomerFirstName.trim()} ${newCustomerLastName.trim()}`,
-      email: newCustomerEmail.trim(),
-      phone: newCustomerPhone.trim(),
-      address: "",
-      status: "Active",
-      lastVisit: nowIso,
-      totalSpent: 0,
-      joinedDate: nowIso,
-      notes: "Added via quick add",
-    };
-
-    setCustomerList(prev => [newCustomer, ...prev]);
-    setSelectedCustomer(id);
-    setShowQuickAddCustomer(false);
+  const handleCustomerCreated = (customer: any) => {
+    setCustomerList(prev => [customer, ...prev.filter(c => c.id !== customer.id)]);
+    setSelectedCustomer(customer.id);
     setCustomerOpen(false);
     setCustomerSearch("");
-    resetQuickAddForm();
-    toast.success("Customer added successfully.");
   };
 
 
@@ -406,77 +380,11 @@ const AddAgreement = () => {
         }
       />
 
-      <Dialog
-        open={showQuickAddCustomer}
-        onOpenChange={open => {
-          setShowQuickAddCustomer(open);
-          if (!open) {
-            resetQuickAddForm();
-          }
-        }}
-      >
-        <DialogContent className="max-w-sm">
-          <DialogHeader>
-            <DialogTitle>Quick Add Customer</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-3 mt-2">
-            <div>
-              <Label htmlFor="agreement-quick-first-name">First Name</Label>
-              <Input
-                id="agreement-quick-first-name"
-                value={newCustomerFirstName}
-                onChange={e => setNewCustomerFirstName(e.target.value)}
-                placeholder="Enter first name"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="agreement-quick-last-name">Last Name</Label>
-              <Input
-                id="agreement-quick-last-name"
-                value={newCustomerLastName}
-                onChange={e => setNewCustomerLastName(e.target.value)}
-                placeholder="Enter last name"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="agreement-quick-email">Email</Label>
-              <Input
-                id="agreement-quick-email"
-                type="email"
-                value={newCustomerEmail}
-                onChange={e => setNewCustomerEmail(e.target.value)}
-                placeholder="name@example.com"
-                className="mt-2"
-              />
-            </div>
-            <div>
-              <Label htmlFor="agreement-quick-phone">Phone Number</Label>
-              <Input
-                id="agreement-quick-phone"
-                type="tel"
-                value={newCustomerPhone}
-                onChange={e => setNewCustomerPhone(e.target.value)}
-                placeholder="(555) 123-4567"
-                className="mt-2"
-              />
-            </div>
-            <Button
-              className="w-full"
-              onClick={handleQuickAddCustomer}
-              disabled={
-                !newCustomerFirstName.trim() ||
-                !newCustomerLastName.trim() ||
-                !newCustomerEmail.trim() ||
-                !newCustomerPhone.trim()
-              }
-            >
-              Add Customer
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+      <AddCustomerModal
+        isOpen={showAddCustomerModal}
+        onClose={() => setShowAddCustomerModal(false)}
+        onCustomerCreated={handleCustomerCreated}
+      />
       
       {/* Progress Indicator */}
       <div className="px-2 sm:px-4 pt-16 pb-4">
@@ -514,11 +422,12 @@ const AddAgreement = () => {
             <div>
               <div className="flex items-center justify-between">
                 <Label>Customer</Label>
+                {/* Inline + Add action to create a customer from this flow */}
                 <Button
                   variant="ghost"
                   size="sm"
-                  className="h-8 px-2 text-sm font-semibold text-orange-500 hover:text-orange-600"
-                  onClick={() => setShowQuickAddCustomer(true)}
+                  className="h-8 px-2 text-sm font-semibold text-orange-500 hover:text-orange-600 shrink-0 whitespace-nowrap"
+                  onClick={() => setShowAddCustomerModal(true)}
                 >
                   <Plus className="h-4 w-4 mr-1.5" />
                   Add
@@ -549,8 +458,8 @@ const AddAgreement = () => {
                 <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
                   <Command shouldFilter={false} value="">
                     <CommandInput
-                placeholder="Search customers..."
-                value={customerSearch}
+                      placeholder="Search customers..."
+                      value={customerSearch}
                       onValueChange={setCustomerSearch}
                     />
                     <CommandList>

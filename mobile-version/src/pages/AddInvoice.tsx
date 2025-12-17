@@ -141,6 +141,13 @@ const AddInvoice = () => {
         setIsRecurringEnabled(true);
       }
 
+      // Pre-fill invoice variant (default to standard for existing invoices without this field)
+      if ((invoice as any).invoiceVariant) {
+        setInvoiceVariant((invoice as any).invoiceVariant);
+      } else {
+        setInvoiceVariant("standard");
+      }
+
       // Pre-fill due date
       if (invoice.dueDate) {
         setDueDate(invoice.dueDate);
@@ -213,9 +220,11 @@ const AddInvoice = () => {
       setJobAddress("");
     }
   }, [selectedCustomer, isEditMode]);
-  const [items, setItems] = useState<Array<{ id: string; name: string; quantity: number; price: number; isCustom?: boolean }>>([]);
+  const [items, setItems] = useState<Array<{ id: string; name: string; quantity: number; price: number; isCustom?: boolean; discount?: number; discountType?: "%" | "$"; discountName?: string; tax?: number; taxRate?: number }>>([]);
   const [itemSearch, setItemSearch] = useState("");
   const [invoiceType, setInvoiceType] = useState<"single" | "recurring">("single");
+  const [invoiceVariant, setInvoiceVariant] = useState<"standard" | "itemLevel">("standard");
+  const [showInvoiceTypeSelector, setShowInvoiceTypeSelector] = useState(false);
   
   // Check if invoice is being created from an estimate conversion
   const fromEstimate = (location.state as any)?.fromEstimate === true;
@@ -449,28 +458,77 @@ const AddInvoice = () => {
     setItems(prevItems => prevItems.filter(item => item.id !== id));
   };
 
-  // Calculate Item Total (sum of all line items)
-  const itemTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  // Dual calculation logic: standard vs item-level
+  let itemTotal: number;
+  let subtotal: number;
+  let taxAmount: number;
+  let total: number;
   
-  // Calculate total discount from all sources (based on item total)
-  const selectedDiscountsAmount = selectedDiscounts.reduce((sum, disc) => {
-    return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
-  }, 0);
-  
-  const customDiscountsAmount = customDiscounts.reduce((sum, disc) => {
-    return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
-  }, 0);
-  
-  const totalDiscounts = selectedDiscountsAmount + customDiscountsAmount;
-  
-  // Calculate Subtotal (after discounts)
-  const subtotal = Math.max(0, itemTotal - totalDiscounts);
-  
-  // Calculate Tax (on subtotal after discounts)
-  const taxAmount = subtotal * (tax / 100);
-  
-  // Calculate Total
-  const total = subtotal + taxAmount;
+  if (invoiceVariant === "itemLevel") {
+    // Item-Level Calculation: sum items with their individual discounts and taxes
+    itemTotal = items.reduce((sum, item) => {
+      let lineTotal = item.price * item.quantity;
+      
+      // Apply item-level discount
+      if (item.discount && item.discount > 0) {
+        const discountAmount = item.discountType === "%" 
+          ? lineTotal * (item.discount / 100)
+          : item.discount;
+        lineTotal -= discountAmount;
+      }
+      
+      // Apply item-level tax
+      if (item.taxRate && item.taxRate > 0) {
+        lineTotal += lineTotal * (item.taxRate / 100);
+      }
+      
+      return sum + lineTotal;
+    }, 0);
+    
+    // For item-level, subtotal = sum of items (already with their discounts/taxes)
+    subtotal = itemTotal;
+    
+    // Apply invoice-level discount if any
+    const selectedDiscountsAmount = selectedDiscounts.reduce((sum, disc) => {
+      return sum + (disc.type === "%" ? subtotal * (disc.value / 100) : disc.value);
+    }, 0);
+    
+    const customDiscountsAmount = customDiscounts.reduce((sum, disc) => {
+      return sum + (disc.type === "%" ? subtotal * (disc.value / 100) : disc.value);
+    }, 0);
+    
+    const invoiceLevelDiscounts = selectedDiscountsAmount + customDiscountsAmount;
+    subtotal = Math.max(0, subtotal - invoiceLevelDiscounts);
+    
+    // Apply invoice-level tax if any
+    taxAmount = subtotal * (tax / 100);
+    total = subtotal + taxAmount;
+    
+  } else {
+    // Standard Calculation (existing logic)
+    // Calculate Item Total (sum of all line items)
+    itemTotal = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    
+    // Calculate total discount from all sources (based on item total)
+    const selectedDiscountsAmount = selectedDiscounts.reduce((sum, disc) => {
+      return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+    }, 0);
+    
+    const customDiscountsAmount = customDiscounts.reduce((sum, disc) => {
+      return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+    }, 0);
+    
+    const totalDiscounts = selectedDiscountsAmount + customDiscountsAmount;
+    
+    // Calculate Subtotal (after discounts)
+    subtotal = Math.max(0, itemTotal - totalDiscounts);
+    
+    // Calculate Tax (on subtotal after discounts)
+    taxAmount = subtotal * (tax / 100);
+    
+    // Calculate Total
+    total = subtotal + taxAmount;
+  }
 
   const steps = [
     { number: 1, title: "Customer & Team" },
@@ -904,7 +962,47 @@ const AddInvoice = () => {
                   );
                 })}
               </RadioGroup>
+            </div>
+
+            <div>
+              <Label>Discount & Tax Method</Label>
+              <div className="mt-2 flex gap-3">
+                {[
+                  { value: "standard", label: "Standard", desc: "Apply discount & tax at invoice level" },
+                  { value: "itemLevel", label: "Item-Level", desc: "Apply discount & tax per item" },
+                ].map(option => (
+                  <div
+                    key={option.value}
+                    className={cn(
+                      "flex-1 p-4 rounded-xl border transition-colors cursor-pointer",
+                      invoiceVariant === option.value 
+                        ? "bg-primary/10 border-primary" 
+                        : "bg-card hover:bg-accent/5"
+                    )}
+                    onClick={() => setInvoiceVariant(option.value as "standard" | "itemLevel")}
+                  >
+                    <div className="flex items-start gap-3">
+                      <RadioGroupItem 
+                        value={option.value} 
+                        id={`invoice-variant-${option.value}`}
+                        checked={invoiceVariant === option.value}
+                      />
+                      <div className="flex-1">
+                        <Label 
+                          htmlFor={`invoice-variant-${option.value}`} 
+                          className="cursor-pointer font-semibold"
+                        >
+                          {option.label}
+                        </Label>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          {option.desc}
+                        </p>
                       </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
 
             {invoiceType === "recurring" && (
               <div className="rounded-2xl border border-orange-200 bg-gradient-to-br from-orange-50/80 via-white to-purple-50 p-4 sm:p-5 space-y-3">
@@ -1329,9 +1427,146 @@ const AddInvoice = () => {
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <span className="text-sm font-semibold text-gray-600 whitespace-nowrap">Total:</span>
-                            <span className="text-base font-bold text-gray-900 whitespace-nowrap">${(item.price * item.quantity).toFixed(2)}</span>
+                            <span className="text-base font-bold text-gray-900 whitespace-nowrap">
+                              ${(() => {
+                                let itemTotal = item.price * item.quantity;
+                                
+                                // Apply item-level discount if itemLevel variant
+                                if (invoiceVariant === "itemLevel" && item.discount && item.discount > 0) {
+                                  const discountAmount = item.discountType === "%" 
+                                    ? itemTotal * (item.discount / 100)
+                                    : item.discount;
+                                  itemTotal -= discountAmount;
+                                }
+                                
+                                // Apply item-level tax if itemLevel variant
+                                if (invoiceVariant === "itemLevel" && item.taxRate && item.taxRate > 0) {
+                                  itemTotal += itemTotal * (item.taxRate / 100);
+                                }
+                                
+                                return itemTotal.toFixed(2);
+                              })()}
+                            </span>
                       </div>
                     </div>
+
+                        {/* Item-level discount and tax controls for itemLevel variant */}
+                        {invoiceVariant === "itemLevel" && (
+                          <div className="mt-3 pt-3 border-t border-gray-200 space-y-2.5">
+                            {/* Discount controls */}
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs">Item Discount (Optional)</Label>
+                                {item.discount && item.discount > 0 && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-5 px-1 text-[10px] text-red-600 hover:bg-red-50"
+                                    onClick={() => {
+                                      setItems(prev => prev.map(i => 
+                                        i.id === item.id 
+                                          ? { ...i, discount: undefined, discountType: undefined, discountName: undefined }
+                                          : i
+                                      ));
+                                    }}
+                                  >
+                                    Clear
+                                  </Button>
+                                )}
+                              </div>
+                              <div className="flex gap-2">
+                                <Input
+                                  type="number"
+                                  placeholder="0"
+                                  value={item.discount || ""}
+                                  onChange={e => {
+                                    const value = parseFloat(e.target.value) || 0;
+                                    setItems(prev => prev.map(i => 
+                                      i.id === item.id 
+                                        ? { ...i, discount: value > 0 ? value : undefined }
+                                        : i
+                                    ));
+                                  }}
+                                  className="h-8 text-sm"
+                                  min="0"
+                                  step="0.01"
+                                />
+                                <Select 
+                                  value={item.discountType || "%"} 
+                                  onValueChange={(value: "%" | "$") => {
+                                    setItems(prev => prev.map(i => 
+                                      i.id === item.id 
+                                        ? { ...i, discountType: value }
+                                        : i
+                                    ));
+                                  }}
+                                >
+                                  <SelectTrigger className="w-16 h-8 text-sm">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="%">%</SelectItem>
+                                    <SelectItem value="$">$</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+                              {item.discount && item.discount > 0 && (
+                                <Input
+                                  placeholder="Discount name (optional)"
+                                  value={item.discountName || ""}
+                                  onChange={e => {
+                                    setItems(prev => prev.map(i => 
+                                      i.id === item.id 
+                                        ? { ...i, discountName: e.target.value }
+                                        : i
+                                    ));
+                                  }}
+                                  className="h-8 text-xs"
+                                />
+                              )}
+                            </div>
+
+                            {/* Tax controls */}
+                            <div className="space-y-1.5">
+                              <div className="flex items-center justify-between">
+                                <Label className="text-xs">Item Tax % (Optional)</Label>
+                                {item.taxRate && item.taxRate > 0 && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    className="h-5 px-1 text-[10px] text-red-600 hover:bg-red-50"
+                                    onClick={() => {
+                                      setItems(prev => prev.map(i => 
+                                        i.id === item.id 
+                                          ? { ...i, taxRate: undefined, tax: undefined }
+                                          : i
+                                      ));
+                                    }}
+                                  >
+                                    Clear
+                                  </Button>
+                                )}
+                              </div>
+                              <Input
+                                type="number"
+                                placeholder="0"
+                                value={item.taxRate || ""}
+                                onChange={e => {
+                                  const value = parseFloat(e.target.value) || 0;
+                                  setItems(prev => prev.map(i => 
+                                    i.id === item.id 
+                                      ? { ...i, taxRate: value > 0 ? value : undefined }
+                                      : i
+                                  ));
+                                }}
+                                className="h-8 text-sm"
+                                min="0"
+                                max="100"
+                                step="0.01"
+                              />
+                            </div>
+                          </div>
+                        )}
                   </div>
                     );
                   })}
@@ -1739,12 +1974,18 @@ const AddInvoice = () => {
                   // Update existing invoice
                   try {
                     const updatedData = {
+                      invoiceVariant: invoiceVariant,
                       items: items.map(item => ({
                         id: item.id,
                         name: item.name,
                         price: item.price,
                         quantity: item.quantity,
                         amount: item.price * item.quantity,
+                        discount: item.discount,
+                        discountType: item.discountType,
+                        discountName: item.discountName,
+                        tax: item.tax,
+                        taxRate: item.taxRate,
                       })),
                       subtotal,
                       tax: taxAmount,
@@ -1784,12 +2025,18 @@ const AddInvoice = () => {
                     amount: total,
                     status: "Open" as const,
                     type: invoiceType as "single" | "recurring",
+                    invoiceVariant: invoiceVariant,
                     items: items.map(item => ({
                       id: item.id,
                       name: item.name,
                       price: item.price,
                       quantity: item.quantity,
                       amount: item.price * item.quantity,
+                      discount: item.discount,
+                      discountType: item.discountType,
+                      discountName: item.discountName,
+                      tax: item.tax,
+                      taxRate: item.taxRate,
                     })),
                     subtotal,
                     tax: taxAmount,

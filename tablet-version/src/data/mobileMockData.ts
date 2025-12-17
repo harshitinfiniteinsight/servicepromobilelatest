@@ -423,11 +423,11 @@ export const mockInventory = [
 ];
 
 export const mockAgreements = [
-  { id: "AGR-001", customerId: "1", customerName: "John Smith", type: "Annual Maintenance", startDate: "2024-01-01", endDate: "2024-12-31", monthlyAmount: 49.99, status: "Paid", renewalStatus: "Auto-renew" },
-  { id: "AGR-002", customerId: "4", customerName: "Emma Davis", type: "Quarterly Service", startDate: "2023-10-01", endDate: "2024-09-30", monthlyAmount: 129.99, status: "Paid", renewalStatus: "Manual" },
-  { id: "AGR-003", customerId: "9", customerName: "William Taylor", type: "Premium Plan", startDate: "2024-01-15", endDate: "2025-01-14", monthlyAmount: 199.99, status: "Paid", renewalStatus: "Auto-renew" },
-  { id: "AGR-004", customerId: "13", customerName: "Daniel Lee", type: "Basic Coverage", startDate: "2023-07-01", endDate: "2024-06-30", monthlyAmount: 79.99, status: "Open", renewalStatus: "Pending" },
-  { id: "AGR-005", customerId: "17", customerName: "Steven Lewis", type: "Commercial Plan", startDate: "2024-02-01", endDate: "2025-01-31", monthlyAmount: 399.99, status: "Open", renewalStatus: "Auto-renew" },
+  { id: "AGR-001", customerId: "1", customerName: "John Smith", type: "Annual Maintenance", startDate: "2024-01-01", endDate: "2024-12-31", monthlyAmount: 49.99, status: "Paid", renewalStatus: "Auto-renew", createdAt: "2024-01-01T08:00:00.000Z" },
+  { id: "AGR-002", customerId: "4", customerName: "Emma Davis", type: "Quarterly Service", startDate: "2023-10-01", endDate: "2024-09-30", monthlyAmount: 129.99, status: "Paid", renewalStatus: "Manual", createdAt: "2023-10-01T09:30:00.000Z" },
+  { id: "AGR-003", customerId: "9", customerName: "William Taylor", type: "Premium Plan", startDate: "2024-01-15", endDate: "2025-01-14", monthlyAmount: 199.99, status: "Paid", renewalStatus: "Auto-renew", createdAt: "2024-01-15T10:15:00.000Z" },
+  { id: "AGR-004", customerId: "13", customerName: "Daniel Lee", type: "Basic Coverage", startDate: "2023-07-01", endDate: "2024-06-30", monthlyAmount: 79.99, status: "Open", renewalStatus: "Pending", createdAt: "2023-07-01T11:00:00.000Z" },
+  { id: "AGR-005", customerId: "17", customerName: "Steven Lewis", type: "Commercial Plan", startDate: "2024-02-01", endDate: "2025-01-31", monthlyAmount: 399.99, status: "Open", renewalStatus: "Auto-renew", createdAt: "2024-02-01T14:20:00.000Z" },
 ];
 
 export const mockDiscounts = [

@@ -51,12 +51,15 @@ const KebabMenu = ({
       </DropdownMenuTrigger>
       <DropdownMenuContent
         align={align}
+        side="bottom"
         className={cn(
           menuWidth,
           "rounded-xl border border-gray-200 bg-white shadow-lg p-2",
           className
         )}
         sideOffset={4}
+        collisionPadding={8}
+        avoidCollisions={true}
         onClick={(e) => e.stopPropagation()}
         onPointerDown={(e) => e.stopPropagation()}
       >

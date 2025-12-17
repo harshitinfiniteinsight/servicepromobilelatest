@@ -11,6 +11,12 @@ export interface InvoiceItem {
   quantity: number;
   amount: number;
   type?: string;
+  // Item-level discount and tax fields
+  discount?: number;
+  discountType?: "%" | "$";
+  discountName?: string;
+  tax?: number;
+  taxRate?: number;
 }
 
 export interface Invoice {
@@ -34,15 +40,47 @@ export interface Invoice {
   employeeId?: string;
   employeeName?: string;
   createdAt?: string;
+  // Invoice variant: "standard" (default) or "itemLevel" (item-level discount & tax)
+  invoiceVariant?: "standard" | "itemLevel";
 }
 
 const STORAGE_KEY = "servicepro_invoices";
+const MIGRATION_KEY = "servicepro_invoices_migrated_v1";
+
+// Migrate existing invoices to include invoiceVariant field
+const migrateInvoices = () => {
+  // Check if migration already done
+  if (localStorage.getItem(MIGRATION_KEY)) {
+    return;
+  }
+
+  const stored = localStorage.getItem(STORAGE_KEY);
+  if (stored) {
+    try {
+      const invoices: Invoice[] = JSON.parse(stored);
+      const migrated = invoices.map(invoice => ({
+        ...invoice,
+        invoiceVariant: invoice.invoiceVariant || "standard"
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      localStorage.setItem(MIGRATION_KEY, "true");
+      console.log("Invoices migrated to include invoiceVariant field");
+    } catch (error) {
+      console.error("Error migrating invoices:", error);
+    }
+  } else {
+    // No invoices to migrate, mark as migrated
+    localStorage.setItem(MIGRATION_KEY, "true");
+  }
+};
 
 // Initialize invoices storage if it doesn't exist
 const initializeStorage = () => {
   if (!localStorage.getItem(STORAGE_KEY)) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
   }
+  // Run migration on initialization
+  migrateInvoices();
 };
 
 // Get all invoices from storage

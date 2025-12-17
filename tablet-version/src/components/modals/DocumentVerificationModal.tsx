@@ -98,34 +98,37 @@ export const DocumentVerificationModal = ({
     const canvas = canvasRef.current;
     const box = signatureBoxRef.current;
     
-    // Set canvas size to match container (accounting for high-DPI displays)
-    const rect = box.getBoundingClientRect();
-    const dpr = window.devicePixelRatio || 1;
-    
-    // Set display size (CSS pixels)
-    canvas.style.width = `${rect.width}px`;
-    canvas.style.height = `${rect.height}px`;
-    
-    // Set actual size in memory (scaled for high-DPI)
-    const scaledWidth = rect.width * dpr;
-    const scaledHeight = rect.height * dpr;
-    
-    // Only resize if dimensions changed to avoid clearing the canvas
-    if (canvas.width !== scaledWidth || canvas.height !== scaledHeight) {
-      canvas.width = scaledWidth;
-      canvas.height = scaledHeight;
-    }
-    
-    const ctx = canvas.getContext("2d");
-    if (ctx) {
-      // Reset transform and scale drawing context to account for device pixel ratio
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
-      ctx.strokeStyle = "#000";
-      ctx.lineWidth = 2.5;
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-    }
+    // Use requestAnimationFrame to batch DOM reads and writes
+    requestAnimationFrame(() => {
+      // Set canvas size to match container (accounting for high-DPI displays)
+      const rect = box.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      
+      // Set display size (CSS pixels)
+      canvas.style.width = `${rect.width}px`;
+      canvas.style.height = `${rect.height}px`;
+      
+      // Set actual size in memory (scaled for high-DPI)
+      const scaledWidth = rect.width * dpr;
+      const scaledHeight = rect.height * dpr;
+      
+      // Only resize if dimensions changed to avoid clearing the canvas
+      if (canvas.width !== scaledWidth || canvas.height !== scaledHeight) {
+        canvas.width = scaledWidth;
+        canvas.height = scaledHeight;
+      }
+      
+      const ctx = canvas.getContext("2d");
+      if (ctx) {
+        // Reset transform and scale drawing context to account for device pixel ratio
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.scale(dpr, dpr);
+        ctx.strokeStyle = "#000";
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
+      }
+    });
   };
 
   // Initialize canvas with proper scaling and attach non-passive touch listeners
@@ -234,13 +237,18 @@ export const DocumentVerificationModal = ({
 
   // Disable body scroll when modal is open
   useEffect(() => {
-    if (open) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    // Use requestAnimationFrame to batch style changes
+    requestAnimationFrame(() => {
+      if (open) {
+        document.body.style.overflow = "hidden";
+      } else {
+        document.body.style.overflow = "";
+      }
+    });
     return () => {
-      document.body.style.overflow = "";
+      requestAnimationFrame(() => {
+        document.body.style.overflow = "";
+      });
     };
   }, [open]);
 

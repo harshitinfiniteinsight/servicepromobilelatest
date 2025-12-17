@@ -225,12 +225,15 @@ const Jobs = () => {
   useEffect(() => {
     if (metricsCarouselRef.current) {
       const container = metricsCarouselRef.current;
-      // Each group is exactly the container's visible width (100% width)
-      // Scroll by the container's clientWidth (visible width without scrollbar)
-      const scrollAmount = metricsGroupIndex * container.clientWidth;
-      container.scrollTo({
-        left: scrollAmount,
-        behavior: 'smooth'
+      // Use requestAnimationFrame to avoid forced reflow
+      requestAnimationFrame(() => {
+        // Each group is exactly the container's visible width (100% width)
+        // Scroll by the container's clientWidth (visible width without scrollbar)
+        const scrollAmount = metricsGroupIndex * container.clientWidth;
+        container.scrollTo({
+          left: scrollAmount,
+          behavior: 'smooth'
+        });
       });
     }
   }, [metricsGroupIndex]);
@@ -861,19 +864,6 @@ const Jobs = () => {
     <div className="h-full flex flex-col overflow-hidden bg-background">
       <TabletHeader
         title="Jobs"
-        actions={
-          <div className="hidden tablet:flex items-center gap-2 tablet:w-80">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search jobs, customers..."
-                className="pl-9 h-9 bg-secondary/50 border-0"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-          </div>
-        }
       />
 
       {/* Mobile Layout: Search & Filter Header - Fixed with scrolling content */}
@@ -1021,7 +1011,8 @@ const Jobs = () => {
       <div className="flex-1 overflow-hidden tablet:grid tablet:grid-cols-[32%_68%] tablet:gap-0">
         {/* Left Panel: Filters - Tablet Only */}
         <aside className="hidden tablet:flex tablet:flex-col bg-gray-50/80 border-r overflow-y-auto">
-          <div className="sticky top-0 bg-gray-50/95 backdrop-blur-sm border-b px-4 py-3 z-10">
+          {/* Filters Header */}
+          <div className="sticky top-0 bg-gray-50/95 border-b px-4 py-3 z-10" style={{ willChange: 'transform', backfaceVisibility: 'hidden' }}>
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-sm text-foreground">Filters</h3>
               {hasActiveFilters && (
@@ -1164,6 +1155,19 @@ const Jobs = () => {
 
         {/* Right Panel: Jobs List */}
         <div className="flex-1 overflow-y-auto scrollable bg-gray-50/50">
+          {/* Search Field - Tablet Only (Top of Right Panel) */}
+          <div className="hidden tablet:block bg-background border-b px-6 py-3">
+            <div className="relative max-w-5xl mx-auto">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search jobs, customers..."
+                className="pl-9 h-9 bg-secondary/50 border-0"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+          </div>
+
           {/* Metrics Section - Mobile: Scrollable Carousel, Tablet: Static Grid */}
           <div className="relative border-b bg-background shadow-sm mb-2">
             {/* Mobile: Carousel with Navigation */}

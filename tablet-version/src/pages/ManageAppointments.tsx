@@ -1,6 +1,6 @@
 import { useMemo, useState, useEffect } from "react";
 import { useNavigate, useSearchParams, useLocation } from "react-router-dom";
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockAppointments } from "@/data/mobileMockData";
@@ -359,17 +359,18 @@ const ManageAppointments = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader 
+      <TabletHeader
         title="Appointments"
-        showBack={true}
+        showBack={false}
         actions={
-          <Button size="sm" onClick={() => navigate(`/appointments/new?fromView=${viewMode}`)}>
-            <Plus className="h-4 w-4" />
+          <Button size="sm" className="rounded-full" onClick={() => navigate(`/appointments/new?fromView=${viewMode}`)}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            New
           </Button>
         }
       />
-      
-      <div className="flex-1 overflow-y-auto scrollable" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top) + 0.5rem)' }}>
+
+      <div className="flex-1 overflow-y-auto scrollable">
         <Tabs value={viewMode} onValueChange={(value) => handleViewModeChange(value as "calendar" | "list")} className="flex flex-col h-full">
           <div className="px-3 pt-2 pb-1.5">
             <TabsList className="grid grid-cols-2 w-full bg-muted/40 h-9">
@@ -379,14 +380,14 @@ const ManageAppointments = () => {
           </div>
 
           <TabsContent value="calendar" className="flex-1 outline-none data-[state=inactive]:hidden flex flex-col overflow-hidden">
-            <div className="flex-1 flex flex-col overflow-hidden">
-              {/* Week View Specific Header */}
-              {calendarViewMode === "week" && !isEmployee && (
-                <div className="px-3 pt-2 pb-1.5 space-y-1.5 border-b border-gray-200">
-                  {/* Employee Filter - Hidden for employees */}
-                  <div>
+            {/* Shared Controls Row - Employee Filter + View Toggle (visible in all calendar views) */}
+            {!isEmployee && (
+              <div className="px-4 pt-3 pb-3 border-b border-gray-200 bg-white">
+                <div className="flex items-center gap-4">
+                  {/* Employee Filter - Left side */}
+                  <div className="w-56">
                     <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                      <SelectTrigger className="h-8 rounded-lg border-gray-200 text-xs w-full">
+                      <SelectTrigger className="h-9 rounded-lg border-gray-200 text-xs">
                         <SelectValue placeholder="All Employees" />
                       </SelectTrigger>
                       <SelectContent>
@@ -401,18 +402,15 @@ const ManageAppointments = () => {
                       </SelectContent>
                     </Select>
                   </div>
-                </div>
-              )}
-
-              {/* Month / Week / Day Buttons - Show for all calendar views */}
-              <div className="px-3 pt-2 pb-1.5">
-                  <div className="flex items-center justify-center gap-2 py-1">
+                  
+                  {/* Month / Week / Day Toggle - Right side */}
+                  <div className="flex items-center gap-2 ml-auto">
                     <Button
                       variant={calendarViewMode === "month" ? "default" : "outline"}
                       size="sm"
                       onClick={() => setCalendarViewMode("month")}
                       className={cn(
-                        "rounded-full h-9 px-4 text-sm font-medium transition-colors flex-1 max-w-[100px]",
+                        "rounded-full h-9 px-4 text-sm font-medium transition-colors",
                         calendarViewMode === "month"
                           ? "bg-orange-500 hover:bg-orange-600 text-white shadow-sm"
                           : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
@@ -425,7 +423,7 @@ const ManageAppointments = () => {
                       size="sm"
                       onClick={() => setCalendarViewMode("week")}
                       className={cn(
-                        "rounded-full h-9 px-4 text-sm font-medium transition-colors flex-1 max-w-[100px]",
+                        "rounded-full h-9 px-4 text-sm font-medium transition-colors",
                         calendarViewMode === "week"
                           ? "bg-orange-500 hover:bg-orange-600 text-white shadow-sm"
                           : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
@@ -438,7 +436,7 @@ const ManageAppointments = () => {
                       size="sm"
                       onClick={() => setCalendarViewMode("day")}
                       className={cn(
-                        "rounded-full h-9 px-4 text-sm font-medium transition-colors flex-1 max-w-[100px]",
+                        "rounded-full h-9 px-4 text-sm font-medium transition-colors",
                         calendarViewMode === "day"
                           ? "bg-orange-500 hover:bg-orange-600 text-white shadow-sm"
                           : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
@@ -448,6 +446,57 @@ const ManageAppointments = () => {
                     </Button>
                   </div>
                 </div>
+              </div>
+            )}
+            
+            {/* For employees: show view toggle only (no filter) */}
+            {isEmployee && (
+              <div className="px-4 pt-3 pb-3 border-b border-gray-200 bg-white">
+                <div className="flex items-center gap-2 justify-end">
+                  <Button
+                    variant={calendarViewMode === "month" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCalendarViewMode("month")}
+                    className={cn(
+                      "rounded-full h-9 px-4 text-sm font-medium transition-colors",
+                      calendarViewMode === "month"
+                        ? "bg-orange-500 hover:bg-orange-600 text-white shadow-sm"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
+                    )}
+                  >
+                    Month
+                  </Button>
+                  <Button
+                    variant={calendarViewMode === "week" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCalendarViewMode("week")}
+                    className={cn(
+                      "rounded-full h-9 px-4 text-sm font-medium transition-colors",
+                      calendarViewMode === "week"
+                        ? "bg-orange-500 hover:bg-orange-600 text-white shadow-sm"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
+                    )}
+                  >
+                    Week
+                  </Button>
+                  <Button
+                    variant={calendarViewMode === "day" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setCalendarViewMode("day")}
+                    className={cn(
+                      "rounded-full h-9 px-4 text-sm font-medium transition-colors",
+                      calendarViewMode === "day"
+                        ? "bg-orange-500 hover:bg-orange-600 text-white shadow-sm"
+                        : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-gray-300"
+                    )}
+                  >
+                    Day
+                  </Button>
+                </div>
+              </div>
+            )}
+            
+            <div className="flex-1 flex flex-col overflow-hidden">
 
               {/* Month View */}
               {calendarViewMode === "month" && (
@@ -714,31 +763,9 @@ const ManageAppointments = () => {
               {/* Day View */}
               {calendarViewMode === "day" && (
                 <div className="flex-1 flex flex-col overflow-hidden relative">
-                  {/* Day View Header */}
-                  <div className={`px-3 pt-2 pb-1.5 space-y-1.5 border-b border-gray-200 bg-white ${isEmployee ? 'pb-1.5' : ''}`}>
-                    {/* Employee Filter - Hidden for employees */}
-                    {!isEmployee && (
-                      <div>
-                        <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                          <SelectTrigger className="h-8 rounded-lg border-gray-200 text-xs w-full">
-                            <SelectValue placeholder="All Employees" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">All Employees</SelectItem>
-                            {mockEmployees
-                              .filter(emp => emp.status === "Active")
-                              .map((employee) => (
-                                <SelectItem key={employee.id} value={employee.id}>
-                                  {employee.name}
-                                </SelectItem>
-                              ))}
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-
-                    {/* Date Navigation Bar */}
-                    <div className="flex items-center justify-between py-1.5 border-t border-gray-200 pt-2">
+                  {/* Date Navigation Bar */}
+                  <div className="px-4 pt-3 pb-3 border-b border-gray-200 bg-white">
+                    <div className="flex items-center justify-between">
                       <Button 
                         variant="outline" 
                         size="icon" 
@@ -775,8 +802,8 @@ const ManageAppointments = () => {
                       >
                       <ChevronRight className="h-4 w-4" />
                     </Button>
+                    </div>
                   </div>
-            </div>
 
                   {/* Timeline Grid */}
                   <div className="flex-1 overflow-y-auto relative">
