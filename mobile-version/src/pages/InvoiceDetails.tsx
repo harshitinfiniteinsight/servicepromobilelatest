@@ -280,6 +280,80 @@ const InvoiceDetails = () => {
                         </div>
                       )}
                       
+                      {/* Custom Discounts */}
+                      {item.discounts && item.discounts.length > 0 && (
+                        <div className="space-y-1 mb-2">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Custom Discounts</p>
+                          {item.discounts.map((discount: any, didx: number) => {
+                            const baseAmount = item.price * item.quantity;
+                            let afterDefaults = baseAmount;
+                            
+                            // Calculate after inventory discounts
+                            if (item.defaultDiscounts) {
+                              item.defaultDiscounts.forEach((disc: any) => {
+                                const dAmount = disc.type === "%" 
+                                  ? afterDefaults * (disc.value / 100)
+                                  : disc.value;
+                                afterDefaults -= dAmount;
+                              });
+                            }
+                            
+                            const discountAmount = discount.discountType === "percentage" 
+                              ? afterDefaults * (discount.discount / 100)
+                              : discount.discount;
+                            return (
+                              <div key={didx} className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                  {discount.name} ({discount.discountType === "percentage" ? `${discount.discount}%` : `$${discount.discount}`})
+                                </span>
+                                <span className="font-medium text-green-600">-${discountAmount.toFixed(2)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
+                      {/* Custom Taxes */}
+                      {item.taxes && item.taxes.length > 0 && (
+                        <div className="space-y-1 mb-3">
+                          <p className="text-xs font-semibold text-muted-foreground mb-1">Custom Taxes</p>
+                          {item.taxes.map((tax: any, tidx: number) => {
+                            const baseAmount = item.price * item.quantity;
+                            let afterAllDiscounts = baseAmount;
+                            
+                            // Calculate after inventory discounts
+                            if (item.defaultDiscounts) {
+                              item.defaultDiscounts.forEach((disc: any) => {
+                                const dAmount = disc.type === "%" 
+                                  ? afterAllDiscounts * (disc.value / 100)
+                                  : disc.value;
+                                afterAllDiscounts -= dAmount;
+                              });
+                            }
+                            
+                            // Calculate after custom discounts
+                            if (item.discounts) {
+                              item.discounts.forEach((discount: any) => {
+                                const dAmount = discount.discountType === "percentage" 
+                                  ? afterAllDiscounts * (discount.discount / 100)
+                                  : discount.discount;
+                                afterAllDiscounts -= dAmount;
+                              });
+                            }
+                            
+                            const taxAmount = afterAllDiscounts * (tax.taxRate / 100);
+                            return (
+                              <div key={tidx} className="flex items-center justify-between text-sm">
+                                <span className="text-muted-foreground">
+                                  {tax.name} ({tax.taxRate}%)
+                                </span>
+                                <span className="font-medium text-blue-600">+${taxAmount.toFixed(2)}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+                      
                       {/* Item Subtotal */}
                       <div className="flex items-center justify-between text-sm font-semibold pt-2 border-t border-gray-200">
                         <span>Item Subtotal:</span>
