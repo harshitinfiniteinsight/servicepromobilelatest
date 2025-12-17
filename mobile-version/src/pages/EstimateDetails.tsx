@@ -183,6 +183,24 @@ const EstimateDetails = () => {
                   <div key={idx} className="flex items-start justify-between pb-4 border-b last:border-0 last:pb-0">
                     <div className="flex-1">
                       <p className="font-semibold">{item.name}</p>
+                      {/* Item-level discount (mobile-only styling) */}
+                      {(() => {
+                        const percent = typeof item.discount === "number" ? item.discount : 0;
+                        const fixedAmount = typeof item.discountAmount === "number" ? item.discountAmount : (typeof item.discountValue === "number" && (item.discountType === "$")) ? item.discountValue : 0;
+                        const hasDiscount = (percent && percent > 0) || (fixedAmount && fixedAmount > 0);
+                        const discountName = item.discountName || item.discountLabel || item.discountTitle || "";
+                        if (!hasDiscount) return null;
+                        return (
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Discount: {discountName ? (<span>{discountName} – </span>) : null}
+                            {percent && percent > 0 ? (
+                              <span>{percent}%</span>
+                            ) : (
+                              <span>${fixedAmount.toFixed(2)}</span>
+                            )}
+                          </p>
+                        );
+                      })()}
                       <p className="text-sm text-muted-foreground">
                         {item.quantity} × ${item.price.toFixed(2)}
                       </p>
