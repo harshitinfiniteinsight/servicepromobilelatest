@@ -1843,7 +1843,16 @@ const AddInvoice = () => {
                   {/* Total Discounts */}
                   <div className="flex justify-between mb-2 pt-1 border-t border-gray-200">
                     <span className="text-sm font-semibold text-gray-700">Total Discounts:</span>
-                    <span className="text-sm font-semibold text-green-600">-${totalDiscounts.toFixed(2)}</span>
+                    <span className="text-sm font-semibold text-green-600">-${(() => {
+                      const total = selectedDiscounts.reduce((sum, disc) => {
+                        const amount = disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value;
+                        return sum + amount;
+                      }, 0) + customDiscounts.reduce((sum, disc) => {
+                        const amount = disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value;
+                        return sum + amount;
+                      }, 0);
+                      return total.toFixed(2);
+                    })()}</span>
                   </div>
                 </div>
               ) : null}
