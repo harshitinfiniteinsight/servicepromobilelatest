@@ -218,86 +218,48 @@ const InvoiceDetails = () => {
 
                   return (
                     <div key={idx} className="pb-4 border-b last:border-0 last:pb-0">
-                      <div className="flex items-start justify-between mb-1">
+                      {/* Item Header - Item Name and Base Amount */}
+                      <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
                           <p className="font-semibold">{item.name}</p>
                         </div>
+                        <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
                       </div>
                       
-                      <p className="text-sm text-muted-foreground mb-2">
+                      <p className="text-sm text-muted-foreground mb-3">
                         {item.quantity} × ${item.price.toFixed(2)}
                       </p>
                       
-                      {/* Default Discounts */}
+                      {/* Inventory-Level Discounts (Item-Level) */}
                       {item.defaultDiscounts && item.defaultDiscounts.length > 0 && (
-                        <div className="space-y-0.5 mb-1.5">
+                        <div className="space-y-1 mb-2">
                           {item.defaultDiscounts.map((discount: any, didx: number) => {
                             const baseAmount = item.price * item.quantity;
                             const discountAmount = discount.type === "%" 
                               ? baseAmount * (discount.value / 100)
                               : discount.value;
                             return (
-                              <div key={didx} className="flex items-center justify-between text-xs">
+                              <div key={didx} className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">
-                                  {discount.name} ({discount.type === "%" ? `${discount.value}%` : `$${discount.value}`})
+                                  Inventory {discount.name} ({discount.type === "%" ? `${discount.value}%` : `$${discount.value}`})
                                 </span>
-                                <span className="text-green-600 font-medium">-${discountAmount.toFixed(2)}</span>
+                                <span className="font-medium text-green-600">-${discountAmount.toFixed(2)}</span>
                               </div>
                             );
                           })}
                         </div>
                       )}
                       
-                      {/* Custom Discounts */}
-                      {item.discounts && item.discounts.length > 0 && (
-                        <div className="space-y-0.5 mb-1.5">
-                          {item.discounts.map((discount: any, didx: number) => {
-                            const baseAmount = item.price * item.quantity;
-                            const discountAmount = discount.type === "%" 
-                              ? baseAmount * (discount.value / 100)
-                              : discount.value;
-                            return (
-                              <div key={didx} className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">
-                                  {discount.name} ({discount.type === "%" ? `${discount.value}%` : `$${discount.value}`})
-                                </span>
-                                <span className="text-green-600 font-medium">-${discountAmount.toFixed(2)}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      
-                      {/* Single Discount Field (backwards compatibility) */}
-                      {!item.discounts && !item.defaultDiscounts && item.discount && item.discount > 0 && (
-                        <div className="flex items-center justify-between text-xs mb-1.5">
-                          <span className="text-muted-foreground">
-                            {item.discountName || "Discount"} {item.discountType === "%" ? `(${item.discount}%)` : ""}
-                          </span>
-                          <span className="text-green-600 font-medium">
-                            -${item.discountType === "$" ? item.discount : ((item.price * item.quantity * item.discount) / 100)}
-                          </span>
-                        </div>
-                      )}
-                      
-                      {/* Default Taxes */}
+                      {/* Inventory-Level Taxes (Item-Level) */}
                       {item.defaultTaxes && item.defaultTaxes.length > 0 && (
-                        <div className="space-y-0.5 mb-1.5">
+                        <div className="space-y-1 mb-3">
                           {item.defaultTaxes.map((tax: any, tidx: number) => {
                             const baseAmount = item.price * item.quantity;
                             let afterDiscounts = baseAmount;
                             
-                            // Calculate after discounts
+                            // Calculate after inventory discounts
                             if (item.defaultDiscounts) {
                               item.defaultDiscounts.forEach((disc: any) => {
-                                const dAmount = disc.type === "%" 
-                                  ? afterDiscounts * (disc.value / 100)
-                                  : disc.value;
-                                afterDiscounts -= dAmount;
-                              });
-                            }
-                            if (item.discounts) {
-                              item.discounts.forEach((disc: any) => {
                                 const dAmount = disc.type === "%" 
                                   ? afterDiscounts * (disc.value / 100)
                                   : disc.value;
@@ -307,69 +269,19 @@ const InvoiceDetails = () => {
                             
                             const taxAmount = afterDiscounts * (tax.value / 100);
                             return (
-                              <div key={tidx} className="flex items-center justify-between text-xs">
+                              <div key={tidx} className="flex items-center justify-between text-sm">
                                 <span className="text-muted-foreground">
-                                  {tax.name} ({tax.value}%)
+                                  Inventory {tax.name} ({tax.value}%)
                                 </span>
-                                <span className="text-blue-600 font-medium">+${taxAmount.toFixed(2)}</span>
+                                <span className="font-medium text-blue-600">+${taxAmount.toFixed(2)}</span>
                               </div>
                             );
                           })}
-                        </div>
-                      )}
-                      
-                      {/* Custom Taxes */}
-                      {item.taxes && item.taxes.length > 0 && (
-                        <div className="space-y-0.5 mb-1.5">
-                          {item.taxes.map((tax: any, tidx: number) => {
-                            const baseAmount = item.price * item.quantity;
-                            let afterDiscounts = baseAmount;
-                            
-                            // Calculate after discounts
-                            if (item.defaultDiscounts) {
-                              item.defaultDiscounts.forEach((disc: any) => {
-                                const dAmount = disc.type === "%" 
-                                  ? afterDiscounts * (disc.value / 100)
-                                  : disc.value;
-                                afterDiscounts -= dAmount;
-                              });
-                            }
-                            if (item.discounts) {
-                              item.discounts.forEach((disc: any) => {
-                                const dAmount = disc.type === "%" 
-                                  ? afterDiscounts * (disc.value / 100)
-                                  : disc.value;
-                                afterDiscounts -= dAmount;
-                              });
-                            }
-                            
-                            const taxAmount = afterDiscounts * (tax.value / 100);
-                            return (
-                              <div key={tidx} className="flex items-center justify-between text-xs">
-                                <span className="text-muted-foreground">
-                                  {tax.name} ({tax.value}%)
-                                </span>
-                                <span className="text-blue-600 font-medium">+${taxAmount.toFixed(2)}</span>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                      
-                      {/* Single Tax Field (backwards compatibility) */}
-                      {!item.taxes && !item.defaultTaxes && item.taxRate && item.taxRate > 0 && (
-                        <div className="flex items-center justify-between text-xs mb-1.5">
-                          <span className="text-muted-foreground">
-                            Tax ({item.taxRate}%)
-                          </span>
-                          <span className="text-blue-600 font-medium">
-                            +${((item.price * item.quantity * item.taxRate) / 100).toFixed(2)}
-                          </span>
                         </div>
                       )}
                       
                       {/* Item Subtotal */}
-                      <div className="flex items-center justify-between text-sm font-semibold mt-2 pt-2 border-t border-gray-200">
+                      <div className="flex items-center justify-between text-sm font-semibold pt-2 border-t border-gray-200">
                         <span>Item Subtotal:</span>
                         <span>${calculateItemSubtotal().toFixed(2)}</span>
                       </div>
