@@ -322,10 +322,12 @@ export const mockInvoices = [
         quantity: 2,
         price: 45.00,
         amount: 90.00,
-        discount: 10,
-        discountType: "%",
-        discountName: "Bulk Discount",
-        taxRate: 8.5
+        defaultDiscounts: [
+          { name: "Bulk Discount", type: "%", value: 10 }
+        ],
+        defaultTaxes: [
+          { name: "State Tax", value: 8.5 }
+        ]
       },
       {
         id: "item-2",
@@ -333,10 +335,12 @@ export const mockInvoices = [
         quantity: 1,
         price: 120.00,
         amount: 120.00,
-        discount: 15,
-        discountType: "$",
-        discountName: "Service Discount",
-        taxRate: 8.5
+        defaultDiscounts: [
+          { name: "Service Discount", type: "$", value: 15 }
+        ],
+        defaultTaxes: [
+          { name: "State Tax", value: 8.5 }
+        ]
       },
       {
         id: "item-3",
@@ -344,7 +348,9 @@ export const mockInvoices = [
         quantity: 1,
         price: 75.00,
         amount: 75.00,
-        taxRate: 8.5
+        defaultTaxes: [
+          { name: "State Tax", value: 8.5 }
+        ]
       }
     ],
     subtotal: 285.00,
@@ -471,16 +477,16 @@ export const mockEmployees = [
 ];
 
 export const mockInventory = [
-  { id: "INV-ITEM-001", name: "HVAC Filter - Standard", sku: "HVAC-FILT-001", category: "HVAC", stock: 150, lowStockThreshold: 50, unitPrice: 25.99, lastUpdated: "2024-01-28", supplier: "AirTech Supply", type: "F" },
-  { id: "INV-ITEM-002", name: "Copper Pipe - 1/2 inch", sku: "PLUMB-PIPE-002", category: "Plumbing", stock: 85, lowStockThreshold: 30, unitPrice: 8.50, lastUpdated: "2024-01-27", supplier: "PlumbPro Inc", type: "V" },
+  { id: "INV-ITEM-001", name: "HVAC Filter - Standard", sku: "HVAC-FILT-001", category: "HVAC", stock: 150, lowStockThreshold: 50, unitPrice: 25.99, lastUpdated: "2024-01-28", supplier: "AirTech Supply", type: "F", defaultDiscounts: [ { name: "Seasonal Discount", type: "%", value: 10 }, { name: "Loyalty Discount", type: "$", value: 5 } ], defaultTaxes: [ { name: "State Tax", type: "%", value: 8 } ] },
+  { id: "INV-ITEM-002", name: "Copper Pipe - 1/2 inch", sku: "PLUMB-PIPE-002", category: "Plumbing", stock: 85, lowStockThreshold: 30, unitPrice: 8.50, lastUpdated: "2024-01-27", supplier: "PlumbPro Inc", type: "V", defaultDiscounts: [ { name: "Bulk Discount", type: "%", value: 5 } ], defaultTaxes: [ { name: "Sales Tax", type: "%", value: 7.5 } ] },
   { id: "INV-ITEM-003", name: "Electrical Wire - 12 AWG", sku: "ELEC-WIRE-003", category: "Electrical", stock: 200, lowStockThreshold: 100, unitPrice: 1.25, lastUpdated: "2024-01-26", supplier: "Electric Depot", type: "U" },
-  { id: "INV-ITEM-004", name: "Thermostat - Programmable", sku: "HVAC-THER-004", category: "HVAC", stock: 35, lowStockThreshold: 15, unitPrice: 89.99, lastUpdated: "2024-01-25", supplier: "AirTech Supply", type: "F" },
-  { id: "INV-ITEM-005", name: "PVC Pipe - 3 inch", sku: "PLUMB-PIPE-005", category: "Plumbing", stock: 60, lowStockThreshold: 25, unitPrice: 12.75, lastUpdated: "2024-01-24", supplier: "PlumbPro Inc", type: "V" },
+  { id: "INV-ITEM-004", name: "Thermostat - Programmable", sku: "HVAC-THER-004", category: "HVAC", stock: 35, lowStockThreshold: 15, unitPrice: 89.99, lastUpdated: "2024-01-25", supplier: "AirTech Supply", type: "F", defaultDiscounts: [ { name: "Professional Discount", type: "%", value: 15 } ], defaultTaxes: [ { name: "State Tax", type: "%", value: 8 }, { name: "City Tax", type: "%", value: 2 } ] },
+  { id: "INV-ITEM-005", name: "PVC Pipe - 3 inch", sku: "PLUMB-PIPE-005", category: "Plumbing", stock: 60, lowStockThreshold: 25, unitPrice: 12.75, lastUpdated: "2024-01-24", supplier: "PlumbPro Inc", type: "V", defaultTaxes: [ { name: "Sales Tax", type: "%", value: 7.5 } ] },
   { id: "INV-ITEM-006", name: "Circuit Breaker - 20A", sku: "ELEC-BRKR-006", category: "Electrical", stock: 12, lowStockThreshold: 20, unitPrice: 15.50, lastUpdated: "2024-01-23", supplier: "Electric Depot", type: "F" },
-  { id: "INV-ITEM-007", name: "Refrigerant - R-410A", sku: "HVAC-REFR-007", category: "HVAC", stock: 28, lowStockThreshold: 10, unitPrice: 125.00, lastUpdated: "2024-01-22", supplier: "AirTech Supply", type: "U" },
-  { id: "INV-ITEM-008", name: "Water Heater - 50 Gal", sku: "PLUMB-WHT-008", category: "Plumbing", stock: 8, lowStockThreshold: 5, unitPrice: 450.00, lastUpdated: "2024-01-21", supplier: "PlumbPro Inc", type: "F" },
+  { id: "INV-ITEM-007", name: "Refrigerant - R-410A", sku: "HVAC-REFR-007", category: "HVAC", stock: 28, lowStockThreshold: 10, unitPrice: 125.00, lastUpdated: "2024-01-22", supplier: "AirTech Supply", type: "U", defaultTaxes: [ { name: "State Tax", type: "%", value: 8 } ] },
+  { id: "INV-ITEM-008", name: "Water Heater - 50 Gal", sku: "PLUMB-WHT-008", category: "Plumbing", stock: 8, lowStockThreshold: 5, unitPrice: 450.00, lastUpdated: "2024-01-21", supplier: "PlumbPro Inc", type: "F", defaultDiscounts: [ { name: "Volume Discount", type: "$", value: 50 } ], defaultTaxes: [ { name: "Sales Tax", type: "%", value: 7.5 } ] },
   { id: "INV-ITEM-009", name: "Light Switch - Dimmer", sku: "ELEC-SWCH-009", category: "Electrical", stock: 45, lowStockThreshold: 20, unitPrice: 18.99, lastUpdated: "2024-01-20", supplier: "Electric Depot", type: "F" },
-  { id: "INV-ITEM-010", name: "Air Filter - MERV 13", sku: "HVAC-FILT-010", category: "HVAC", stock: 95, lowStockThreshold: 40, unitPrice: 32.50, lastUpdated: "2024-01-19", supplier: "AirTech Supply", type: "F" },
+  { id: "INV-ITEM-010", name: "Air Filter - MERV 13", sku: "HVAC-FILT-010", category: "HVAC", stock: 95, lowStockThreshold: 40, unitPrice: 32.50, lastUpdated: "2024-01-19", supplier: "AirTech Supply", type: "F", defaultDiscounts: [ { name: "Seasonal Discount", type: "%", value: 10 } ], defaultTaxes: [ { name: "State Tax", type: "%", value: 8 } ] },
   { id: "INV-ITEM-011", name: "Drain Snake - 25 ft", sku: "PLUMB-TOOL-011", category: "Tools", stock: 18, lowStockThreshold: 10, unitPrice: 45.00, lastUpdated: "2024-01-18", supplier: "Tool Mart" },
   { id: "INV-ITEM-012", name: "Outlet - GFCI", sku: "ELEC-OUTL-012", category: "Electrical", stock: 72, lowStockThreshold: 30, unitPrice: 12.25, lastUpdated: "2024-01-17", supplier: "Electric Depot" },
   { id: "INV-ITEM-013", name: "Duct Tape - Heavy Duty", sku: "HVAC-TAPE-013", category: "HVAC", stock: 120, lowStockThreshold: 50, unitPrice: 8.99, lastUpdated: "2024-01-16", supplier: "AirTech Supply" },
