@@ -63,6 +63,11 @@ const EstimateDetails = () => {
     { name: "Labor", quantity: 4, price: 50, total: 200 },
   ];
 
+  // Debug log
+  if (estimate.id === "EST-023") {
+    console.log("EST-023 loaded with items:", estimateItems);
+  }
+
   const subtotal = estimate.subtotal || estimateItems.reduce((sum: number, item: any) => sum + (item.total || item.amount || 0), 0);
   const tax = estimate.tax !== undefined ? estimate.tax : 0;
   const discount = estimate.discount || 0;
