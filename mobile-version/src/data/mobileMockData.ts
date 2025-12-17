@@ -274,6 +274,33 @@ export const mockInvoices = [
   { id: "INV-028", customerId: "8", customerName: "Lisa Anderson", issueDate: "2024-01-15", dueDate: "2024-01-30", amount: 510, status: "Deactivated", paymentMethod: "Cash", type: "deactivated" },
   { id: "INV-029", customerId: "17", customerName: "Steven Lewis", issueDate: "2024-01-26", dueDate: "2024-02-11", amount: 2650, status: "Deactivated", paymentMethod: "ACH", type: "deactivated" },
   { id: "INV-030", customerId: "19", customerName: "Thomas Young", issueDate: "2024-01-20", dueDate: "2024-02-05", amount: 845, status: "Deactivated", paymentMethod: "Credit Card", type: "deactivated" },
+  {
+    id: "INV-033",
+    customerId: "16",
+    customerName: "Nancy Clark",
+    customerEmail: "nancy.c@email.com",
+    customerPhone: "(555) 666-7777",
+    issueDate: "2024-01-16",
+    dueDate: "2026-01-15",
+    amount: 25.99,
+    status: "Open",
+    paymentMethod: "Credit Card",
+    type: "single",
+    items: [
+      {
+        name: "HVAC Filter - Standard",
+        quantity: 1,
+        price: 25.99,
+        total: 25.99,
+        discount: 2.60,
+        discountName: "Percent Discount",
+        discountType: "$"
+      }
+    ],
+    subtotal: 19.49,
+    discount: 6.50,
+    tax: 1.95
+  },
 ];
 
 export const mockEstimates = [

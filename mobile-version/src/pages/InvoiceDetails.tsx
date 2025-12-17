@@ -159,14 +159,27 @@ const InvoiceDetails = () => {
               {/* Items List */}
               <div className="space-y-4">
                 {invoiceItems.map((item: any, idx: number) => (
-                  <div key={idx} className="flex items-start justify-between pb-4 border-b last:border-0 last:pb-0">
-                    <div className="flex-1">
-                      <p className="font-semibold">{item.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {item.quantity} × ${item.price.toFixed(2)}
-                      </p>
+                  <div key={idx} className="pb-4 border-b last:border-0 last:pb-0">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <p className="font-semibold">{item.name}</p>
+                      </div>
+                      <p className="font-bold">${(item.total || item.amount || 0).toFixed(2)}</p>
                     </div>
-                    <p className="font-bold">${(item.total || item.amount || 0).toFixed(2)}</p>
+                    {/* Item-level discount (mobile-only, for demo invoices like INV-033) */}
+                    {invoice.id === "INV-033" && item.discount && item.discount > 0 && (
+                      <div className="flex items-start justify-between mt-1">
+                        <p className="text-xs text-muted-foreground">
+                          {item.discountName || "Discount"}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          -${item.discount.toFixed(2)}
+                        </p>
+                      </div>
+                    )}
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {item.quantity} × ${item.price.toFixed(2)}
+                    </p>
                   </div>
                 ))}
               </div>
