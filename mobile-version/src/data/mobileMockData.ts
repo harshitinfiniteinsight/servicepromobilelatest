@@ -297,6 +297,29 @@ export const mockEstimates = [
   { id: "EST-018", customerId: "18", customerName: "Karen Walker", date: "2024-01-11", amount: 725, status: "Unpaid", probability: 0 },
   { id: "EST-019", customerId: "19", customerName: "Thomas Young", date: "2024-01-10", amount: 1890, status: "Paid", probability: 100 },
   { id: "EST-020", customerId: "20", customerName: "Patricia King", date: "2024-01-09", amount: 1050, status: "Paid", probability: 70 },
+  { 
+    id: "EST-023", 
+    customerId: "16", 
+    customerName: "Nancy Clark", 
+    date: "2024-01-05", 
+    amount: 21.44, 
+    status: "Unpaid", 
+    probability: 0,
+    items: [
+      { 
+        name: "HVAC Filter - Standard", 
+        quantity: 1, 
+        price: 25.99, 
+        total: 25.99,
+        discount: 25,
+        discountName: "Inventory Discount",
+        discountLabel: "Inventory Discount"
+      }
+    ],
+    subtotal: 25.99,
+    discount: 6.50,
+    tax: 1.95
+  },
 ];
 
 export const mockJobs = [
