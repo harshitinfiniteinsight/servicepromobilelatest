@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { mockEmployees, mockJobs } from "@/data/mobileMockData";
 import { Plus, Search } from "lucide-react";
 import { toast } from "sonner";
@@ -184,87 +185,156 @@ const Employees = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader 
+    <div className="h-full flex flex-col overflow-hidden bg-muted/10">
+      <TabletHeader 
         title="Employees"
-        actions={
-          <Button size="sm" onClick={() => navigate("/employees/new")}>
-            <Plus className="h-4 w-4" />
-          </Button>
-        }
+        showBack={false}
+        className="px-4 md:px-6 lg:px-8"
       />
       
-      <div className="flex-1 overflow-y-auto scrollable px-4 pb-6 space-y-4" style={{ paddingTop: 'calc(3.5rem + env(safe-area-inset-top) + 0.5rem)' }}>
-        {/* Search */}
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input 
-            placeholder="Search employees..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
-        </div>
-        
-        {/* Tabs */}
-        <div className="flex space-x-2 p-2">
-          <Button
-            variant={activeTab === "Active" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab("Active")}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-              activeTab === "Active" 
-                ? "bg-orange-500 text-white hover:bg-orange-600" 
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            Active
-          </Button>
-          <Button
-            variant={activeTab === "Deactivated" ? "default" : "outline"}
-            size="sm"
-            onClick={() => setActiveTab("Deactivated")}
-            className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-              activeTab === "Deactivated" 
-                ? "bg-orange-500 text-white hover:bg-orange-600" 
-                : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
-          >
-            Deactivated
-          </Button>
-        </div>
-        
-        {/* Employee Cards */}
-        {filteredEmployees.length > 0 ? (
-          <div className="space-y-3">
-            {filteredEmployees.map(employee => (
-              <EmployeeCard
-                key={employee.id}
-                employee={{
-                  ...employee,
-                  color: employeeColors[employee.id] || employee.color || "#3B82F6",
-                }}
-                variant={isDeactivatedStatus(employee.status) ? "deactivated" : "default"}
-                feedbackSummary={isMerchant ? employeeFeedbackSummaries[employee.id] : undefined}
-                onActivate={
-                  isDeactivatedStatus(employee.status)
-                    ? () => handleActivate(employee.id, employee.name)
-                    : undefined
-                }
-                onQuickAction={action => handleQuickAction(employee.id, action)}
-                onColorChange={
-                  isActiveStatus(employee.status)
-                    ? (color) => handleColorChange(employee.id, color)
-                    : undefined
-                }
-              />
-            ))}
+      <div className="flex-1 overflow-y-auto scrollable pb-8 pt-6">
+        <div className="px-4 md:px-6 lg:px-8">
+          {/* Split layout: 40% form (left) + 60% employee list (right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-[40%_60%] gap-6">
+            {/* LEFT SECTION: Add Employee Form */}
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-gray-100 bg-white shadow-sm">
+                <div className="px-4 md:px-6 lg:px-8 pt-5 pb-6 space-y-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Add Employee</h2>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Name *</Label>
+                      <Input
+                        placeholder="Employee name"
+                        className="h-11 border-gray-300"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Email *</Label>
+                      <Input
+                        type="email"
+                        placeholder="employee@example.com"
+                        className="h-11 border-gray-300"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Phone *</Label>
+                      <Input
+                        type="tel"
+                        placeholder="+1 (555) 000-0000"
+                        className="h-11 border-gray-300"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Role *</Label>
+                      <Input
+                        placeholder="e.g., Technician"
+                        className="h-11 border-gray-300"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col gap-3 pt-4">
+                    <Button 
+                      className="w-full rounded-full py-3 text-sm font-semibold"
+                      onClick={() => toast.info("Add employee feature coming soon")}
+                    >
+                      Add Employee
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full rounded-full py-3 text-sm font-semibold border-gray-200 text-gray-700 hover:bg-muted"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT SECTION: Employee List */}
+            <div className="space-y-6">
+              {/* Search */}
+              <div className="rounded-3xl border border-gray-100 bg-white shadow-sm p-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="Search employees..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-10 border-gray-300"
+                  />
+                </div>
+              </div>
+
+              {/* Tabs */}
+              <div className="rounded-3xl border border-gray-100 bg-white shadow-sm p-4">
+                <div className="flex space-x-2">
+                  <Button
+                    variant={activeTab === "Active" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActiveTab("Active")}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+                      activeTab === "Active" 
+                        ? "bg-orange-500 text-white hover:bg-orange-600" 
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    Active
+                  </Button>
+                  <Button
+                    variant={activeTab === "Deactivated" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setActiveTab("Deactivated")}
+                    className={`px-4 py-1.5 rounded-full text-sm font-medium ${
+                      activeTab === "Deactivated" 
+                        ? "bg-orange-500 text-white hover:bg-orange-600" 
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    Deactivated
+                  </Button>
+                </div>
+              </div>
+
+              {/* Employee Cards */}
+              {filteredEmployees.length > 0 ? (
+                <div className="space-y-3">
+                  {filteredEmployees.map(employee => (
+                    <EmployeeCard
+                      key={employee.id}
+                      employee={{
+                        ...employee,
+                        color: employeeColors[employee.id] || employee.color || "#3B82F6",
+                      }}
+                      variant={isDeactivatedStatus(employee.status) ? "deactivated" : "default"}
+                      feedbackSummary={isMerchant ? employeeFeedbackSummaries[employee.id] : undefined}
+                      onActivate={
+                        isDeactivatedStatus(employee.status)
+                          ? () => handleActivate(employee.id, employee.name)
+                          : undefined
+                      }
+                      onQuickAction={action => handleQuickAction(employee.id, action)}
+                      onColorChange={
+                        isActiveStatus(employee.status)
+                          ? (color) => handleColorChange(employee.id, color)
+                          : undefined
+                      }
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground rounded-3xl border border-gray-100 bg-white shadow-sm">
+                  <p>No {activeTab.toLowerCase()} employees found</p>
+                </div>
+              )}
+            </div>
           </div>
-        ) : (
-          <div className="text-center py-8 text-muted-foreground">
-            <p>No {activeTab.toLowerCase()} employees found</p>
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );

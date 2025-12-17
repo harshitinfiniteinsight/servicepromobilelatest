@@ -47,7 +47,16 @@ const merchantNavItems: NavItem[] = [
   { title: "Appointments", path: "/appointments/manage", icon: Calendar },
   { title: "Customers", path: "/customers", icon: Users },
   { title: "Inventory", path: "/inventory", icon: Package },
-  { title: "Employees", path: "/employees", icon: Users },
+  {
+    title: "Employees",
+    path: "/employees",
+    icon: Users,
+    children: [
+      { title: "Employee List", path: "/employees", icon: Users },
+      { title: "Schedule", path: "/employees/schedule", icon: Calendar },
+      { title: "Job Route", path: "/employees/job-route", icon: Briefcase },
+    ]
+  },
   { title: "Reports", path: "/reports", icon: BarChart3 },
   { title: "Settings", path: "/settings", icon: Settings },
 ];
@@ -79,7 +88,7 @@ const TabletLayout = ({ children }: TabletLayoutProps) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { getTotalItems } = useCart();
-  const [salesExpanded, setSalesExpanded] = useState(true);
+  const [expandedMenu, setExpandedMenu] = useState<string | null>("sales");
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Get user role and determine navigation items
@@ -95,18 +104,26 @@ const TabletLayout = ({ children }: TabletLayoutProps) => {
     if (path === "/employee-dashboard") {
       return location.pathname === "/employee-dashboard";
     }
-    if (hasChildren) {
+    if (path === "/sales" && hasChildren) {
       return location.pathname.startsWith("/invoices") || 
              location.pathname.startsWith("/estimates") || 
              location.pathname.startsWith("/agreements") ||
              location.pathname.startsWith("/sales/sell-product");
+    }
+    if (path === "/employees" && hasChildren) {
+      return location.pathname.startsWith("/employees");
     }
     return location.pathname.startsWith(path);
   };
 
   const handleItemClick = (item: NavItem) => {
     if (item.children) {
-      setSalesExpanded(!salesExpanded);
+      // Accordion behavior: if clicking the same menu, close it; otherwise open the new one
+      if (expandedMenu === item.title) {
+        setExpandedMenu(null);
+      } else {
+        setExpandedMenu(item.title);
+      }
     } else {
       navigate(item.path);
     }
@@ -166,7 +183,7 @@ const TabletLayout = ({ children }: TabletLayoutProps) => {
                         {hasChildren && (
                           <ChevronDown className={cn(
                             "h-4 w-4 transition-transform duration-200",
-                            salesExpanded && "rotate-180"
+                            expandedMenu === item.title && "rotate-180"
                           )} />
                         )}
                         {item.title === "Sales" && getTotalItems() > 0 && (
@@ -183,31 +200,31 @@ const TabletLayout = ({ children }: TabletLayoutProps) => {
                     )}
                   </button>
 
-                  {/* Sub-menu for Sales - only show when expanded */}
-                  {hasChildren && salesExpanded && !sidebarCollapsed && (
-                    <div className="bg-gray-50">
-                      {item.children?.map((child) => {
-                        const ChildIcon = child.icon;
-                        const childActive = location.pathname.startsWith(child.path);
+                  {/* Sub-menu - only show when this specific menu is expanded */}
+                  {hasChildren && !sidebarCollapsed && expandedMenu === item.title && (
+                      <div className="bg-gray-50">
+                        {item.children?.map((child) => {
+                          const ChildIcon = child.icon;
+                          const childActive = location.pathname.startsWith(child.path);
 
-                        return (
-                          <button
-                            key={child.path}
-                            onClick={() => navigate(child.path)}
-                            className={cn(
-                              "w-full flex items-center gap-3 px-6 py-2.5 pl-14 transition-all duration-200",
-                              childActive
-                                ? "text-primary bg-primary/5 font-medium"
-                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
-                            )}
-                          >
-                            <ChildIcon className="h-4 w-4 flex-shrink-0" />
-                            <span className="text-sm">{child.title}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
+                          return (
+                            <button
+                              key={child.path}
+                              onClick={() => navigate(child.path)}
+                              className={cn(
+                                "w-full flex items-center gap-3 px-6 py-2.5 pl-14 transition-all duration-200",
+                                childActive
+                                  ? "text-primary bg-primary/5 font-medium"
+                                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                              )}
+                            >
+                              <ChildIcon className="h-4 w-4 flex-shrink-0" />
+                              <span className="text-sm">{child.title}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    )}
                 </div>
               );
             })}

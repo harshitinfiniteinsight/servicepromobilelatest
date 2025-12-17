@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react";
-import MobileHeader from "@/components/layout/MobileHeader";
-import MobileCard from "@/components/mobile/MobileCard";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Search, Calendar as CalendarIcon, Edit3, Trash2, Clock, Globe, CalendarDays } from "lucide-react";
 import { mockEmployees } from "@/data/mobileMockData";
@@ -97,6 +98,7 @@ const EmployeeSchedule = () => {
     to: undefined,
   });
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>("");
 
   // Check if user is employee (EMPLOYEE LOGIN ONLY)
   const userType = localStorage.getItem("userType") || "merchant";
@@ -224,130 +226,216 @@ const EmployeeSchedule = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
-      <MobileHeader
+    <div className="h-full flex flex-col overflow-hidden bg-muted/10">
+      <TabletHeader
         title="Employee Schedule"
-        showBack={true}
-        actions={
-          <Button
-            size="sm"
-            onClick={() => setAddModalOpen(true)}
-            className="h-8 w-8 p-0 rounded-full bg-orange-500 hover:bg-orange-600 text-white"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        }
+        showBack
+        onBack={() => navigate("/employees")}
+        className="px-4 md:px-6 lg:px-8"
       />
 
-      <div className="flex-1 overflow-y-auto scrollable pt-12 pb-4">
-        {/* Filters Row: Search (MERCHANT ONLY) + Date Range */}
-        <div className="px-4 py-3 bg-white border-b">
-          <div className="flex items-center gap-2">
-            {/* Search Bar - MERCHANT LOGIN ONLY (removed for employees) */}
-            {!isEmployee && (
-              <div className="relative flex-1 min-w-0">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  type="text"
-                  placeholder="Search by employee name..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-10 rounded-lg border-gray-300"
-                />
+      <div className="flex-1 overflow-y-auto scrollable pb-8 pt-6">
+        <div className="px-4 md:px-6 lg:px-8">
+          {/* Split layout: 40% form (left) + 60% schedule list (right) */}
+          <div className="grid grid-cols-1 lg:grid-cols-[40%_60%] gap-6">
+            {/* LEFT SECTION: Add Schedule Form */}
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-gray-100 bg-white shadow-sm">
+                <div className="px-4 md:px-6 lg:px-8 pt-5 pb-6 space-y-6">
+                  <h2 className="text-lg font-semibold text-gray-900">Add Schedule</h2>
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Employee *</Label>
+                      <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+                        <SelectTrigger className="h-11 border-gray-300">
+                          <SelectValue placeholder="Select employee" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {mockEmployees.map((emp) => (
+                            <SelectItem key={emp.id} value={emp.id}>
+                              {emp.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Start Date *</Label>
+                      <Input
+                        type="date"
+                        className="h-11 border-gray-300"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">End Date</Label>
+                      <Input
+                        type="date"
+                        className="h-11 border-gray-300"
+                      />
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Timezone *</Label>
+                      <Input
+                        placeholder="e.g., America/New_York"
+                        className="h-11 border-gray-300"
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">Start Time *</Label>
+                        <Input
+                          type="time"
+                          className="h-11 border-gray-300"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium text-gray-700">End Time *</Label>
+                        <Input
+                          type="time"
+                          className="h-11 border-gray-300"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium text-gray-700">Time Interval *</Label>
+                      <Input
+                        placeholder="e.g., 30 min"
+                        className="h-11 border-gray-300"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="flex flex-col gap-3 pt-4">
+                    <Button 
+                      className="w-full rounded-full py-3 text-sm font-semibold"
+                      onClick={() => setAddModalOpen(true)}
+                    >
+                      Add Schedule
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="w-full rounded-full py-3 text-sm font-semibold border-gray-200 text-gray-700 hover:bg-muted"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
               </div>
-            )}
-            {/* Date Range Button - Full width for EMPLOYEE, flex-shrink for MERCHANT */}
-            <Button
-              variant="outline"
-              onClick={() => setShowDateRangePicker(true)}
-              className={cn(
-                "h-9 px-2.5 text-xs font-normal justify-start gap-1.5",
-                isEmployee ? "w-full" : "flex-[0.48] min-w-0"
-              )}
-            >
-              <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
-              {dateRange.from && dateRange.to ? (
-                <span className="truncate text-left text-xs">
-                  {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
-                </span>
-              ) : dateRange.from ? (
-                <span className="truncate text-left text-xs">{format(dateRange.from, "MM/dd/yyyy")}</span>
+            </div>
+
+            {/* RIGHT SECTION: Schedule List */}
+            <div className="space-y-6">
+              {/* Filters Row: Search + Date Range */}
+              <div className="rounded-3xl border border-gray-100 bg-white shadow-sm p-6">
+                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
+                  {/* Search (≈60-65%) */}
+                  <div className="md:col-span-8">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                      <Input 
+                        placeholder="Search by employee name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="h-11 pl-10 border-gray-300"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Date Range (≈35-40%) */}
+                  <div className="md:col-span-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowDateRangePicker(true)}
+                      className="w-full h-11 justify-start text-sm font-normal border-gray-300"
+                    >
+                      <CalendarIcon className="h-4 w-4 text-muted-foreground mr-2 flex-shrink-0" />
+                      {dateRange.from && dateRange.to ? (
+                        <span>
+                          {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
+                        </span>
+                      ) : dateRange.from ? (
+                        <span>{format(dateRange.from, "MM/dd/yyyy")}</span>
+                      ) : (
+                        <span className="text-muted-foreground">Select date range</span>
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Schedule Cards */}
+              {filteredSchedules.length === 0 ? (
+                <div className="rounded-3xl border border-gray-100 bg-white shadow-sm p-12 text-center">
+                  <p className="text-gray-500">No schedules found</p>
+                </div>
               ) : (
-                <span className="text-muted-foreground truncate text-left text-xs">Date Range</span>
+                <div className="space-y-3">
+                  {filteredSchedules.map((schedule) => (
+                    <div
+                      key={schedule.id}
+                      className="rounded-2xl border border-gray-100 bg-white shadow-sm p-4"
+                    >
+                      {/* Top Row: Employee Name and Menu */}
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <button
+                          onClick={() => navigate(`/employees/${schedule.employeeId}`)}
+                          className="text-base font-semibold text-gray-900 hover:text-blue-600 transition-colors text-left flex-1"
+                        >
+                          {schedule.employeeName}
+                        </button>
+                        <KebabMenu items={getMenuItems(schedule)} menuWidth="w-44" />
+                      </div>
+
+                      {/* Schedule Details */}
+                      <div className="space-y-2.5 text-sm">
+                        <div className="text-gray-600">
+                          <span className="font-medium text-gray-900">
+                            {formatDateRangeDisplay(schedule.scheduledDate, schedule.scheduledDateEnd)}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <span className="text-gray-600">Timezone: </span>
+                            <span className="text-gray-900 font-medium">
+                              {schedule.timezone.split("/")[1]?.replace("_", " ") || schedule.timezone}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">Interval: </span>
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 text-xs ml-1">
+                              {schedule.timeInterval}
+                            </Badge>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <span className="text-gray-600">Start: </span>
+                            <span className="text-gray-900 font-medium">{schedule.startTime}</span>
+                          </div>
+                          <div>
+                            <span className="text-gray-600">End: </span>
+                            <span className="text-gray-900 font-medium">{schedule.endTime}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               )}
-            </Button>
+            </div>
           </div>
         </div>
-
-        {/* Schedule Cards */}
-        <div className="px-4 py-4 space-y-3">
-          {filteredSchedules.length === 0 ? (
-            <MobileCard className="p-8 text-center">
-              <p className="text-gray-500">No schedules found</p>
-            </MobileCard>
-          ) : (
-            filteredSchedules.map((schedule) => (
-              <MobileCard
-                key={schedule.id}
-                className="p-3 rounded-xl border border-gray-200 bg-white shadow-sm"
-              >
-                {/* Top Row: Employee Name (bold) and 3-dot Menu */}
-                <div className="flex items-start justify-between gap-2 mb-3">
-                  <button
-                    onClick={() => navigate(`/employees/${schedule.employeeId}`)}
-                    className="text-base font-bold text-gray-900 hover:text-blue-600 transition-colors text-left flex-1 min-w-0"
-                  >
-                    {schedule.employeeName}
-                  </button>
-                  <KebabMenu items={getMenuItems(schedule)} menuWidth="w-44" />
-                </div>
-
-                {/* Content Rows */}
-                <div className="space-y-2.5">
-                  {/* Scheduled Date: Show full range */}
-                  <div className="text-sm">
-                    <span className="text-gray-600">Scheduled Date: </span>
-                    <span className="text-gray-900 font-medium">
-                      {formatDateRangeDisplay(schedule.scheduledDate, schedule.scheduledDateEnd)}
-                    </span>
-                  </div>
-
-                  {/* Timezone & Time Interval on SAME row */}
-                  <div className="flex items-center justify-between gap-4 text-sm flex-wrap">
-                    <div className="flex items-center gap-1 min-w-0 flex-1">
-                      <span className="text-gray-600">Timezone: </span>
-                      <span className="text-gray-900 font-medium truncate">
-                        {schedule.timezone.split("/")[1]?.replace("_", " ") || schedule.timezone}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <span className="text-gray-600">Time Interval: </span>
-                      <Badge
-                        variant="outline"
-                        className="bg-blue-50 text-blue-700 border-blue-200 text-xs"
-                      >
-                        {schedule.timeInterval}
-                      </Badge>
-                    </div>
-                  </div>
-
-                  {/* Start Time & End Time on SAME row */}
-                  <div className="flex items-center gap-4 text-sm">
-                    <div>
-                      <span className="text-gray-600">Start Time: </span>
-                      <span className="text-gray-900 font-medium">{schedule.startTime}</span>
-                    </div>
-                    <div>
-                      <span className="text-gray-600">End Time: </span>
-                      <span className="text-gray-900 font-medium">{schedule.endTime}</span>
-                    </div>
-                  </div>
-                </div>
-              </MobileCard>
-            ))
-          )}
-        </div>
       </div>
+
+      {/* Modals remain the same */}
 
       {/* Add Schedule Modal */}
       <AddEmployeeScheduleModal

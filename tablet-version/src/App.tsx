@@ -33,6 +33,7 @@ import EmployeeDetails from "./pages/EmployeeDetails";
 import AddEmployee from "./pages/AddEmployee";
 import EmployeeSchedule from "./pages/EmployeeSchedule";
 import EmployeeTracking from "./pages/EmployeeTracking";
+import EmployeeJobRoute from "./pages/EmployeeJobRoute";
 import JobDetails from "./pages/JobDetails";
 import Inventory from "./pages/Inventory";
 import InventoryItemDetails from "./pages/InventoryItemDetails";
@@ -124,6 +125,7 @@ const AppContent = () => {
             <Route path="/employees/new" element={<AddEmployee />} />
             <Route path="/employees/:id" element={<EmployeeDetails />} />
             <Route path="/employees/schedule" element={<EmployeeSchedule />} />
+            <Route path="/employees/job-route" element={<EmployeeJobRoute />} />
             <Route path="/employees/tracking" element={<EmployeeTracking />} />
             <Route path="/inventory" element={<Inventory />} />
             <Route path="/inventory/new" element={<AddInventoryItem />} />
