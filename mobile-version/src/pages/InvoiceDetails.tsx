@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 import { mockInvoices, mockCustomers } from "@/data/mobileMockData";
-import { Calendar, CreditCard, User, Download, Mail, MessageSquare, FileText } from "lucide-react";
+import { Calendar, CreditCard, User, Mail, MessageSquare, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { getAllInvoices } from "@/services/invoiceService";
@@ -77,11 +77,6 @@ const InvoiceDetails = () => {
       <MobileHeader
         title="Invoice Details"
         showBack={true}
-        actions={
-          <Button size="sm" variant="outline">
-            <Download className="h-4 w-4" />
-          </Button>
-        }
       />
 
       <div className="flex-1 overflow-y-auto scrollable pt-14">

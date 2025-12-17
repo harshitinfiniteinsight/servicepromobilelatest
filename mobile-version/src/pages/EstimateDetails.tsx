@@ -4,7 +4,7 @@ import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockEstimates, mockCustomers } from "@/data/mobileMockData";
-import { ArrowLeft, Calendar, User, Mail, Phone, MapPin, Download, Send, CreditCard, TrendingUp, MessageSquare, FileText } from "lucide-react";
+import { ArrowLeft, Calendar, User, Mail, Phone, MapPin, Send, CreditCard, TrendingUp, MessageSquare, FileText } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 
@@ -77,11 +77,6 @@ const EstimateDetails = () => {
       <MobileHeader
         title="Estimate Details"
         showBack={true}
-        actions={
-          <Button size="sm" variant="outline">
-            <Download className="h-4 w-4" />
-          </Button>
-        }
       />
 
       <div className="flex-1 overflow-y-auto scrollable pt-14">
