@@ -220,7 +220,20 @@ const AddInvoice = () => {
       setJobAddress("");
     }
   }, [selectedCustomer, isEditMode]);
-  const [items, setItems] = useState<Array<{ id: string; name: string; quantity: number; price: number; isCustom?: boolean; discount?: number; discountType?: "%" | "$"; discountName?: string; tax?: number; taxRate?: number }>>([]);
+  const [items, setItems] = useState<Array<{ 
+    id: string
+    name: string
+    quantity: number
+    price: number
+    isCustom?: boolean
+    discount?: number
+    discountType?: "%" | "$"
+    discountName?: string
+    tax?: number
+    taxRate?: number
+    defaultDiscounts?: Array<{ name: string; type: "%"|"$"; value: number }>
+    defaultTaxes?: Array<{ name: string; type: "%"|"$"; value: number }>
+  }>>([]);
   const [itemSearch, setItemSearch] = useState("");
   const [invoiceType, setInvoiceType] = useState<"single" | "recurring">("single");
   const [invoiceVariant, setInvoiceVariant] = useState<"standard" | "itemLevel">("standard");
@@ -370,7 +383,14 @@ const AddInvoice = () => {
         setVariableItemPrice(item.unitPrice.toString());
         setShowVariablePriceDialog(true);
       } else {
-      setItems([...items, { id: item.id, name: item.name, quantity: 1, price: item.unitPrice }]);
+        setItems([...items, { 
+          id: item.id, 
+          name: item.name, 
+          quantity: 1, 
+          price: item.unitPrice,
+          defaultDiscounts: (item as any).defaultDiscounts,
+          defaultTaxes: (item as any).defaultTaxes
+        }]);
         setShowAddExisting(false);
         setItemSearch("");
       }
@@ -380,7 +400,14 @@ const AddInvoice = () => {
   const confirmVariablePrice = () => {
     if (pendingVariableItem && variableItemPrice) {
       const price = parseFloat(variableItemPrice) || 0;
-      setItems([...items, { id: pendingVariableItem.id, name: pendingVariableItem.name, quantity: 1, price }]);
+      setItems([...items, { 
+        id: pendingVariableItem.id, 
+        name: pendingVariableItem.name, 
+        quantity: 1, 
+        price,
+        defaultDiscounts: (pendingVariableItem as any).defaultDiscounts,
+        defaultTaxes: (pendingVariableItem as any).defaultTaxes
+      }]);
       setShowVariablePriceDialog(false);
       setPendingVariableItem(null);
       setVariableItemPrice("");
@@ -465,11 +492,21 @@ const AddInvoice = () => {
   let total: number;
   
   if (invoiceVariant === "itemLevel") {
-    // Item-Level Calculation: sum items with their individual discounts and taxes
+    // Item-Level Calculation: sum items with their individual discounts and taxes (including defaults)
     itemTotal = items.reduce((sum, item) => {
       let lineTotal = item.price * item.quantity;
       
-      // Apply item-level discount
+      // Apply default discounts
+      if (item.defaultDiscounts && item.defaultDiscounts.length > 0) {
+        item.defaultDiscounts.forEach(discount => {
+          const discountAmount = discount.type === "%" 
+            ? lineTotal * (discount.value / 100)
+            : discount.value;
+          lineTotal -= discountAmount;
+        });
+      }
+      
+      // Apply manual item-level discount
       if (item.discount && item.discount > 0) {
         const discountAmount = item.discountType === "%" 
           ? lineTotal * (item.discount / 100)
@@ -477,7 +514,14 @@ const AddInvoice = () => {
         lineTotal -= discountAmount;
       }
       
-      // Apply item-level tax
+      // Apply default taxes
+      if (item.defaultTaxes && item.defaultTaxes.length > 0) {
+        item.defaultTaxes.forEach(tax => {
+          lineTotal += lineTotal * (tax.value / 100);
+        });
+      }
+      
+      // Apply manual item-level tax
       if (item.taxRate && item.taxRate > 0) {
         lineTotal += lineTotal * (item.taxRate / 100);
       }
@@ -1430,17 +1474,36 @@ const AddInvoice = () => {
                               ${(() => {
                                 let itemTotal = item.price * item.quantity;
                                 
-                                // Apply item-level discount if itemLevel variant
-                                if (invoiceVariant === "itemLevel" && item.discount && item.discount > 0) {
-                                  const discountAmount = item.discountType === "%" 
-                                    ? itemTotal * (item.discount / 100)
-                                    : item.discount;
-                                  itemTotal -= discountAmount;
-                                }
-                                
-                                // Apply item-level tax if itemLevel variant
-                                if (invoiceVariant === "itemLevel" && item.taxRate && item.taxRate > 0) {
-                                  itemTotal += itemTotal * (item.taxRate / 100);
+                                if (invoiceVariant === "itemLevel") {
+                                  // Apply default discounts
+                                  if (item.defaultDiscounts && item.defaultDiscounts.length > 0) {
+                                    item.defaultDiscounts.forEach(discount => {
+                                      const discountAmount = discount.type === "%" 
+                                        ? itemTotal * (discount.value / 100)
+                                        : discount.value;
+                                      itemTotal -= discountAmount;
+                                    });
+                                  }
+                                  
+                                  // Apply manual item-level discount
+                                  if (item.discount && item.discount > 0) {
+                                    const discountAmount = item.discountType === "%" 
+                                      ? itemTotal * (item.discount / 100)
+                                      : item.discount;
+                                    itemTotal -= discountAmount;
+                                  }
+                                  
+                                  // Apply default taxes
+                                  if (item.defaultTaxes && item.defaultTaxes.length > 0) {
+                                    item.defaultTaxes.forEach(tax => {
+                                      itemTotal += itemTotal * (tax.value / 100);
+                                    });
+                                  }
+                                  
+                                  // Apply manual item-level tax
+                                  if (item.taxRate && item.taxRate > 0) {
+                                    itemTotal += itemTotal * (item.taxRate / 100);
+                                  }
                                 }
                                 
                                 return itemTotal.toFixed(2);
@@ -1452,10 +1515,96 @@ const AddInvoice = () => {
                         {/* Item-level discount and tax controls for itemLevel variant */}
                         {invoiceVariant === "itemLevel" && (
                           <div className="mt-3 pt-3 border-t border-gray-200 space-y-2.5">
-                            {/* Discount controls */}
+                            
+                            {/* Default Discounts Section */}
+                            {item.defaultDiscounts && item.defaultDiscounts.length > 0 && (
+                              <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold">Default Discounts</Label>
+                                <div className="space-y-1">
+                                  {item.defaultDiscounts.map((discount, idx) => {
+                                    const basePrice = item.price * item.quantity;
+                                    const discountAmount = discount.type === "%" 
+                                      ? basePrice * (discount.value / 100)
+                                      : discount.value;
+                                    return (
+                                      <div key={idx} className="flex items-center justify-between text-xs bg-green-50 p-2 rounded">
+                                        <span className="text-muted-foreground">
+                                          {discount.name} ({discount.type === "%" ? `${discount.value}%` : `$${discount.value}`})
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-semibold text-green-600">-${discountAmount.toFixed(2)}</span>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-600 hover:bg-red-100"
+                                            onClick={() => {
+                                              setItems(prev => prev.map(i => 
+                                                i.id === item.id 
+                                                  ? { ...i, defaultDiscounts: i.defaultDiscounts?.filter((_, didx) => didx !== idx) }
+                                                  : i
+                                              ));
+                                            }}
+                                          >
+                                            <X className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Default Taxes Section */}
+                            {item.defaultTaxes && item.defaultTaxes.length > 0 && (
+                              <div className="space-y-1.5">
+                                <Label className="text-xs font-semibold">Default Taxes</Label>
+                                <div className="space-y-1">
+                                  {item.defaultTaxes.map((tax, idx) => {
+                                    const basePrice = item.price * item.quantity;
+                                    let afterDiscount = basePrice;
+                                    if (item.defaultDiscounts && item.defaultDiscounts.length > 0) {
+                                      item.defaultDiscounts.forEach(disc => {
+                                        const dAmount = disc.type === "%" 
+                                          ? afterDiscount * (disc.value / 100)
+                                          : disc.value;
+                                        afterDiscount -= dAmount;
+                                      });
+                                    }
+                                    const taxAmount = afterDiscount * (tax.value / 100);
+                                    return (
+                                      <div key={idx} className="flex items-center justify-between text-xs bg-blue-50 p-2 rounded">
+                                        <span className="text-muted-foreground">
+                                          {tax.name} ({tax.value}%)
+                                        </span>
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-semibold text-blue-600">+${taxAmount.toFixed(2)}</span>
+                                          <Button
+                                            size="sm"
+                                            variant="ghost"
+                                            className="h-5 w-5 p-0 text-red-600 hover:bg-red-100"
+                                            onClick={() => {
+                                              setItems(prev => prev.map(i => 
+                                                i.id === item.id 
+                                                  ? { ...i, defaultTaxes: i.defaultTaxes?.filter((_, tidx) => tidx !== idx) }
+                                                  : i
+                                              ));
+                                            }}
+                                          >
+                                            <X className="h-3.5 w-3.5" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Manual Discount controls */}
                             <div className="space-y-1.5">
                               <div className="flex items-center justify-between">
-                                <Label className="text-xs">Item Discount (Optional)</Label>
+                                <Label className="text-xs">Add Manual Discount</Label>
                                 {item.discount && item.discount > 0 && (
                                   <Button
                                     size="sm"
