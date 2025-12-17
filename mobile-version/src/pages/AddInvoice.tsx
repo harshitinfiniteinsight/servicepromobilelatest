@@ -982,14 +982,13 @@ const AddInvoice = () => {
                     onClick={() => setInvoiceVariant(option.value as "standard" | "itemLevel")}
                   >
                     <div className="flex items-start gap-3">
-                      <RadioGroupItem 
-                        value={option.value} 
-                        id={`invoice-variant-${option.value}`}
-                        checked={invoiceVariant === option.value}
-                      />
+                      <div className="h-5 w-5 rounded-full border-2 border-gray-300 mt-0.5 flex items-center justify-center flex-shrink-0" style={invoiceVariant === option.value ? { borderColor: "currentColor", color: "hsl(var(--primary))" } : {}}>
+                        {invoiceVariant === option.value && (
+                          <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: "hsl(var(--primary))" }}></div>
+                        )}
+                      </div>
                       <div className="flex-1">
                         <Label 
-                          htmlFor={`invoice-variant-${option.value}`} 
                           className="cursor-pointer font-semibold"
                         >
                           {option.label}
