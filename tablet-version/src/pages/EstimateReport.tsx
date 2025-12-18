@@ -329,7 +329,7 @@ const EstimateReport = () => {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowMonthlyAlert(false)} className="mr-2">
+            <Button variant="outline" onClick={() => setShowMonthlyAlert(false)} className="h-10 px-6 text-sm font-semibold">
               Cancel
             </Button>
             <Button
@@ -337,7 +337,7 @@ const EstimateReport = () => {
                 toast.success("Alert preferences saved");
                 setShowMonthlyAlert(false);
               }}
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              className="h-10 px-6 text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white"
             >
               Save
             </Button>

@@ -894,14 +894,14 @@ const Index = () => {
             <Button
               variant="outline"
               onClick={() => setShowLogoutDialog(false)}
-              className="flex-1 sm:flex-initial"
+              className="h-10 px-6 text-sm font-semibold"
             >
               Cancel
             </Button>
             <Button
               variant="destructive"
               onClick={handleLogout}
-              className="flex-1 sm:flex-initial"
+              className="h-10 px-6 text-sm font-semibold"
             >
               Logout
             </Button>

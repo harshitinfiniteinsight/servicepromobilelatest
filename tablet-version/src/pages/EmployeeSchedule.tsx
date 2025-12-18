@@ -481,12 +481,12 @@ const EmployeeSchedule = () => {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)} className="h-10 px-6 text-sm font-semibold">
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteConfirm}
-              className="bg-red-600 hover:bg-red-700"
+              className="h-10 px-6 text-sm font-semibold bg-red-600 hover:bg-red-700"
             >
               Delete
             </AlertDialogAction>

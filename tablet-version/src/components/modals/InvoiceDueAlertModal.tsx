@@ -118,17 +118,17 @@ const InvoiceDueAlertModal = ({ isOpen, onClose }: InvoiceDueAlertModalProps) =>
         </div>
 
         {/* Footer Buttons */}
-        <div className="px-4 pb-4 pt-2 flex gap-2 border-t border-gray-200">
+        <div className="px-4 pb-4 pt-2 flex gap-2 justify-end border-t border-gray-200">
           <Button
             variant="outline"
             onClick={handleCancel}
-            className="flex-1 h-10 text-sm font-medium"
+            className="h-10 px-6 text-sm font-medium"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
-            className="flex-1 h-10 text-sm font-semibold bg-primary hover:bg-primary/90 text-white"
+            className="h-10 px-6 text-sm font-semibold bg-primary hover:bg-primary/90 text-white"
           >
             Save
           </Button>

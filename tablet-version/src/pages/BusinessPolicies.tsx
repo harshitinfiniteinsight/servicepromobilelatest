@@ -69,10 +69,10 @@ const BusinessPolicies = () => {
           </div>
 
           {/* Submit Button */}
-          <div className="mt-6 mb-8">
+          <div className="mt-6 mb-8 flex justify-end">
             <Button
               onClick={handleSubmit}
-              className="w-full rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all h-14 text-base"
+              className="px-8 rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all h-14 text-base"
               style={{ backgroundColor: "#F97316" }}
             >
               SUBMIT

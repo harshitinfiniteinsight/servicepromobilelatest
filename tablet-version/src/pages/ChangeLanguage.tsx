@@ -17,80 +17,74 @@ const ChangeLanguage = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden bg-gray-50">
       <TabletHeader title="Change App Language" showBack={true} />
-      
-      <div className="flex-1 overflow-y-auto scrollable pb-6 px-4">
-        {/* Informational Text - Outside the card */}
-        <p className="text-sm text-gray-600 mb-6 leading-relaxed">
-          The app language will be set by default to your Clover POS set language.
-          <br />
-          You may choose to change the language using the options below.
-        </p>
-
-        {/* Card Container */}
-        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
-          {/* Language Options */}
-          <RadioGroup value={selectedLanguage} onValueChange={handleLanguageChange} className="space-y-0">
-            {/* English Option */}
-            <div
-              className={cn(
-                "flex items-center justify-between px-5 py-4 cursor-pointer transition-colors active:bg-gray-50",
-                selectedLanguage === "english" && "bg-orange-50/50"
-              )}
-              onClick={() => handleLanguageChange("english")}
-            >
-              <Label
-                htmlFor="english"
+      {/* Content Area */}
+      <div className="flex-1 overflow-y-auto scrollable pb-6 flex flex-col items-center">
+        {/* Header & Description Spacing */}
+        <div className="w-full max-w-2xl px-4 sm:px-6">
+          <div className="pt-4 pb-2">
+            {/* Header is in TabletHeader, so just add spacing here */}
+            <p className="text-sm text-gray-600 mb-8 mt-2 leading-relaxed">
+              The app language will be set by default to your Clover POS set language.<br />
+              You may choose to change the language using the options below.
+            </p>
+          </div>
+        </div>
+        {/* Language Options Card - Constrained and Centered */}
+        <div className="w-full max-w-md mx-auto">
+          <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden px-0 py-0">
+            <RadioGroup value={selectedLanguage} onValueChange={handleLanguageChange} className="divide-y divide-gray-200">
+              {/* English Option */}
+              <div
                 className={cn(
-                  "text-base font-bold cursor-pointer flex-1",
-                  selectedLanguage === "english" ? "text-[#FF8A3C]" : "text-gray-900"
+                  "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors",
+                  selectedLanguage === "english" ? "bg-orange-50/50" : "hover:bg-gray-50"
                 )}
+                onClick={() => handleLanguageChange("english")}
               >
-                English
-              </Label>
-              <RadioGroupItem
-                value="english"
-                id="english"
+                <span className={cn(
+                  "text-base font-medium flex-1 text-left",
+                  selectedLanguage === "english" ? "text-[#FF8A3C] font-bold" : "text-gray-900"
+                )}>
+                  English
+                </span>
+                <RadioGroupItem
+                  value="english"
+                  id="english"
+                  className={cn(
+                    "h-5 w-5 border-2 flex-shrink-0 ml-4",
+                    selectedLanguage === "english"
+                      ? "border-[#FF8A3C] text-[#FF8A3C]"
+                      : "border-gray-300"
+                  )}
+                />
+              </div>
+              {/* Spanish Option */}
+              <div
                 className={cn(
-                  "h-5 w-5 border-2 flex-shrink-0",
-                  selectedLanguage === "english"
-                    ? "border-[#FF8A3C] text-[#FF8A3C]"
-                    : "border-gray-300"
+                  "flex items-center justify-between px-4 py-3 cursor-pointer transition-colors",
+                  selectedLanguage === "spanish" ? "bg-orange-50/50" : "hover:bg-gray-50"
                 )}
-              />
-            </div>
-
-            {/* Divider */}
-            <div className="h-px bg-gray-200 mx-5" />
-
-            {/* Spanish Option */}
-            <div
-              className={cn(
-                "flex items-center justify-between px-5 py-4 cursor-pointer transition-colors active:bg-gray-50",
-                selectedLanguage === "spanish" && "bg-orange-50/50"
-              )}
-              onClick={() => handleLanguageChange("spanish")}
-            >
-              <Label
-                htmlFor="spanish"
-                className={cn(
-                  "text-base font-bold cursor-pointer flex-1",
-                  selectedLanguage === "spanish" ? "text-[#FF8A3C]" : "text-gray-900"
-                )}
+                onClick={() => handleLanguageChange("spanish")}
               >
-                Spanish
-              </Label>
-              <RadioGroupItem
-                value="spanish"
-                id="spanish"
-                className={cn(
-                  "h-5 w-5 border-2 flex-shrink-0",
-                  selectedLanguage === "spanish"
-                    ? "border-[#FF8A3C] text-[#FF8A3C]"
-                    : "border-gray-300"
-                )}
-              />
-            </div>
-          </RadioGroup>
+                <span className={cn(
+                  "text-base font-medium flex-1 text-left",
+                  selectedLanguage === "spanish" ? "text-[#FF8A3C] font-bold" : "text-gray-900"
+                )}>
+                  Spanish
+                </span>
+                <RadioGroupItem
+                  value="spanish"
+                  id="spanish"
+                  className={cn(
+                    "h-5 w-5 border-2 flex-shrink-0 ml-4",
+                    selectedLanguage === "spanish"
+                      ? "border-[#FF8A3C] text-[#FF8A3C]"
+                      : "border-gray-300"
+                  )}
+                />
+              </div>
+            </RadioGroup>
+          </div>
         </div>
       </div>
     </div>

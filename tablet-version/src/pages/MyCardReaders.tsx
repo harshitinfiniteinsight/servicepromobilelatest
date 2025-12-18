@@ -152,38 +152,48 @@ const MyCardReaders = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
+    <div className="h-full flex flex-col overflow-hidden bg-gray-50">
       <MobileHeader 
         title="My Card Readers" 
         showBack={true}
       />
       
-      <div className="flex-1 overflow-y-auto scrollable pt-12 pb-4">
-        <div className="px-4 py-4">
-          {/* No Reader Connected Message */}
+      <div className="flex-1 overflow-y-auto scrollable">
+        {/* Constrained Content Container */}
+        <div className="mx-auto w-full max-w-2xl px-4 sm:px-6 pt-16 pb-6 sm:pb-8">
+          
+          {/* Action Button - Top Right */}
+          <div className="flex justify-end mb-6">
+            <Button
+              onClick={handlePairNewReader}
+              className="h-10 px-6 text-sm font-semibold rounded-full bg-primary text-white hover:bg-primary/90 inline-flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Pair new Card Reader
+            </Button>
+          </div>
+
+          {/* Empty State */}
           {savedReaders.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-8 mb-6">
+            <div className="flex flex-col items-center justify-center py-12 mb-8">
               <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mb-4">
                 <Radio className="h-8 w-8 text-gray-400" />
               </div>
-              <p className="text-sm font-medium text-gray-900 text-center">
-                No card reader connected
+              <p className="text-sm font-medium text-gray-900 text-center mb-1">
+                No card readers saved
               </p>
             </div>
           )}
 
-          {/* Section Title */}
-          <h2 className="text-sm font-bold text-gray-700 mb-3">My Card Readers</h2>
-
           {/* Saved Readers List */}
-          {savedReaders.length > 0 ? (
-            <div className="space-y-3 mb-4">
+          {savedReaders.length > 0 && (
+            <div className="space-y-3">
               {savedReaders.map((reader) => (
                 <div
                   key={reader.id}
-                  className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden"
+                  className="bg-white rounded-xl shadow-sm border border-gray-200 hover:border-gray-300 hover:shadow-md transition-all p-4"
                 >
-                  <div className="p-4 flex items-center justify-between">
+                  <div className="flex items-center justify-between gap-4">
                     {/* Left: Icon and Device Info */}
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -200,14 +210,14 @@ const MyCardReaders = () => {
                     </div>
 
                     {/* Right: Status and Menu */}
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-3 flex-shrink-0">
                       {/* Status Pill */}
                       {getReaderStatus(reader) === "online" ? (
-                        <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: "#E9F7F1", color: "#32BA7C" }}>
+                        <span className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap" style={{ backgroundColor: "#E9F7F1", color: "#32BA7C" }}>
                           Online
                         </span>
                       ) : (
-                        <span className="px-2.5 py-1 rounded-full text-xs font-medium" style={{ backgroundColor: "#d1d1d1", color: "#555" }}>
+                        <span className="px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap bg-gray-100 text-gray-600">
                           Offline
                         </span>
                       )}
@@ -222,65 +232,32 @@ const MyCardReaders = () => {
                 </div>
               ))}
             </div>
-          ) : (
-            <div className="mb-4">
-              <p className="text-sm text-gray-500 text-center py-4">
-                No saved readers yet
-              </p>
-            </div>
           )}
-
-          {/* Pair New Reader Button */}
-          <Button
-            onClick={handlePairNewReader}
-            className="w-full h-11 text-sm font-semibold rounded-full bg-primary text-white hover:bg-primary/90"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Pair new Card Reader
-          </Button>
         </div>
       </div>
 
       {/* Remove Confirmation Modal */}
       <Dialog open={removeModalOpen} onOpenChange={setRemoveModalOpen}>
-        <DialogContent className="w-[90%] max-w-sm mx-auto p-5 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[85vh] overflow-y-auto">
-          <DialogTitle className="sr-only">Remove Reader</DialogTitle>
-          <DialogDescription className="sr-only">
-            Confirmation modal for removing saved reader
-          </DialogDescription>
-          
-          {/* Header */}
-          <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b border-gray-100">
-            <DialogTitle className="text-lg font-semibold text-gray-800">Remove Reader</DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-full hover:bg-gray-100"
-              onClick={handleCancelRemove}
-            >
-              <X className="h-5 w-5 text-gray-600" />
-            </Button>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Remove Reader</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove this saved reader?
+            </DialogDescription>
           </DialogHeader>
 
-          {/* Content */}
-          <div className="space-y-4 mt-3">
-            <p className="text-sm text-gray-700 text-center leading-relaxed">
-              Are you sure you want to remove this saved reader?
-            </p>
-          </div>
-
           {/* Footer Buttons */}
-          <div className="flex gap-2 pt-2 border-t border-gray-100 mt-4">
+          <div className="flex gap-3 justify-end pt-4">
             <Button
               variant="outline"
               onClick={handleCancelRemove}
-              className="flex-1 h-11 text-sm font-semibold rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="h-10 px-6 text-sm font-semibold"
             >
               Cancel
             </Button>
             <Button
               onClick={handleConfirmRemove}
-              className="flex-1 h-11 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90"
+              className="h-10 px-6 text-sm font-semibold bg-primary text-white hover:bg-primary/90"
             >
               Remove
             </Button>
@@ -290,44 +267,26 @@ const MyCardReaders = () => {
 
       {/* Disconnect Confirmation Modal */}
       <Dialog open={disconnectModalOpen} onOpenChange={setDisconnectModalOpen}>
-        <DialogContent className="w-[90%] max-w-sm mx-auto p-5 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[85vh] overflow-y-auto">
-          <DialogTitle className="sr-only">Disconnect Reader</DialogTitle>
-          <DialogDescription className="sr-only">
-            Confirmation modal for disconnecting reader
-          </DialogDescription>
-          
-          {/* Header */}
-          <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b border-gray-100">
-            <DialogTitle className="text-lg font-semibold text-gray-800">Disconnect Reader?</DialogTitle>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="h-9 w-9 rounded-full hover:bg-gray-100"
-              onClick={handleCancelDisconnect}
-            >
-              <X className="h-5 w-5 text-gray-600" />
-            </Button>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Disconnect Reader?</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to disconnect this device?
+            </DialogDescription>
           </DialogHeader>
 
-          {/* Content */}
-          <div className="space-y-4 mt-3">
-            <p className="text-sm text-gray-700 text-center leading-relaxed">
-              Are you sure you want to disconnect this device?
-            </p>
-          </div>
-
           {/* Footer Buttons */}
-          <div className="flex gap-2 pt-2 border-t border-gray-100 mt-4">
+          <div className="flex gap-3 justify-end pt-4">
             <Button
               variant="outline"
               onClick={handleCancelDisconnect}
-              className="flex-1 h-11 text-sm font-semibold rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="h-10 px-6 text-sm font-semibold"
             >
               Cancel
             </Button>
             <Button
               onClick={handleConfirmDisconnect}
-              className="flex-1 h-11 text-sm font-semibold rounded-lg bg-primary text-white hover:bg-primary/90"
+              className="h-10 px-6 text-sm font-semibold bg-primary text-white hover:bg-primary/90"
             >
               Disconnect
             </Button>

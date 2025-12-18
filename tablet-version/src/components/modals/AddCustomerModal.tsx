@@ -221,20 +221,20 @@ const AddCustomerModal = ({ isOpen, onClose, onCustomerCreated }: AddCustomerMod
           </div>
 
           {/* Actions */}
-          <div className="flex gap-3 pt-4">
+          <div className="flex gap-3 pt-4 justify-end">
             <Button
               type="button"
               variant="outline"
               onClick={handleClose}
               disabled={isSubmitting}
-              className="flex-1"
+              className="h-10 px-6 text-sm font-semibold"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting}
-              className="flex-1 bg-orange-500 hover:bg-orange-600"
+              className="h-10 px-6 text-sm font-semibold bg-orange-500 hover:bg-orange-600"
             >
               {isSubmitting ? "Creating..." : "Create Customer"}
             </Button>

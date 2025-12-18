@@ -146,6 +146,7 @@ const ChangePassword = () => {
                 </Label>
                 <Input
                   type="password"
+                  autoComplete="current-password"
                   value={currentPassword}
                   onChange={(e) => {
                     setCurrentPassword(e.target.value);
@@ -169,6 +170,7 @@ const ChangePassword = () => {
                 </Label>
                 <Input
                   type="password"
+                  autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => {
                     setNewPassword(e.target.value);
@@ -196,6 +198,7 @@ const ChangePassword = () => {
                 </Label>
                 <Input
                   type="password"
+                  autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => {
                     setConfirmPassword(e.target.value);
@@ -219,10 +222,10 @@ const ChangePassword = () => {
             </div>
 
             {/* Change Password Button */}
-            <div className="mt-8">
+            <div className="mt-8 flex justify-end">
               <Button
                 type="submit"
-                className="w-full rounded-lg font-bold text-white shadow-md hover:shadow-lg transition-all h-12 text-base"
+                className="px-8 rounded-lg font-bold text-white shadow-md hover:shadow-lg transition-all h-12 text-base"
                 style={{ backgroundColor: "#F97316" }}
               >
                 CHANGE PASSWORD

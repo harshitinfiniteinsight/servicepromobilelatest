@@ -2052,10 +2052,10 @@ const Invoices = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowCustomItemModal(false)}>
+            <Button variant="outline" onClick={() => setShowCustomItemModal(false)} className="h-10 px-6 text-sm font-semibold">
               Cancel
             </Button>
-            <Button onClick={handleCustomItemSubmit}>
+            <Button onClick={handleCustomItemSubmit} className="h-10 px-6 text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white">
               Add Item
             </Button>
           </DialogFooter>
@@ -2183,10 +2183,10 @@ const Invoices = () => {
           </div>
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowInventoryModal(false)}>
+            <Button variant="outline" onClick={() => setShowInventoryModal(false)} className="h-10 px-6 text-sm font-semibold">
               Cancel
             </Button>
-            <Button onClick={handleInventorySubmit}>
+            <Button onClick={handleInventorySubmit} className="h-10 px-6 text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white">
               Save & Add to Invoice
             </Button>
           </DialogFooter>

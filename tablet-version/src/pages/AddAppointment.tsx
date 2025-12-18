@@ -649,18 +649,18 @@ const AddAppointment = ({ mode = "create" }: AddAppointmentProps) => {
               </div>
             </div>
 
-            <DialogFooter className="sm:justify-between sm:space-x-2">
+            <DialogFooter className="sm:justify-end sm:gap-3">
               <Button
                 variant="outline"
                 type="button"
-                className="sm:w-28"
+                className="h-10 px-6 text-sm font-semibold"
                 onClick={() => setCategoryModalOpen(false)}
               >
                 Close
               </Button>
               <Button
                 type="button"
-                className="sm:w-28"
+                className="h-10 px-6 text-sm font-semibold bg-orange-500 hover:bg-orange-600 text-white"
                 disabled={!newCategoryName || !newCategoryColor || !categoryEmployeeId}
                 onClick={handleAddCategory}
               >

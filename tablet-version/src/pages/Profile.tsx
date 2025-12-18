@@ -152,11 +152,9 @@ const Profile = () => {
       // For employees: Save all fields EXCEPT employeeId (which is read-only)
       const { employeeId, ...updatableFields } = employeeFormData;
       // API call would be: updateEmployeeProfile(updatableFields)
-      console.log("Saving employee profile (excluding employeeId):", updatableFields);
     } else {
       // For merchants: Save merchant profile data
       // API call would be: updateMerchantProfile(merchantFormData)
-      console.log("Saving merchant profile:", merchantFormData);
     }
     
     // Exit edit mode
