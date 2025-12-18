@@ -57,7 +57,15 @@ const merchantNavItems: NavItem[] = [
       { title: "Job Route", path: "/employees/job-route", icon: Briefcase },
     ]
   },
-  { title: "Reports", path: "/reports", icon: BarChart3 },
+  {
+    title: "Reports",
+    path: "/reports",
+    icon: BarChart3,
+    children: [
+      { title: "Invoice Report", path: "/reports/invoice", icon: FileText },
+      { title: "Estimate Report", path: "/reports/estimate", icon: TrendingUp },
+    ]
+  },
   { title: "Settings", path: "/settings", icon: Settings },
 ];
 
@@ -112,6 +120,9 @@ const TabletLayout = ({ children }: TabletLayoutProps) => {
     }
     if (path === "/employees" && hasChildren) {
       return location.pathname.startsWith("/employees");
+    }
+    if (path === "/reports" && hasChildren) {
+      return location.pathname.startsWith("/reports");
     }
     return location.pathname.startsWith(path);
   };

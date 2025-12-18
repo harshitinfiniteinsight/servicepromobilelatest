@@ -1,17 +1,12 @@
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { Search, Calendar, X, Download, Share2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Search, Calendar, Bell } from "lucide-react";
 import { mockInvoices } from "@/data/mobileMockData";
 import { toast } from "sonner";
 
@@ -30,6 +25,11 @@ interface Invoice {
   sku?: string;
 }
 
+// Only allow Paid | Open to be displayed
+const getInvoiceDisplayStatus = (status: string): "Paid" | "Open" => {
+  return status === "Paid" ? "Paid" : "Open";
+};
+
 // Enhanced invoice data with employee and item info
 const enhancedInvoices: Invoice[] = mockInvoices.map((inv, idx) => ({
   ...inv,
@@ -44,8 +44,10 @@ const InvoiceReport = () => {
   const [dateRange, setDateRange] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<string>("all");
-  const [daysFilter, setDaysFilter] = useState<string>("all");
   const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+  const [showMonthlyAlert, setShowMonthlyAlert] = useState(false);
+  const [emailAlert, setEmailAlert] = useState(false);
+  const [smsAlert, setSmsAlert] = useState(false);
 
   // Get unique employee names
   const employeeNames = useMemo(() => {
@@ -65,39 +67,17 @@ const InvoiceReport = () => {
         invoice.itemName?.toLowerCase().includes(search.toLowerCase());
 
       // Status filter
+      const displayStatus = getInvoiceDisplayStatus(invoice.status);
       const matchesStatus =
         statusFilter === "all" ||
-        (statusFilter === "open" && invoice.status === "Open") ||
-        (statusFilter === "paid" && invoice.status === "Paid");
+        (statusFilter === "open" && displayStatus === "Open") ||
+        (statusFilter === "paid" && displayStatus === "Paid");
 
       // Payment type filter
       const matchesPaymentType =
         paymentTypeFilter === "all" ||
         (paymentTypeFilter === "recurring" && invoice.type === "recurring") ||
         (paymentTypeFilter === "single" && invoice.type === "single");
-
-      // Days filter
-      const matchesDays = (() => {
-        if (daysFilter === "all") return true;
-        const invoiceDate = new Date(invoice.issueDate);
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const yesterday = new Date(today);
-        yesterday.setDate(yesterday.getDate() - 1);
-        const weekAgo = new Date(today);
-        weekAgo.setDate(weekAgo.getDate() - 7);
-
-        if (daysFilter === "today") {
-          return invoiceDate.getTime() === today.getTime();
-        }
-        if (daysFilter === "yesterday") {
-          return invoiceDate.getTime() === yesterday.getTime();
-        }
-        if (daysFilter === "this-week") {
-          return invoiceDate >= weekAgo && invoiceDate <= today;
-        }
-        return true;
-      })();
 
       // Employee filter
       const matchesEmployee =
@@ -115,19 +95,17 @@ const InvoiceReport = () => {
         matchesSearch &&
         matchesStatus &&
         matchesPaymentType &&
-        matchesDays &&
         matchesEmployee &&
         matchesDateRange
       );
     });
-  }, [search, dateRange, statusFilter, paymentTypeFilter, daysFilter, employeeFilter]);
+  }, [search, dateRange, statusFilter, paymentTypeFilter, employeeFilter]);
 
   const clearFilters = () => {
     setSearch("");
     setDateRange("");
     setStatusFilter("all");
     setPaymentTypeFilter("all");
-    setDaysFilter("all");
     setEmployeeFilter("all");
   };
 
@@ -136,131 +114,59 @@ const InvoiceReport = () => {
     dateRange !== "" ||
     statusFilter !== "all" ||
     paymentTypeFilter !== "all" ||
-    daysFilter !== "all" ||
     employeeFilter !== "all";
 
   const handleOrderClick = (invoiceId: string) => {
     navigate(`/invoices/${invoiceId}`);
   };
 
-  const handleDownloadPDF = () => {
-    toast.success("Downloading invoice report as PDF...");
-    // In real app, trigger PDF download
-  };
-
-  const handleDownloadCSV = () => {
-    toast.success("Downloading invoice report as CSV...");
-    // In real app, trigger CSV download
-  };
-
-  const handleShareEmail = () => {
-    toast.success("Sharing invoice report via email...");
-    // In real app, trigger email share
-  };
-
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader
-        title="Invoice Reports"
-        showBack={true}
-        actions={
-          <div className="flex items-center gap-1">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-gray-100"
-                >
-                  <Share2 className="h-4 w-4 text-gray-700" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={handleShareEmail}>
-                  Share via Email
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 hover:bg-gray-100"
-                >
-                  <Download className="h-4 w-4 text-gray-700" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={handleDownloadPDF}>
-                  Download as PDF
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleDownloadCSV}>
-                  Download as CSV
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
-        }
-      />
+    <div className="h-full flex flex-col overflow-hidden bg-gray-50">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10">
+        <TabletHeader
+          title="Invoice Reports"
+          showBack={true}
+          actions={
+            <Button
+              variant="outline"
+              onClick={() => setShowMonthlyAlert(true)}
+              className="h-9 px-4 border-gray-300 hover:bg-gray-50 text-sm font-medium"
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              Monthly Report Alert
+            </Button>
+          }
+        />
+      </div>
 
-      <div
-        className="flex-1 overflow-y-auto scrollable px-4 pb-4"
-        style={{
-          paddingTop: "calc(3.5rem + env(safe-area-inset-top) + 0.5rem)",
-        }}
-      >
-        {/* Filters Section */}
-        <div className="space-y-1.5 mb-1 mt-1">
-          {/* Row 1: Date Range (70%) + Days Filter (30%) */}
-          <div className="flex gap-1.5 items-center">
-            {/* Date Range - 70% */}
-            <div className="relative flex-[0.7]">
-              <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
-              <Input
-                type="text"
-                placeholder="Select Date Range"
-                value={dateRange}
-                onChange={(e) => setDateRange(e.target.value)}
-                className="w-full h-[40px] pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-              />
+      {/* Main Content: Side-by-side layout */}
+      <div className="flex-1 overflow-hidden flex">
+        {/* Left Section: Filters Panel */}
+        <div className="w-80 border-r border-gray-200 bg-white overflow-y-auto">
+          <div className="p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
+            
+            {/* Date Range Filter */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Date Range</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                <Input
+                  type="text"
+                  placeholder="Select Date Range"
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                  className="w-full h-10 pl-9 pr-3 text-sm border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
             </div>
 
-            {/* Days Filter - 30% */}
-            <div className="flex-[0.3]">
-              <Select value={daysFilter} onValueChange={setDaysFilter}>
-                <SelectTrigger className="w-full h-[40px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
-                  <SelectValue placeholder="All Days" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Days</SelectItem>
-                  <SelectItem value="today">Today</SelectItem>
-                  <SelectItem value="yesterday">Yesterday</SelectItem>
-                  <SelectItem value="this-week">This Week</SelectItem>
-                  <SelectItem value="custom">Custom</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          {/* Row 2: Search Field - Full Width */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
-            <Input
-              type="text"
-              placeholder="Search by name, order ID, SKU, etc."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full h-[40px] pl-9 pr-3 py-2 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-            />
-          </div>
-
-          {/* Row 3: Status (50%) + Payment Type (50%) */}
-          <div className="flex gap-1.5">
             {/* Status Filter */}
-            <div className="flex-1">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Status</label>
               <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full h-[40px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
+                <SelectTrigger className="w-full h-10 border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
                   <SelectValue placeholder="All Status" />
                 </SelectTrigger>
                 <SelectContent>
@@ -272,9 +178,10 @@ const InvoiceReport = () => {
             </div>
 
             {/* Payment Type Filter */}
-            <div className="flex-1">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Payment Type</label>
               <Select value={paymentTypeFilter} onValueChange={setPaymentTypeFilter}>
-                <SelectTrigger className="w-full h-[40px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
+                <SelectTrigger className="w-full h-10 border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
                   <SelectValue placeholder="All Payment Types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -284,14 +191,12 @@ const InvoiceReport = () => {
                 </SelectContent>
               </Select>
             </div>
-          </div>
 
-          {/* Row 4: Employee (50%) + Clear Filter Button (50%) */}
-          <div className="flex gap-2">
             {/* Employee Filter */}
-            <div className="flex-1">
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Employee</label>
               <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
-                <SelectTrigger className="w-full h-[40px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
+                <SelectTrigger className="w-full h-10 border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
                   <SelectValue placeholder="All Employees" />
                 </SelectTrigger>
                 <SelectContent>
@@ -306,20 +211,38 @@ const InvoiceReport = () => {
             </div>
 
             {/* Clear Filter Button */}
-            <div className="flex-1">
+            <div className="pt-2">
               <Button
                 variant="outline"
                 onClick={clearFilters}
-                className="w-full h-[40px] border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+                disabled={!hasActiveFilters}
+                className="w-full h-10 border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Clear
+                Clear All Filters
               </Button>
             </div>
           </div>
         </div>
 
-        {/* Invoice List */}
-        <div className="space-y-2">
+        {/* Right Section: Content Panel */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {/* Search Bar */}
+            <div className="mb-6">
+              <div className="relative max-w-2xl">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                <Input
+                  type="text"
+                  placeholder="Search by name, order ID, SKU, etc."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-11 pl-9 pr-3 text-sm border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-orange-500 bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Invoice List */}
+            <div className="space-y-2">
           {filteredInvoices.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p className="text-sm">No invoices found</p>
@@ -328,76 +251,143 @@ const InvoiceReport = () => {
             filteredInvoices.map((invoice) => (
               <div
                 key={invoice.id}
-                className="bg-white border border-gray-200 rounded-xl p-2.5 shadow-sm"
+                onClick={() => handleOrderClick(invoice.id)}
+                className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
               >
-                {/* Top Row: Order ID (left) | Status Badge (right) */}
-                <div className="flex justify-between items-start mb-0.5">
-                  <button
-                    onClick={() => handleOrderClick(invoice.id)}
-                    className="text-sm font-medium text-teal-600 hover:text-teal-700 active:text-teal-800 transition-colors"
-                  >
-                    {invoice.id}
-                  </button>
-                  <Badge
-                    className={`text-xs px-2 py-0.5 h-6 flex-shrink-0 ${
-                      invoice.status === "Paid"
-                        ? "bg-green-100 text-green-700 border-green-200"
-                        : invoice.status === "Open"
-                        ? "bg-orange-100 text-orange-700 border-orange-200"
-                        : "bg-gray-100 text-gray-700 border-gray-200"
-                    }`}
-                  >
-                    {invoice.status}
-                  </Badge>
-                </div>
+                {/* Compact Grid Layout */}
+                <div className="grid grid-cols-12 gap-4 items-center">
+                  {/* Left Column: Invoice ID & Date */}
+                  <div className="col-span-2">
+                    <p className="text-sm font-semibold text-teal-600 hover:text-teal-700">
+                      {invoice.id}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">{invoice.issueDate}</p>
+                  </div>
 
-                {/* Date */}
-                <p className="text-[10px] text-gray-500 mb-1">{invoice.issueDate}</p>
+                  {/* Center Column: Customer, Service & SKU */}
+                  <div className="col-span-5">
+                    <p className="text-sm font-medium text-gray-900 mb-0.5">
+                      {invoice.customerName}
+                    </p>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {invoice.itemName && (
+                        <span className="text-xs text-gray-600">{invoice.itemName}</span>
+                      )}
+                      {invoice.sku && (
+                        <Badge
+                          variant="outline"
+                          className="text-[10px] px-1.5 py-0 h-4 bg-gray-50 text-gray-600 border-gray-300"
+                        >
+                          {invoice.sku}
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
 
-                {/* Divider */}
-                <div className="border-t border-gray-100 my-1.5"></div>
-
-                {/* Customer Info */}
-                <div className="mb-1">
-                  <h3 className="text-sm font-semibold text-gray-800">
-                    {invoice.customerName}
-                  </h3>
-                  {invoice.employeeName && (
-                    <p className="text-[10px] text-gray-600 mt-0.5">Employee: {invoice.employeeName}</p>
-                  )}
-                </div>
-
-                {/* Item Details */}
-                {invoice.itemName && (
-                  <div className="mb-1">
-                    <p className="text-sm text-gray-700 mb-0.5">{invoice.itemName}</p>
-                    {invoice.sku && (
-                      <Badge
-                        variant="outline"
-                        className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 border-gray-200 h-5"
-                      >
-                        {invoice.sku}
-                      </Badge>
+                  {/* Center-Right: Employee */}
+                  <div className="col-span-2">
+                    {invoice.employeeName && (
+                      <p className="text-xs text-gray-500 truncate" title={invoice.employeeName}>
+                        {invoice.employeeName}
+                      </p>
                     )}
                   </div>
-                )}
 
-                {/* Amount & Payment Type */}
-                <div className="flex items-end justify-between pt-0.5">
-                  <div>
-                    <p className="text-sm font-semibold text-green-600">
-                      ${invoice.amount.toFixed(2)}
-                    </p>
-                    <p className="text-[10px] text-gray-500 mt-0.5">
-                      {invoice.type === "recurring" ? "Recurring" : "Single"}
-                    </p>
+                  {/* Right Column: Amount & Status */}
+                  <div className="col-span-3 flex items-center justify-end gap-3">
+                    <div className="text-right">
+                      <p className="text-base font-semibold text-green-600">
+                        ${invoice.amount.toFixed(2)}
+                      </p>
+                      <p className="text-[10px] text-gray-500">
+                        {invoice.type === "recurring" ? "Recurring" : "Single"}
+                      </p>
+                    </div>
+                    <Badge
+                      className={`text-xs px-2.5 py-1 h-6 flex-shrink-0 ${
+                        getInvoiceDisplayStatus(invoice.status) === "Paid"
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-orange-100 text-orange-700 border-orange-200"
+                      }`}
+                    >
+                      {getInvoiceDisplayStatus(invoice.status)}
+                    </Badge>
                   </div>
                 </div>
               </div>
             ))
           )}
+            </div>
+          </div>
         </div>
       </div>
+
+      {/* Monthly Report Alert Modal */}
+      <Dialog open={showMonthlyAlert} onOpenChange={setShowMonthlyAlert}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Monthly Report Alert</DialogTitle>
+            <DialogDescription>
+              Configure how you'd like to receive your monthly invoice reports
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Email Alert Section */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">Monthly Email Alert</p>
+                <p className="text-sm text-gray-600 mt-1">Receive invoice reports via email</p>
+              </div>
+              <button
+                onClick={() => setEmailAlert(!emailAlert)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  emailAlert ? "bg-orange-500" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    emailAlert ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* SMS Alert Section */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">Monthly SMS Alert</p>
+                <p className="text-sm text-gray-600 mt-1">Receive invoice reports via SMS</p>
+              </div>
+              <button
+                onClick={() => setSmsAlert(!smsAlert)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  smsAlert ? "bg-orange-500" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    smsAlert ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMonthlyAlert(false)} className="mr-2">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                toast.success("Alert preferences saved");
+                setShowMonthlyAlert(false);
+              }}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

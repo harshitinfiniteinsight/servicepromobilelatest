@@ -7,8 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { mockEmployees } from "@/data/mobileMockData";
-import { ChevronDown, Pencil, GripVertical, MapPin, Clock, MoreHorizontal } from "lucide-react";
+import { ChevronDown, Pencil, GripVertical, MapPin, Clock, MoreHorizontal, UserCog } from "lucide-react";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
+import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
+import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import { format } from "date-fns";
 import { MapContainer, TileLayer, Marker, Polyline, useMap } from "react-leaflet";
 import L from "leaflet";
@@ -292,6 +294,36 @@ const EmployeeJobRoute = () => {
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const toggleExpanded = (id: string) => setExpanded((p) => ({ ...p, [id]: !p[id] }));
 
+  // Reassign Employee Modal state
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<{ id: string; empId: string; address: string } | null>(null);
+
+  // Handler to open reassign modal
+  const handleReassignEmployee = (jobId: string, empId: string, address: string) => {
+    setSelectedJob({ id: jobId, empId, address });
+    setShowReassignModal(true);
+  };
+
+  // Handler to open Google Maps
+  const handleShowOnMap = (address: string) => {
+    if (!address || address.trim() === "") {
+      return;
+    }
+    const encodedAddress = encodeURIComponent(address.trim());
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+    window.open(googleMapsUrl, "_blank");
+  };
+
+  // Handler for reassign modal save
+  const handleReassignSave = (newEmployeeId: string) => {
+    const employee = mockEmployees.find(emp => emp.id === newEmployeeId);
+    if (employee) {
+      showSuccessToast(`Job reassigned to ${employee.name}`);
+      setShowReassignModal(false);
+      setSelectedJob(null);
+    }
+  };
+
   // DEMO DATA: Hardcoded employees with 4 stops each
   const routeData = useMemo(() => {
     // Demo employees list
@@ -427,106 +459,107 @@ const EmployeeJobRoute = () => {
                   <div className="px-4 md:px-6 lg:px-8 pt-5 pb-6 space-y-6">
                     <h2 className="text-lg font-semibold text-gray-900">Add Route</h2>
 
-                  {/* Row: Employee + Date */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-medium text-gray-700">Employee</Label>
-                      <Select value={leftEmpId} onValueChange={setLeftEmpId}>
-                        <SelectTrigger className="h-11 border-gray-300">
-                          <SelectValue placeholder="Select employee" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {mockEmployees.map((e) => (
-                            <SelectItem key={e.id} value={e.id}>
-                              {e.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="space-y-1.5">
-                      <Label className="text-sm font-medium text-gray-700">Date</Label>
-                      <Input type="date" value={leftDate} onChange={(e) => setLeftDate(e.target.value)} className="h-11 border-gray-300" />
-                    </div>
-                  </div>
-
-                  {/* Map and Route Stops */}
-                  <div>
-                    {!leftEmpId || !leftDate ? (
-                      <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
-                        Select employee and date to load assigned jobs
-                      </div>
-                    ) : jobStops.length === 0 ? (
-                      <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center text-sm text-gray-500">
-                        No jobs assigned for this date
-                      </div>
-                    ) : (
-                      <>
-                        {/* Map */}
-                        <div className="rounded-xl overflow-hidden border border-gray-200 h-[280px]">
-                          <MapContainer
-                            center={[41.8781, -87.6298]}
-                            zoom={13}
-                            style={{ height: "100%", width: "100%" }}
-                            scrollWheelZoom={false}
-                          >
-                            <TileLayer
-                              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
-                            {jobStops.map((job, idx) => (
-                              <Marker
-                                key={job.id}
-                                position={[job.lat, job.lng]}
-                                icon={createNumberedIcon(idx + 1)}
-                              />
+                    {/* Row: Employee + Date */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium text-gray-700">Employee</Label>
+                        <Select value={leftEmpId} onValueChange={setLeftEmpId}>
+                          <SelectTrigger className="h-11 border-gray-300">
+                            <SelectValue placeholder="Select employee" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {mockEmployees.map((e) => (
+                              <SelectItem key={e.id} value={e.id}>
+                                {e.name}
+                              </SelectItem>
                             ))}
-                            {positions.length > 1 && (
-                              <Polyline
-                                positions={positions}
-                                color="#f97316"
-                                weight={4}
-                                opacity={0.8}
-                                dashArray="0"
-                              />
-                            )}
-                            <MapBounds positions={positions} />
-                          </MapContainer>
-                        </div>
-
-                      {/* Route Stops List */}
-                      <div className="space-y-2">
-                        <h3 className="text-sm font-semibold text-gray-900">Route Stops</h3>
-                        <DndContext
-                          sensors={sensors}
-                          collisionDetection={closestCenter}
-                          onDragEnd={handleDragEnd}
-                        >
-                          <SortableContext
-                            items={jobStops.map((j) => j.id)}
-                            strategy={verticalListSortingStrategy}
-                          >
-                            <div className="space-y-2">
-                              {jobStops.map((job, idx) => (
-                                <SortableJobCard key={job.id} job={job} index={idx} />
-                              ))}
-                            </div>
-                          </SortableContext>
-                        </DndContext>
+                          </SelectContent>
+                        </Select>
                       </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-sm font-medium text-gray-700">Date</Label>
+                        <Input type="date" value={leftDate} onChange={(e) => setLeftDate(e.target.value)} className="h-11 border-gray-300" />
+                      </div>
+                    </div>
 
-                      {/* Save Route Button */}
-                      <Button
-                        className="w-full rounded-full py-3 text-sm font-semibold"
-                        onClick={handleSaveRoute}
-                      >
-                        Save Route
-                      </Button>
-                    </>
-                  )}
+                    {/* Map and Route Stops */}
+                    <div>
+                      {!leftEmpId || !leftDate ? (
+                        <div className="rounded-2xl border border-dashed border-gray-200 p-8 text-center text-sm text-gray-500">
+                          Select employee and date to load assigned jobs
+                        </div>
+                      ) : jobStops.length === 0 ? (
+                        <div className="rounded-2xl border border-gray-100 bg-white p-8 text-center text-sm text-gray-500">
+                          No jobs assigned for this date
+                        </div>
+                      ) : (
+                        <>
+                          {/* Map */}
+                          <div className="rounded-xl overflow-hidden border border-gray-200 h-[280px]">
+                            <MapContainer
+                              center={[41.8781, -87.6298]}
+                              zoom={13}
+                              style={{ height: "100%", width: "100%" }}
+                              scrollWheelZoom={false}
+                            >
+                              <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                              />
+                              {jobStops.map((job, idx) => (
+                                <Marker
+                                  key={job.id}
+                                  position={[job.lat, job.lng]}
+                                  icon={createNumberedIcon(idx + 1)}
+                                />
+                              ))}
+                              {positions.length > 1 && (
+                                <Polyline
+                                  positions={positions}
+                                  color="#f97316"
+                                  weight={4}
+                                  opacity={0.8}
+                                  dashArray="0"
+                                />
+                              )}
+                              <MapBounds positions={positions} />
+                            </MapContainer>
+                          </div>
+
+                          {/* Route Stops List */}
+                          <div className="space-y-2">
+                            <h3 className="text-sm font-semibold text-gray-900">Route Stops</h3>
+                            <DndContext
+                              sensors={sensors}
+                              collisionDetection={closestCenter}
+                              onDragEnd={handleDragEnd}
+                            >
+                              <SortableContext
+                                items={jobStops.map((j) => j.id)}
+                                strategy={verticalListSortingStrategy}
+                              >
+                                <div className="space-y-2">
+                                  {jobStops.map((job, idx) => (
+                                    <SortableJobCard key={job.id} job={job} index={idx} />
+                                  ))}
+                                </div>
+                              </SortableContext>
+                            </DndContext>
+                          </div>
+
+                          {/* Save Route Button */}
+                          <Button
+                            className="w-full rounded-full py-3 text-sm font-semibold"
+                            onClick={handleSaveRoute}
+                          >
+                            Save Route
+                          </Button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {/* RIGHT: Route List */}
@@ -626,62 +659,77 @@ const EmployeeJobRoute = () => {
                           { id: "j2", customer: "Jennifer Wilson", service: "Plumbing Repair", address: "456 Oak Ave, Chicago, IL", time: "11:00 AM", status: "next" },
                           { id: "j3", customer: "John Smith", service: "HVAC Installation", address: "123 Main St, Chicago, IL", time: "02:00 PM", status: "scheduled" },
                           { id: "j4", customer: "Emma Davis", service: "Electrical Work", address: "321 Elm St, Chicago, IL", time: "04:00 PM", status: "scheduled" },
-                        ].map((job, jobIdx) => (
-                          <div 
-                            key={job.id} 
-                            className={`rounded-xl border p-4 flex items-start gap-3 ${
-                              job.status === "current" 
-                                ? "bg-white border-orange-300 border-2" 
-                                : "bg-white border-gray-100"
-                            }`}
-                          >
-                            {/* Status indicator */}
-                            <div className="flex flex-col items-center gap-1 flex-shrink-0">
-                              <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                        ].map((job, jobIdx) => {
+                          const menuItems: KebabMenuItem[] = [
+                            {
+                              label: "Reassign employee",
+                              icon: UserCog,
+                              action: () => handleReassignEmployee(job.id, emp.id, job.address),
+                            },
+                            {
+                              label: "Show on map",
+                              icon: MapPin,
+                              action: () => handleShowOnMap(job.address),
+                            },
+                          ];
+
+                          return (
+                            <div 
+                              key={job.id} 
+                              className={`rounded-xl border p-4 flex items-start gap-3 ${
                                 job.status === "current" 
-                                  ? "bg-orange-500" 
-                                  : job.status === "next" 
-                                  ? "bg-blue-500" 
-                                  : "bg-gray-400"
-                              }`}>
-                                {jobIdx + 1}
+                                  ? "bg-white border-orange-300 border-2" 
+                                  : "bg-white border-gray-100"
+                              }`}
+                            >
+                              {/* Status indicator */}
+                              <div className="flex flex-col items-center gap-1 flex-shrink-0">
+                                <div className={`h-8 w-8 rounded-full flex items-center justify-center text-xs font-bold text-white ${
+                                  job.status === "current" 
+                                    ? "bg-orange-500" 
+                                    : job.status === "next" 
+                                    ? "bg-blue-500" 
+                                    : "bg-gray-400"
+                                }`}>
+                                  {jobIdx + 1}
+                                </div>
+                                {job.status === "current" && (
+                                  <span className="text-xs font-semibold text-orange-600 whitespace-nowrap">Current</span>
+                                )}
+                                {job.status === "next" && (
+                                  <span className="text-xs font-semibold text-blue-600 whitespace-nowrap">Next</span>
+                                )}
                               </div>
-                              {job.status === "current" && (
-                                <span className="text-xs font-semibold text-orange-600 whitespace-nowrap">Current</span>
-                              )}
-                              {job.status === "next" && (
-                                <span className="text-xs font-semibold text-blue-600 whitespace-nowrap">Next</span>
-                              )}
-                            </div>
-                            
-                            {/* Job details */}
-                            <div className="flex-1 min-w-0">
-                              <p className="text-sm font-semibold text-gray-900">{job.customer}</p>
-                              <p className="text-xs text-gray-600 mt-0.5">{job.service}</p>
-                              <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-500">
-                                <MapPin className="h-3 w-3 flex-shrink-0" />
-                                <span className="truncate">{job.address}</span>
+                              
+                              {/* Job details */}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900">{job.customer}</p>
+                                <p className="text-xs text-gray-600 mt-0.5">{job.service}</p>
+                                <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-500">
+                                  <MapPin className="h-3 w-3 flex-shrink-0" />
+                                  <span className="truncate">{job.address}</span>
+                                </div>
+                                <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-500">
+                                  <Clock className="h-3 w-3 flex-shrink-0" />
+                                  <span>{job.time}</span>
+                                </div>
                               </div>
-                              <div className="flex items-center gap-1 mt-1.5 text-xs text-gray-500">
-                                <Clock className="h-3 w-3 flex-shrink-0" />
-                                <span>{job.time}</span>
+                              
+                              {/* Status dropdown and menu */}
+                              <div className="flex items-center gap-2 flex-shrink-0">
+                                <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 hover:border-gray-300">
+                                  <option>Scheduled</option>
+                                  <option>In Progress</option>
+                                  <option>Completed</option>
+                                  <option>Cancelled</option>
+                                </select>
+                                <div onClick={(e) => e.stopPropagation()}>
+                                  <KebabMenu items={menuItems} menuWidth="w-48" />
+                                </div>
                               </div>
                             </div>
-                            
-                            {/* Status dropdown and menu */}
-                            <div className="flex items-center gap-2 flex-shrink-0">
-                              <select className="text-xs border border-gray-200 rounded px-2 py-1 bg-white text-gray-700 hover:border-gray-300">
-                                <option>Scheduled</option>
-                                <option>In Progress</option>
-                                <option>Completed</option>
-                                <option>Cancelled</option>
-                              </select>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreHorizontal className="h-4 w-4 text-gray-500" />
-                              </Button>
-                            </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     )}
                   </div>
@@ -698,6 +746,20 @@ const EmployeeJobRoute = () => {
         initialRange={filterRange}
         onConfirm={(range) => setFilterRange(range)}
       />
+
+      {/* Reassign Employee Modal */}
+      {selectedJob && (
+        <ReassignEmployeeModal
+          isOpen={showReassignModal}
+          onClose={() => {
+            setShowReassignModal(false);
+            setSelectedJob(null);
+          }}
+          currentEmployeeId={selectedJob.empId}
+          estimateId={selectedJob.id}
+          onSave={handleReassignSave}
+        />
+      )}
     </div>
   );
 };

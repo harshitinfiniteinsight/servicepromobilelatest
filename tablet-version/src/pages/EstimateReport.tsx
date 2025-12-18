@@ -1,164 +1,349 @@
-import { useState } from "react";
-import MobileHeader from "@/components/layout/MobileHeader";
-import { Button } from "@/components/ui/button";
+import { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { mockEstimates, mockCustomers } from "@/data/mobileMockData";
-import { Download, DollarSign, FileText, TrendingUp, Users } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Search, Calendar, Bell } from "lucide-react";
+import { mockEstimates } from "@/data/mobileMockData";
+import { toast } from "sonner";
+
+interface Estimate {
+  id: string;
+  customerId: string;
+  customerName: string;
+  date: string;
+  amount: number;
+  status: string;
+  probability: number;
+  employeeName?: string;
+}
+
+// Only allow Paid | Open | Converted to Invoice to be displayed
+const getEstimateDisplayStatus = (
+  status: string
+): "Paid" | "Open" | "Converted to Invoice" => {
+  if (status === "Paid") return "Paid";
+  if (status === "Converted to Invoice") return "Converted to Invoice";
+  return "Open";
+};
+
+// Enhanced estimate data with employee info
+const enhancedEstimates: Estimate[] = mockEstimates.map((est, idx) => ({
+  ...est,
+  employeeName: ["Mike Johnson", "Tom Wilson", "Chris Davis", "Sarah Martinez", "James Anderson"][idx % 5],
+}));
 
 const EstimateReport = () => {
-  const [startDate, setStartDate] = useState("2024-01-01");
-  const [endDate, setEndDate] = useState("2024-01-31");
+  const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [dateRange, setDateRange] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [employeeFilter, setEmployeeFilter] = useState<string>("all");
+  const [showMonthlyAlert, setShowMonthlyAlert] = useState(false);
+  const [emailAlert, setEmailAlert] = useState(false);
+  const [smsAlert, setSmsAlert] = useState(false);
 
-  const filteredEstimates = mockEstimates.filter(est => {
-    const estDate = new Date(est.date);
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    return estDate >= start && estDate <= end;
-  });
+  // Get unique employee names
+  const employeeNames = Array.from(new Set(enhancedEstimates.map((est) => est.employeeName).filter(Boolean))) as string[];
 
-  const summary = {
-    total: filteredEstimates.length,
-    draft: filteredEstimates.filter(e => e.status === "Draft").length,
-    sent: filteredEstimates.filter(e => e.status === "Sent").length,
-    approved: filteredEstimates.filter(e => e.status === "Approved").length,
-    rejected: filteredEstimates.filter(e => e.status === "Rejected").length,
-    totalValue: filteredEstimates.reduce((sum, e) => sum + e.amount, 0),
-    conversionRate: filteredEstimates.filter(e => e.status === "Sent" || e.status === "Approved").length > 0
-      ? Math.round((filteredEstimates.filter(e => e.status === "Approved").length / 
-          filteredEstimates.filter(e => e.status === "Sent" || e.status === "Approved").length) * 100)
-      : 0,
+  // Filter estimates
+  const filteredEstimates = useMemo(() => {
+    return enhancedEstimates.filter((estimate) => {
+      // Search filter
+      const searchLower = search.toLowerCase();
+      const matchesSearch =
+        search === "" ||
+        estimate.id.toLowerCase().includes(searchLower) ||
+        estimate.customerName.toLowerCase().includes(searchLower) ||
+        estimate.employeeName?.toLowerCase().includes(searchLower);
+
+      // Status filter (use mapped display status)
+      const displayStatus = getEstimateDisplayStatus(estimate.status);
+      const matchesStatus =
+        statusFilter === "all" ||
+        (statusFilter === "open" && displayStatus === "Open") ||
+        (statusFilter === "paid" && displayStatus === "Paid") ||
+        (statusFilter === "converted" && displayStatus === "Converted to Invoice");
+
+      // Employee filter
+      const matchesEmployee = employeeFilter === "all" || estimate.employeeName === employeeFilter;
+
+      // Date range filter (simplified)
+      const matchesDateRange = dateRange === "" || estimate.date.includes(dateRange);
+
+      return matchesSearch && matchesStatus && matchesEmployee && matchesDateRange;
+    });
+  }, [search, dateRange, statusFilter, employeeFilter]);
+
+  // Check if any filters are active
+  const hasActiveFilters =
+    search !== "" ||
+    dateRange !== "" ||
+    statusFilter !== "all" ||
+    employeeFilter !== "all";
+
+  const clearFilters = () => {
+    setSearch("");
+    setDateRange("");
+    setStatusFilter("all");
+    setEmployeeFilter("all");
+    toast.success("Filters cleared");
   };
 
-  // Top customers by estimate value
-  const customerTotals = filteredEstimates.reduce((acc, est) => {
-    if (!acc[est.customerId]) {
-      acc[est.customerId] = { name: est.customerName, total: 0, count: 0 };
-    }
-    acc[est.customerId].total += est.amount;
-    acc[est.customerId].count += 1;
-    return acc;
-  }, {} as Record<string, { name: string; total: number; count: number }>);
-
-  const topCustomers = Object.values(customerTotals)
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 5);
-
-  // Mock pie chart data
-  const chartData = [
-    { label: "Approved", value: summary.approved, color: "bg-success" },
-    { label: "Sent", value: summary.sent, color: "bg-primary" },
-    { label: "Draft", value: summary.draft, color: "bg-muted" },
-    { label: "Rejected", value: summary.rejected, color: "bg-destructive" },
-  ];
-  const totalChart = chartData.reduce((sum, d) => sum + d.value, 0);
+  const handleEstimateClick = (estimateId: string) => {
+    navigate(`/estimates/${estimateId}`);
+  };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader title="Estimate Report" showBack={true} />
-      
-      <div className="flex-1 overflow-y-auto scrollable pt-14 px-4 pb-6 space-y-4">
-        {/* Date Range */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <Label>Start Date</Label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
-          </div>
-          <div>
-            <Label>End Date</Label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
-          </div>
-        </div>
-
-        {/* Summary Cards */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="p-4 rounded-xl bg-primary/5 border border-primary/20">
-            <div className="flex items-center gap-2 mb-1">
-              <FileText className="h-4 w-4 text-primary" />
-              <span className="text-xs font-medium">Total</span>
-            </div>
-            <p className="text-2xl font-bold">{summary.total}</p>
-          </div>
-          <div className="p-4 rounded-xl bg-success/5 border border-success/20">
-            <div className="flex items-center gap-2 mb-1">
-              <DollarSign className="h-4 w-4 text-success" />
-              <span className="text-xs font-medium">Total Value</span>
-            </div>
-            <p className="text-xl font-bold">${summary.totalValue.toLocaleString()}</p>
-          </div>
-        </div>
-
-        {/* Conversion Rate */}
-        <div className="p-4 rounded-xl bg-accent/5 border border-accent/20">
-          <div className="flex items-center gap-2 mb-2">
-            <TrendingUp className="h-5 w-5 text-accent" />
-            <span className="font-semibold">Conversion Rate</span>
-          </div>
-          <p className="text-3xl font-bold text-accent">{summary.conversionRate}%</p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {summary.approved} approved out of {summary.sent + summary.approved} sent
-          </p>
-        </div>
-
-        {/* Status Breakdown */}
-        <div className="p-4 rounded-xl border bg-card">
-          <h3 className="font-semibold mb-4">Status Breakdown</h3>
-          <div className="space-y-3">
-            {chartData.map((item, idx) => {
-              const percentage = totalChart > 0 ? Math.round((item.value / totalChart) * 100) : 0;
-              return (
-                <div key={idx}>
-                  <div className="flex justify-between mb-1">
-                    <span className="text-sm font-medium">{item.label}</span>
-                    <span className="text-sm font-bold">{item.value} ({percentage}%)</span>
-                  </div>
-                  <div className="h-3 rounded-full bg-muted overflow-hidden">
-                    <div
-                      className={`h-full ${item.color} transition-all`}
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Top Customers */}
-        {topCustomers.length > 0 && (
-          <div className="p-4 rounded-xl border bg-card">
-            <div className="flex items-center gap-2 mb-3">
-              <Users className="h-4 w-4 text-primary" />
-              <h3 className="font-semibold">Top Customers</h3>
-            </div>
-            <div className="space-y-2">
-              {topCustomers.map((customer, idx) => (
-                <div key={idx} className="flex items-center justify-between p-2 rounded-lg bg-muted/30">
-                  <div>
-                    <p className="font-medium text-sm">{customer.name}</p>
-                    <p className="text-xs text-muted-foreground">{customer.count} estimates</p>
-                  </div>
-                  <p className="font-bold">${customer.total.toLocaleString()}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Export Button */}
-        <Button className="w-full" size="lg">
-          <Download className="h-4 w-4 mr-2" />
-          Export Report
-        </Button>
+    <div className="h-full flex flex-col overflow-hidden bg-gray-50">
+      {/* Sticky Header */}
+      <div className="sticky top-0 z-10">
+        <TabletHeader
+          title="Estimate Reports"
+          showBack={true}
+          actions={
+            <Button
+              variant="outline"
+              onClick={() => setShowMonthlyAlert(true)}
+              className="h-9 px-4 border-gray-300 hover:bg-gray-50 text-sm font-medium"
+            >
+              <Bell className="h-4 w-4 mr-2" />
+              Monthly Report Alert
+            </Button>
+          }
+        />
       </div>
+
+      {/* Main Content: Side-by-side layout */}
+      <div className="flex-1 overflow-hidden flex">
+        {/* Left Section: Filters Panel */}
+        <div className="w-80 border-r border-gray-200 bg-white overflow-y-auto">
+          <div className="p-6 space-y-4">
+            <h2 className="text-lg font-semibold text-gray-900 mb-4">Filters</h2>
+            
+            {/* Date Range Filter */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Date Range</label>
+              <div className="relative">
+                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                <Input
+                  type="text"
+                  placeholder="Select Date Range"
+                  value={dateRange}
+                  onChange={(e) => setDateRange(e.target.value)}
+                  className="w-full h-10 pl-9 pr-3 text-sm border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Status</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full h-10 border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
+                  <SelectValue placeholder="All Status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Status</SelectItem>
+                  <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="paid">Paid</SelectItem>
+                  <SelectItem value="converted">Converted to Invoice</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Employee Filter */}
+            <div>
+              <label className="text-sm font-medium text-gray-700 mb-2 block">Employee</label>
+              <Select value={employeeFilter} onValueChange={setEmployeeFilter}>
+                <SelectTrigger className="w-full h-10 border-gray-300 rounded-lg text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
+                  <SelectValue placeholder="All Employees" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Employees</SelectItem>
+                  {employeeNames.map((name) => (
+                    <SelectItem key={name} value={name}>
+                      {name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Clear Filter Button */}
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                onClick={clearFilters}
+                disabled={!hasActiveFilters}
+                className="w-full h-10 border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Clear All Filters
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Right Section: Content Panel */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6">
+            {/* Search Bar */}
+            <div className="mb-6">
+              <div className="relative max-w-2xl">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+                <Input
+                  type="text"
+                  placeholder="Search by estimate ID, customer name, employee..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-11 pl-9 pr-3 text-sm border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-orange-500 bg-white"
+                />
+              </div>
+            </div>
+
+            {/* Estimate List */}
+            <div className="space-y-2">
+              {filteredEstimates.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  <p className="text-sm">No estimates found</p>
+                </div>
+              ) : (
+                filteredEstimates.map((estimate) => (
+                  <div
+                    key={estimate.id}
+                    onClick={() => handleEstimateClick(estimate.id)}
+                    className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
+                  >
+                    {/* Compact Grid Layout */}
+                    <div className="grid grid-cols-12 gap-4 items-center">
+                      {/* Date Column */}
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-500">Date</p>
+                        <p className="text-sm font-medium text-gray-900 mt-0.5">{estimate.date}</p>
+                      </div>
+
+                      {/* Order ID Column */}
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-500">Order ID</p>
+                        <p className="text-sm font-semibold text-teal-600 hover:text-teal-700 mt-0.5">
+                          {estimate.id}
+                        </p>
+                      </div>
+
+                      {/* Customer Name Column */}
+                      <div className="col-span-3">
+                        <p className="text-xs text-gray-500">Customer</p>
+                        <p className="text-sm font-medium text-gray-900 mt-0.5 truncate" title={estimate.customerName}>
+                          {estimate.customerName}
+                        </p>
+                      </div>
+
+                      {/* Employee Name Column */}
+                      <div className="col-span-2">
+                        <p className="text-xs text-gray-500">Employee</p>
+                        <p className="text-sm text-gray-700 mt-0.5 truncate" title={estimate.employeeName}>
+                          {estimate.employeeName || "-"}
+                        </p>
+                      </div>
+
+                      {/* Amount + Status (combined, prevents overlap) */}
+                      <div className="col-span-3 flex items-center justify-end gap-3">
+                        <div className="text-right whitespace-nowrap">
+                          <p className="text-xs text-gray-500">Amount</p>
+                          <p className="text-base font-semibold text-green-600 mt-0.5">
+                            ${estimate.amount.toFixed(2)}
+                          </p>
+                        </div>
+                        <Badge
+                          className={`text-xs px-2.5 py-1 h-6 flex-shrink-0 ${
+                            getEstimateDisplayStatus(estimate.status) === "Paid"
+                              ? "bg-green-100 text-green-700 border-green-200"
+                              : getEstimateDisplayStatus(estimate.status) === "Converted to Invoice"
+                              ? "bg-blue-100 text-blue-700 border-blue-200"
+                              : "bg-orange-100 text-orange-700 border-orange-200"
+                          }`}
+                        >
+                          {getEstimateDisplayStatus(estimate.status)}
+                        </Badge>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Monthly Report Alert Modal */}
+      <Dialog open={showMonthlyAlert} onOpenChange={setShowMonthlyAlert}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Monthly Report Alert</DialogTitle>
+            <DialogDescription>
+              Configure how you'd like to receive your monthly estimate reports
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6 py-4">
+            {/* Email Alert Section */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">Monthly Email Alert</p>
+                <p className="text-sm text-gray-600 mt-1">Receive estimate reports via email</p>
+              </div>
+              <button
+                onClick={() => setEmailAlert(!emailAlert)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  emailAlert ? "bg-orange-500" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    emailAlert ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+
+            {/* SMS Alert Section */}
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium text-gray-900">Monthly SMS Alert</p>
+                <p className="text-sm text-gray-600 mt-1">Receive estimate reports via SMS</p>
+              </div>
+              <button
+                onClick={() => setSmsAlert(!smsAlert)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                  smsAlert ? "bg-orange-500" : "bg-gray-300"
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                    smsAlert ? "translate-x-6" : "translate-x-1"
+                  }`}
+                />
+              </button>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowMonthlyAlert(false)} className="mr-2">
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                toast.success("Alert preferences saved");
+                setShowMonthlyAlert(false);
+              }}
+              className="bg-orange-500 hover:bg-orange-600 text-white"
+            >
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
