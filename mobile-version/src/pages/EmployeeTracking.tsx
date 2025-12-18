@@ -1530,16 +1530,6 @@ const EmployeeTracking = () => {
                                                       },
                                                     ];
                                                     
-                                                    // Add Edit option only if payment status is Open
-                                                    if (paymentStatus === "Open") {
-                                                      menuItems.push({
-                                                        label: "Edit",
-                                                        icon: Edit,
-                                                        action: () => handleEditJob(job),
-                                                        separator: false,
-                                                      });
-                                                    }
-                                                    
                                                     // Feedback menu options based on global setting and feedback existence
                                                     const jobHasFeedback = hasFeedback(job.id);
                                                     
