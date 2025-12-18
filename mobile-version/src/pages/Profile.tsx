@@ -33,8 +33,9 @@ const Profile = () => {
     ownerFirstName: "John",
     ownerLastName: "Doe",
     merchantEmployeeId: "6817175129155",
-    birthdate: "",
+    email: "john@servicepro.com",
     phone: "8000260025",
+    birthdate: "",
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -375,10 +376,27 @@ const Profile = () => {
                   />
                 </div>
 
+                {/* Email */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                    Email
+                  </Label>
+                  <Input
+                    type="email"
+                    value={merchantFormData.email}
+                    onChange={(e) => setMerchantFormData({ ...merchantFormData, email: e.target.value })}
+                    disabled={!isEditing}
+                    className={cn(
+                      "rounded-lg border-gray-300 h-10",
+                      isEditing ? "bg-white" : "bg-gray-50"
+                    )}
+                  />
+                </div>
+
                 {/* Phone Number */}
                 <div className="space-y-1.5">
                   <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
-                    Phone
+                    Phone number
                   </Label>
                   <Input
                     type="tel"
@@ -413,7 +431,7 @@ const Profile = () => {
 
               {/* Tablet/Desktop original two-column layout */}
               <div className="hidden md:grid grid-cols-2 gap-6">
-                {/* Left Column (unchanged) */}
+                {/* Left Column */}
                 <div className="space-y-4">
                   {/* Business Name */}
                   <div className="space-y-1.5">
@@ -447,6 +465,23 @@ const Profile = () => {
                     />
                   </div>
 
+                  {/* Email */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                      Email
+                    </Label>
+                    <Input
+                      type="email"
+                      value={merchantFormData.email}
+                      onChange={(e) => setMerchantFormData({ ...merchantFormData, email: e.target.value })}
+                      disabled={!isEditing}
+                      className={cn(
+                        "rounded-lg border-gray-300 h-10",
+                        isEditing ? "bg-white" : "bg-gray-50"
+                      )}
+                    />
+                  </div>
+
                   {/* Birthdate */}
                   <div className="space-y-1.5">
                     <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
@@ -466,7 +501,7 @@ const Profile = () => {
                   </div>
                 </div>
 
-                {/* Right Column (unchanged) */}
+                {/* Right Column */}
                 <div className="space-y-4">
                   {/* Owner First Name */}
                   <div className="space-y-1.5">
@@ -499,7 +534,7 @@ const Profile = () => {
                   {/* Phone */}
                   <div className="space-y-1.5">
                     <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
-                      Phone
+                      Phone number
                     </Label>
                     <Input
                       type="tel"
