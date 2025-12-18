@@ -54,6 +54,7 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
 import PermissionSettings from "./pages/PermissionSettings";
+import FeedbackSettings from "./pages/settings/FeedbackSettings";
 import ChangeLanguage from "./pages/ChangeLanguage";
 import Help from "./pages/Help";
 import AppBenefits from "./pages/AppBenefits";
@@ -144,6 +145,7 @@ const AppContent = () => {
             <Route path="/settings/profile" element={<Profile />} />
             <Route path="/settings/change-password" element={<ChangePassword />} />
             <Route path="/settings/permissions" element={<PermissionSettings />} />
+            <Route path="/settings/feedback" element={<FeedbackSettings />} />
             <Route path="/settings/terms" element={<TermsConditions />} />
             <Route path="/settings/return-policy" element={<ReturnPolicy />} />
             <Route path="/settings/business-policies" element={<BusinessPolicies />} />
