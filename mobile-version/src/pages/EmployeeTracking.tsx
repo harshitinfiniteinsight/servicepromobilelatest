@@ -793,6 +793,27 @@ const EmployeeTracking = () => {
     setShowReassignModal(true);
   };
 
+  // Open Google Maps with job address
+  const openGoogleMaps = (address: string) => {
+    if (!address || address.trim() === "") {
+      toast.error("Location unavailable");
+      return;
+    }
+
+    // URL encode the address
+    const encodedAddress = encodeURIComponent(address.trim());
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+
+    // Open in new tab/window
+    try {
+      window.open(googleMapsUrl, "_blank");
+      toast.success("Opening location in Google Maps");
+    } catch (error) {
+      console.error("Failed to open Google Maps:", error);
+      toast.error("Failed to open Google Maps");
+    }
+  };
+
   // Handle edit navigation
   const handleEditJob = (job: typeof mockJobs[0]) => {
     const jobType = getJobType(job.id);
@@ -1526,6 +1547,12 @@ const EmployeeTracking = () => {
                                                         label: "Reassign Employee",
                                                         icon: UserCog,
                                                         action: () => handleReassignEmployee(job),
+                                                        separator: false,
+                                                      },
+                                                      {
+                                                        label: "Show on Map",
+                                                        icon: MapPin,
+                                                        action: () => openGoogleMaps(job.location),
                                                         separator: false,
                                                       },
                                                     ];
