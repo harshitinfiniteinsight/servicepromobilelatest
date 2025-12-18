@@ -311,10 +311,10 @@ const Profile = () => {
               </div>
             </div>
           ) : (
-            /* Merchant Profile - Two-Column Layout */
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-              {/* Left Column */}
-              <div className="space-y-4">
+            /* Merchant Profile - Mobile reordered, md+ unchanged */
+            <>
+              {/* Mobile-only ordered stack */}
+              <div className="block md:hidden space-y-4">
                 {/* Business Name */}
                 <div className="space-y-1.5">
                   <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
@@ -331,6 +331,22 @@ const Profile = () => {
                   />
                 </div>
 
+                {/* Owner First Name */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                    Owner first name
+                  </Label>
+                  <Input
+                    value={merchantFormData.ownerFirstName}
+                    onChange={(e) => setMerchantFormData({ ...merchantFormData, ownerFirstName: e.target.value })}
+                    disabled={!isEditing}
+                    className={cn(
+                      "rounded-lg border-gray-300 h-10",
+                      isEditing ? "bg-white" : "bg-gray-50"
+                    )}
+                  />
+                </div>
+
                 {/* Owner Last Name */}
                 <div className="space-y-1.5">
                   <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
@@ -339,6 +355,35 @@ const Profile = () => {
                   <Input
                     value={merchantFormData.ownerLastName}
                     onChange={(e) => setMerchantFormData({ ...merchantFormData, ownerLastName: e.target.value })}
+                    disabled={!isEditing}
+                    className={cn(
+                      "rounded-lg border-gray-300 h-10",
+                      isEditing ? "bg-white" : "bg-gray-50"
+                    )}
+                  />
+                </div>
+
+                {/* Merchant/Employee ID */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                    Merchant/Employee ID
+                  </Label>
+                  <Input
+                    value={merchantFormData.merchantEmployeeId}
+                    disabled
+                    className="rounded-lg border-gray-300 bg-gray-50 h-10"
+                  />
+                </div>
+
+                {/* Phone Number */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                    Phone
+                  </Label>
+                  <Input
+                    type="tel"
+                    value={merchantFormData.phone}
+                    onChange={handlePhoneChange}
                     disabled={!isEditing}
                     className={cn(
                       "rounded-lg border-gray-300 h-10",
@@ -366,54 +411,110 @@ const Profile = () => {
                 </div>
               </div>
 
-              {/* Right Column */}
-              <div className="space-y-4">
-                {/* Owner First Name */}
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
-                    Owner first name
-                  </Label>
-                  <Input
-                    value={merchantFormData.ownerFirstName}
-                    onChange={(e) => setMerchantFormData({ ...merchantFormData, ownerFirstName: e.target.value })}
-                    disabled={!isEditing}
-                    className={cn(
-                      "rounded-lg border-gray-300 h-10",
-                      isEditing ? "bg-white" : "bg-gray-50"
-                    )}
-                  />
+              {/* Tablet/Desktop original two-column layout */}
+              <div className="hidden md:grid grid-cols-2 gap-6">
+                {/* Left Column (unchanged) */}
+                <div className="space-y-4">
+                  {/* Business Name */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                      Business name
+                    </Label>
+                    <Input
+                      value={merchantFormData.businessName}
+                      onChange={(e) => setMerchantFormData({ ...merchantFormData, businessName: e.target.value })}
+                      disabled={!isEditing}
+                      className={cn(
+                        "rounded-lg border-gray-300 h-10",
+                        isEditing ? "bg-white" : "bg-gray-50"
+                      )}
+                    />
+                  </div>
+
+                  {/* Owner Last Name */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                      Owner last name
+                    </Label>
+                    <Input
+                      value={merchantFormData.ownerLastName}
+                      onChange={(e) => setMerchantFormData({ ...merchantFormData, ownerLastName: e.target.value })}
+                      disabled={!isEditing}
+                      className={cn(
+                        "rounded-lg border-gray-300 h-10",
+                        isEditing ? "bg-white" : "bg-gray-50"
+                      )}
+                    />
+                  </div>
+
+                  {/* Birthdate */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                      Birthdate
+                    </Label>
+                    <Input
+                      type="text"
+                      placeholder="dd/mm/yyyy"
+                      value={getDateInputValue()}
+                      onChange={handleDateChange}
+                      disabled={!isEditing}
+                      className={cn(
+                        "rounded-lg border-gray-300 h-10",
+                        isEditing ? "bg-white" : "bg-gray-50"
+                      )}
+                    />
+                  </div>
                 </div>
 
-                {/* Merchant/Employee ID */}
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
-                    Merchant/Employee ID
-                  </Label>
-                  <Input
-                    value={merchantFormData.merchantEmployeeId}
-                    disabled
-                    className="rounded-lg border-gray-300 bg-gray-50 h-10"
-                  />
-                </div>
+                {/* Right Column (unchanged) */}
+                <div className="space-y-4">
+                  {/* Owner First Name */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                      Owner first name
+                    </Label>
+                    <Input
+                      value={merchantFormData.ownerFirstName}
+                      onChange={(e) => setMerchantFormData({ ...merchantFormData, ownerFirstName: e.target.value })}
+                      disabled={!isEditing}
+                      className={cn(
+                        "rounded-lg border-gray-300 h-10",
+                        isEditing ? "bg-white" : "bg-gray-50"
+                      )}
+                    />
+                  </div>
 
-                {/* Phone */}
-                <div className="space-y-1.5">
-                  <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
-                    Phone
-                  </Label>
-                  <Input
-                    type="tel"
-                    value={merchantFormData.phone}
-                    onChange={handlePhoneChange}
-                    disabled={!isEditing}
-                    className={cn(
-                      "rounded-lg border-gray-300 h-10",
-                      isEditing ? "bg-white" : "bg-gray-50"
-                    )}
-                  />
+                  {/* Merchant/Employee ID */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                      Merchant/Employee ID
+                    </Label>
+                    <Input
+                      value={merchantFormData.merchantEmployeeId}
+                      disabled
+                      className="rounded-lg border-gray-300 bg-gray-50 h-10"
+                    />
+                  </div>
+
+                  {/* Phone */}
+                  <div className="space-y-1.5">
+                    <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                      Phone
+                    </Label>
+                    <Input
+                      type="tel"
+                      value={merchantFormData.phone}
+                      onChange={handlePhoneChange}
+                      disabled={!isEditing}
+                      className={cn(
+                        "rounded-lg border-gray-300 h-10",
+                        isEditing ? "bg-white" : "bg-gray-50"
+                      )}
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            </>
           )}
         </div>
       </div>
