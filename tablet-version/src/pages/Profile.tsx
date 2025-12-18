@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -33,8 +33,9 @@ const Profile = () => {
     ownerFirstName: "John",
     ownerLastName: "Doe",
     merchantEmployeeId: "6817175129155",
-    birthdate: "",
+    email: "",
     phone: "8000260025",
+    birthdate: "",
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -170,8 +171,8 @@ const Profile = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
-      <MobileHeader 
+    <div className="h-full flex flex-col overflow-hidden bg-gray-50">
+      <TabletHeader 
         title="Profile" 
         showBack={true}
         actions={
@@ -201,7 +202,7 @@ const Profile = () => {
         }
       />
       
-      <div className="flex-1 overflow-y-auto scrollable pt-12 pb-4">
+      <div className="flex-1 overflow-y-auto scrollable pb-4">
         {/* Card Container */}
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mt-2 mx-4">
           {isEmployee ? (
@@ -339,6 +340,23 @@ const Profile = () => {
                   <Input
                     value={merchantFormData.ownerLastName}
                     onChange={(e) => setMerchantFormData({ ...merchantFormData, ownerLastName: e.target.value })}
+                    disabled={!isEditing}
+                    className={cn(
+                      "rounded-lg border-gray-300 h-10",
+                      isEditing ? "bg-white" : "bg-gray-50"
+                    )}
+                  />
+                </div>
+
+                {/* Email */}
+                <div className="space-y-1.5">
+                  <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                    Email
+                  </Label>
+                  <Input
+                    type="email"
+                    value={merchantFormData.email}
+                    onChange={(e) => setMerchantFormData({ ...merchantFormData, email: e.target.value })}
                     disabled={!isEditing}
                     className={cn(
                       "rounded-lg border-gray-300 h-10",

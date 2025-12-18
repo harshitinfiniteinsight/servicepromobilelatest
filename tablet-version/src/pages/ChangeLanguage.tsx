@@ -1,5 +1,5 @@
 import { useState } from "react";
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
@@ -16,9 +16,9 @@ const ChangeLanguage = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-gray-50">
-      <MobileHeader title="Change App Language" showBack={true} />
+      <TabletHeader title="Change App Language" showBack={true} />
       
-      <div className="flex-1 overflow-y-auto scrollable pt-12 pb-6 px-4">
+      <div className="flex-1 overflow-y-auto scrollable pb-6 px-4">
         {/* Informational Text - Outside the card */}
         <p className="text-sm text-gray-600 mb-6 leading-relaxed">
           The app language will be set by default to your Clover POS set language.

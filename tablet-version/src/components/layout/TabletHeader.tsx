@@ -36,7 +36,7 @@ const TabletHeader = ({
 
   return (
     <header className={cn(
-      "bg-white border-b border-gray-200 shadow-sm",
+      "sticky top-0 z-10 bg-white border-b border-gray-200 shadow-sm",
       className
     )}>
       <div className="flex items-center justify-between h-16 px-6">

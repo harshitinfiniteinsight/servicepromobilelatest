@@ -14,7 +14,17 @@ import {
   BarChart3,
   ChevronDown,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  User,
+  Lock,
+  Shield,
+  Building2,
+  MessageSquare,
+  CreditCard,
+  Wallet,
+  Globe,
+  HelpCircle,
+  LogOut
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState, useMemo } from "react";
@@ -66,7 +76,22 @@ const merchantNavItems: NavItem[] = [
       { title: "Estimate Report", path: "/reports/estimate", icon: TrendingUp },
     ]
   },
-  { title: "Settings", path: "/settings", icon: Settings },
+  {
+    title: "Settings",
+    path: "/settings",
+    icon: Settings,
+    children: [
+      { title: "Profile", path: "/settings/profile", icon: User },
+      { title: "Change Password", path: "/settings/change-password", icon: Lock },
+      { title: "Permission Settings", path: "/settings/permissions", icon: Shield },
+      { title: "Business Policies", path: "/settings/business-policies", icon: Building2 },
+      { title: "Feedback Settings", path: "/settings/feedback", icon: MessageSquare },
+      { title: "Payment Settings", path: "/settings/payment-methods", icon: CreditCard },
+      { title: "Configure Card Reader", path: "/settings/configure-card-reader", icon: Wallet },
+      { title: "Change App Language", path: "/settings/language", icon: Globe },
+      { title: "Help", path: "/settings/help", icon: HelpCircle },
+    ]
+  },
 ];
 
 // Navigation configuration for employee role
@@ -85,7 +110,17 @@ const employeeNavItems: NavItem[] = [
     ]
   },
   { title: "Appointments", path: "/appointments/manage", icon: Calendar },
-  { title: "Settings", path: "/settings", icon: Settings },
+  {
+    title: "Settings",
+    path: "/settings",
+    icon: Settings,
+    children: [
+      { title: "Profile", path: "/settings/profile", icon: User },
+      { title: "Change Password", path: "/settings/change-password", icon: Lock },
+      { title: "Change App Language", path: "/settings/language", icon: Globe },
+      { title: "Help", path: "/settings/help", icon: HelpCircle },
+    ]
+  },
 ];
 
 interface TabletLayoutProps {
@@ -123,6 +158,9 @@ const TabletLayout = ({ children }: TabletLayoutProps) => {
     }
     if (path === "/reports" && hasChildren) {
       return location.pathname.startsWith("/reports");
+    }
+    if (path === "/settings" && hasChildren) {
+      return location.pathname.startsWith("/settings");
     }
     return location.pathname.startsWith(path);
   };
@@ -213,33 +251,60 @@ const TabletLayout = ({ children }: TabletLayoutProps) => {
 
                   {/* Sub-menu - only show when this specific menu is expanded */}
                   {hasChildren && !sidebarCollapsed && expandedMenu === item.title && (
-                      <div className="bg-gray-50">
-                        {item.children?.map((child) => {
-                          const ChildIcon = child.icon;
-                          const childActive = location.pathname.startsWith(child.path);
+                    <div className="bg-gray-50">
+                      {item.children?.map((child) => {
+                        const ChildIcon = child.icon;
+                        const childActive = location.pathname.startsWith(child.path);
 
-                          return (
-                            <button
-                              key={child.path}
-                              onClick={() => navigate(child.path)}
+                        return (
+                          <button
+                            key={child.path}
+                            onClick={() => navigate(child.path)}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-6 pl-14 h-11 leading-5 transition-all duration-200",
+                              childActive
+                                ? "text-primary bg-primary/5 font-medium"
+                                : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                            )}
+                          >
+                            <ChildIcon
                               className={cn(
-                                "w-full flex items-center gap-3 px-6 py-2.5 pl-14 transition-all duration-200",
-                                childActive
-                                  ? "text-primary bg-primary/5 font-medium"
-                                  : "text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                "h-4 w-4 flex-shrink-0",
+                                childActive ? "text-primary" : "text-gray-500"
                               )}
-                            >
-                              <ChildIcon className="h-4 w-4 flex-shrink-0" />
-                              <span className="text-sm">{child.title}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    )}
+                            />
+                            <span className="text-sm whitespace-nowrap truncate">{child.title}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               );
             })}
           </nav>
+
+          {/* Logout Button */}
+          <div className="border-t border-gray-200">
+            <button
+              onClick={() => {
+                localStorage.removeItem("isAuthenticated");
+                localStorage.removeItem("userType");
+                localStorage.removeItem("currentEmployeeId");
+                navigate("/signin");
+              }}
+              className={cn(
+                "w-full flex items-center gap-3 py-3 transition-all duration-200 text-red-600 hover:bg-red-50",
+                sidebarCollapsed ? "px-4 justify-center" : "px-6"
+              )}
+              title={sidebarCollapsed ? "Logout" : undefined}
+            >
+              <LogOut className="h-5 w-5 flex-shrink-0" />
+              {!sidebarCollapsed && (
+                <span className="flex-1 text-left text-sm font-medium">Logout</span>
+              )}
+            </button>
+          </div>
 
           {/* User Info */}
           {!sidebarCollapsed && (

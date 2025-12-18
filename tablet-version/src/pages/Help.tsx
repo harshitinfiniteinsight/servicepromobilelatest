@@ -1,4 +1,4 @@
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Check } from "lucide-react";
 
 const Help = () => {
@@ -13,9 +13,9 @@ const Help = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-gray-50">
-      <MobileHeader title="Help" showBack={true} />
+      <TabletHeader title="Help" showBack={true} />
       
-      <div className="flex-1 overflow-y-auto scrollable pt-14 pb-6 px-4">
+      <div className="flex-1 overflow-y-auto scrollable pb-6 px-4">
         <div className="max-w-md mx-auto h-full flex flex-col">
           {/* Heading - Centered at top */}
           <h1 className="text-lg font-bold uppercase text-center text-gray-900 mb-8 mt-4 tracking-tight">

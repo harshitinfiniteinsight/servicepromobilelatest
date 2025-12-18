@@ -1,5 +1,5 @@
 import { useState } from "react";
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Switch } from "@/components/ui/switch";
 import { CreditCard, Landmark, Waves, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -23,7 +23,7 @@ const PaymentMethods = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
+    <div className="h-full flex flex-col overflow-hidden bg-gray-50">
       <style>{`
         .slim-switch button {
           height: 20px !important;
@@ -37,9 +37,9 @@ const PaymentMethods = () => {
           transform: translateX(18px) !important;
         }
       `}</style>
-      <MobileHeader title="Payment Methods" showBack={true} />
+      <TabletHeader title="Payment Methods" showBack={true} />
       
-      <div className="flex-1 overflow-y-auto scrollable pt-12 pb-4">
+      <div className="flex-1 overflow-y-auto scrollable pb-4">
         {/* Card Container */}
         <div className="bg-white rounded-xl shadow-md p-3 sm:p-4 mt-1 mx-4">
           {/* Subtitle */}

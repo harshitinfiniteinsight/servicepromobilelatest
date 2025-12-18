@@ -1,5 +1,5 @@
 import { useState } from "react";
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -130,10 +130,10 @@ const ChangePassword = () => {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
-      <MobileHeader title="Change Password" showBack={true} />
+    <div className="h-full flex flex-col overflow-hidden bg-gray-50">
+      <TabletHeader title="Change Password" showBack={true} />
       
-      <div className="flex-1 overflow-y-auto scrollable pt-12 pb-6">
+      <div className="flex-1 overflow-y-auto scrollable pb-6">
         {/* Card Container */}
         <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mt-2 mx-4">
           {/* Form Fields */}
