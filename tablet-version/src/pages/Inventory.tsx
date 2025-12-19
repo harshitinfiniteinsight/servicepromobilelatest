@@ -1,1059 +1,825 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
-import MobileHeader from "@/components/layout/MobileHeader";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockInventory, mockEmployees, mockDiscounts } from "@/data/mobileMockData";
-import { Plus, Search, Trash2, Edit, Package, AlertTriangle, PackageX, FlaskConical, UserCog, FileText, Settings, List, Grid3x3, Image as ImageIcon } from "lucide-react";
-import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { mockInventory } from "@/data/mobileMockData";
+import { 
+  Search, 
+  List, 
+  Grid3x3, 
+  Image as ImageIcon, 
+  Settings,
+  Upload,
+  Plus,
+  Edit,
+  PackageMinus,
+  Bell,
+  PackageX,
+  FlaskConical,
+  Trash2
+} from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import LowInventoryAlertModal from "@/components/modals/LowInventoryAlertModal";
-import StockAdjustmentModal from "@/components/modals/StockAdjustmentModal";
-import AddAgreementInventoryModal from "@/components/modals/AddAgreementInventoryModal";
-import AssignEmployeeModal from "@/components/modals/AssignEmployeeModal";
-import AddNoteModal from "@/components/modals/AddNoteModal";
-import AddEquipmentModal from "@/components/modals/AddEquipmentModal";
-import UpdateEquipmentModal from "@/components/modals/UpdateEquipmentModal";
-import ManageDiscountModal from "@/components/modals/ManageDiscountModal";
-import AddDiscountModal from "@/components/modals/AddDiscountModal";
-import EditDiscountModal from "@/components/modals/EditDiscountModal";
-import SendCurrentReportModal from "@/components/modals/SendCurrentReportModal";
-import SendStockInOutReportModal from "@/components/modals/SendStockInOutReportModal";
 import SetLowInventoryAlertModal from "@/components/modals/SetLowInventoryAlertModal";
+import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import { toast } from "sonner";
-import { showSuccessToast } from "@/utils/toast";
+
+// Inventory type options
+type InventoryType = "Fixed" | "Variable" | "Per Unit";
 
 const Inventory = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [searchParams] = useSearchParams();
-  const [search, setSearch] = useState("");
-  const [activeTab, setActiveTab] = useState("inventory-services");
-  const [viewMode, setViewMode] = useState<"list" | "grid">(() => {
-    const saved = localStorage.getItem("inventory-view-mode");
-    return (saved === "grid" || saved === "list") ? saved : "list";
+  
+  // Left section - Add Inventory form state
+  const [formData, setFormData] = useState({
+    image: null as File | null,
+    name: "",
+    type: "Fixed" as InventoryType,
+    price: "",
+    sku: "",
+    stock: "",
+    unit: "",
   });
-  
-  // Get user role
-  const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
-  const isEmployee = userType === "employee";
+  const [autoGenerateSku, setAutoGenerateSku] = useState(true);
 
-  // Ensure grid view and inventory-services tab are applied when navigating from "Sell Product"
-  useEffect(() => {
-    const mode = searchParams.get("mode");
-    const state = location.state as { fromSellProduct?: boolean } | null;
-    
-    if (mode === "sell" || state?.fromSellProduct) {
-      // Set grid view (localStorage was already set in SalesSubmenu)
-      setViewMode("grid");
-      // Ensure inventory-services tab is active
-      setActiveTab("inventory-services");
-      // Clear the query parameter and state to prevent re-triggering
-      if (mode === "sell") {
-        const newSearchParams = new URLSearchParams(searchParams);
-        newSearchParams.delete("mode");
-        navigate(`${location.pathname}${newSearchParams.toString() ? `?${newSearchParams.toString()}` : ""}`, { replace: true });
-      }
-      if (state?.fromSellProduct) {
-        window.history.replaceState({}, document.title);
-      }
-    }
-  }, [location.pathname, location.state, searchParams, navigate]);
-  const [selectedEmployee, setSelectedEmployee] = useState<string>("all");
-  const [assignEmployeeModalOpen, setAssignEmployeeModalOpen] = useState(false);
-  const [selectedEquipmentForAssign, setSelectedEquipmentForAssign] = useState<{ id: string; currentEmployeeId: string | null } | null>(null);
-  const [addNoteModalOpen, setAddNoteModalOpen] = useState(false);
-  const [selectedEquipmentForNote, setSelectedEquipmentForNote] = useState<string | null>(null);
-  const [addEquipmentModalOpen, setAddEquipmentModalOpen] = useState(false);
-  const [updateEquipmentModalOpen, setUpdateEquipmentModalOpen] = useState(false);
-  const [selectedEquipmentForUpdate, setSelectedEquipmentForUpdate] = useState<{ id: string; inventoryName: string; serialNumber: string } | null>(null);
-  const [manageDiscountModalOpen, setManageDiscountModalOpen] = useState(false);
-  const [addDiscountModalOpen, setAddDiscountModalOpen] = useState(false);
-  const [editDiscountModalOpen, setEditDiscountModalOpen] = useState(false);
-  const [selectedDiscountForEdit, setSelectedDiscountForEdit] = useState<{
-    id: string;
-    name: string;
-    value: number;
-    type: "%" | "$";
-    startDate: string;
-    endDate: string;
-    active: boolean;
-    usageCount: number;
-  } | null>(null);
-  const [sendCurrentReportModalOpen, setSendCurrentReportModalOpen] = useState(false);
-  const [sendStockInOutReportModalOpen, setSendStockInOutReportModalOpen] = useState(false);
-  const [lowAlertModalOpen, setLowAlertModalOpen] = useState(false);
-  const [selectedItemForAlert, setSelectedItemForAlert] = useState<{ id: string; threshold?: number } | null>(null);
-  const [setLowInventoryAlertModalOpen, setSetLowInventoryAlertModalOpen] = useState(false);
-  const [stockAdjustmentModalOpen, setStockAdjustmentModalOpen] = useState(false);
-  const [selectedItemForAdjustment, setSelectedItemForAdjustment] = useState<{ id: string; name: string; sku: string; stock: number } | null>(null);
-  const [stockAdjustmentDefaults, setStockAdjustmentDefaults] = useState<{
-    transactionType?: "stock-in" | "stock-out";
-    adjustmentReason?: string;
-    remarks?: string;
-    adjustBy?: string;
-  } | null>(null);
-  const [addAgreementInventoryModalOpen, setAddAgreementInventoryModalOpen] = useState(false);
-  
-  // Mock agreement inventory data
+  // Right section - Inventory list state
+  const [search, setSearch] = useState("");
+  const [activeButton, setActiveButton] = useState<"current" | "stock" | "discount">("current");
+  const [activeTab, setActiveTab] = useState<"inventory" | "agreement" | "equipment">("inventory");
+  const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const [alertModalOpen, setAlertModalOpen] = useState(false);
+
+  // Agreement Inventory state
   const [agreementInventory, setAgreementInventory] = useState([
-    { id: "AGR-INV-001", inventoryId: "INV-ITEM-001", name: "HVAC Filter - Standard" },
-    { id: "AGR-INV-002", inventoryId: "INV-ITEM-004", name: "Thermostat - Programmable" },
-    { id: "AGR-INV-003", inventoryId: "INV-ITEM-010", name: "Air Filter - MERV 13" },
-    { id: "AGR-INV-004", inventoryId: "INV-ITEM-016", name: "Condensate Pump" },
+    { id: "AGR-INV-001", inventoryId: "INV-ITEM-001", name: "HVAC Filter - Standard", sku: "HVAC-FILT-001" },
+    { id: "AGR-INV-002", inventoryId: "INV-ITEM-004", name: "Thermostat - Programmable", sku: "HVAC-THER-004" },
+    { id: "AGR-INV-003", inventoryId: "INV-ITEM-010", name: "Air Filter - MERV 13", sku: "HVAC-FILT-010" },
   ]);
-  
+  const [selectedAgreementInventory, setSelectedAgreementInventory] = useState("");
+
+  // Filter inventory based on search
   const filteredInventory = mockInventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
                          item.sku.toLowerCase().includes(search.toLowerCase());
     return matchesSearch;
   });
 
+  // Get Variable inventory only
+  const variableInventory = mockInventory.filter(item => item.type === "V");
+
+  // Filter agreement inventory based on search
   const filteredAgreementInventory = agreementInventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
-                         item.inventoryId.toLowerCase().includes(search.toLowerCase());
+                         item.sku.toLowerCase().includes(search.toLowerCase());
     return matchesSearch;
   });
 
-  const handleDeleteAgreementInventory = (id: string) => {
-    setAgreementInventory(agreementInventory.filter(item => item.id !== id));
-    toast.success("Item removed from agreement inventory");
+  // Generate SKU
+  const generateSku = () => {
+    const prefix = formData.type === "Fixed" ? "FXD" : formData.type === "Variable" ? "VAR" : "UNT";
+    const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+    return `${prefix}-${random}`;
   };
 
-  // Filter variable inventory for agreement inventory modal
-  const variableInventory = mockInventory.filter(item => item.type === "V");
+  // Handle form field changes
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    
+    // Auto-generate SKU when name changes and autoGenerate is on
+    if (field === "name" && autoGenerateSku) {
+      setFormData(prev => ({ ...prev, [field]: value, sku: generateSku() }));
+    }
+  };
 
-  const handleAddAgreementInventory = (inventoryId: string) => {
-    const selectedItem = mockInventory.find(item => item.id === inventoryId);
-    if (selectedItem) {
+  // Handle type change
+  const handleTypeChange = (value: InventoryType) => {
+    setFormData(prev => ({ 
+      ...prev, 
+      type: value,
+      // Reset price if Variable type selected
+      price: value === "Variable" ? "" : prev.price,
+      // Reset unit if not Per Unit
+      unit: value === "Per Unit" ? prev.unit : ""
+    }));
+    
+    // Regenerate SKU with new prefix if autoGenerate is on
+    if (autoGenerateSku) {
+      const prefix = value === "Fixed" ? "FXD" : value === "Variable" ? "VAR" : "UNT";
+      const random = Math.random().toString(36).substring(2, 8).toUpperCase();
+      setFormData(prev => ({ ...prev, type: value, sku: `${prefix}-${random}` }));
+    }
+  };
+
+  // Handle form submit
+  const handleSave = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast.success("Inventory item saved successfully");
+    // Reset form
+    setFormData({
+      image: null,
+      name: "",
+      type: "Fixed",
+      price: "",
+      sku: "",
+      stock: "",
+      unit: "",
+    });
+  };
+
+  // Get type badge info
+  const getTypeBadge = (type: string) => {
+    switch (type) {
+      case "F":
+        return { label: "F", className: "bg-blue-100 text-blue-700 border-blue-200" };
+      case "V":
+        return { label: "V", className: "bg-green-100 text-green-700 border-green-200" };
+      case "U":
+        return { label: "U", className: "bg-purple-100 text-purple-700 border-purple-200" };
+      default:
+        return { label: type, className: "bg-gray-100 text-gray-700 border-gray-200" };
+    }
+  };
+
+  // Check if form is valid
+  const isFormValid = () => {
+    const hasName = formData.name.trim() !== "";
+    const hasSku = formData.sku.trim() !== "";
+    const hasStock = formData.stock.trim() !== "";
+    
+    if (formData.type === "Variable") {
+      return hasName && hasSku && hasStock;
+    }
+    
+    const hasPrice = formData.price.trim() !== "";
+    
+    if (formData.type === "Per Unit") {
+      const hasUnit = formData.unit.trim() !== "";
+      return hasName && hasSku && hasStock && hasPrice && hasUnit;
+    }
+    
+    return hasName && hasSku && hasStock && hasPrice;
+  };
+
+  // Handle Add Agreement Inventory
+  const handleAddAgreementInventory = () => {
+    if (!selectedAgreementInventory) {
+      toast.error("Please select an inventory item");
+      return;
+    }
+
+    const selectedItem = mockInventory.find(item => item.id === selectedAgreementInventory);
+    if (selectedItem && !agreementInventory.find(item => item.inventoryId === selectedItem.id)) {
       const newId = `AGR-INV-${String(agreementInventory.length + 1).padStart(3, '0')}`;
       setAgreementInventory([
         ...agreementInventory,
-        { id: newId, inventoryId: selectedItem.id, name: selectedItem.name }
+        { id: newId, inventoryId: selectedItem.id, name: selectedItem.name, sku: selectedItem.sku }
       ]);
-      toast.success("Inventory added to agreement successfully");
-      setAddAgreementInventoryModalOpen(false);
+      setSelectedAgreementInventory("");
+      toast.success(`${selectedItem.name} added to agreement inventory`);
     }
   };
 
-  const handleAddButtonClick = () => {
-    if (activeTab === "agreement-inventory") {
-      setAddAgreementInventoryModalOpen(true);
-    } else if (activeTab === "equipment-tracking") {
-      setAddEquipmentModalOpen(true);
-    } else {
-      navigate("/inventory/new");
+  // Handle Delete Agreement Inventory
+  const handleDeleteAgreementInventory = (id: string) => {
+    const item = agreementInventory.find(item => item.id === id);
+    setAgreementInventory(agreementInventory.filter(item => item.id !== id));
+    if (item) {
+      toast.success(`${item.name} removed from agreement inventory`);
     }
   };
-
-  const handleViewModeChange = (mode: "list" | "grid") => {
-    setViewMode(mode);
-    localStorage.setItem("inventory-view-mode", mode);
-  };
-
-  // Mock equipment notes data
-  const [equipmentNotes, setEquipmentNotes] = useState<Record<string, Array<{
-    id: string;
-    text: string;
-    author: string;
-    date: string;
-  }>>>({
-    "EQ-001": [
-      {
-        id: "note-1",
-        text: "Replaced damaged cable.",
-        author: "James Miller",
-        date: "2025-11-08",
-      },
-      {
-        id: "note-2",
-        text: "Checked calibration and functionality.",
-        author: "Sarah Kim",
-        date: "2025-11-03",
-      },
-    ],
-    "EQ-002": [
-      {
-        id: "note-3",
-        text: "Routine maintenance completed.",
-        author: "Mike Johnson",
-        date: "2025-11-05",
-      },
-    ],
-  });
-
-  // Mock equipment tracking data (using state to allow updates)
-  const [equipmentTracking, setEquipmentTracking] = useState([
-    {
-      id: "EQ-001",
-      serialNumber: "SN-0001",
-      inventoryName: "HVAC Diagnostic Tool",
-      employeeId: "1",
-      employeeName: "Mike Johnson",
-      status: "Assigned" as const,
-    },
-    {
-      id: "EQ-002",
-      serialNumber: "SN-0002",
-      inventoryName: "Electrical Multimeter",
-      employeeId: "3",
-      employeeName: "Chris Davis",
-      status: "Assigned" as const,
-    },
-    {
-      id: "EQ-003",
-      serialNumber: "SN-0003",
-      inventoryName: "Pipe Inspection Camera",
-      employeeId: "2",
-      employeeName: "Tom Wilson",
-      status: "Assigned" as const,
-    },
-    {
-      id: "EQ-004",
-      serialNumber: "SN-0004",
-      inventoryName: "Pressure Gauge Set",
-      employeeId: null,
-      employeeName: null,
-      status: "Unassigned" as const,
-    },
-    {
-      id: "EQ-005",
-      serialNumber: "SN-0005",
-      inventoryName: "Refrigerant Leak Detector",
-      employeeId: "1",
-      employeeName: "Mike Johnson",
-      status: "Assigned" as const,
-    },
-  ]);
-
-  // Filter equipment tracking data
-  const filteredEquipmentTracking = equipmentTracking.filter((equipment) => {
-    const matchesSearch = equipment.inventoryName.toLowerCase().includes(search.toLowerCase()) ||
-                         equipment.serialNumber.toLowerCase().includes(search.toLowerCase());
-    const matchesEmployee = selectedEmployee === "all" || equipment.employeeId === selectedEmployee;
-    return matchesSearch && matchesEmployee;
-  });
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader 
-        title="Inventory"
-        actions={
-          isEmployee ? (
-            <button
-              onClick={() => {
-                setManageDiscountModalOpen(true);
-              }}
-              className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition whitespace-nowrap"
-            >
-              Discount
-            </button>
-          ) : (
-            <button
-              onClick={() => {
-                setSetLowInventoryAlertModalOpen(true);
-              }}
-              className="px-3 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition whitespace-nowrap"
-            >
-              Alert Settings
-            </button>
-          )
-        }
-      />
-      
-      <div className="flex-1 overflow-y-auto scrollable px-3 pb-2 inventory--compact" style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top) + 0.125rem)' }}>
-        {/* Action Buttons - Merchant only */}
-        {!isEmployee && (
-          <div className="flex justify-between gap-2 mb-3">
-            <button
-              onClick={() => {
-                setSendCurrentReportModalOpen(true);
-              }}
-              className="flex-1 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition"
-            >
-              Current Report
-            </button>
-            <button
-              onClick={() => {
-                setSendStockInOutReportModalOpen(true);
-              }}
-              className="flex-1 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition"
-            >
-              Stock In/Out Report
-            </button>
-            <button
-              onClick={() => {
-                setManageDiscountModalOpen(true);
-              }}
-              className="flex-1 py-1.5 text-xs font-medium text-orange-600 bg-orange-50 border border-orange-200 rounded-lg hover:bg-orange-100 transition"
-            >
-              Discount
-            </button>
-          </div>
-        )}
+    <div className="h-full flex flex-col overflow-hidden bg-gray-50">
+      {/* Fixed Header */}
+      <header className="sticky top-0 z-20 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+        <h1 className="text-xl font-bold text-gray-900">Inventory List</h1>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setAlertModalOpen(true)}
+          className="flex items-center gap-2 text-orange-600 border-orange-200 hover:bg-orange-50"
+        >
+          <Settings className="h-4 w-4" />
+          Alert Settings
+        </Button>
+      </header>
 
-        {/* Tab Navigation */}
-        <div className="flex items-center justify-between border-b border-gray-200 mb-3">
-          <button
-            onClick={() => setActiveTab("inventory-services")}
-            className={cn(
-              "flex-1 py-1.5 text-center text-xs font-medium transition-colors",
-              activeTab === "inventory-services"
-                ? "text-orange-600 border-b-2 border-orange-500"
-                : "text-gray-600 hover:text-orange-600"
-            )}
-          >
-            Inventory / Services
-          </button>
-          <button
-            onClick={() => setActiveTab("agreement-inventory")}
-            className={cn(
-              "flex-1 py-1.5 text-center text-xs font-medium transition-colors",
-              activeTab === "agreement-inventory"
-                ? "text-orange-600 border-b-2 border-orange-500"
-                : "text-gray-600 hover:text-orange-600"
-            )}
-          >
-            Agreement Inventory
-          </button>
-          <button
-            onClick={() => setActiveTab("equipment-tracking")}
-            className={cn(
-              "flex-1 py-1.5 text-center text-xs font-medium transition-colors",
-              activeTab === "equipment-tracking"
-                ? "text-orange-600 border-b-2 border-orange-500"
-                : "text-gray-600 hover:text-orange-600"
-            )}
-          >
-            Equipment Tracking
-          </button>
-        </div>
-
-        {/* Employee Filter - Only for Equipment Tracking (Merchant/Admin only) */}
-        {activeTab === "equipment-tracking" && !isEmployee && (
-          <div className="mb-3">
-            <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-              <SelectTrigger className="w-full h-9 text-xs py-2 px-3 border border-gray-200 rounded-lg">
-                <SelectValue placeholder="Filter by employee" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Employees</SelectItem>
-                {mockEmployees
-                  .filter(emp => emp.status === "Active")
-                  .map((employee) => (
-                    <SelectItem key={employee.id} value={employee.id}>
-                      {employee.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
-        {/* Search, View Toggle, and Add Button */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="relative flex-1 min-w-0">
-            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none z-10" />
-            <Input 
-              placeholder="Search by name or SKU..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className={cn(
-                "pl-9 h-9 text-sm py-2",
-                activeTab === "inventory-services" && "pr-20"
-              )}
-            />
-            {activeTab === "inventory-services" && (
-              <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-0.5 bg-gray-100 rounded-lg p-0.5 shrink-0">
-                <button
-                  onClick={() => handleViewModeChange("list")}
-                  className={cn(
-                    "p-1 rounded transition-colors",
-                    viewMode === "list"
-                      ? "bg-orange-500 text-white"
-                      : "text-gray-600 hover:text-gray-800"
-                  )}
-                  aria-label="List view"
-                >
-                  <List className="h-3.5 w-3.5" />
-                </button>
-                <button
-                  onClick={() => handleViewModeChange("grid")}
-                  className={cn(
-                    "p-1 rounded transition-colors",
-                    viewMode === "grid"
-                      ? "bg-orange-500 text-white"
-                      : "text-gray-600 hover:text-gray-800"
-                  )}
-                  aria-label="Grid view"
-                >
-                  <Grid3x3 className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            )}
-          </div>
-          <Button
-            size="sm"
-            onClick={handleAddButtonClick}
-            className="h-9 w-9 p-0 bg-orange-500 hover:bg-orange-600 text-white shrink-0"
-          >
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+      {/* Main Content - Two Column Layout */}
+      <div className="flex-1 overflow-hidden flex flex-col md:flex-row">
         
-        {/* Inventory Cards */}
-        <div className={cn(viewMode === "grid" && activeTab === "inventory-services" ? "grid grid-cols-2 gap-1.5" : "space-y-1.5")}>
-          {activeTab === "inventory-services" && filteredInventory.map(item => {
-            if (viewMode === "grid") {
-              const getTypeInitial = (type?: string) => {
-                switch (type) {
-                  case "F": return "F";
-                  case "V": return "V";
-                  case "U": return "U";
-                  default: return "U";
-                }
-              };
+        {/* Left Section - Conditional Form */}
+        <aside className="w-full md:w-[40%] bg-white border-b md:border-b-0 md:border-r border-gray-200 overflow-y-auto">
+          <div className="p-5">
+            {activeTab === "agreement" ? (
+              // Add Agreement Inventory Form
+              <>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Agreement Inventory</h2>
+                
+                {/* Informational Text */}
+                <div className="space-y-3 mb-5 text-sm text-gray-700">
+                  {/* Paragraph 1 */}
+                  <p className="text-sm leading-relaxed">
+                    Every E-sign agreement comes with default inventory. You may edit the default inventory name by going to the inventory item and updating the name and information.
+                  </p>
 
-              return (
-                <div
-                  key={item.id}
-                  className="bg-white rounded-lg border border-gray-200 overflow-hidden cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 active:scale-[0.98]"
-                  onClick={() => navigate(`/inventory/${item.id}`)}
-                >
-                  {/* Full-Width Image Section */}
-                  <div className="relative w-full h-24 bg-gray-100 rounded-t-lg overflow-hidden">
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <ImageIcon className="h-8 w-8 text-gray-400" />
-                    </div>
-                    {/* Three-dot menu overlay - positioned in top-right of image */}
-                    <div className="absolute top-1 right-1 z-10" onClick={(e) => e.stopPropagation()}>
-                      <KebabMenu
-                        items={[
-                          {
-                            label: "Edit",
-                            icon: Edit,
-                            action: () => navigate(`/inventory/${item.id}/edit`),
-                          },
-                          {
-                            label: "Adjust Stock",
-                            icon: Package,
-                            action: () => {
-                              setSelectedItemForAdjustment({
-                                id: item.id,
-                                name: item.name,
-                                sku: item.sku,
-                                stock: item.stock,
-                              });
-                              setStockAdjustmentModalOpen(true);
-                            },
-                          },
-                          ...(!isEmployee ? [{
-                            label: "Alert",
-                            icon: AlertTriangle,
-                            action: () => {
-                              setSelectedItemForAlert({ id: item.id, threshold: item.lowStockThreshold });
-                              setLowAlertModalOpen(true);
-                            },
-                          }] : []),
-                          {
-                            label: "Damaged Goods",
-                            icon: PackageX,
-                            action: () => {
-                              setSelectedItemForAdjustment({
-                                id: item.id,
-                                name: item.name,
-                                sku: item.sku,
-                                stock: item.stock,
-                              });
-                              setStockAdjustmentDefaults({
-                                transactionType: "stock-out",
-                                adjustmentReason: "Marked as Damaged",
-                                remarks: "Item marked as damaged goods",
-                              });
-                              setStockAdjustmentModalOpen(true);
-                            },
-                          },
-                          {
-                            label: "Tester",
-                            icon: FlaskConical,
-                            action: () => {
-                              setSelectedItemForAdjustment({
-                                id: item.id,
-                                name: item.name,
-                                sku: item.sku,
-                                stock: item.stock,
-                              });
-                              setStockAdjustmentDefaults({
-                                transactionType: "stock-out",
-                                adjustmentReason: "Marked as Demo Units",
-                                remarks: "Item marked as tester/demo unit",
-                              });
-                              setStockAdjustmentModalOpen(true);
-                            },
-                          },
-                        ]}
-                        menuWidth="w-48"
-                        triggerClassName="bg-white/90 hover:bg-white shadow-sm"
+                  {/* Paragraph 2 - IMPORTANT */}
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
+                    <p className="text-sm leading-relaxed">
+                      <span className="font-bold text-yellow-900">IMPORTANT:</span>
+                      {" "}
+                      <span className="text-yellow-900">You may only use Variable inventory for the E-sign agreement.</span>
+                    </p>
+                  </div>
+
+                  {/* Paragraph 3 */}
+                  <p className="text-sm leading-relaxed">
+                    When adding inventory for the E-sign Agreement, make sure to choose Variable under the field Price Type.
+                  </p>
+
+                  {/* Paragraph 4 */}
+                  <p className="text-sm leading-relaxed">
+                    Once saved, you will see the newly added variable inventory inside the E-sign Agreement inventory. Choose the newly created inventory and add it to the E-sign agreement as per your requirements or select an existing inventory shown below.
+                  </p>
+                </div>
+
+                {/* Form */}
+                <div className="space-y-4">
+                  {/* Select Agreement Inventory */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Select Agreement Inventory <span className="text-red-500">*</span>
+                    </label>
+                    <Select value={selectedAgreementInventory} onValueChange={setSelectedAgreementInventory}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Choose inventory" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {variableInventory.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name} ({item.sku})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-2">
+                    <Button
+                      onClick={handleAddAgreementInventory}
+                      className="flex-1 h-10 bg-orange-500 hover:bg-orange-600 text-white font-medium"
+                    >
+                      Add
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedAgreementInventory("")}
+                      className="flex-1 h-10"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </>
+            ) : (
+              // Add Inventory Form
+              <>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Inventory</h2>
+                
+                <form onSubmit={handleSave} className="space-y-4">
+                  {/* Upload Image */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Upload Image
+                    </label>
+                    <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-orange-400 transition-colors cursor-pointer">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        id="inventory-image"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) setFormData(prev => ({ ...prev, image: file }));
+                        }}
                       />
+                      <label htmlFor="inventory-image" className="cursor-pointer">
+                        {formData.image ? (
+                          <div className="flex items-center justify-center gap-2 text-green-600">
+                            <ImageIcon className="h-8 w-8" />
+                            <span className="text-sm font-medium">{formData.image.name}</span>
+                          </div>
+                        ) : (
+                          <div className="flex flex-col items-center gap-2 text-gray-500">
+                            <Upload className="h-8 w-8" />
+                            <span className="text-sm">Click to upload image</span>
+                          </div>
+                        )}
+                      </label>
                     </div>
                   </div>
 
-                  {/* Content Section */}
-                  <div className="p-2">
-                    {/* Item Title */}
-                    <h3 className="text-xs font-semibold text-gray-900 mb-0.5 truncate leading-tight">
-                      {item.name}
-                    </h3>
+                  {/* Inventory Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Inventory Name
+                    </label>
+                    <Input
+                      placeholder="Enter inventory name"
+                      value={formData.name}
+                      onChange={(e) => handleInputChange("name", e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
 
-                    {/* Compact Info Row: SKU, Type, Stock, Price */}
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <div className="flex items-center gap-1 flex-1 min-w-0">
-                        <span className="text-[8px] text-gray-600 font-medium truncate">
-                          SKU: {item.sku}
-                        </span>
-                        <span className="text-gray-400 text-[8px]">•</span>
-                        <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[8px] font-medium rounded-full shrink-0">
-                          {getTypeInitial(item.type)}
-                        </span>
+                  {/* Inventory Type */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Inventory Type
+                    </label>
+                    <Select value={formData.type} onValueChange={handleTypeChange}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Select type" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="Fixed">Fixed</SelectItem>
+                        <SelectItem value="Variable">Variable</SelectItem>
+                        <SelectItem value="Per Unit">Per Unit</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Price - Hidden for Variable type */}
+                  {formData.type !== "Variable" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Price
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">$</span>
+                        <Input
+                          type="number"
+                          placeholder="0.00"
+                          value={formData.price}
+                          onChange={(e) => handleInputChange("price", e.target.value)}
+                          className="h-10 pl-7"
+                        />
                       </div>
-                      <div className="flex items-center gap-1.5 shrink-0">
-                        <span className="text-[8px] text-gray-500">Stock:</span>
-                        <span className="text-xs font-bold text-gray-900">{item.stock}</span>
-                        {item.type !== "V" && item.unitPrice !== undefined && (
+                    </div>
+                  )}
+
+                  {/* Item Unit - Only for Per Unit type */}
+                  {formData.type === "Per Unit" && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                        Item Unit
+                      </label>
+                      <Input
+                        placeholder="e.g., piece, meter, kg"
+                        value={formData.unit}
+                        onChange={(e) => handleInputChange("unit", e.target.value)}
+                        className="h-10"
+                      />
+                    </div>
+                  )}
+
+                  {/* SKU */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-medium text-gray-700">
+                        SKU
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-600">
+                        <input
+                          type="checkbox"
+                          checked={autoGenerateSku}
+                          onChange={(e) => {
+                            setAutoGenerateSku(e.target.checked);
+                            if (e.target.checked) {
+                              setFormData(prev => ({ ...prev, sku: generateSku() }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                        />
+                        Auto-generate
+                      </label>
+                    </div>
+                    <Input
+                      placeholder="Enter SKU"
+                      value={formData.sku}
+                      onChange={(e) => {
+                        setAutoGenerateSku(false);
+                        handleInputChange("sku", e.target.value);
+                      }}
+                      className="h-10"
+                    />
+                  </div>
+
+                  {/* Stock Quantity */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Stock Quantity
+                    </label>
+                    <Input
+                      type="number"
+                      placeholder="Enter stock quantity"
+                      value={formData.stock}
+                      onChange={(e) => handleInputChange("stock", e.target.value)}
+                      className="h-10"
+                    />
+                  </div>
+
+                  {/* Save Button */}
+                  <Button
+                    type="submit"
+                    disabled={!isFormValid()}
+                    className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white font-medium"
+                  >
+                    Save
+                  </Button>
+                </form>
+              </>
+            )}
+          </div>
+        </aside>
+
+        {/* Right Section - Inventory List */}
+        <main className="flex-1 overflow-hidden flex flex-col">
+          <div className="p-5 flex-1 overflow-y-auto">
+            
+            {/* Top Buttons Row */}
+            <div className="flex gap-2 mb-4">
+              <Button
+                variant={activeButton === "current" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveButton("current")}
+                className={cn(
+                  "flex-1 h-9",
+                  activeButton === "current" 
+                    ? "bg-orange-500 hover:bg-orange-600 text-white" 
+                    : "text-gray-700 hover:bg-gray-100"
+                )}
+              >
+                Current Report
+              </Button>
+              <Button
+                variant={activeButton === "stock" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveButton("stock")}
+                className={cn(
+                  "flex-1 h-9",
+                  activeButton === "stock" 
+                    ? "bg-orange-500 hover:bg-orange-600 text-white" 
+                    : "text-gray-700 hover:bg-gray-100"
+                )}
+              >
+                Stock In/Out Report
+              </Button>
+              <Button
+                variant={activeButton === "discount" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveButton("discount")}
+                className={cn(
+                  "flex-1 h-9",
+                  activeButton === "discount" 
+                    ? "bg-orange-500 hover:bg-orange-600 text-white" 
+                    : "text-gray-700 hover:bg-gray-100"
+                )}
+              >
+                Discount
+              </Button>
+            </div>
+
+            {/* Tabs */}
+            <div className="flex gap-1 mb-4 border-b border-gray-200">
+              <button
+                onClick={() => setActiveTab("inventory")}
+                className={cn(
+                  "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
+                  activeTab === "inventory"
+                    ? "border-orange-500 text-orange-600"
+                    : "border-transparent text-gray-600 hover:text-gray-900"
+                )}
+              >
+                Inventory / Services
+              </button>
+              <button
+                onClick={() => setActiveTab("agreement")}
+                className={cn(
+                  "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
+                  activeTab === "agreement"
+                    ? "border-orange-500 text-orange-600"
+                    : "border-transparent text-gray-600 hover:text-gray-900"
+                )}
+              >
+                Agreement Inventory
+              </button>
+              <button
+                onClick={() => setActiveTab("equipment")}
+                className={cn(
+                  "px-4 py-2.5 text-sm font-medium border-b-2 transition-colors -mb-px",
+                  activeTab === "equipment"
+                    ? "border-orange-500 text-orange-600"
+                    : "border-transparent text-gray-600 hover:text-gray-900"
+                )}
+              >
+                Equipment Tracking
+              </button>
+            </div>
+
+            {/* Search & View Toggle */}
+            <div className={cn("flex items-center gap-3 mb-4", activeTab === "agreement" && "flex-col items-stretch")}>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Search by name or SKU"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9 h-10"
+                />
+              </div>
+              {activeTab !== "agreement" && (
+                <div className="flex bg-gray-100 rounded-lg p-0.5">
+                  <button
+                    onClick={() => setViewMode("list")}
+                    className={cn(
+                      "p-2 rounded-md transition-colors",
+                      viewMode === "list" 
+                        ? "bg-white text-orange-600 shadow-sm" 
+                        : "text-gray-500 hover:text-gray-700"
+                    )}
+                    title="List view"
+                  >
+                    <List className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={() => setViewMode("grid")}
+                    className={cn(
+                      "p-2 rounded-md transition-colors",
+                      viewMode === "grid" 
+                        ? "bg-white text-orange-600 shadow-sm" 
+                        : "text-gray-500 hover:text-gray-700"
+                    )}
+                    title="Grid view"
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Inventory List Content */}
+            {activeTab === "inventory" && (
+              <div className={cn(
+                viewMode === "grid" 
+                  ? "grid grid-cols-2 lg:grid-cols-3 gap-3" 
+                  : "flex flex-col gap-2"
+              )}>
+                {filteredInventory.length === 0 ? (
+                  <div className="col-span-full text-center py-12 text-gray-500">
+                    <p className="text-sm">No inventory items found</p>
+                  </div>
+                ) : (
+                  filteredInventory.map((item) => {
+                    const typeBadge = getTypeBadge(item.type || "F");
+                    const isLowStock = item.stock <= item.lowStockThreshold;
+                    
+                    return (
+                      <div
+                        key={item.id}
+                        className={cn(
+                          "bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-gray-300 transition-all overflow-hidden",
+                          viewMode === "grid" ? "" : "p-3 flex items-center justify-between"
+                        )}
+                      >
+                        {viewMode === "grid" ? (
+                          // Grid View Card with Image
                           <>
-                            <span className="text-gray-400 text-[8px]">•</span>
-                            <span className="text-xs font-bold text-orange-600">
-                              ${item.unitPrice.toFixed(2)}
-                            </span>
+                            {/* Image Thumbnail */}
+                            <div className="w-full h-28 bg-gray-100 flex items-center justify-center">
+                              <ImageIcon className="h-10 w-10 text-gray-300" />
+                            </div>
+                            
+                            {/* Card Content */}
+                            <div className="p-3">
+                              {/* Name + Menu Row */}
+                              <div className="flex items-start justify-between mb-2">
+                                <h3 className="text-sm font-semibold text-gray-900 truncate flex-1 pr-2">
+                                  {item.name}
+                                </h3>
+                                <KebabMenu
+                                  align="end"
+                                  menuWidth="w-44"
+                                  items={[
+                                    {
+                                      label: "Edit",
+                                      icon: Edit,
+                                      action: () => {
+                                        toast.info(`Edit ${item.name}`);
+                                        navigate(`/inventory/${item.id}/edit`);
+                                      },
+                                    },
+                                    {
+                                      label: "Adjust Stock",
+                                      icon: PackageMinus,
+                                      action: () => {
+                                        toast.info(`Adjust stock for ${item.name}`);
+                                      },
+                                    },
+                                    {
+                                      label: "Alert",
+                                      icon: Bell,
+                                      action: () => {
+                                        toast.info(`Set alert for ${item.name}`);
+                                      },
+                                    },
+                                    {
+                                      label: "Damaged Goods",
+                                      icon: PackageX,
+                                      action: () => {
+                                        toast.info(`Mark ${item.name} as damaged`);
+                                      },
+                                    },
+                                    {
+                                      label: "Tester",
+                                      icon: FlaskConical,
+                                      action: () => {
+                                        toast.info(`Mark ${item.name} as tester`);
+                                      },
+                                    },
+                                  ]}
+                                />
+                              </div>
+                              
+                              {/* Meta Row */}
+                              <div className="flex flex-wrap items-center gap-1.5 text-xs">
+                                <span className="text-gray-500">SKU:</span>
+                                <span className="font-medium text-gray-700">{item.sku}</span>
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn("h-5 px-1.5 text-[10px] font-semibold", typeBadge.className)}
+                                >
+                                  {typeBadge.label}
+                                </Badge>
+                              </div>
+                              
+                              {/* Stock & Price Row */}
+                              <div className="flex items-center justify-between mt-2 text-xs">
+                                <span className="text-gray-500">
+                                  Stock: <span className={cn("font-medium", isLowStock ? "text-red-600" : "text-gray-700")}>{item.stock}</span>
+                                </span>
+                                <span className="font-semibold text-orange-600">${item.unitPrice.toFixed(2)}</span>
+                              </div>
+                              
+                              {/* Low Stock Alert */}
+                              {isLowStock && (
+                                <div className="mt-1.5">
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-yellow-50 text-yellow-700 rounded">
+                                    Low: {item.lowStockThreshold}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                          </>
+                        ) : (
+                          // List View Card
+                          <>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h3 className="text-sm font-semibold text-gray-900 truncate">
+                                  {item.name}
+                                </h3>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-2 text-xs">
+                                <span className="text-gray-500">
+                                  SKU: <span className="font-medium text-gray-700">{item.sku}</span>
+                                </span>
+                                <Badge 
+                                  variant="outline" 
+                                  className={cn("h-5 px-1.5 text-[10px] font-semibold", typeBadge.className)}
+                                >
+                                  {typeBadge.label}
+                                </Badge>
+                                <span className="text-gray-500">
+                                  Stock: <span className={cn("font-medium", isLowStock ? "text-red-600" : "text-gray-700")}>{item.stock}</span>
+                                </span>
+                                <span className="font-semibold text-orange-600">${item.unitPrice.toFixed(2)}</span>
+                                {isLowStock && (
+                                  <span className="text-[10px] px-1.5 py-0.5 bg-yellow-50 text-yellow-700 rounded">
+                                    Low: {item.lowStockThreshold}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <KebabMenu
+                              align="end"
+                              menuWidth="w-44"
+                              items={[
+                                {
+                                  label: "Edit",
+                                  icon: Edit,
+                                  action: () => {
+                                    toast.info(`Edit ${item.name}`);
+                                    navigate(`/inventory/${item.id}/edit`);
+                                  },
+                                },
+                                {
+                                  label: "Adjust Stock",
+                                  icon: PackageMinus,
+                                  action: () => {
+                                    toast.info(`Adjust stock for ${item.name}`);
+                                  },
+                                },
+                                {
+                                  label: "Alert",
+                                  icon: Bell,
+                                  action: () => {
+                                    toast.info(`Set alert for ${item.name}`);
+                                  },
+                                },
+                                {
+                                  label: "Damaged Goods",
+                                  icon: PackageX,
+                                  action: () => {
+                                    toast.info(`Mark ${item.name} as damaged`);
+                                  },
+                                },
+                                {
+                                  label: "Tester",
+                                  icon: FlaskConical,
+                                  action: () => {
+                                    toast.info(`Mark ${item.name} as tester`);
+                                  },
+                                },
+                              ]}
+                            />
                           </>
                         )}
                       </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            }
-            
-            // List View
-            const getTypeInitial = (type?: string) => {
-              switch (type) {
-                case "F": return "F";
-                case "V": return "V";
-                case "U": return "U";
-                default: return "U";
-              }
-            };
-
-            return (
-              <div
-                key={item.id}
-                className="bg-white p-2 rounded-lg border border-gray-200 hover:shadow-md hover:border-primary/30 transition-all duration-200"
-              >
-                <div className="flex justify-between items-start mb-1.5">
-                  <div className="flex flex-col flex-1 min-w-0">
-                    {/* Compact Info Row: SKU, Type, Stock, Price, Low Alert */}
-                    <div className="flex items-center gap-1 mb-0.5 flex-wrap">
-                      <span className="text-[8px] text-gray-600 font-medium">
-                        SKU: {item.sku}
-                      </span>
-                      <span className="text-gray-400 text-[8px]">•</span>
-                      <span className="px-1.5 py-0.5 bg-orange-100 text-orange-700 text-[8px] font-medium rounded-full shrink-0">
-                        {getTypeInitial(item.type)}
-                      </span>
-                      <span className="text-gray-400 text-[8px]">•</span>
-                      <span className="text-[8px] text-green-600 font-semibold">Stock: {item.stock}</span>
-                      {item.type !== "V" && item.unitPrice !== undefined && (
-                        <>
-                          <span className="text-gray-400 text-[8px]">•</span>
-                          <span className="text-[8px] text-orange-600 font-semibold">${item.unitPrice.toFixed(2)}</span>
-                        </>
-                      )}
-                      <span className="text-gray-400 text-[8px]">•</span>
-                      <span className="text-[8px] text-gray-500">Low: {item.lowStockThreshold}</span>
-                    </div>
-                    <p className="text-sm font-medium text-gray-800 leading-tight">
-                      {item.name}
-                    </p>
-                  </div>
-                  
-                  {/* Quick Action Menu */}
-                  <div onClick={(e) => e.stopPropagation()}>
-                    <KebabMenu
-                      items={[
-                        {
-                          label: "Edit",
-                          icon: Edit,
-                          action: () => navigate(`/inventory/${item.id}/edit`),
-                        },
-                        {
-                          label: "Adjust Stock",
-                          icon: Package,
-                          action: () => {
-                            setSelectedItemForAdjustment({
-                              id: item.id,
-                              name: item.name,
-                              sku: item.sku,
-                              stock: item.stock,
-                            });
-                            setStockAdjustmentModalOpen(true);
-                          },
-                        },
-                        ...(!isEmployee ? [{
-                          label: "Alert",
-                          icon: AlertTriangle,
-                          action: () => {
-                            setSelectedItemForAlert({ id: item.id, threshold: item.lowStockThreshold });
-                            setLowAlertModalOpen(true);
-                          },
-                        }] : []),
-                        {
-                          label: "Damaged Goods",
-                          icon: PackageX,
-                          action: () => {
-                            setSelectedItemForAdjustment({
-                              id: item.id,
-                              name: item.name,
-                              sku: item.sku,
-                              stock: item.stock,
-                            });
-                            setStockAdjustmentDefaults({
-                              transactionType: "stock-out",
-                              adjustmentReason: "Marked as Damaged",
-                              remarks: "Item marked as damaged goods",
-                            });
-                            setStockAdjustmentModalOpen(true);
-                          },
-                        },
-                        {
-                          label: "Tester",
-                          icon: FlaskConical,
-                          action: () => {
-                            setSelectedItemForAdjustment({
-                              id: item.id,
-                              name: item.name,
-                              sku: item.sku,
-                              stock: item.stock,
-                            });
-                            setStockAdjustmentDefaults({
-                              transactionType: "stock-out",
-                              adjustmentReason: "Marked as Demo Units",
-                              remarks: "Item marked as tester/demo unit",
-                            });
-                            setStockAdjustmentModalOpen(true);
-                          },
-                        },
-                      ]}
-                      menuWidth="w-48"
-                    />
-                  </div>
-                </div>
+                    );
+                  })
+                )}
               </div>
-            );
-          })}
-          
-          {/* Agreement Inventory Tab */}
-          {activeTab === "agreement-inventory" && (
-            <div className="space-y-2">
-              {filteredAgreementInventory.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No items available for Agreement Inventory</p>
-                </div>
-              ) : (
-                filteredAgreementInventory.map(item => (
-                  <div
-                    key={item.id}
-                    className="bg-white p-3 rounded-lg shadow-sm border border-gray-200 flex justify-between items-center"
-                  >
-                    <div className="flex flex-col flex-1">
-                      <p className="text-xs text-gray-500">{item.inventoryId}</p>
-                      <p className="text-sm font-semibold text-gray-900 mt-0.5">{item.name}</p>
-                    </div>
-                    <button
-                      onClick={() => handleDeleteAgreementInventory(item.id)}
-                      className="text-red-500 hover:text-red-700 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                      aria-label="Delete item"
-                    >
-                      <Trash2 className="h-5 w-5" />
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          )}
+            )}
 
-          {/* Equipment Tracking Tab */}
-          {activeTab === "equipment-tracking" && (
-            <div className="space-y-2">
-              {filteredEquipmentTracking.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No equipment tracking data available</p>
-                  {selectedEmployee !== "all" && (
-                    <p className="text-xs mt-1">
-                      Filtered by: {mockEmployees.find(emp => emp.id === selectedEmployee)?.name || "Unknown"}
-                    </p>
-                  )}
-                </div>
-              ) : (
-                filteredEquipmentTracking.map((equipment) => {
-                  return (
+            {/* Agreement Inventory Tab Content */}
+            {activeTab === "agreement" && (
+              <div className="flex flex-col gap-2">
+                {filteredAgreementInventory.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <p className="text-sm">No agreement inventory items found</p>
+                  </div>
+                ) : (
+                  filteredAgreementInventory.map((item) => (
                     <div
-                      key={equipment.id}
-                      className="bg-white p-3 rounded-lg shadow-sm border border-gray-200"
+                      key={item.id}
+                      className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-gray-300 transition-all p-3 flex items-center justify-between"
                     >
-                      <div className="flex justify-between items-start">
-                        <div className="flex flex-col flex-1">
-                          <p className="text-sm font-semibold text-gray-800">{equipment.serialNumber}</p>
-                          <p className="text-base text-gray-700 mt-0.5">{equipment.inventoryName}</p>
-                          <p className="text-sm text-gray-600 mt-1">
-                            Employee:{" "}
-                            <span className="font-medium text-gray-800">
-                              {equipment.employeeName || "None"}
-                            </span>
-                          </p>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs text-gray-500 font-medium">SKU:</span>
+                          <span className="text-xs text-gray-700">{item.sku}</span>
                         </div>
-
-                        {/* Status Badge and Quick Action Menu */}
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={cn(
-                              "text-xs font-medium px-2 py-1 rounded-full shrink-0",
-                              equipment.status === "Assigned"
-                                ? "bg-green-100 text-green-700"
-                                : "bg-gray-100 text-gray-700"
-                            )}
-                          >
-                            {equipment.status}
-                          </span>
-
-                          {/* Quick Action Menu */}
-                          <KebabMenu
-                            items={[
-                              {
-                                label: "Assign / Reassign Employee",
-                                icon: UserCog,
-                                action: () => {
-                                  setSelectedEquipmentForAssign({
-                                    id: equipment.id,
-                                    currentEmployeeId: equipment.employeeId,
-                                  });
-                                  setAssignEmployeeModalOpen(true);
-                                },
-                              },
-                              {
-                                label: "Add / View Note",
-                                icon: FileText,
-                                action: () => {
-                                  setSelectedEquipmentForNote(equipment.id);
-                                  setAddNoteModalOpen(true);
-                                },
-                              },
-                              {
-                                label: "Update Equipment",
-                                icon: Settings,
-                                action: () => {
-                                  setSelectedEquipmentForUpdate({
-                                    id: equipment.id,
-                                    inventoryName: equipment.inventoryName,
-                                    serialNumber: equipment.serialNumber,
-                                  });
-                                  setUpdateEquipmentModalOpen(true);
-                                },
-                              },
-                            ]}
-                            menuWidth="w-48"
-                          />
-                        </div>
-                </div>
+                        <h3 className="text-sm font-semibold text-gray-900 truncate">
+                          {item.name}
+                        </h3>
+                      </div>
+                      <button
+                        onClick={() => handleDeleteAgreementInventory(item.id)}
+                        className="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors flex-shrink-0"
+                        title="Delete"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
               </div>
-            );
-                })
-              )}
-            </div>
-          )}
-        </div>
+            )}
+
+            {/* Equipment Tracking Tab Content */}
+            {activeTab === "equipment" && (
+              <div className="text-center py-12 text-gray-500">
+                <p className="text-sm">Equipment Tracking content</p>
+                <p className="text-xs mt-1">Track equipment assigned to employees</p>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
 
-      {/* Low Inventory Alert Modal */}
-      <LowInventoryAlertModal
-        open={lowAlertModalOpen}
-        onClose={() => {
-          setLowAlertModalOpen(false);
-          setSelectedItemForAlert(null);
-        }}
-        itemId={selectedItemForAlert?.id || null}
-        currentThreshold={selectedItemForAlert?.threshold}
-        onSave={(itemId, threshold) => {
-          // In real app, this would call an API: PUT /api/inventory/:id/alert-threshold
-          console.info("Updating low inventory alert threshold", itemId, threshold);
-          toast.success("Low inventory alert updated successfully");
-          setLowAlertModalOpen(false);
-          setSelectedItemForAlert(null);
-        }}
-      />
-
-      {/* Stock Adjustment Modal */}
-      <StockAdjustmentModal
-        open={stockAdjustmentModalOpen}
-        onClose={() => {
-          setStockAdjustmentModalOpen(false);
-          setSelectedItemForAdjustment(null);
-          setStockAdjustmentDefaults(null);
-        }}
-        item={selectedItemForAdjustment}
-        initialTransactionType={stockAdjustmentDefaults?.transactionType}
-        initialAdjustmentReason={stockAdjustmentDefaults?.adjustmentReason}
-        initialRemarks={stockAdjustmentDefaults?.remarks}
-        initialAdjustBy={stockAdjustmentDefaults?.adjustBy}
-        onSave={(itemId, adjustment, transactionType, reason, remarks) => {
-          // In real app, this would call an API: POST /api/inventory/:id/adjust-stock
-          console.info("Saving stock adjustment", {
-            itemId,
-            adjustment,
-            transactionType,
-            reason,
-            remarks,
-          });
-          showSuccessToast("Transaction recorded successfully");
-          setStockAdjustmentModalOpen(false);
-          setSelectedItemForAdjustment(null);
-          setStockAdjustmentDefaults(null);
-        }}
-      />
-
-      {/* Add Agreement Inventory Modal */}
-      <AddAgreementInventoryModal
-        open={addAgreementInventoryModalOpen}
-        onClose={() => setAddAgreementInventoryModalOpen(false)}
-        availableInventory={variableInventory.map(item => ({
-          id: item.id,
-          name: item.name,
-          sku: item.sku,
-        }))}
-        onAdd={handleAddAgreementInventory}
-      />
-
-      {/* Assign Employee Modal */}
-      <AssignEmployeeModal
-        open={assignEmployeeModalOpen}
-        onClose={() => {
-          setAssignEmployeeModalOpen(false);
-          setSelectedEquipmentForAssign(null);
-        }}
-        equipmentId={selectedEquipmentForAssign?.id || null}
-        currentEmployeeId={selectedEquipmentForAssign?.currentEmployeeId || null}
-        availableEmployees={mockEmployees
-          .filter(emp => emp.status === "Active")
-          .map(emp => ({
-            id: emp.id,
-            name: emp.name,
-          }))}
-        onSave={(equipmentId, employeeId) => {
-          // Update equipment tracking data
-          setEquipmentTracking(equipmentTracking.map(equipment => {
-            if (equipment.id === equipmentId) {
-              const employee = employeeId ? mockEmployees.find(emp => emp.id === employeeId) : null;
-              return {
-                ...equipment,
-                employeeId: employeeId,
-                employeeName: employee?.name || null,
-                status: employeeId ? ("Assigned" as const) : ("Unassigned" as const),
-              };
-            }
-            return equipment;
-          }));
-          toast.success("Employee assigned successfully");
-          setAssignEmployeeModalOpen(false);
-          setSelectedEquipmentForAssign(null);
-        }}
-      />
-
-      {/* Add Note Modal */}
-      <AddNoteModal
-        open={addNoteModalOpen}
-        onClose={() => {
-          setAddNoteModalOpen(false);
-          setSelectedEquipmentForNote(null);
-        }}
-        equipmentId={selectedEquipmentForNote}
-        existingNotes={selectedEquipmentForNote ? equipmentNotes[selectedEquipmentForNote] || [] : []}
-        onSave={(equipmentId, noteText) => {
-          // Add new note to equipment notes
-          const newNote = {
-            id: `note-${Date.now()}`,
-            text: noteText,
-            author: "Current User", // In real app, this would be the logged-in user
-            date: new Date().toISOString().split("T")[0],
-          };
-
-          setEquipmentNotes({
-            ...equipmentNotes,
-            [equipmentId]: [
-              newNote,
-              ...(equipmentNotes[equipmentId] || []),
-            ],
-          });
-
-          showSuccessToast("Note added successfully");
-          setAddNoteModalOpen(false);
-          setSelectedEquipmentForNote(null);
-        }}
-      />
-
-      {/* Add Equipment Modal */}
-      <AddEquipmentModal
-        open={addEquipmentModalOpen}
-        onClose={() => setAddEquipmentModalOpen(false)}
-        availableInventory={mockInventory.map(item => ({
-          id: item.id,
-          name: item.name,
-        }))}
-        onSave={(inventoryId, serialNumber) => {
-          // Add new equipment to tracking
-          const selectedInventory = mockInventory.find(item => item.id === inventoryId);
-          if (selectedInventory) {
-            const newEquipment = {
-              id: `EQ-${String(equipmentTracking.length + 1).padStart(3, '0')}`,
-              serialNumber: serialNumber,
-              inventoryName: selectedInventory.name,
-              employeeId: null,
-              employeeName: null,
-              status: "Unassigned" as const,
-            };
-            setEquipmentTracking([...equipmentTracking, newEquipment]);
-            showSuccessToast("Equipment added successfully");
-            setAddEquipmentModalOpen(false);
-          }
-        }}
-      />
-
-      {/* Update Equipment Modal */}
-      <UpdateEquipmentModal
-        open={updateEquipmentModalOpen}
-        onClose={() => {
-          setUpdateEquipmentModalOpen(false);
-          setSelectedEquipmentForUpdate(null);
-        }}
-        equipment={selectedEquipmentForUpdate}
-        availableInventory={mockInventory.map(item => ({
-          id: item.id,
-          name: item.name,
-        }))}
-        onUpdate={(equipmentId, inventoryId, serialNumber) => {
-          // Update equipment in tracking
-          const selectedInventory = mockInventory.find(item => item.id === inventoryId);
-          if (selectedInventory) {
-            setEquipmentTracking(equipmentTracking.map(equipment => {
-              if (equipment.id === equipmentId) {
-                return {
-                  ...equipment,
-                  inventoryName: selectedInventory.name,
-                  serialNumber: serialNumber,
-                };
-              }
-              return equipment;
-            }));
-            showSuccessToast("Equipment updated successfully");
-            setUpdateEquipmentModalOpen(false);
-            setSelectedEquipmentForUpdate(null);
-          }
-        }}
-      />
-
-      {/* Manage Discount Modal */}
-      <ManageDiscountModal
-        open={manageDiscountModalOpen && !addDiscountModalOpen && !editDiscountModalOpen}
-        onClose={() => setManageDiscountModalOpen(false)}
-        discounts={mockDiscounts}
-        onAdd={() => {
-          setAddDiscountModalOpen(true);
-        }}
-        onEdit={(discount) => {
-          setSelectedDiscountForEdit(discount);
-          setEditDiscountModalOpen(true);
-        }}
-        onDelete={(discountId) => {
-          toast.info(`Delete discount ${discountId} - to be implemented`);
-        }}
-      />
-
-      {/* Add Discount Modal */}
-      <AddDiscountModal
-        open={addDiscountModalOpen}
-        onClose={() => setAddDiscountModalOpen(false)}
-        onBack={() => {
-          setAddDiscountModalOpen(false);
-          setManageDiscountModalOpen(true);
-        }}
-        onAdd={(discount) => {
-          // In a real app, this would call an API to add the discount
-          console.info("Adding discount:", discount);
-          toast.success("Discount added successfully");
-          setAddDiscountModalOpen(false);
-          setManageDiscountModalOpen(true);
-        }}
-      />
-
-      {/* Edit Discount Modal */}
-      <EditDiscountModal
-        open={editDiscountModalOpen}
-        onClose={() => {
-          setEditDiscountModalOpen(false);
-          setSelectedDiscountForEdit(null);
-        }}
-        discount={selectedDiscountForEdit}
-        onBack={() => {
-          setEditDiscountModalOpen(false);
-          setSelectedDiscountForEdit(null);
-          setManageDiscountModalOpen(true);
-        }}
-        onUpdate={(discountId, discount) => {
-          // In a real app, this would call an API to update the discount
-          console.info("Updating discount:", discountId, discount);
-          toast.success("Discount updated successfully");
-          setEditDiscountModalOpen(false);
-          setSelectedDiscountForEdit(null);
-          setManageDiscountModalOpen(true);
-        }}
-      />
-
-      {/* Send Current Report Modal */}
-      <SendCurrentReportModal
-        open={sendCurrentReportModalOpen}
-        onClose={() => setSendCurrentReportModalOpen(false)}
-        onSend={(data) => {
-          // In a real app, this would call an API to send the report
-          console.info("Sending current report:", data);
-          toast.success("Report sent successfully");
-          setSendCurrentReportModalOpen(false);
-        }}
-      />
-
-      {/* Send Stock In/Out Report Modal */}
-      <SendStockInOutReportModal
-        open={sendStockInOutReportModalOpen}
-        onClose={() => setSendStockInOutReportModalOpen(false)}
-        onSend={(data) => {
-          // In a real app, this would call an API to send the report
-          console.info("Sending stock in/out report:", data);
-          toast.success("Report sent successfully");
-          setSendStockInOutReportModalOpen(false);
-        }}
-      />
-
       {/* Set Low Inventory Alert Modal */}
-      <SetLowInventoryAlertModal
-        isOpen={setLowInventoryAlertModalOpen}
-        onClose={() => setSetLowInventoryAlertModalOpen(false)}
-        onSave={(settings) => {
-          // In a real app, this would call an API to save alert settings
-          console.info("Saving alert settings:", settings);
-          toast.success("Alert settings saved successfully");
-          setSetLowInventoryAlertModalOpen(false);
-        }}
+      <SetLowInventoryAlertModal 
+        isOpen={alertModalOpen} 
+        onClose={() => setAlertModalOpen(false)} 
       />
-
     </div>
   );
 };

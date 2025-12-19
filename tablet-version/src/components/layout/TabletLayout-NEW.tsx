@@ -188,7 +188,7 @@ const TabletLayout = ({ children }: TabletLayoutProps) => {
                     <div className="bg-gray-50">
                       {item.children?.map((child) => {
                         const ChildIcon = child.icon;
-                        const childActive = location.pathname.startsWith(child.path);
+                        const childActive = location.pathname === child.path;
 
                         return (
                           <button

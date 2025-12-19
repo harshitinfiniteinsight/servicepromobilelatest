@@ -20,7 +20,7 @@ import MinimumDepositPercentage from "./pages/MinimumDepositPercentage";
 import Employees from "./pages/Employees";
 import EmployeeSchedule from "./pages/EmployeeSchedule";
 import EmployeeTracking from "./pages/EmployeeTracking";
-import Inventory from "./pages/Inventory";
+import Inventory from "../../tablet-version/src/pages/Inventory";
 import LowInventoryAlertSettings from "./pages/LowInventoryAlertSettings";
 import InventoryStockInOut from "./pages/InventoryStockInOut";
 import InventoryRefund from "./pages/InventoryRefund";

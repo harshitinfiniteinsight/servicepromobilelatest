@@ -88,112 +88,77 @@ const SetLowInventoryAlertModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent 
-        className="w-[90%] max-w-sm p-4 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[65vh] flex flex-col !fixed !left-1/2 !top-auto !translate-x-[-50%] !translate-y-0"
-        style={{
-          bottom: 'calc(64px + env(safe-area-inset-bottom) + 24px)',
-        }}
+        className="w-full max-w-[440px] p-0 rounded-2xl shadow-2xl bg-white flex flex-col !fixed !left-1/2 !top-1/2 !translate-x-[-50%] !translate-y-[-50%]"
+        style={{ minWidth: 320 }}
       >
         <DialogDescription className="sr-only">
           Set low inventory alert settings
         </DialogDescription>
-        
         {/* Header */}
-        <DialogHeader className="flex flex-row justify-between items-center pb-2 border-b border-gray-100 flex-shrink-0 mb-3">
-          <DialogTitle className="text-base font-semibold text-gray-800">Set Low Inventory Alert</DialogTitle>
+        <div className="flex items-center justify-between px-6 pt-5 pb-3 border-b border-gray-100 sticky top-0 bg-white z-10 rounded-t-2xl">
+          <DialogTitle className="text-lg font-bold text-gray-800">Set Low Inventory Alert</DialogTitle>
           <Button
             variant="ghost"
             size="icon"
             onClick={onClose}
             className="h-9 w-9 rounded-full hover:bg-gray-100"
+            aria-label="Close"
           >
             <X className="h-5 w-5 text-gray-600" />
           </Button>
-        </DialogHeader>
-
-        {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto space-y-2.5 min-h-0 pb-20 pr-1">
-          {/* Email Alert Section */}
-          <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2.5 shadow-sm">
-            {/* Email Alert Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Mail className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-semibold text-gray-900">Email Alert</span>
-              </div>
-              <div className="scale-90 origin-right">
-                <Switch
-                  checked={emailEnabled}
-                  onCheckedChange={setEmailEnabled}
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <p className="text-xs text-gray-600 leading-relaxed">
-              Receive email notifications when inventory is low
-            </p>
-
-            {/* Email Input */}
-            {emailEnabled && (
-              <div className="relative">
-                <Input
-                  type="email"
-                  placeholder="Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full h-9 pr-8 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                />
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <Edit className="h-3.5 w-3.5 text-gray-400" />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* SMS Alert Section */}
-          <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2.5 shadow-sm">
-            {/* SMS Alert Header */}
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Phone className="h-4 w-4 text-orange-600" />
-                <span className="text-sm font-semibold text-gray-900">SMS Alert</span>
-              </div>
-              <div className="scale-90 origin-right">
-                <Switch
-                  checked={smsEnabled}
-                  onCheckedChange={setSmsEnabled}
-                />
-              </div>
-            </div>
-
-            {/* Description */}
-            <p className="text-xs text-gray-600 leading-relaxed">
-              Receive text messages when inventory is low
-            </p>
-
-            {/* Phone Input */}
-            {smsEnabled && (
-              <div className="relative">
-                <Input
-                  type="tel"
-                  placeholder="Phone Number"
-                  value={phone}
-                  onChange={(e) => setPhone(e.target.value)}
-                  className="w-full h-9 pr-8 text-sm border border-gray-200 rounded-lg px-3 py-2 focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
-                />
-                <div className="absolute right-2 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                  <Edit className="h-3.5 w-3.5 text-gray-400" />
-                </div>
-              </div>
-            )}
-          </div>
         </div>
-
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {/* Email Alert Option */}
+          <div className="w-full bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4 shadow-sm">
+            <Mail className="h-6 w-6 text-orange-600 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-base text-gray-900">Email Alert</div>
+              <div className="text-xs text-gray-500">Receive email notifications when inventory is low</div>
+            </div>
+            <Switch checked={emailEnabled} onCheckedChange={setEmailEnabled} />
+          </div>
+          {/* Email Input */}
+          {emailEnabled && (
+            <div className="w-full flex items-center gap-2 pl-10">
+              <Input
+                type="email"
+                placeholder="Email Address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-10 text-sm border border-gray-200 rounded-lg px-3 focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+              />
+              <Edit className="h-4 w-4 text-gray-400" />
+            </div>
+          )}
+          {/* SMS Alert Option */}
+          <div className="w-full bg-white border border-gray-200 rounded-xl p-4 flex items-center gap-4 shadow-sm">
+            <Phone className="h-6 w-6 text-orange-600 flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-base text-gray-900">SMS Alert</div>
+              <div className="text-xs text-gray-500">Receive text messages when inventory is low</div>
+            </div>
+            <Switch checked={smsEnabled} onCheckedChange={setSmsEnabled} />
+          </div>
+          {/* Phone Input */}
+          {smsEnabled && (
+            <div className="w-full flex items-center gap-2 pl-10">
+              <Input
+                type="tel"
+                placeholder="Phone Number"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="w-full h-10 text-sm border border-gray-200 rounded-lg px-3 focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+              />
+              <Edit className="h-4 w-4 text-gray-400" />
+            </div>
+          )}
+        </div>
         {/* Sticky Save Button */}
-        <div className="flex-shrink-0 pt-3 pb-4 px-1">
+        <div className="sticky bottom-0 left-0 right-0 bg-white px-6 pt-2 pb-5 rounded-b-2xl z-20 border-t border-gray-100">
           <Button
             onClick={handleSave}
-            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2.5 rounded-lg text-sm"
+            className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 rounded-lg text-base"
           >
             Save Settings
           </Button>

@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Search, ArrowUp, ArrowDown } from "lucide-react";
+import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
 
 interface StockTransaction {
   id: string;
@@ -80,11 +81,13 @@ const mockTransactions: StockTransaction[] = [
   },
 ];
 
+
+// DEMO OVERRIDE: Always show mock demo data for demo purposes
 const InventoryStockInOut = () => {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState<string>("all");
 
-  // Filter transactions based on search and type
+  // Always use mockTransactions for demo
   const filteredTransactions = useMemo(() => {
     return mockTransactions.filter((transaction) => {
       const matchesSearch =
@@ -109,7 +112,7 @@ const InventoryStockInOut = () => {
         }}
       >
         {/* Search and Filter Row */}
-        <div className="flex flex-col min-[360px]:flex-row items-stretch min-[360px]:items-center gap-3 min-[360px]:gap-2 mb-2 mt-2">
+        <div className="flex flex-col md:flex-row items-stretch md:items-center gap-3 md:gap-2 mb-4 mt-2">
           {/* Search Field */}
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
@@ -123,7 +126,7 @@ const InventoryStockInOut = () => {
           </div>
 
           {/* Filter Dropdown */}
-          <div className="w-full min-[360px]:w-[120px] flex-shrink-0">
+          <div className="w-full md:w-[120px] flex-shrink-0">
             <Select value={filterType} onValueChange={setFilterType}>
               <SelectTrigger className="w-full h-[44px] border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
                 <SelectValue placeholder="All Types" />
@@ -137,8 +140,76 @@ const InventoryStockInOut = () => {
           </div>
         </div>
 
-        {/* Transaction Cards List */}
-        <div className="space-y-2">
+        {/* Responsive Table for Tablet/Desktop, Cards for Mobile */}
+        <div className="hidden md:block">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-24">Type</TableHead>
+                <TableHead>Transaction ID</TableHead>
+                <TableHead>Reference ID</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Item Name</TableHead>
+                <TableHead>SKU</TableHead>
+                <TableHead className="text-center">Qty</TableHead>
+                <TableHead>Reason/Notes</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {filteredTransactions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    No transactions found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTransactions.map((transaction) => (
+                  <TableRow key={transaction.id} className="min-h-[56px] hover:bg-gray-50 cursor-pointer">
+                    <TableCell>
+                      <Badge
+                        className={`text-xs px-2 py-1 h-6 font-semibold flex items-center gap-1 rounded-md ${
+                          transaction.type === "in"
+                            ? "bg-green-100 text-green-700 border-green-200"
+                            : "bg-red-100 text-red-700 border-red-200"
+                        }`}
+                      >
+                        {transaction.type === "in" ? (
+                          <span className="flex items-center gap-1">
+                            <ArrowUp className="h-3 w-3" /> In
+                          </span>
+                        ) : (
+                          <span className="flex items-center gap-1">
+                            <ArrowDown className="h-3 w-3" /> Out
+                          </span>
+                        )}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{transaction.id}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs px-2 py-1 bg-gray-50 text-gray-500 border-gray-200 h-6">
+                        {transaction.reference}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-xs text-gray-500">{transaction.date}</TableCell>
+                    <TableCell className="font-semibold">{transaction.itemName}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline" className="text-xs px-2 py-1 bg-gray-50 text-gray-600 border-gray-200 h-6">
+                        {transaction.sku}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <span className="font-bold text-lg text-gray-800">{transaction.quantity}</span>
+                    </TableCell>
+                    <TableCell className="text-xs text-gray-500 max-w-[180px] truncate">{transaction.reason}</TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        {/* Mobile Card List (fallback for < md) */}
+        <div className="block md:hidden space-y-2">
           {filteredTransactions.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <p className="text-sm">No transactions found</p>

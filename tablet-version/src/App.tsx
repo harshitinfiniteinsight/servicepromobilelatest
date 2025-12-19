@@ -133,7 +133,7 @@ const AppContent = () => {
             <Route path="/inventory/:id/edit" element={<EditInventoryItem />} />
             <Route path="/inventory/:id" element={<InventoryItemDetails />} />
             <Route path="/inventory/alert-settings" element={<LowInventoryAlertSettings />} />
-            <Route path="/inventory/stock-in-out" element={<InventoryStockInOut />} />
+            <Route path="/inventory/stock" element={<InventoryStockInOut />} />
             <Route path="/inventory/refunds" element={<InventoryRefund />} />
             <Route path="/inventory/discounts" element={<Discounts />} />
             <Route path="/inventory/discounts/new" element={<AddDiscount />} />

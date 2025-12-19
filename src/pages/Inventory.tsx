@@ -50,94 +50,11 @@ const Inventory = () => {
 
       <main className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inventory & Services</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Manage inventory, equipment, and discounts</p>
-          </div>
-          <Button
-            onClick={() => navigate("/inventory/alert-settings")}
-            variant="outline"
-            className="gap-2 shadow-sm hover:shadow-md transition-all flex-shrink-0 whitespace-nowrap"
-          >
-            <Bell className="h-4 w-4" />
-            <span className="text-sm">Alert Settings</span>
-          </Button>
-        </div>
-
-        <Tabs value={selectedTab} onValueChange={setSelectedTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 h-auto p-1 bg-muted gap-1">
-            <TabsTrigger value="inventory" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm py-2.5 text-xs sm:text-sm">
-              <Package className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">Inventory</span>
-            </TabsTrigger>
-            <TabsTrigger value="agreement-inventory" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm py-2.5 text-xs sm:text-sm">
-              <FileText className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">Agreement</span>
-            </TabsTrigger>
-            <TabsTrigger value="equipment" className="gap-1.5 data-[state=active]:bg-background data-[state=active]:shadow-sm py-2.5 text-xs sm:text-sm">
-              <Wrench className="h-4 w-4 flex-shrink-0" />
-              <span className="truncate">Equipment</span>
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Inventory Tab */}
-          <TabsContent value="inventory" className="space-y-4 mt-6">
-            <div className="flex flex-col gap-3 md:gap-4">
-              {/* Action Buttons Row */}
-              <div className="flex flex-wrap gap-2 sm:gap-3">
-                <Button 
-                  className="gap-2 shadow-sm hover:shadow-md transition-shadow flex-shrink-0"
-                  onClick={() => setSendCurrentReportModalOpen(true)}
-                >
-                  <FileText className="h-4 w-4" />
-                  <span className="text-sm whitespace-nowrap">Current Report</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="gap-2 shadow-sm hover:shadow-md hover:bg-muted transition-all flex-shrink-0"
-                  onClick={() => setSendStockInOutReportModalOpen(true)}
-                >
-                  <span className="text-sm whitespace-nowrap">Stock In/Out Report</span>
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="gap-2 shadow-sm hover:shadow-md hover:bg-muted transition-all flex-shrink-0"
-                  onClick={() => navigate("/inventory/discounts")}
-                >
-                  <Tags className="h-4 w-4" />
-                  <span className="text-sm whitespace-nowrap">Discounts</span>
-                </Button>
-              </div>
-              
-              {/* View Controls and Add Button Row */}
-              <div className="flex flex-wrap gap-2 sm:gap-3 items-center">
-                <div className="flex border rounded-lg overflow-hidden flex-shrink-0">
-                  <Button
-                    variant={viewMode === "list" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("list")}
-                    className="rounded-none"
-                  >
-                    <List className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant={viewMode === "grid" ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode("grid")}
-                    className="rounded-none"
-                  >
-                    <LayoutGrid className="h-4 w-4" />
-                  </Button>
-                </div>
-                <Button 
-                  onClick={() => {
-                    setEditingInventory(null);
-                    setInventoryModalOpen(true);
-                  }} 
-                  className="gap-2 shadow-md hover:shadow-lg transition-all flex-shrink-0"
-                >
-                  <Plus className="h-4 w-4" />
-                  <span className="text-sm whitespace-nowrap">Add Inventory</span>
+          // This file is intentionally left blank to prevent Vite HMR errors.
+          // The tablet version is loaded from tablet-version/src/pages/Inventory.tsx
+          export default function Inventory() {
+            return null;
+          }
                 </Button>
               </div>
             </div>
