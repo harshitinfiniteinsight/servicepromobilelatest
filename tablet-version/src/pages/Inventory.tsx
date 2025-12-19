@@ -64,6 +64,55 @@ const Inventory = () => {
   ]);
   const [selectedAgreementInventory, setSelectedAgreementInventory] = useState("");
 
+  // Equipment Tracking state
+  const [equipmentFormData, setEquipmentFormData] = useState({
+    inventoryId: "",
+    serialNumber: "",
+  });
+  const [autoGenerateSerial, setAutoGenerateSerial] = useState(true);
+  const [equipmentTracking, setEquipmentTracking] = useState([
+    {
+      id: "EQ-001",
+      serialNumber: "SN-0001",
+      inventoryName: "HVAC Diagnostic Tool",
+      inventoryId: "INV-ITEM-001",
+      sku: "HVAC-FILT-001",
+      employeeId: "1",
+      employeeName: "Mike Johnson",
+      status: "Assigned" as const,
+    },
+    {
+      id: "EQ-002",
+      serialNumber: "SN-0002",
+      inventoryName: "Electrical Multimeter",
+      inventoryId: "INV-ITEM-003",
+      sku: "ELEC-WIRE-003",
+      employeeId: "3",
+      employeeName: "Chris Davis",
+      status: "Assigned" as const,
+    },
+    {
+      id: "EQ-003",
+      serialNumber: "SN-0003",
+      inventoryName: "Pipe Inspection Camera",
+      inventoryId: "INV-ITEM-005",
+      sku: "PLUMB-PIPE-005",
+      employeeId: "2",
+      employeeName: "Tom Wilson",
+      status: "Assigned" as const,
+    },
+    {
+      id: "EQ-004",
+      serialNumber: "SN-0004",
+      inventoryName: "Pressure Gauge Set",
+      inventoryId: "INV-ITEM-007",
+      sku: "HVAC-REFR-007",
+      employeeId: null,
+      employeeName: null,
+      status: "Unassigned" as const,
+    },
+  ]);
+
   // Filter inventory based on search
   const filteredInventory = mockInventory.filter(item => {
     const matchesSearch = item.name.toLowerCase().includes(search.toLowerCase()) ||
@@ -194,6 +243,59 @@ const Inventory = () => {
       toast.success(`${item.name} removed from agreement inventory`);
     }
   };
+
+  // Generate Serial Number
+  const generateSerialNumber = () => {
+    const random = Math.random().toString(36).substring(2, 6).toUpperCase();
+    return `SN-${String(equipmentTracking.length + 1).padStart(4, '0')}-${random}`;
+  };
+
+  // Handle Save Equipment
+  const handleSaveEquipment = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!equipmentFormData.inventoryId) {
+      toast.error("Please select an inventory item");
+      return;
+    }
+
+    if (!equipmentFormData.serialNumber.trim()) {
+      toast.error("Please enter a serial number");
+      return;
+    }
+
+    const selectedItem = mockInventory.find(item => item.id === equipmentFormData.inventoryId);
+    if (!selectedItem) {
+      toast.error("Selected inventory item not found");
+      return;
+    }
+
+    const newId = `EQ-${String(equipmentTracking.length + 1).padStart(3, '0')}`;
+    setEquipmentTracking([
+      ...equipmentTracking,
+      {
+        id: newId,
+        serialNumber: equipmentFormData.serialNumber,
+        inventoryName: selectedItem.name,
+        inventoryId: selectedItem.id,
+        sku: selectedItem.sku,
+        employeeId: null,
+        employeeName: null,
+        status: "Unassigned" as const,
+      }
+    ]);
+
+    toast.success("Equipment added successfully");
+    setEquipmentFormData({ inventoryId: "", serialNumber: "" });
+    setAutoGenerateSerial(true);
+  };
+
+  // Filter equipment tracking based on search
+  const filteredEquipmentTracking = equipmentTracking.filter(item => {
+    const matchesSearch = item.inventoryName.toLowerCase().includes(search.toLowerCase()) ||
+                         item.serialNumber.toLowerCase().includes(search.toLowerCase());
+    return matchesSearch;
+  });
 
   return (
     <div className="h-full flex flex-col overflow-hidden bg-gray-50">
@@ -447,6 +549,73 @@ const Inventory = () => {
                 </form>
               </>
             )}
+            {activeTab === "equipment" && (
+              // Add Equipment Form
+              <>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Equipment</h2>
+                
+                <form onSubmit={handleSaveEquipment} className="space-y-4">
+                  {/* Select Inventory */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Select Inventory
+                    </label>
+                    <Select value={equipmentFormData.inventoryId} onValueChange={(value) => setEquipmentFormData(prev => ({ ...prev, inventoryId: value }))}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Choose inventory" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockInventory.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name} ({item.sku})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Serial Number / Product Code */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Serial Number / Product Code
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-600">
+                        <input
+                          type="checkbox"
+                          checked={autoGenerateSerial}
+                          onChange={(e) => {
+                            setAutoGenerateSerial(e.target.checked);
+                            if (e.target.checked) {
+                              setEquipmentFormData(prev => ({ ...prev, serialNumber: generateSerialNumber() }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                        />
+                        Auto-generate
+                      </label>
+                    </div>
+                    <Input
+                      placeholder="Enter serial number"
+                      value={equipmentFormData.serialNumber}
+                      onChange={(e) => {
+                        setAutoGenerateSerial(false);
+                        setEquipmentFormData(prev => ({ ...prev, serialNumber: e.target.value }));
+                      }}
+                      className="h-10"
+                    />
+                  </div>
+
+                  {/* Save Button */}
+                  <Button
+                    type="submit"
+                    className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white font-medium"
+                  >
+                    Save
+                  </Button>
+                </form>
+              </>
+            )}
           </div>
         </aside>
 
@@ -535,7 +704,7 @@ const Inventory = () => {
             </div>
 
             {/* Search & View Toggle */}
-            <div className={cn("flex items-center gap-3 mb-4", activeTab === "agreement" && "flex-col items-stretch")}>
+            <div className={cn("flex items-center gap-3 mb-4", (activeTab === "agreement" || activeTab === "equipment") && "flex-col items-stretch")}>
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                 <Input
@@ -545,7 +714,7 @@ const Inventory = () => {
                   className="pl-9 h-10"
                 />
               </div>
-              {activeTab !== "agreement" && (
+              {activeTab !== "agreement" && activeTab !== "equipment" && (
                 <div className="flex bg-gray-100 rounded-lg p-0.5">
                   <button
                     onClick={() => setViewMode("list")}
@@ -806,9 +975,78 @@ const Inventory = () => {
 
             {/* Equipment Tracking Tab Content */}
             {activeTab === "equipment" && (
-              <div className="text-center py-12 text-gray-500">
-                <p className="text-sm">Equipment Tracking content</p>
-                <p className="text-xs mt-1">Track equipment assigned to employees</p>
+              <div className="flex flex-col gap-2">
+                {filteredEquipmentTracking.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <p className="text-sm">No equipment found</p>
+                  </div>
+                ) : (
+                  filteredEquipmentTracking.map((item) => (
+                    <div
+                      key={item.id}
+                      className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md hover:border-gray-300 transition-all p-3 flex flex-col gap-2"
+                    >
+                      {/* Top Row: SKU + Menu */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500 font-medium">SKU:</span>
+                          <span className="text-xs text-gray-700">{item.sku}</span>
+                        </div>
+                        <KebabMenu
+                          align="end"
+                          menuWidth="w-40"
+                          items={[
+                            {
+                              label: "Edit",
+                              icon: Edit,
+                              action: () => {
+                                toast.info(`Edit ${item.inventoryName}`);
+                              },
+                            },
+                            {
+                              label: "Assign",
+                              icon: PackageMinus,
+                              action: () => {
+                                toast.info(`Assign ${item.inventoryName} to employee`);
+                              },
+                            },
+                            {
+                              label: "Remove",
+                              icon: Trash2,
+                              action: () => {
+                                toast.info(`Remove ${item.inventoryName}`);
+                              },
+                              variant: "destructive",
+                            },
+                          ]}
+                        />
+                      </div>
+
+                      {/* Inventory Name */}
+                      <h3 className="text-sm font-semibold text-gray-900">
+                        {item.inventoryName}
+                      </h3>
+
+                      {/* Meta Information */}
+                      <div className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600">
+                          Employee: <span className="font-medium">{item.employeeName || "Unassigned"}</span>
+                        </span>
+                        <Badge
+                          variant="outline"
+                          className={cn(
+                            "text-[10px] font-semibold h-5 px-2",
+                            item.status === "Assigned"
+                              ? "bg-green-50 text-green-700 border-green-200"
+                              : "bg-gray-50 text-gray-700 border-gray-200"
+                          )}
+                        >
+                          {item.status}
+                        </Badge>
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             )}
           </div>
