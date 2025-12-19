@@ -319,7 +319,73 @@ const Inventory = () => {
         {/* Left Section - Conditional Form */}
         <aside className="w-full md:w-[40%] bg-white border-b md:border-b-0 md:border-r border-gray-200 overflow-y-auto">
           <div className="p-5">
-            {activeTab === "agreement" ? (
+            {activeTab === "equipment" ? (
+              // Add Equipment Form (only form shown for equipment tab)
+              <>
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Equipment</h2>
+                
+                <form onSubmit={handleSaveEquipment} className="space-y-4">
+                  {/* Select Inventory */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                      Select Inventory
+                    </label>
+                    <Select value={equipmentFormData.inventoryId} onValueChange={(value) => setEquipmentFormData(prev => ({ ...prev, inventoryId: value }))}>
+                      <SelectTrigger className="h-10">
+                        <SelectValue placeholder="Choose inventory" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {mockInventory.map((item) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name} ({item.sku})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Serial Number / Product Code */}
+                  <div>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Serial Number / Product Code
+                      </label>
+                      <label className="flex items-center gap-2 text-xs text-gray-600">
+                        <input
+                          type="checkbox"
+                          checked={autoGenerateSerial}
+                          onChange={(e) => {
+                            setAutoGenerateSerial(e.target.checked);
+                            if (e.target.checked) {
+                              setEquipmentFormData(prev => ({ ...prev, serialNumber: generateSerialNumber() }));
+                            }
+                          }}
+                          className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
+                        />
+                        Auto-generate
+                      </label>
+                    </div>
+                    <Input
+                      placeholder="Enter serial number"
+                      value={equipmentFormData.serialNumber}
+                      onChange={(e) => {
+                        setAutoGenerateSerial(false);
+                        setEquipmentFormData(prev => ({ ...prev, serialNumber: e.target.value }));
+                      }}
+                      className="h-10"
+                    />
+                  </div>
+
+                  {/* Save Button */}
+                  <Button
+                    type="submit"
+                    className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white font-medium"
+                  >
+                    Save
+                  </Button>
+                </form>
+              </>
+            ) : activeTab === "agreement" ? (
               // Add Agreement Inventory Form
               <>
                 <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Agreement Inventory</h2>
@@ -542,73 +608,6 @@ const Inventory = () => {
                   <Button
                     type="submit"
                     disabled={!isFormValid()}
-                    className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white font-medium"
-                  >
-                    Save
-                  </Button>
-                </form>
-              </>
-            )}
-            {activeTab === "equipment" && (
-              // Add Equipment Form
-              <>
-                <h2 className="text-lg font-semibold text-gray-900 mb-4">Add Equipment</h2>
-                
-                <form onSubmit={handleSaveEquipment} className="space-y-4">
-                  {/* Select Inventory */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">
-                      Select Inventory
-                    </label>
-                    <Select value={equipmentFormData.inventoryId} onValueChange={(value) => setEquipmentFormData(prev => ({ ...prev, inventoryId: value }))}>
-                      <SelectTrigger className="h-10">
-                        <SelectValue placeholder="Choose inventory" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockInventory.map((item) => (
-                          <SelectItem key={item.id} value={item.id}>
-                            {item.name} ({item.sku})
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Serial Number / Product Code */}
-                  <div>
-                    <div className="flex items-center justify-between mb-1.5">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Serial Number / Product Code
-                      </label>
-                      <label className="flex items-center gap-2 text-xs text-gray-600">
-                        <input
-                          type="checkbox"
-                          checked={autoGenerateSerial}
-                          onChange={(e) => {
-                            setAutoGenerateSerial(e.target.checked);
-                            if (e.target.checked) {
-                              setEquipmentFormData(prev => ({ ...prev, serialNumber: generateSerialNumber() }));
-                            }
-                          }}
-                          className="rounded border-gray-300 text-orange-500 focus:ring-orange-500"
-                        />
-                        Auto-generate
-                      </label>
-                    </div>
-                    <Input
-                      placeholder="Enter serial number"
-                      value={equipmentFormData.serialNumber}
-                      onChange={(e) => {
-                        setAutoGenerateSerial(false);
-                        setEquipmentFormData(prev => ({ ...prev, serialNumber: e.target.value }));
-                      }}
-                      className="h-10"
-                    />
-                  </div>
-
-                  {/* Save Button */}
-                  <Button
-                    type="submit"
                     className="w-full h-11 bg-orange-500 hover:bg-orange-600 text-white font-medium"
                   >
                     Save
