@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { mockJobs, mockEmployees, mockInvoices, mockEstimates, mockAgreements, mockCustomers } from "@/data/mobileMockData";
-import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon, XCircle, UserCog, Edit, MessageSquare, FileText } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon, XCircle, UserCog, Edit, MessageSquare, FileText, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
@@ -223,10 +223,10 @@ const EmployeeTracking = () => {
   // Generate demo jobs for an employee if no real jobs exist
   const generateDemoJobsForEmployee = (employeeId: string, dateStr: string, employeeName: string): typeof mockJobs => {
     const demoJobTemplates = [
-      { title: "HVAC Service Call", time: "09:00 AM", status: "Scheduled" as const, location: "123 Main St, Chicago, IL" },
-      { title: "Plumbing Inspection", time: "11:00 AM", status: "Scheduled" as const, location: "456 Oak Ave, Chicago, IL" },
-      { title: "AC Maintenance", time: "02:00 PM", status: "Scheduled" as const, location: "789 Pine Rd, Chicago, IL" },
-      { title: "Electrical Repair", time: "04:00 PM", status: "Scheduled" as const, location: "321 Elm St, Chicago, IL" },
+      { title: "HVAC Service Call", services: ["HVAC Service Call", "Duct Inspection", "Filter Replacement"], time: "09:00 AM", status: "Scheduled" as const, location: "123 Main St, Chicago, IL" },
+      { title: "Plumbing Inspection", services: ["Plumbing Inspection", "Pipe Assessment"], time: "11:00 AM", status: "Scheduled" as const, location: "456 Oak Ave, Chicago, IL" },
+      { title: "AC Maintenance", services: ["AC Maintenance"], time: "02:00 PM", status: "Scheduled" as const, location: "789 Pine Rd, Chicago, IL" },
+      { title: "Electrical Repair", services: ["Electrical Repair", "Wiring Check", "Panel Inspection"], time: "04:00 PM", status: "Scheduled" as const, location: "321 Elm St, Chicago, IL" },
     ];
 
     const demoCustomers = [
@@ -236,6 +236,7 @@ const EmployeeTracking = () => {
     return demoJobTemplates.map((template, index) => ({
       id: `DEMO-${employeeId}-${dateStr}-${index + 1}`,
       title: template.title,
+      services: template.services,
       customerId: `demo-${index + 1}`,
       customerName: demoCustomers[index] || `Customer ${index + 1}`,
       technicianId: employeeId,
@@ -787,6 +788,14 @@ const EmployeeTracking = () => {
     return "Job";
   };
 
+  // Format service display with "+ X more" for multiple services
+  const formatServiceDisplay = (job: typeof mockJobs[0]): string => {
+    if (job.services && job.services.length > 1) {
+      return `${job.services[0]} + ${job.services.length - 1} more`;
+    }
+    return job.services?.[0] || job.title;
+  };
+
   // Handle reassign employee
   const handleReassignEmployee = (job: typeof mockJobs[0]) => {
     setSelectedJobForReassign(job);
@@ -1193,7 +1202,7 @@ const EmployeeTracking = () => {
                                           <span className="text-xs font-medium">Stop {order}</span>
                                         </div>
                                         <p className="font-semibold text-gray-900 mb-1">{job.customerName}</p>
-                                        <p className="text-xs text-gray-600 mb-1">{job.title}</p>
+                                        <p className="text-xs text-gray-600 mb-1">{formatServiceDisplay(job)}</p>
                                         <p className="text-xs text-gray-500 mb-2">{job.location}</p>
                                         <Badge className={cn("text-[10px] px-1.5 py-0.5", 
                                           isCompleted ? "bg-green-100 text-green-700 border-green-200" :
@@ -1324,7 +1333,7 @@ const EmployeeTracking = () => {
                                 </div>
                               </div>
                               
-                              <p className="text-sm text-gray-700 mb-1.5 font-medium">{job.title}</p>
+                              <p className="text-sm text-gray-700 mb-1.5 font-medium">{formatServiceDisplay(job)}</p>
                               
                               <p className="text-xs text-gray-600 mb-2 line-clamp-1 flex items-start gap-1.5">
                                 <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
@@ -1544,6 +1553,39 @@ const EmployeeTracking = () => {
                                                     
                                                     const menuItems: KebabMenuItem[] = [
                                                       {
+                                                        label: "View Job Details",
+                                                        icon: Eye,
+                                                        action: () => {
+                                                          // First check if job has sourceType and sourceId
+                                                          if (job.sourceType && job.sourceId) {
+                                                            if (job.sourceType === "invoice") {
+                                                              navigate(`/invoices/${job.sourceId}`);
+                                                            } else if (job.sourceType === "estimate") {
+                                                              navigate(`/estimates/${job.sourceId}`);
+                                                            } else if (job.sourceType === "agreement") {
+                                                              navigate(`/agreements/${job.sourceId}`);
+                                                            } else {
+                                                              // Fallback to estimate details for demo
+                                                              navigate(`/estimates/EST-001`);
+                                                            }
+                                                          } else {
+                                                            // Fallback to ID prefix-based detection
+                                                            const jobType = getJobType(job.id);
+                                                            if (jobType === "Invoice") {
+                                                              navigate(`/invoices/${job.id}`);
+                                                            } else if (jobType === "Estimate") {
+                                                              navigate(`/estimates/${job.id}`);
+                                                            } else if (jobType === "Agreement") {
+                                                              navigate(`/agreements/${job.id}`);
+                                                            } else {
+                                                              // For demo/generic jobs, redirect to estimate details
+                                                              navigate(`/estimates/EST-001`);
+                                                            }
+                                                          }
+                                                        },
+                                                        separator: false,
+                                                      },
+                                                      {
                                                         label: "Reassign Employee",
                                                         icon: UserCog,
                                                         action: () => handleReassignEmployee(job),
@@ -1611,7 +1653,7 @@ const EmployeeTracking = () => {
                                             </div>
                                             
                                             {/* Row 2: Job Title */}
-                                            <p className="text-sm text-gray-700 mb-1.5 font-medium">{job.title}</p>
+                                            <p className="text-sm text-gray-700 mb-1.5 font-medium">{formatServiceDisplay(job)}</p>
                                             
                                             {/* Row 3: Location */}
                                             <p className="text-xs text-gray-600 mb-1.5 line-clamp-1 flex items-start gap-1.5">
@@ -1721,7 +1763,7 @@ const EmployeeTracking = () => {
                                 </p>
                               )}
                               <p className="font-semibold text-gray-900 mb-1">{job.customerName}</p>
-                              <p className="text-xs text-gray-600 mb-1">{job.title}</p>
+                              <p className="text-xs text-gray-600 mb-1">{formatServiceDisplay(job)}</p>
                               <p className="text-xs text-gray-500 mb-2">{job.location}</p>
                               <Badge className={cn("text-[10px] px-1.5 py-0.5", getStatusBadge(job.status))}>
                                 {job.status}
@@ -1937,7 +1979,7 @@ const EmployeeTracking = () => {
                               )}
                             </div>
                             
-                            <p className="text-sm text-gray-700 mb-1.5 font-medium">{job.title}</p>
+                            <p className="text-sm text-gray-700 mb-1.5 font-medium">{formatServiceDisplay(job)}</p>
                             
                             <p className="text-xs text-gray-600 mb-2 line-clamp-1 flex items-start gap-1.5">
                               <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
@@ -2087,7 +2129,7 @@ const EmployeeTracking = () => {
                                       </div>
                                     </div>
                                     
-                                    <p className="text-sm text-gray-700 mb-1.5 font-medium">{job.title}</p>
+                                    <p className="text-sm text-gray-700 mb-1.5 font-medium">{formatServiceDisplay(job)}</p>
                                     
                                     <p className="text-xs text-gray-600 mb-2 line-clamp-1 flex items-start gap-1.5">
                                       <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />

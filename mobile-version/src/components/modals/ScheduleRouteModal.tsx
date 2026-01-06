@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, MapPin, Clock, GripVertical, Calendar as CalendarIcon, Circle, XCircle, ChevronDown, UserCog, Edit } from "lucide-react";
+import { X, MapPin, Clock, GripVertical, Calendar as CalendarIcon, Circle, XCircle, ChevronDown, UserCog, Edit, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
@@ -165,6 +165,14 @@ const getJobType = (jobId: string): "Invoice" | "Estimate" | "Agreement" | "Job"
   return "Job";
 };
 
+// Format service display with "+ X more" for multiple services
+const formatServiceDisplay = (job: typeof mockJobs[0]): string => {
+  if (job.services && job.services.length > 1) {
+    return `${job.services[0]} + ${job.services.length - 1} more`;
+  }
+  return job.services?.[0] || job.title;
+};
+
 // Draggable Route Stop Card Component
 interface RouteStopCardProps {
   job: typeof mockJobs[0];
@@ -174,9 +182,10 @@ interface RouteStopCardProps {
   onStatusChange: (jobId: string, newStatus: string) => void;
   onReassignEmployee: (job: typeof mockJobs[0]) => void;
   onEditJob: (job: typeof mockJobs[0]) => void;
+  onViewDetails: (job: typeof mockJobs[0]) => void;
 }
 
-const RouteStopCard = ({ job, index, empColor, status, onStatusChange, onReassignEmployee, onEditJob }: RouteStopCardProps) => {
+const RouteStopCard = ({ job, index, empColor, status, onStatusChange, onReassignEmployee, onEditJob, onViewDetails }: RouteStopCardProps) => {
   const {
     attributes,
     listeners,
@@ -198,6 +207,12 @@ const RouteStopCard = ({ job, index, empColor, status, onStatusChange, onReassig
 
   // Build menu items
   const menuItems: KebabMenuItem[] = [
+    {
+      label: "View Details",
+      icon: Eye,
+      action: () => onViewDetails(job),
+      separator: false,
+    },
     {
       label: "Reassign Employee",
       icon: UserCog,
@@ -301,7 +316,7 @@ const RouteStopCard = ({ job, index, empColor, status, onStatusChange, onReassig
             </div>
           </div>
 
-          <p className="text-sm text-gray-700 mb-1.5 font-medium">{job.title}</p>
+          <p className="text-sm text-gray-700 mb-1.5 font-medium">{formatServiceDisplay(job)}</p>
 
           <p className="text-xs text-gray-600 mb-1.5 line-clamp-1 flex items-start gap-1.5">
             <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
@@ -357,10 +372,10 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
   // Generate demo jobs for an employee if no real jobs exist
   const generateDemoJobs = (employeeId: string, dateStr: string, employeeName: string): typeof mockJobs => {
     const demoJobTemplates = [
-      { title: "HVAC Service Call", time: "09:00 AM", status: "Scheduled" as const, location: "123 Main St, Chicago, IL" },
-      { title: "Plumbing Inspection", time: "11:00 AM", status: "Scheduled" as const, location: "456 Oak Ave, Chicago, IL" },
-      { title: "AC Maintenance", time: "02:00 PM", status: "Scheduled" as const, location: "789 Pine Rd, Chicago, IL" },
-      { title: "Electrical Repair", time: "04:00 PM", status: "Scheduled" as const, location: "321 Elm St, Chicago, IL" },
+      { title: "HVAC Service Call", services: ["HVAC Service Call", "Filter Check", "Thermostat Calibration"], time: "09:00 AM", status: "Scheduled" as const, location: "123 Main St, Chicago, IL" },
+      { title: "Plumbing Inspection", services: ["Plumbing Inspection"], time: "11:00 AM", status: "Scheduled" as const, location: "456 Oak Ave, Chicago, IL" },
+      { title: "AC Maintenance", services: ["AC Maintenance", "Coil Cleaning"], time: "02:00 PM", status: "Scheduled" as const, location: "789 Pine Rd, Chicago, IL" },
+      { title: "Electrical Repair", services: ["Electrical Repair", "Outlet Installation", "Panel Inspection"], time: "04:00 PM", status: "Scheduled" as const, location: "321 Elm St, Chicago, IL" },
     ];
 
     const demoCustomers = [
@@ -370,6 +385,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     return demoJobTemplates.map((template, index) => ({
       id: `DEMO-${employeeId}-${dateStr}-${index + 1}`,
       title: template.title,
+      services: template.services,
       customerId: `demo-${index + 1}`,
       customerName: demoCustomers[index] || `Customer ${index + 1}`,
       technicianId: employeeId,
@@ -511,6 +527,37 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
       navigate(`/jobs/${job.id}/edit`);
     }
     // Close the modal when navigating to edit
+    onClose();
+  };
+
+  // Handle view details - navigates to appropriate details page based on job source type
+  const handleViewDetails = (job: typeof mockJobs[0]) => {
+    // First check if job has sourceType and sourceId (for jobs created from Invoice/Estimate/Agreement)
+    if (job.sourceType && job.sourceId) {
+      if (job.sourceType === "invoice") {
+        navigate(`/invoices/${job.sourceId}`);
+      } else if (job.sourceType === "estimate") {
+        navigate(`/estimates/${job.sourceId}`);
+      } else if (job.sourceType === "agreement") {
+        navigate(`/agreements/${job.sourceId}`);
+      } else {
+        // Fallback to estimate details for demo
+        navigate(`/estimates/EST-001`);
+      }
+    } else {
+      // Fallback to ID prefix-based detection for jobs without sourceType
+      const jobType = getJobType(job.id);
+      if (jobType === "Invoice") {
+        navigate(`/invoices/${job.id}`);
+      } else if (jobType === "Estimate") {
+        navigate(`/estimates/${job.id}`);
+      } else if (jobType === "Agreement") {
+        navigate(`/agreements/${job.id}`);
+      } else {
+        // For demo/generic jobs, redirect to estimate details
+        navigate(`/estimates/EST-001`);
+      }
+    }
     onClose();
   };
 
@@ -831,7 +878,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
                               <span className="text-xs font-medium">Stop {order}</span>
                             </div>
                             <p className="font-semibold text-gray-900 mb-1">{job.customerName}</p>
-                            <p className="text-xs text-gray-600 mb-1">{job.title}</p>
+                            <p className="text-xs text-gray-600 mb-1">{formatServiceDisplay(job)}</p>
                             <p className="text-xs text-gray-500 mb-2">{job.location}</p>
                             <Badge className={cn("text-[10px] px-1.5 py-0.5", 
                               isCompleted ? "bg-green-100 text-green-700 border-green-200" :
@@ -880,6 +927,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
                         onStatusChange={handleJobStatusChange}
                         onReassignEmployee={handleReassignEmployee}
                         onEditJob={handleEditJob}
+                        onViewDetails={handleViewDetails}
                       />
                     ))}
                   </div>
