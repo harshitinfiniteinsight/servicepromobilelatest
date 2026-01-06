@@ -454,11 +454,14 @@ const JobCard = ({
         </div>
       </div>
       
-      {/* Row 3: Creation Date + Employee */}
+      {/* Row 3: Service Date & Time + Employee */}
       <div className="flex items-center justify-between pt-1.5 border-t border-gray-100 cursor-pointer" onClick={onClick}>
         <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
           <Calendar className="h-3 w-3 flex-shrink-0" />
-          <span>{new Date(job.date).toLocaleDateString()}</span>
+          <span>
+            {new Date(job.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            {job.time && <> • {job.time}</>}
+          </span>
         </div>
         <div className="flex items-center gap-1.5">
           <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">

@@ -12,6 +12,7 @@ import PaymentModal from "@/components/modals/PaymentModal";
 import SendSMSModal from "@/components/modals/SendSMSModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
+import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import { mockAgreements, mockCustomers, mockEmployees } from "@/data/mobileMockData";
 import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -40,6 +41,8 @@ const Agreements = () => {
   const [selectedAgreement, setSelectedAgreement] = useState<typeof mockAgreements[0] | null>(null);
   const [selectedAgreementForSms, setSelectedAgreementForSms] = useState<{ id: string; customerId: string; customerPhone?: string; customerName?: string } | null>(null);
   const [selectedAgreementForEmail, setSelectedAgreementForEmail] = useState<{ id: string; customerId: string; customerEmail?: string; customerName?: string } | null>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [agreementToConvert, setAgreementToConvert] = useState<typeof mockAgreements[0] | null>(null);
 
   // Get user role
   const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
@@ -205,12 +208,10 @@ const Agreements = () => {
         }
         break;
       case "convert-to-job":
-        const result = convertToJob("agreement", agreementId);
-        if (result.success) {
-          toast.success("Job created successfully");
-          navigate("/jobs");
-        } else {
-          toast.error(result.error || "Failed to convert to job");
+        const agreementForConversion = mockAgreements.find(a => a.id === agreementId);
+        if (agreementForConversion) {
+          setAgreementToConvert(agreementForConversion);
+          setShowScheduleModal(true);
         }
         break;
       default:
@@ -462,6 +463,35 @@ const Agreements = () => {
           customerName={selectedAgreementForEmail.customerName}
         />
       ) : null}
+
+      {/* Schedule Service Modal for Convert to Job */}
+      {agreementToConvert && (
+        <ScheduleServiceModal
+          isOpen={showScheduleModal}
+          onClose={() => {
+            setShowScheduleModal(false);
+            setAgreementToConvert(null);
+          }}
+          onConfirm={(date, time) => {
+            const result = convertToJob("agreement", agreementToConvert.id, date, time);
+            if (result.success) {
+              toast.success("Job scheduled successfully");
+              setShowScheduleModal(false);
+              setAgreementToConvert(null);
+              navigate("/jobs");
+            } else {
+              toast.error(result.error || "Failed to create job");
+            }
+          }}
+          employee={{
+            id: mockEmployees.find(e => e.name === (agreementToConvert as any).employeeName)?.id || mockEmployees[0].id,
+            name: (agreementToConvert as any).employeeName || mockEmployees[0].name,
+            email: mockEmployees.find(e => e.name === (agreementToConvert as any).employeeName)?.email || mockEmployees[0].email,
+          }}
+          sourceType="agreement"
+          sourceId={agreementToConvert.id}
+        />
+      )}
     </div>
   );
 };

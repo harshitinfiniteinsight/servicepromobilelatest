@@ -13,6 +13,7 @@ import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import ShareAddressModal from "@/components/modals/ShareAddressModal";
 import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
+import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import { mockEstimates, mockCustomers, mockEmployees, mockInvoices } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -52,6 +53,8 @@ const Estimates = () => {
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [selectedEstimateForNote, setSelectedEstimateForNote] = useState<string | null>(null);
   const [allEstimates, setAllEstimates] = useState<any[]>([]);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [estimateToConvert, setEstimateToConvert] = useState<any>(null);
 
   // Get user role from localStorage
   const userRole = localStorage.getItem("userType") || "merchant";
@@ -469,12 +472,10 @@ const Estimates = () => {
         handlePayCash(estimateId);
         break;
       case "convert-to-job":
-        const result = convertToJob("estimate", estimateId);
-        if (result.success) {
-          toast.success("Job created successfully");
-          navigate("/jobs");
-        } else {
-          toast.error(result.error || "Failed to convert to job");
+        const estimateForConversion = allEstimates.find(est => est.id === estimateId);
+        if (estimateForConversion) {
+          setEstimateToConvert(estimateForConversion);
+          setShowScheduleModal(true);
         }
         break;
       default:
@@ -1050,6 +1051,35 @@ const Estimates = () => {
         dateRange={dateRange}
         onConfirm={handleDateRangeConfirm}
       />
+
+      {/* Schedule Service Modal for Convert to Job */}
+      {estimateToConvert && (
+        <ScheduleServiceModal
+          isOpen={showScheduleModal}
+          onClose={() => {
+            setShowScheduleModal(false);
+            setEstimateToConvert(null);
+          }}
+          onConfirm={(date, time) => {
+            const result = convertToJob("estimate", estimateToConvert.id, date, time);
+            if (result.success) {
+              toast.success("Job scheduled successfully");
+              setShowScheduleModal(false);
+              setEstimateToConvert(null);
+              navigate("/jobs");
+            } else {
+              toast.error(result.error || "Failed to create job");
+            }
+          }}
+          employee={{
+            id: mockEmployees.find(e => e.name === estimateToConvert.employeeName)?.id || mockEmployees[0].id,
+            name: estimateToConvert.employeeName || mockEmployees[0].name,
+            email: mockEmployees.find(e => e.name === estimateToConvert.employeeName)?.email || mockEmployees[0].email,
+          }}
+          sourceType="estimate"
+          sourceId={estimateToConvert.id}
+        />
+      )}
     </div>
   );
 };

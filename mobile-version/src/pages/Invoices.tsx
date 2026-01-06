@@ -12,6 +12,7 @@ import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import InvoiceDueAlertModal from "@/components/modals/InvoiceDueAlertModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
+import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import { mockCustomers, mockInvoices, mockEmployees } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -74,6 +75,8 @@ const Invoices = () => {
   const [selectedInvoiceForNote, setSelectedInvoiceForNote] = useState<Invoice | null>(null);
   const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
   const [newInvoiceId, setNewInvoiceId] = useState<string | null>(null);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [invoiceToConvert, setInvoiceToConvert] = useState<Invoice | null>(null);
 
   // Get user role from localStorage
   const userRole = localStorage.getItem("userType") || "merchant";
@@ -441,13 +444,8 @@ const Invoices = () => {
         handlePayCash(invoice.id);
         break;
       case "convert-to-job":
-        const result = convertToJob("invoice", invoice.id);
-        if (result.success) {
-          toast.success("Job created successfully");
-          navigate("/jobs");
-        } else {
-          toast.error(result.error || "Failed to convert to job");
-        }
+        setInvoiceToConvert(invoice);
+        setShowScheduleModal(true);
         break;
       default:
         break;
@@ -942,6 +940,35 @@ const Invoices = () => {
         onConfirm={handleDateRangeConfirm}
         resetToToday={false}
       />
+
+      {/* Schedule Service Modal for Convert to Job */}
+      {invoiceToConvert && (
+        <ScheduleServiceModal
+          isOpen={showScheduleModal}
+          onClose={() => {
+            setShowScheduleModal(false);
+            setInvoiceToConvert(null);
+          }}
+          onConfirm={(date, time) => {
+            const result = convertToJob("invoice", invoiceToConvert.id, date, time);
+            if (result.success) {
+              toast.success("Job scheduled successfully");
+              setShowScheduleModal(false);
+              setInvoiceToConvert(null);
+              navigate("/jobs");
+            } else {
+              toast.error(result.error || "Failed to create job");
+            }
+          }}
+          employee={{
+            id: mockEmployees.find(e => e.name === (invoiceToConvert as any).employeeName)?.id || mockEmployees[0].id,
+            name: (invoiceToConvert as any).employeeName || mockEmployees[0].name,
+            email: mockEmployees.find(e => e.name === (invoiceToConvert as any).employeeName)?.email || mockEmployees[0].email,
+          }}
+          sourceType="invoice"
+          sourceId={invoiceToConvert.id}
+        />
+      )}
     </div>
   );
 };

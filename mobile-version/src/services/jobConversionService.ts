@@ -12,11 +12,15 @@ export interface ConvertToJobResult {
  * Converts an Invoice, Estimate, or Agreement to a Job
  * @param sourceType - Type of source document
  * @param sourceId - ID of the source document
+ * @param scheduleDate - Optional scheduled date (YYYY-MM-DD format)
+ * @param scheduleTime - Optional scheduled time (e.g., "09:00 AM")
  * @returns Result object with success status and job ID
  */
 export function convertToJob(
   sourceType: DocumentSourceType,
-  sourceId: string
+  sourceId: string,
+  scheduleDate?: string,
+  scheduleTime?: string
 ): ConvertToJobResult {
   try {
     let jobData: any = null;
@@ -44,8 +48,8 @@ export function convertToJob(
         customerName: document.customerName,
         technicianId: employee.id,
         technicianName: employee.name,
-        date: document.issueDate || new Date().toISOString().split("T")[0],
-        time: "09:00 AM", // Default time
+        date: scheduleDate || document.issueDate || new Date().toISOString().split("T")[0],
+        time: scheduleTime || "09:00 AM",
         status: "Scheduled",
         location: (document as any).jobAddress || customer?.address || "",
         sourceType: "invoice",
@@ -76,8 +80,8 @@ export function convertToJob(
         customerName: document.customerName,
         technicianId: employee.id,
         technicianName: employee.name,
-        date: document.date || new Date().toISOString().split("T")[0],
-        time: "10:00 AM",
+        date: scheduleDate || document.date || new Date().toISOString().split("T")[0],
+        time: scheduleTime || "10:00 AM",
         status: "Scheduled",
         location: (document as any).jobAddress || customer?.address || "",
         sourceType: "estimate",
@@ -120,8 +124,8 @@ export function convertToJob(
         customerName: document.customerName,
         technicianId: employee.id,
         technicianName: employee.name,
-        date: document.startDate || new Date().toISOString().split("T")[0],
-        time: "11:00 AM",
+        date: scheduleDate || document.startDate || new Date().toISOString().split("T")[0],
+        time: scheduleTime || "11:00 AM",
         status: "Scheduled",
         location: (document as any).jobAddress || customer?.address || "",
         sourceType: "agreement",
