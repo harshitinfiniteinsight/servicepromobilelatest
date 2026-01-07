@@ -473,14 +473,23 @@ const Agreements = () => {
             setAgreementToConvert(null);
           }}
           onConfirm={(date, time) => {
-            const result = convertToJob("agreement", agreementToConvert.id, date, time);
-            if (result.success) {
-              toast.success("Job scheduled successfully");
+            try {
+              const result = convertToJob("agreement", agreementToConvert.id, date, time);
+              if (result.success) {
+                toast.success("Job scheduled successfully");
+                setShowScheduleModal(false);
+                setAgreementToConvert(null);
+                navigate("/jobs");
+              } else {
+                toast.error(result.error || "Failed to create job");
+                setShowScheduleModal(false);
+                setAgreementToConvert(null);
+              }
+            } catch (error) {
+              console.error("Error creating job:", error);
+              toast.error("Failed to create job");
               setShowScheduleModal(false);
               setAgreementToConvert(null);
-              navigate("/jobs");
-            } else {
-              toast.error(result.error || "Failed to create job");
             }
           }}
           employee={{

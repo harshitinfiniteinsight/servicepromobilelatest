@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Edit, Eye, Share2, FileText, MessageSquare, UserCog, MapPin, Image as ImageIcon } from "lucide-react";
+import { Calendar, Edit, Eye, Share2, FileText, MapPin, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
@@ -11,6 +11,7 @@ interface JobCardProps {
     id: string;
     title: string;
     customerName: string;
+    technicianId?: string;
     technicianName: string;
     date: string;
     time: string;
@@ -30,7 +31,7 @@ interface JobCardProps {
   onViewFeedback?: () => void;
   onQuickAction?: (action: string) => void;
   onPreview?: (documentId: string, jobType: "Agreement" | "Estimate" | "Invoice") => void;
-  onReassignEmployee?: () => void;
+  onReschedule?: () => void;
   onAddPictures?: () => void;
   onViewPictures?: () => void;
 }
@@ -50,7 +51,7 @@ const JobCard = ({
   onViewFeedback,
   onQuickAction,
   onPreview,
-  onReassignEmployee,
+  onReschedule,
   onAddPictures,
   onViewPictures
 }: JobCardProps) => {
@@ -164,7 +165,7 @@ const JobCard = ({
     
     // Status-based menu logic
     if (jobStatus === "Scheduled") {
-      // Scheduled: Preview, Edit, Reassign Employee, Share, Show on Map, Add Pictures, View Pictures (if exists)
+      // Scheduled: Preview, Edit, Reschedule Job, Reassign Employee, Share, Show on Map, Add Pictures, View Pictures (if exists)
       
       // Preview - always first
       items.push({
@@ -184,12 +185,13 @@ const JobCard = ({
         });
       }
       
-      // Reassign Employee - only for merchant
-      if (!isEmployee && onReassignEmployee) {
+      // Reschedule Job - for merchants and employees
+      // Note: Employee reassignment is now handled within this flow
+      if (onReschedule) {
         items.push({
-          label: "Reassign Employee",
-          icon: UserCog,
-          action: () => onReassignEmployee(),
+          label: "Reschedule Job",
+          icon: RefreshCw,
+          action: () => onReschedule(),
           separator: false,
         });
       }
@@ -233,7 +235,7 @@ const JobCard = ({
       }
       
     } else if (jobStatus === "In Progress") {
-      // In Progress: Preview, Share, Show on Map, Add Pictures, View Pictures (if exists)
+      // In Progress: Preview, Reschedule Job, Share, Show on Map, Add Pictures, View Pictures (if exists)
       
       // Preview
       items.push({
@@ -242,6 +244,16 @@ const JobCard = ({
         action: handlePreview,
         separator: false,
       });
+      
+      // Reschedule Job - for merchants and employees
+      if (onReschedule) {
+        items.push({
+          label: "Reschedule Job",
+          icon: RefreshCw,
+          action: () => onReschedule(),
+          separator: false,
+        });
+      }
       
       // Share
       if (onQuickAction) {

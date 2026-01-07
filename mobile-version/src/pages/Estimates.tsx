@@ -1061,14 +1061,23 @@ const Estimates = () => {
             setEstimateToConvert(null);
           }}
           onConfirm={(date, time) => {
-            const result = convertToJob("estimate", estimateToConvert.id, date, time);
-            if (result.success) {
-              toast.success("Job scheduled successfully");
+            try {
+              const result = convertToJob("estimate", estimateToConvert.id, date, time);
+              if (result.success) {
+                toast.success("Job scheduled successfully");
+                setShowScheduleModal(false);
+                setEstimateToConvert(null);
+                navigate("/jobs");
+              } else {
+                toast.error(result.error || "Failed to create job");
+                setShowScheduleModal(false);
+                setEstimateToConvert(null);
+              }
+            } catch (error) {
+              console.error("Error creating job:", error);
+              toast.error("Failed to create job");
               setShowScheduleModal(false);
               setEstimateToConvert(null);
-              navigate("/jobs");
-            } else {
-              toast.error(result.error || "Failed to create job");
             }
           }}
           employee={{

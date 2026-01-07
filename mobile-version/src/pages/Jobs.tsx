@@ -19,10 +19,10 @@ import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import PreviewAgreementModal from "@/components/modals/PreviewAgreementModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
-import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import AddServicePicturesModal from "@/components/modals/AddServicePicturesModal";
 import ViewServicePicturesModal from "@/components/modals/ViewServicePicturesModal";
 import CannotEditModal from "@/components/modals/CannotEditModal";
+import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -109,12 +109,38 @@ const Jobs = () => {
       new Map(allJobs.map(job => [job.id, job])).values()
     );
 
+    // Sort jobs by createdAt in descending order (newest first)
+    // Jobs without createdAt are sorted by ID (which contains timestamp for JOB-* format)
+    const sortedJobs = uniqueJobs.sort((a, b) => {
+      const aCreatedAt = (a as any).createdAt;
+      const bCreatedAt = (b as any).createdAt;
+      
+      // If both have createdAt, compare them
+      if (aCreatedAt && bCreatedAt) {
+        return new Date(bCreatedAt).getTime() - new Date(aCreatedAt).getTime();
+      }
+      
+      // Jobs with createdAt come first (they are newly created)
+      if (aCreatedAt && !bCreatedAt) return -1;
+      if (!aCreatedAt && bCreatedAt) return 1;
+      
+      // For jobs without createdAt, sort by ID (JOB-timestamp format means newer IDs are larger)
+      const aTimestamp = a.id.match(/JOB-(\d+)/)?.[1];
+      const bTimestamp = b.id.match(/JOB-(\d+)/)?.[1];
+      if (aTimestamp && bTimestamp) {
+        return parseInt(bTimestamp) - parseInt(aTimestamp);
+      }
+      
+      // Fallback: sort by date descending
+      return new Date(b.date).getTime() - new Date(a.date).getTime();
+    });
+
     // For employees, filter to only their assigned jobs
     if (isEmployee && currentEmployeeName) {
-      return uniqueJobs.filter(job => job.technicianName === currentEmployeeName);
+      return sortedJobs.filter(job => job.technicianName === currentEmployeeName);
     }
 
-    return uniqueJobs;
+    return sortedJobs;
   }, [isEmployee, currentEmployeeName, jobListRefreshTrigger]);
 
   // Manage job statuses (initialize from combined jobs, but allow updates)
@@ -197,9 +223,10 @@ const Jobs = () => {
   const [previewInvoice, setPreviewInvoice] = useState<any>(null);
   const [previewAgreement, setPreviewAgreement] = useState<any>(null);
 
-  // Reassign employee modal state
-  const [showReassignEmployeeModal, setShowReassignEmployeeModal] = useState(false);
-  const [selectedJobForReassign, setSelectedJobForReassign] = useState<typeof jobs[0] | null>(null);
+  // Reschedule job modal state
+  // Note: Employee reassignment is now handled within this modal
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [selectedJobForReschedule, setSelectedJobForReschedule] = useState<typeof jobs[0] | null>(null);
 
   // Metrics carousel state
   const [metricsGroupIndex, setMetricsGroupIndex] = useState(0);
@@ -828,33 +855,65 @@ const Jobs = () => {
     setSelectedJobForCannotEdit(null);
   };
 
-  // Handle reassign employee
-  const handleReassignEmployee = (jobId: string) => {
+  // Handle reschedule job
+  const handleRescheduleJob = (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
     if (job) {
-      setSelectedJobForReassign(job);
-      setShowReassignEmployeeModal(true);
+      setSelectedJobForReschedule(job);
+      setShowRescheduleModal(true);
     }
   };
 
-  // Handle employee reassignment save
-  const handleReassignSave = (employeeId: string) => {
-    if (!selectedJobForReassign) return;
+  /**
+   * Handle reschedule confirmation
+   * PROTOTYPE: Updates job locally without backend call
+   * TODO for production:
+   * - Add real API call to update job schedule
+   * - Add validation for employee availability
+   * - Add notification to affected parties
+   */
+  const handleRescheduleConfirm = (newDate: string, newTime: string, newEmployeeId: string) => {
+    if (!selectedJobForReschedule) return;
 
-    const newEmployee = mockEmployees.find(emp => emp.id === employeeId);
-    if (newEmployee) {
-      // Update the job's technician
-      setJobs(prevJobs =>
-        prevJobs.map(job =>
-          job.id === selectedJobForReassign.id
-            ? { ...job, technicianName: newEmployee.name, technicianId: newEmployee.id }
-            : job
-        )
+    const newEmployee = mockEmployees.find(emp => emp.id === newEmployeeId);
+    
+    // Update the job with new schedule and employee
+    setJobs(prevJobs =>
+      prevJobs.map(job =>
+        job.id === selectedJobForReschedule.id
+          ? {
+              ...job,
+              date: newDate,
+              time: newTime,
+              technicianId: newEmployeeId,
+              technicianName: newEmployee?.name || job.technicianName,
+            }
+          : job
+      )
+    );
+
+    // PROTOTYPE: Also update localStorage if job exists there
+    try {
+      const storedJobs = JSON.parse(localStorage.getItem("mockJobs") || "[]");
+      const updatedStoredJobs = storedJobs.map((job: any) =>
+        job.id === selectedJobForReschedule.id
+          ? {
+              ...job,
+              date: newDate,
+              time: newTime,
+              technicianId: newEmployeeId,
+              technicianName: newEmployee?.name || job.technicianName,
+            }
+          : job
       );
-      toast.success(`Employee reassigned to ${newEmployee.name}`);
-      setShowReassignEmployeeModal(false);
-      setSelectedJobForReassign(null);
+      localStorage.setItem("mockJobs", JSON.stringify(updatedStoredJobs));
+    } catch (e) {
+      console.warn("Could not update localStorage jobs");
     }
+
+    toast.success("Job rescheduled successfully");
+    setShowRescheduleModal(false);
+    setSelectedJobForReschedule(null);
   };
 
   return (
@@ -1123,7 +1182,7 @@ const Jobs = () => {
                 previewInvoice={() => handlePreview(job.id, "Invoice")}
                 previewAgreement={() => handlePreview(job.id, "Agreement")}
                 onEdit={() => handleEditJob(job.id)}
-                onReassign={() => handleReassignEmployee(job.id)}
+                onReschedule={() => handleRescheduleJob(job.id)}
               />
             ))
           )}
@@ -1261,16 +1320,24 @@ const Jobs = () => {
         />
       )}
 
-      {/* Reassign Employee Modal */}
-      {selectedJobForReassign && (
-        <ReassignEmployeeModal
-          isOpen={showReassignEmployeeModal}
+      {/* Reschedule Job Modal - also handles employee reassignment */}
+      {selectedJobForReschedule && (
+        <RescheduleJobModal
+          isOpen={showRescheduleModal}
           onClose={() => {
-            setShowReassignEmployeeModal(false);
-            setSelectedJobForReassign(null);
+            setShowRescheduleModal(false);
+            setSelectedJobForReschedule(null);
           }}
-          onConfirm={handleReassignEmployeeConfirm}
-          currentEmployeeName={selectedJobForReassign.technicianName}
+          onConfirm={handleRescheduleConfirm}
+          job={{
+            id: selectedJobForReschedule.id,
+            title: selectedJobForReschedule.title,
+            customerName: selectedJobForReschedule.customerName,
+            technicianId: (selectedJobForReschedule as any).technicianId || "1",
+            technicianName: selectedJobForReschedule.technicianName,
+            date: selectedJobForReschedule.date,
+            time: selectedJobForReschedule.time,
+          }}
         />
       )}
     </div>

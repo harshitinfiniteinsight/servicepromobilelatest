@@ -179,13 +179,14 @@ interface RouteStopCardProps {
   index: number;
   empColor: string;
   status: string;
+  predictedTime?: string; // New: predicted time based on route order
   onStatusChange: (jobId: string, newStatus: string) => void;
   onReassignEmployee: (job: typeof mockJobs[0]) => void;
   onEditJob: (job: typeof mockJobs[0]) => void;
   onViewDetails: (job: typeof mockJobs[0]) => void;
 }
 
-const RouteStopCard = ({ job, index, empColor, status, onStatusChange, onReassignEmployee, onEditJob, onViewDetails }: RouteStopCardProps) => {
+const RouteStopCard = ({ job, index, empColor, status, predictedTime, onStatusChange, onReassignEmployee, onEditJob, onViewDetails }: RouteStopCardProps) => {
   const {
     attributes,
     listeners,
@@ -325,7 +326,13 @@ const RouteStopCard = ({ job, index, empColor, status, onStatusChange, onReassig
 
           <div className="flex items-center gap-2 text-xs text-gray-600">
             <Clock className="h-3.5 w-3.5 shrink-0" />
-            <span className="font-medium">{job.time}</span>
+            <span className="font-medium">
+              {predictedTime ? (
+                <span className="text-orange-600">{predictedTime}</span>
+              ) : (
+                job.time
+              )}
+            </span>
           </div>
         </div>
       </div>
@@ -342,6 +349,10 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
   const [isSaving, setIsSaving] = useState(false);
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [selectedJobForReassign, setSelectedJobForReassign] = useState<typeof mockJobs[0] | null>(null);
+  
+  // Route start time and job duration configuration
+  const [routeStartTime, setRouteStartTime] = useState<string>("09:00");
+  const [defaultJobDuration, setDefaultJobDuration] = useState<number>(60); // in minutes
 
   // Determine text based on mode
   const modalTitle = mode === "edit" ? "Edit Route" : "Schedule Route";
@@ -354,6 +365,23 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
+  };
+
+  // Convert 24-hour time (HH:MM) to 12-hour format (HH:MM AM/PM)
+  const formatTo12Hour = (time24: string): string => {
+    const [hours, minutes] = time24.split(":").map(Number);
+    const period = hours >= 12 ? "PM" : "AM";
+    const hour12 = hours % 12 || 12;
+    return `${hour12.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
+
+  // Add minutes to a 24-hour time string, returning new 24-hour time
+  const addMinutesToTime = (time24: string, minutesToAdd: number): string => {
+    const [hours, minutes] = time24.split(":").map(Number);
+    const totalMinutes = hours * 60 + minutes + minutesToAdd;
+    const newHours = Math.floor(totalMinutes / 60) % 24;
+    const newMinutes = totalMinutes % 60;
+    return `${newHours.toString().padStart(2, "0")}:${newMinutes.toString().padStart(2, "0")}`;
   };
 
   // Get all employees (not filtered by jobs) - show full list
@@ -670,7 +698,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
   const currentJob = routeStops.find((job) => job.status === "In Progress");
   const empColor = selectedEmployeeId ? (employeeColors[selectedEmployeeId] || "#3b82f6") : "#3b82f6";
 
-  // Handle save
+  // Handle save - saves route order and recalculates job times sequentially
   const handleSave = async () => {
     if (routeStops.length < 2) {
       toast.error("At least 2 stops are required to save a route");
@@ -689,10 +717,29 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
       const statusKey = `route_statuses_${selectedEmployeeId}_${dateStr}`;
       localStorage.setItem(statusKey, JSON.stringify(jobStatuses));
 
+      // Calculate new job times based on route order (auto-reschedule)
+      // Start from routeStartTime, add defaultJobDuration for each subsequent job
+      const jobTimeOverrides: Record<string, string> = {};
+      let currentTime24 = routeStartTime; // e.g., "09:00"
+      
+      routeStops.forEach((job, index) => {
+        // Set this job's new time
+        jobTimeOverrides[job.id] = formatTo12Hour(currentTime24);
+        // Increment time for next job
+        currentTime24 = addMinutesToTime(currentTime24, defaultJobDuration);
+      });
+
+      // Save job time overrides to localStorage
+      const timeOverridesKey = `job_time_overrides_${selectedEmployeeId}_${dateStr}`;
+      localStorage.setItem(timeOverridesKey, JSON.stringify(jobTimeOverrides));
+
       // Call onSave callback
       onSave(selectedEmployeeId, orderedIds);
 
-      toast.success("Route saved successfully");
+      // Show success with timing info
+      const startFormatted = formatTo12Hour(routeStartTime);
+      const endFormatted = formatTo12Hour(currentTime24);
+      toast.success(`Route saved! Jobs rescheduled ${startFormatted} - ${endFormatted}`);
       onClose();
     } catch (error) {
       toast.error("Failed to save route");
@@ -900,10 +947,48 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
           {/* Draggable Route Cards */}
           {selectedEmployeeId && routeStops.length > 0 && (
             <div className="flex-1 overflow-y-auto px-4 pb-24">
+              {/* Route Timing Configuration */}
+              <div className="mb-4 p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
+                <div className="flex items-center gap-2 mb-3">
+                  <Clock className="h-4 w-4 text-orange-500" />
+                  <h4 className="text-sm font-semibold text-gray-800">Route Timing</h4>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Start Time</label>
+                    <input
+                      type="time"
+                      value={routeStartTime}
+                      onChange={(e) => setRouteStartTime(e.target.value)}
+                      className="w-full h-9 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-gray-600 mb-1 block">Job Duration</label>
+                    <Select value={defaultJobDuration.toString()} onValueChange={(v) => setDefaultJobDuration(Number(v))}>
+                      <SelectTrigger className="h-9 bg-white border-gray-300">
+                        <SelectValue placeholder="Duration" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="30">30 mins</SelectItem>
+                        <SelectItem value="45">45 mins</SelectItem>
+                        <SelectItem value="60">1 hour</SelectItem>
+                        <SelectItem value="90">1.5 hours</SelectItem>
+                        <SelectItem value="120">2 hours</SelectItem>
+                        <SelectItem value="180">3 hours</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-2">
+                  Jobs will be auto-scheduled starting at {formatTo12Hour(routeStartTime)}, {defaultJobDuration} min apart
+                </p>
+              </div>
+
               <div className="mb-3">
                 <h3 className="text-sm font-semibold text-gray-800">Route Stops</h3>
                 <p className="text-xs text-gray-500 mt-0.5">
-                  Drag to reorder stops and optimize the route
+                  Drag to reorder stops. Times will auto-update when saved.
                 </p>
               </div>
 
@@ -917,19 +1002,26 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
                   strategy={verticalListSortingStrategy}
                 >
                   <div className="space-y-2.5">
-                    {routeStops.map((job, index) => (
-                      <RouteStopCard
-                        key={job.id}
-                        job={job}
-                        index={index}
-                        empColor={empColor}
-                        status={jobStatuses[job.id] || (job.status === "Cancel" ? "Cancel" : "Scheduled")}
-                        onStatusChange={handleJobStatusChange}
-                        onReassignEmployee={handleReassignEmployee}
-                        onEditJob={handleEditJob}
-                        onViewDetails={handleViewDetails}
-                      />
-                    ))}
+                    {routeStops.map((job, index) => {
+                      // Calculate predicted time for this job based on index
+                      const predictedTime = formatTo12Hour(
+                        addMinutesToTime(routeStartTime, index * defaultJobDuration)
+                      );
+                      return (
+                        <RouteStopCard
+                          key={job.id}
+                          job={job}
+                          index={index}
+                          empColor={empColor}
+                          status={jobStatuses[job.id] || (job.status === "Cancel" ? "Cancel" : "Scheduled")}
+                          predictedTime={predictedTime}
+                          onStatusChange={handleJobStatusChange}
+                          onReassignEmployee={handleReassignEmployee}
+                          onEditJob={handleEditJob}
+                          onViewDetails={handleViewDetails}
+                        />
+                      );
+                    })}
                   </div>
                 </SortableContext>
               </DndContext>

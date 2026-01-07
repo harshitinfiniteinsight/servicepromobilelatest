@@ -107,18 +107,24 @@ const ScheduleServiceModal = ({
   };
 
   const handleConfirm = async () => {
-    if (!selectedDate || !selectedTime) return;
+    // Prevent duplicate submissions
+    if (!selectedDate || !selectedTime || isConfirming) return;
     
     setIsConfirming(true);
     
-    // Format date for the job
-    const formattedDate = format(selectedDate, "yyyy-MM-dd");
-    
-    // Simulate API call delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    onConfirm(formattedDate, selectedTime);
-    setIsConfirming(false);
+    try {
+      // Format date for the job
+      const formattedDate = format(selectedDate, "yyyy-MM-dd");
+      
+      // Small delay for better UX feedback
+      await new Promise(resolve => setTimeout(resolve, 300));
+      
+      // Call onConfirm - this will handle job creation and navigation
+      onConfirm(formattedDate, selectedTime);
+    } catch (error) {
+      console.error("Error creating job:", error);
+      setIsConfirming(false);
+    }
   };
 
   const handleClose = () => {
@@ -126,6 +132,7 @@ const ScheduleServiceModal = ({
     setSelectedDate(null);
     setSelectedTime(null);
     setCurrentMonth(new Date());
+    setIsConfirming(false);
     onClose();
   };
 

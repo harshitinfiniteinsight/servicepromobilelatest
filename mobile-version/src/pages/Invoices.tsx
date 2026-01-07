@@ -950,14 +950,23 @@ const Invoices = () => {
             setInvoiceToConvert(null);
           }}
           onConfirm={(date, time) => {
-            const result = convertToJob("invoice", invoiceToConvert.id, date, time);
-            if (result.success) {
-              toast.success("Job scheduled successfully");
+            try {
+              const result = convertToJob("invoice", invoiceToConvert.id, date, time);
+              if (result.success) {
+                toast.success("Job scheduled successfully");
+                setShowScheduleModal(false);
+                setInvoiceToConvert(null);
+                navigate("/jobs");
+              } else {
+                toast.error(result.error || "Failed to create job");
+                setShowScheduleModal(false);
+                setInvoiceToConvert(null);
+              }
+            } catch (error) {
+              console.error("Error creating job:", error);
+              toast.error("Failed to create job");
               setShowScheduleModal(false);
               setInvoiceToConvert(null);
-              navigate("/jobs");
-            } else {
-              toast.error(result.error || "Failed to create job");
             }
           }}
           employee={{

@@ -220,6 +220,20 @@ const EmployeeTracking = () => {
     return `${year}-${month}-${day}`;
   };
 
+  // Get job time overrides for a specific employee and date
+  const getJobTimeOverrides = (employeeId: string, dateStr: string): Record<string, string> => {
+    const timeOverridesKey = `job_time_overrides_${employeeId}_${dateStr}`;
+    const stored = localStorage.getItem(timeOverridesKey);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return {};
+      }
+    }
+    return {};
+  };
+
   // Generate demo jobs for an employee if no real jobs exist
   const generateDemoJobsForEmployee = (employeeId: string, dateStr: string, employeeName: string): typeof mockJobs => {
     const demoJobTemplates = [
@@ -303,10 +317,18 @@ const EmployeeTracking = () => {
       }
     }
     
-    return filteredJobs.map((job) => ({
-      ...job,
-      status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed" | "Cancel",
-    }));
+    // Apply job time overrides (from route scheduling) and status overrides
+    return filteredJobs.map((job) => {
+      // Get time overrides for this job's employee on this date
+      const timeOverrides = getJobTimeOverrides(job.technicianId, dateStr);
+      const overriddenTime = timeOverrides[job.id] || job.time;
+      
+      return {
+        ...job,
+        time: overriddenTime,
+        status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed" | "Cancel",
+      };
+    });
   }, [currentEmployeeId, jobStatuses, jobAssignments, isEmployee, selectedDate, employeeSelectedDate, activeTab]);
 
   // Helper function to convert time string to minutes for comparison
