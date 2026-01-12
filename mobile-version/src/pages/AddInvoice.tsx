@@ -12,7 +12,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { mockCustomers, mockInventory, mockEmployees, mockDiscounts, mockInvoices } from "@/data/mobileMockData";
-import { Search, Plus, Minus, X, ChevronsUpDown, Check, Package, FileText, Save, Upload, Tag, Camera, RefreshCw, List } from "lucide-react";
+import { Search, Plus, Minus, X, ChevronsUpDown, Check, Package, FileText, Save, Upload, Tag, Camera, RefreshCw, List, ArrowRight, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { showSuccessToast } from "@/utils/toast";
@@ -31,6 +31,20 @@ const AddInvoice = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [jobAddress, setJobAddress] = useState("");
+  
+  // Structured job address fields
+  const [streetAddress, setStreetAddress] = useState("");
+  const [country, setCountry] = useState("United States");
+  const [zipcode, setZipcode] = useState("");
+  const [isValidatingAddress, setIsValidatingAddress] = useState(false);
+  const [showAddressRecommendation, setShowAddressRecommendation] = useState(false);
+  const [recommendedAddress, setRecommendedAddress] = useState("");
+  const [useRecommendedAddress, setUseRecommendedAddress] = useState(false);
+  const [addressValidationError, setAddressValidationError] = useState("");
+  // Store original entered values before using recommended address
+  const [originalStreetAddress, setOriginalStreetAddress] = useState("");
+  const [originalZipcode, setOriginalZipcode] = useState("");
+  
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
   const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
   const [newCustomerLastName, setNewCustomerLastName] = useState("");
@@ -125,10 +139,41 @@ const AddInvoice = () => {
 
       // Pre-fill job address (use stored jobAddress or fall back to customer address)
       const customer = mockCustomers.find(c => c.id === invoice.customerId);
+      let fullJobAddress = "";
       if ((invoice as any).jobAddress) {
-        setJobAddress((invoice as any).jobAddress);
+        fullJobAddress = (invoice as any).jobAddress;
+        setJobAddress(fullJobAddress);
       } else if (customer?.address) {
-        setJobAddress(customer.address);
+        fullJobAddress = customer.address;
+        setJobAddress(fullJobAddress);
+      }
+      
+      // Parse job address into structured fields for edit mode
+      if (fullJobAddress) {
+        // Try to parse address into parts (street, zipcode, country)
+        const addressParts = fullJobAddress.split(',').map((p: string) => p.trim());
+        if (addressParts.length >= 1) {
+          setStreetAddress(addressParts[0] || "");
+        }
+        if (addressParts.length >= 2) {
+          // Check if second part looks like a zipcode
+          const potentialZip = addressParts[1];
+          if (/^\d{5}(-\d{4})?$/.test(potentialZip)) {
+            setZipcode(potentialZip);
+          } else {
+            // Maybe it's part of the street address
+            setStreetAddress(`${addressParts[0]}, ${addressParts[1]}`);
+            if (addressParts.length >= 3 && /^\d{5}(-\d{4})?$/.test(addressParts[2])) {
+              setZipcode(addressParts[2]);
+            }
+          }
+        }
+        if (addressParts.length >= 3) {
+          const lastPart = addressParts[addressParts.length - 1];
+          if (lastPart.toLowerCase().includes("united states") || lastPart === "US" || lastPart === "USA") {
+            setCountry("United States");
+          }
+        }
       }
 
       // Pre-fill employee (if available in invoice, otherwise use current employee)
@@ -218,8 +263,102 @@ const AddInvoice = () => {
     if (selectedCustomer && !isEditMode) {
       // In NEW mode, keep job address empty when customer changes
       setJobAddress("");
+      setStreetAddress("");
+      setZipcode("");
+      setCountry("United States");
+      setShowAddressRecommendation(false);
+      setRecommendedAddress("");
+      setUseRecommendedAddress(false);
+      setAddressValidationError("");
+      setOriginalStreetAddress("");
+      setOriginalZipcode("");
     }
   }, [selectedCustomer, isEditMode]);
+
+  // Address validation function - simulates address validation service
+  const handleValidateAddress = async () => {
+    if (!streetAddress.trim() || !zipcode.trim()) {
+      toast.error("Please enter street address and zipcode");
+      return;
+    }
+
+    setIsValidatingAddress(true);
+    setAddressValidationError("");
+    
+    // Store original values before validation
+    setOriginalStreetAddress(streetAddress.trim());
+    setOriginalZipcode(zipcode.trim());
+    
+    // Simulate API call for address validation
+    await new Promise(resolve => setTimeout(resolve, 800));
+    
+    // Simulate: some zipcodes don't return recommendations (e.g., starting with 00)
+    const hasRecommendation = !zipcode.startsWith("00");
+    
+    if (!hasRecommendation) {
+      setShowAddressRecommendation(false);
+      setRecommendedAddress("");
+      setAddressValidationError("No recommended address found for the entered street and zipcode.");
+      setIsValidatingAddress(false);
+      return;
+    }
+    
+    // Generate mock recommended address based on input
+    const mockRecommended = `${streetAddress.trim().replace(/\b(St|Ave|Rd|Dr|Blvd|Ln|Ct)\b\.?/gi, (match) => {
+      const expansions: Record<string, string> = {
+        'st': 'Street',
+        'ave': 'Avenue', 
+        'rd': 'Road',
+        'dr': 'Drive',
+        'blvd': 'Boulevard',
+        'ln': 'Lane',
+        'ct': 'Court'
+      };
+      return expansions[match.toLowerCase().replace('.', '')] || match;
+    })}, ${zipcode.trim()}, ${country}`;
+    
+    setRecommendedAddress(mockRecommended);
+    setShowAddressRecommendation(true);
+    setUseRecommendedAddress(false);
+    setIsValidatingAddress(false);
+    
+    toast.success("Address validated");
+  };
+
+  // Handle use recommended address toggle - syncs form fields and jobAddress
+  useEffect(() => {
+    if (useRecommendedAddress && recommendedAddress) {
+      // When using recommended address, update the jobAddress
+      setJobAddress(recommendedAddress);
+      // Parse recommended address to update form fields
+      const parts = recommendedAddress.split(',').map((p: string) => p.trim());
+      if (parts.length >= 1) {
+        setStreetAddress(parts[0]);
+      }
+      if (parts.length >= 2 && /^\d{5}(-\d{4})?$/.test(parts[1])) {
+        setZipcode(parts[1]);
+      }
+    } else if (!useRecommendedAddress && originalStreetAddress && originalZipcode) {
+      // When unchecking, revert to original entered values
+      setStreetAddress(originalStreetAddress);
+      setZipcode(originalZipcode);
+      setJobAddress(`${originalStreetAddress}, ${originalZipcode}, ${country}`);
+    }
+  }, [useRecommendedAddress, recommendedAddress, originalStreetAddress, originalZipcode, country]);
+
+  // Compute entered address for display (always derived from current form fields)
+  const enteredAddressDisplay = streetAddress.trim() || zipcode.trim() || country !== "United States"
+    ? `${streetAddress.trim()}${streetAddress.trim() && zipcode.trim() ? ', ' : ''}${zipcode.trim()}${(streetAddress.trim() || zipcode.trim()) ? ', ' : ''}${country}`
+    : "";
+
+  // Update jobAddress when form fields change (if not using recommended)
+  useEffect(() => {
+    if (!useRecommendedAddress && streetAddress.trim() && zipcode.trim()) {
+      setJobAddress(`${streetAddress.trim()}, ${zipcode.trim()}, ${country}`);
+    } else if (!useRecommendedAddress && !streetAddress.trim() && !zipcode.trim()) {
+      setJobAddress("");
+    }
+  }, [streetAddress, zipcode, country, useRecommendedAddress]);
   const [items, setItems] = useState<Array<{ 
     id: string
     name: string
@@ -839,15 +978,136 @@ const AddInvoice = () => {
             </div>
 
             {selectedCustomer && (
-              <div>
-                <Label>Job Address</Label>
-                <Input
-                  type="text"
-                  value={jobAddress}
-                  onChange={(e) => setJobAddress(e.target.value)}
-                  placeholder="Enter job address"
-                  className="mt-2 h-11"
-                />
+              <div className="space-y-4">
+                {/* Job Address Section Heading */}
+                <div className="flex items-center gap-2">
+                  <MapPin className="h-4 w-4 text-primary" />
+                  <Label className="text-base font-semibold">Job Address</Label>
+                </div>
+                
+                {/* Street Address */}
+                <div>
+                  <Label htmlFor="street-address">
+                    Street Address <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="street-address"
+                    type="text"
+                    value={streetAddress}
+                    onChange={(e) => {
+                      setStreetAddress(e.target.value);
+                      setShowAddressRecommendation(false);
+                      setAddressValidationError("");
+                    }}
+                    placeholder="Enter street address"
+                    className="mt-2 h-11"
+                  />
+                </div>
+                
+                {/* Country */}
+                <div>
+                  <Label htmlFor="country">
+                    Country <span className="text-red-500">*</span>
+                  </Label>
+                  <Select value={country} onValueChange={(val) => {
+                    setCountry(val);
+                    setShowAddressRecommendation(false);
+                    setAddressValidationError("");
+                  }}>
+                    <SelectTrigger className="mt-2 h-11">
+                      <SelectValue placeholder="Select country" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="United States">United States</SelectItem>
+                      <SelectItem value="Canada">Canada</SelectItem>
+                      <SelectItem value="Mexico">Mexico</SelectItem>
+                      <SelectItem value="United Kingdom">United Kingdom</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {/* Zipcode with validation button */}
+                <div>
+                  <Label htmlFor="zipcode">Zipcode</Label>
+                  <div className="relative mt-2">
+                    <Input
+                      id="zipcode"
+                      type="text"
+                      inputMode="numeric"
+                      value={zipcode}
+                      onChange={(e) => {
+                        setZipcode(e.target.value.replace(/\D/g, '').slice(0, 5));
+                        setShowAddressRecommendation(false);
+                        setAddressValidationError("");
+                      }}
+                      placeholder="Enter zipcode"
+                      className="h-11 pr-12"
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 p-0 hover:bg-primary/10"
+                      onClick={handleValidateAddress}
+                      disabled={isValidatingAddress || !streetAddress.trim() || !zipcode.trim()}
+                    >
+                      {isValidatingAddress ? (
+                        <RefreshCw className="h-4 w-4 animate-spin text-primary" />
+                      ) : (
+                        <ArrowRight className="h-4 w-4 text-primary" />
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Inline validation error */}
+                {addressValidationError && (
+                  <p className="text-sm text-red-500 -mt-2">
+                    {addressValidationError}
+                  </p>
+                )}
+                
+                {/* Entered Address - Always Visible */}
+                {(streetAddress.trim() || zipcode.trim()) && (
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
+                      Entered Address
+                    </Label>
+                    <div className="mt-1 p-3 bg-white rounded-md border border-gray-200 text-sm text-gray-700">
+                      {enteredAddressDisplay || "Start typing to see address preview"}
+                    </div>
+                  </div>
+                )}
+                
+                {/* Recommended Address Section - Only shown after successful validation */}
+                {showAddressRecommendation && recommendedAddress && (
+                  <div className="space-y-3 p-4 bg-green-50 rounded-lg border border-green-200">
+                    {/* Recommended Address */}
+                    <div>
+                      <Label className="text-xs font-medium text-green-600 uppercase tracking-wide">
+                        Recommended Address
+                      </Label>
+                      <div className="mt-1 p-3 bg-white rounded-md border border-green-200 text-sm text-gray-700">
+                        {recommendedAddress}
+                      </div>
+                    </div>
+                    
+                    {/* Use Recommended Address Checkbox */}
+                    <div className="flex items-center space-x-2 pt-2">
+                      <Checkbox
+                        id="use-recommended"
+                        checked={useRecommendedAddress}
+                        onCheckedChange={(checked) => setUseRecommendedAddress(checked === true)}
+                      />
+                      <Label 
+                        htmlFor="use-recommended" 
+                        className="text-sm font-medium cursor-pointer text-green-700"
+                      >
+                        Use Recommended Address
+                      </Label>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
