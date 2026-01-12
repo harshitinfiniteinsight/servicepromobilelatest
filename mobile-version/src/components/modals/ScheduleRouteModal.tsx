@@ -10,7 +10,7 @@ import { X, MapPin, Clock, GripVertical, Calendar as CalendarIcon, Circle, XCirc
 import { format } from "date-fns";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent } from "@dnd-kit/core";
+import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors, DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { mockJobs, mockEmployees, mockInvoices, mockEstimates, mockAgreements } from "@/data/mobileMockData";
@@ -18,6 +18,17 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
+import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 // Create numbered marker icon with order number and employee color
 // Replaces the old createCustomIcon and createCheckIcon functions
@@ -350,6 +361,15 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [selectedJobForReassign, setSelectedJobForReassign] = useState<typeof mockJobs[0] | null>(null);
   
+  // State for route reorder confirmation
+  const [originalRouteOrder, setOriginalRouteOrder] = useState<typeof mockJobs>([]);
+  const [pendingRouteOrder, setPendingRouteOrder] = useState<typeof mockJobs | null>(null);
+  const [showReorderConfirmModal, setShowReorderConfirmModal] = useState(false);
+  
+  // State for reschedule job modal (opens after confirming route reorder)
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [jobToReschedule, setJobToReschedule] = useState<typeof mockJobs[0] | null>(null);
+  
   // Route start time and job duration configuration
   const [routeStartTime, setRouteStartTime] = useState<string>("09:00");
   const [defaultJobDuration, setDefaultJobDuration] = useState<number>(60); // in minutes
@@ -641,7 +661,13 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     })
   );
 
-  // Handle drag end - updates routeStops array, which triggers automatic updates to:
+  // Handle drag start - store original order before any changes
+  const handleDragStart = (event: DragStartEvent) => {
+    // Store the original order when drag begins
+    setOriginalRouteOrder([...routeStops]);
+  };
+
+  // Handle drag end - shows confirmation modal instead of immediately updating
   // - Marker numbers (via jobCoordinates order recalculation)
   // - Polyline connectors (via polylineCoordinates recalculation)
   // - Card badge numbers (via index recalculation)
@@ -649,12 +675,49 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     const { active, over } = event;
 
     if (over && active.id !== over.id) {
-      setRouteStops((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
+      // Calculate the new order
+      const oldIndex = routeStops.findIndex((item) => item.id === active.id);
+      const newIndex = routeStops.findIndex((item) => item.id === over.id);
+      const newOrder = arrayMove(routeStops, oldIndex, newIndex);
+      
+      // Store pending order and show confirmation modal
+      setPendingRouteOrder(newOrder);
+      setShowReorderConfirmModal(true);
     }
+  };
+
+  // Confirm route reorder - apply the pending order and open reschedule modal
+  const handleConfirmReorder = () => {
+    if (pendingRouteOrder) {
+      // Apply the new order
+      setRouteStops(pendingRouteOrder);
+      
+      // Get the first job in the new order for rescheduling
+      const firstJob = pendingRouteOrder[0];
+      if (firstJob) {
+        setJobToReschedule(firstJob);
+      }
+      
+      toast.success("Route order updated");
+    }
+    
+    // Clear pending state and close confirmation modal
+    setPendingRouteOrder(null);
+    setShowReorderConfirmModal(false);
+    
+    // Open reschedule modal after a short delay to ensure smooth transition
+    setTimeout(() => {
+      if (pendingRouteOrder && pendingRouteOrder[0]) {
+        setShowRescheduleModal(true);
+      }
+    }, 150);
+  };
+
+  // Cancel route reorder - revert to original order
+  const handleCancelReorder = () => {
+    // Do NOT update routeStops - keep original order
+    setPendingRouteOrder(null);
+    setShowReorderConfirmModal(false);
   };
 
   // Calculate map center and job coordinates
@@ -995,6 +1058,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
               <DndContext
                 sensors={sensors}
                 collisionDetection={closestCenter}
+                onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
               >
                 <SortableContext
@@ -1087,6 +1151,61 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
               setSelectedJobForReassign(null);
               // In production, you would update the job data here and refresh route stops
             }
+          }}
+        />
+      )}
+
+      {/* Route Reorder Confirmation Modal */}
+      <AlertDialog open={showReorderConfirmModal} onOpenChange={setShowReorderConfirmModal}>
+        <AlertDialogContent className="max-w-[90%] sm:max-w-md rounded-xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-lg font-semibold text-gray-900">
+              Confirm Route Change
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-sm text-gray-600">
+              Changing the job order will update the scheduled time for all jobs in this route. Do you want to continue?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2">
+            <AlertDialogCancel 
+              onClick={handleCancelReorder}
+              className="w-full sm:w-auto rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50"
+            >
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmReorder}
+              className="w-full sm:w-auto rounded-lg bg-[#F97316] hover:bg-[#EA6820] text-white"
+            >
+              Confirm & Update Route
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Reschedule Job Modal - Opens after confirming route reorder */}
+      {jobToReschedule && (
+        <RescheduleJobModal
+          isOpen={showRescheduleModal}
+          onClose={() => {
+            setShowRescheduleModal(false);
+            setJobToReschedule(null);
+          }}
+          onConfirm={(date, time, employeeId) => {
+            // Update the job with new schedule
+            const employee = mockEmployees.find(emp => emp.id === employeeId);
+            toast.success(`Job rescheduled to ${date} at ${time}${employee ? ` with ${employee.name}` : ''}`);
+            setShowRescheduleModal(false);
+            setJobToReschedule(null);
+          }}
+          job={{
+            id: jobToReschedule.id,
+            title: jobToReschedule.title,
+            customerName: jobToReschedule.customerName,
+            technicianId: selectedEmployeeId || jobToReschedule.technicianId,
+            technicianName: selectedEmployee?.name || jobToReschedule.technicianName,
+            date: formatDateForComparison(selectedDate),
+            time: jobToReschedule.time,
           }}
         />
       )}
