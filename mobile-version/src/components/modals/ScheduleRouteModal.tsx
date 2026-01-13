@@ -1324,16 +1324,16 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
             </p>
           </div>
           
-          <AlertDialogFooter className="flex-row gap-2 px-4 pb-4 pt-2 flex-shrink-0 border-t border-gray-100">
+          <AlertDialogFooter className="flex flex-row gap-3 px-4 pb-4 pt-3 flex-shrink-0 border-t border-gray-100">
             <AlertDialogCancel 
               onClick={handleCancelReorder}
-              className="flex-1 h-10 rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50 text-sm"
+              className="flex-1 h-10 m-0 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium"
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmReorder}
-              className="flex-1 h-10 rounded-lg bg-[#F97316] hover:bg-[#EA6820] text-white text-sm"
+              className="flex-1 h-10 m-0 rounded-lg bg-[#F97316] hover:bg-[#EA6820] text-white text-sm font-medium"
             >
               Update Route
             </AlertDialogAction>
