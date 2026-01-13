@@ -375,6 +375,52 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
   const [customerRescheduleTimes, setCustomerRescheduleTimes] = useState<Record<string, string>>({}); // Map of customerName -> 24-hour time
   const [showRouteTimePicker, setShowRouteTimePicker] = useState(false);
   const [activeTimePickerCustomer, setActiveTimePickerCustomer] = useState<string | null>(null);
+
+  // Memoized sorted route order - recalculates when times change
+  // Sorts by customer scheduled time (earliest first), stable sort for same times
+  const sortedPendingRouteOrder = useMemo(() => {
+    if (!pendingRouteOrder) return null;
+    
+    // Helper to get time in minutes for comparison
+    const getTimeInMinutes = (time24: string): number => {
+      const [hours, minutes] = time24.split(":").map(Number);
+      return hours * 60 + minutes;
+    };
+    
+    // Create a map of customer -> time in minutes for sorting
+    const customerTimeMap: Record<string, number> = {};
+    pendingRouteOrder.forEach((job) => {
+      if (!customerTimeMap.hasOwnProperty(job.customerName)) {
+        const time24 = customerRescheduleTimes[job.customerName] || 
+          // Convert job's 12-hour time to 24-hour
+          (() => {
+            const match = job.time.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+            if (!match) return 9 * 60; // Default 9:00 AM
+            let hours = parseInt(match[1], 10);
+            const mins = parseInt(match[2], 10);
+            const period = match[3].toUpperCase();
+            if (period === "PM" && hours !== 12) hours += 12;
+            if (period === "AM" && hours === 12) hours = 0;
+            return hours * 60 + mins;
+          })();
+        customerTimeMap[job.customerName] = typeof time24 === 'number' ? time24 : getTimeInMinutes(time24);
+      }
+    });
+    
+    // Create indexed array for stable sort
+    const indexedJobs = pendingRouteOrder.map((job, index) => ({ job, originalIndex: index }));
+    
+    // Sort by customer time, stable sort preserves original order for same times
+    indexedJobs.sort((a, b) => {
+      const timeA = customerTimeMap[a.job.customerName];
+      const timeB = customerTimeMap[b.job.customerName];
+      if (timeA !== timeB) return timeA - timeB;
+      // Stable sort: preserve original order for same times
+      return a.originalIndex - b.originalIndex;
+    });
+    
+    return indexedJobs.map(item => item.job);
+  }, [pendingRouteOrder, customerRescheduleTimes]);
   
   // Route start time and job duration configuration
   const [routeStartTime, setRouteStartTime] = useState<string>("09:00");
@@ -714,11 +760,11 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     }
   };
 
-  // Confirm route reorder - apply the pending order with the new times for all jobs (using customer times)
+  // Confirm route reorder - apply the sorted order with new times for all jobs (using customer times)
   const handleConfirmReorder = () => {
-    if (pendingRouteOrder) {
-      // Apply the new order with updated times for all jobs based on customer times
-      const updatedRouteOrder = pendingRouteOrder.map((job) => {
+    if (sortedPendingRouteOrder) {
+      // Apply the sorted order with updated times for all jobs based on customer times
+      const updatedRouteOrder = sortedPendingRouteOrder.map((job) => {
         const newTime24 = customerRescheduleTimes[job.customerName];
         if (newTime24) {
           return {
@@ -1193,22 +1239,22 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          {/* Customer-Grouped Job List with Time Pickers - Scrollable */}
+          {/* Customer-Grouped Job List with Time Pickers - Scrollable (sorted by time) */}
           <div className="px-5 py-3 overflow-y-auto flex-1 min-h-0">
             <div className="space-y-3">
               {(() => {
-                // Group jobs by customer while maintaining route order
+                // Group jobs by customer from SORTED route order (earliest time first)
                 const customerGroups: Array<{
                   customerName: string;
-                  jobs: typeof pendingRouteOrder;
+                  jobs: typeof sortedPendingRouteOrder;
                   firstJobIndex: number;
                 }> = [];
                 const seenCustomers = new Set<string>();
                 
-                pendingRouteOrder?.forEach((job, index) => {
+                sortedPendingRouteOrder?.forEach((job, index) => {
                   if (!seenCustomers.has(job.customerName)) {
                     seenCustomers.add(job.customerName);
-                    const customerJobs = pendingRouteOrder.filter(j => j.customerName === job.customerName);
+                    const customerJobs = sortedPendingRouteOrder.filter(j => j.customerName === job.customerName);
                     customerGroups.push({
                       customerName: job.customerName,
                       jobs: customerJobs,
