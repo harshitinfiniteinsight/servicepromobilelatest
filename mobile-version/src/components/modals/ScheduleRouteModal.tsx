@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
+import TimePickerModal from "@/components/modals/TimePickerModal";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -370,6 +371,11 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [jobToReschedule, setJobToReschedule] = useState<typeof mockJobs[0] | null>(null);
   
+  // State for route reorder confirmation time picker
+  const [jobRescheduleTimes, setJobRescheduleTimes] = useState<Record<string, string>>({}); // Map of job ID -> 24-hour time
+  const [showRouteTimePicker, setShowRouteTimePicker] = useState(false);
+  const [activeTimePickerJobId, setActiveTimePickerJobId] = useState<string | null>(null);
+  
   // Route start time and job duration configuration
   const [routeStartTime, setRouteStartTime] = useState<string>("09:00");
   const [defaultJobDuration, setDefaultJobDuration] = useState<number>(60); // in minutes
@@ -393,6 +399,18 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     const period = hours >= 12 ? "PM" : "AM";
     const hour12 = hours % 12 || 12;
     return `${hour12.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")} ${period}`;
+  };
+
+  // Convert 12-hour time (HH:MM AM/PM) to 24-hour format (HH:MM)
+  const format12To24Hour = (time12: string): string => {
+    const match = time12.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i);
+    if (!match) return "09:00";
+    let hours = parseInt(match[1], 10);
+    const minutes = match[2];
+    const period = match[3].toUpperCase();
+    if (period === "PM" && hours !== 12) hours += 12;
+    if (period === "AM" && hours === 12) hours = 0;
+    return `${hours.toString().padStart(2, "0")}:${minutes}`;
   };
 
   // Add minutes to a 24-hour time string, returning new 24-hour time
@@ -680,37 +698,42 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
       const newIndex = routeStops.findIndex((item) => item.id === over.id);
       const newOrder = arrayMove(routeStops, oldIndex, newIndex);
       
+      // Initialize times for all jobs in the new order
+      const initialTimes: Record<string, string> = {};
+      newOrder.forEach((job) => {
+        initialTimes[job.id] = format12To24Hour(job.time);
+      });
+      setJobRescheduleTimes(initialTimes);
+      
       // Store pending order and show confirmation modal
       setPendingRouteOrder(newOrder);
       setShowReorderConfirmModal(true);
     }
   };
 
-  // Confirm route reorder - apply the pending order and open reschedule modal
+  // Confirm route reorder - apply the pending order with the new times for all jobs
   const handleConfirmReorder = () => {
     if (pendingRouteOrder) {
-      // Apply the new order
-      setRouteStops(pendingRouteOrder);
+      // Apply the new order with updated times for all jobs
+      const updatedRouteOrder = pendingRouteOrder.map((job) => {
+        const newTime24 = jobRescheduleTimes[job.id];
+        if (newTime24) {
+          return {
+            ...job,
+            time: formatTo12Hour(newTime24)
+          };
+        }
+        return job;
+      });
+      setRouteStops(updatedRouteOrder);
       
-      // Get the first job in the new order for rescheduling
-      const firstJob = pendingRouteOrder[0];
-      if (firstJob) {
-        setJobToReschedule(firstJob);
-      }
-      
-      toast.success("Route order updated");
+      toast.success("Route updated with new job times");
     }
     
     // Clear pending state and close confirmation modal
     setPendingRouteOrder(null);
+    setJobRescheduleTimes({});
     setShowReorderConfirmModal(false);
-    
-    // Open reschedule modal after a short delay to ensure smooth transition
-    setTimeout(() => {
-      if (pendingRouteOrder && pendingRouteOrder[0]) {
-        setShowRescheduleModal(true);
-      }
-    }, 150);
   };
 
   // Cancel route reorder - revert to original order
@@ -1157,16 +1180,64 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
 
       {/* Route Reorder Confirmation Modal */}
       <AlertDialog open={showReorderConfirmModal} onOpenChange={setShowReorderConfirmModal}>
-        <AlertDialogContent className="max-w-[90%] sm:max-w-md rounded-xl">
-          <AlertDialogHeader>
+        <AlertDialogContent className="max-w-[90%] sm:max-w-md rounded-xl p-0 overflow-hidden max-h-[85vh] flex flex-col">
+          <AlertDialogHeader className="px-5 pt-5 pb-3 flex-shrink-0">
             <AlertDialogTitle className="text-lg font-semibold text-gray-900">
-              Confirm Route Change
+              Confirm Route Update
             </AlertDialogTitle>
-            <AlertDialogDescription className="text-sm text-gray-600">
-              Changing the job order will update the scheduled time for all jobs in this route. Do you want to continue?
+            <AlertDialogDescription className="sr-only">
+              Update the job route by selecting new times for each job. This will reschedule your job route.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 sm:gap-2">
+          
+          {/* Job List with Time Pickers - Scrollable */}
+          <div className="px-5 py-3 overflow-y-auto flex-1 min-h-0">
+            <div className="space-y-3">
+              {pendingRouteOrder?.map((job, index) => (
+                <div 
+                  key={job.id}
+                  className={cn(
+                    "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3",
+                    index !== (pendingRouteOrder.length - 1) && "border-b border-gray-100"
+                  )}
+                >
+                  {/* Left side: Job Order Badge + Job Name */}
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#F97316] text-white text-xs font-medium flex items-center justify-center">
+                      {index + 1}
+                    </span>
+                    <p className="text-sm font-medium text-gray-900 truncate">
+                      {job.title}
+                    </p>
+                  </div>
+                  
+                  {/* Right side: Time Picker */}
+                  <div className="flex-shrink-0 sm:ml-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveTimePickerJobId(job.id);
+                        setShowRouteTimePicker(true);
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[120px]"
+                    >
+                      <Clock className="h-4 w-4 text-gray-500" />
+                      <span className="text-sm font-medium text-gray-900">
+                        {formatTo12Hour(jobRescheduleTimes[job.id] || format12To24Hour(job.time))}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {/* Helper text */}
+            <p className="text-xs text-gray-500 mt-4">
+              Updating the job time will reschedule your job route.
+            </p>
+          </div>
+          
+          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 px-5 pb-5 pt-2 flex-shrink-0 border-t border-gray-100">
             <AlertDialogCancel 
               onClick={handleCancelReorder}
               className="w-full sm:w-auto rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50"
@@ -1182,6 +1253,27 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Time Picker Modal for Route Reorder */}
+      <TimePickerModal
+        visible={showRouteTimePicker}
+        initialTime={activeTimePickerJobId ? (jobRescheduleTimes[activeTimePickerJobId] || "09:00") : "09:00"}
+        onCancel={() => {
+          setShowRouteTimePicker(false);
+          setActiveTimePickerJobId(null);
+        }}
+        onConfirm={(time) => {
+          if (activeTimePickerJobId) {
+            setJobRescheduleTimes((prev) => ({
+              ...prev,
+              [activeTimePickerJobId]: time
+            }));
+          }
+          setShowRouteTimePicker(false);
+          setActiveTimePickerJobId(null);
+        }}
+        mode="start"
+      />
 
       {/* Reschedule Job Modal - Opens after confirming route reorder */}
       {jobToReschedule && (

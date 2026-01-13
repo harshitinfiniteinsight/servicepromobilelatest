@@ -10,64 +10,70 @@ interface ClockDialProps {
 
 const ClockDial = ({ hours, minutes, onHoursChange, onMinutesChange }: ClockDialProps) => {
   const [mode, setMode] = useState<"hours" | "minutes">("hours");
+  const [isPM, setIsPM] = useState(hours >= 12);
   const clockRef = useRef<HTMLDivElement>(null);
   const [isDragging, setIsDragging] = useState(false);
 
-  const radius = 120; // Clock radius in pixels
-  const centerX = 150;
-  const centerY = 150;
+  // Update isPM when hours change externally
+  useEffect(() => {
+    setIsPM(hours >= 12);
+  }, [hours]);
 
-  // Generate hour positions (1-12)
+  // Clock dimensions - using relative sizing
+  const clockSize = 260; // Total clock size in pixels
+  const radius = 100; // Radius for hour/minute markers
+  const center = clockSize / 2; // Center point
+
+  // Generate hour positions (1-12) around the clock
   const hourPositions = Array.from({ length: 12 }, (_, i) => {
     const hour = i + 1;
-    const angle = (hour * 30 - 90) * (Math.PI / 180); // Convert to radians, start at top
+    const angleDeg = hour * 30 - 90; // 30 degrees per hour, start from top (12 o'clock = -90°)
+    const angleRad = angleDeg * (Math.PI / 180);
     return {
       hour,
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle),
-      angle,
+      x: center + radius * Math.cos(angleRad),
+      y: center + radius * Math.sin(angleRad),
+      angleDeg,
     };
   });
 
   // Generate minute positions (0, 5, 10, ..., 55)
   const minutePositions = Array.from({ length: 12 }, (_, i) => {
     const minute = i * 5;
-    const angle = (minute * 6 - 90) * (Math.PI / 180);
+    const angleDeg = minute * 6 - 90; // 6 degrees per minute, start from top
+    const angleRad = angleDeg * (Math.PI / 180);
     return {
       minute,
-      x: centerX + radius * Math.cos(angle),
-      y: centerY + radius * Math.sin(angle),
-      angle,
+      x: center + radius * Math.cos(angleRad),
+      y: center + radius * Math.sin(angleRad),
+      angleDeg,
     };
   });
 
-  const getCurrentValue = () => {
-    if (mode === "hours") {
-      return hours % 12 || 12;
-    }
-    return Math.round(minutes / 5) * 5;
-  };
-
-  const getAngleFromPoint = (x: number, y: number) => {
+  // Get angle from a point relative to clock center
+  const getAngleFromPoint = (clientX: number, clientY: number) => {
     const rect = clockRef.current?.getBoundingClientRect();
     if (!rect) return null;
 
-    const centerX_actual = rect.left + rect.width / 2;
-    const centerY_actual = rect.top + rect.height / 2;
+    const clockCenterX = rect.left + rect.width / 2;
+    const clockCenterY = rect.top + rect.height / 2;
 
-    const dx = x - centerX_actual;
-    const dy = y - centerY_actual;
+    const dx = clientX - clockCenterX;
+    const dy = clientY - clockCenterY;
+    
+    // Calculate angle in degrees, with 0° at top (12 o'clock position)
     let angle = Math.atan2(dy, dx) * (180 / Math.PI) + 90;
     if (angle < 0) angle += 360;
 
     return angle;
   };
 
+  // Convert angle to hour or minute value
   const getValueFromAngle = (angle: number) => {
     if (mode === "hours") {
       let hour = Math.round(angle / 30);
       if (hour === 0) hour = 12;
-      if (hour > 12) hour = hour - 12;
+      if (hour > 12) hour = hour % 12 || 12;
       return hour;
     } else {
       let minute = Math.round(angle / 6);
@@ -77,7 +83,27 @@ const ClockDial = ({ hours, minutes, onHoursChange, onMinutesChange }: ClockDial
     }
   };
 
+  const handlePointerMove = useCallback((clientX: number, clientY: number) => {
+    const angle = getAngleFromPoint(clientX, clientY);
+    if (angle === null) return;
+
+    const value = getValueFromAngle(angle);
+    if (mode === "hours") {
+      // Convert 12-hour to 24-hour based on AM/PM
+      let h24: number;
+      if (isPM) {
+        h24 = value === 12 ? 12 : value + 12;
+      } else {
+        h24 = value === 12 ? 0 : value;
+      }
+      onHoursChange(h24);
+    } else {
+      onMinutesChange(value);
+    }
+  }, [mode, isPM, onHoursChange, onMinutesChange]);
+
   const handleMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
     setIsDragging(true);
     handlePointerMove(e.clientX, e.clientY);
   };
@@ -88,30 +114,13 @@ const ClockDial = ({ hours, minutes, onHoursChange, onMinutesChange }: ClockDial
     handlePointerMove(touch.clientX, touch.clientY);
   };
 
-  const handlePointerMove = useCallback((clientX: number, clientY: number) => {
-    const angle = getAngleFromPoint(clientX, clientY);
-    if (angle === null) return;
-
-    const value = getValueFromAngle(angle);
-    if (mode === "hours") {
-      // Convert 12-hour to 24-hour
-      let h24 = value;
-      if (hours >= 12) {
-        if (value === 12) h24 = 12;
-        else h24 = value + 12;
-      } else {
-        if (value === 12) h24 = 0;
-        else h24 = value;
-      }
-      onHoursChange(h24);
-    } else {
-      onMinutesChange(value);
-    }
-  }, [mode, hours, minutes, onHoursChange, onMinutesChange]);
-
   const handleMouseUp = useCallback(() => {
+    if (isDragging && mode === "hours") {
+      // Auto-switch to minutes after selecting hour
+      setTimeout(() => setMode("minutes"), 200);
+    }
     setIsDragging(false);
-  }, []);
+  }, [isDragging, mode]);
 
   const handleMouseMove = useCallback((e: MouseEvent) => {
     if (isDragging) {
@@ -121,8 +130,7 @@ const ClockDial = ({ hours, minutes, onHoursChange, onMinutesChange }: ClockDial
 
   const handleTouchMove = useCallback((e: TouchEvent) => {
     if (isDragging && e.touches[0]) {
-      const touch = e.touches[0];
-      handlePointerMove(touch.clientX, touch.clientY);
+      handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
     }
   }, [isDragging, handlePointerMove]);
 
@@ -130,7 +138,7 @@ const ClockDial = ({ hours, minutes, onHoursChange, onMinutesChange }: ClockDial
     if (isDragging) {
       document.addEventListener("mousemove", handleMouseMove);
       document.addEventListener("mouseup", handleMouseUp);
-      document.addEventListener("touchmove", handleTouchMove);
+      document.addEventListener("touchmove", handleTouchMove, { passive: true });
       document.addEventListener("touchend", handleMouseUp);
       return () => {
         document.removeEventListener("mousemove", handleMouseMove);
@@ -141,145 +149,236 @@ const ClockDial = ({ hours, minutes, onHoursChange, onMinutesChange }: ClockDial
     }
   }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove]);
 
-  const getHandAngle = () => {
+  // Calculate clock hand angle (in degrees, 0° = pointing up/12 o'clock)
+  const getHandAngleDeg = () => {
     if (mode === "hours") {
-      const hour12 = hours % 12 || 12;
-      return (hour12 * 30 - 90) * (Math.PI / 180);
+      const hour12 = hours % 12;
+      return hour12 * 30; // 30° per hour
     } else {
-      return (minutes * 6 - 90) * (Math.PI / 180);
+      return minutes * 6; // 6° per minute
     }
   };
 
-  const handAngle = getHandAngle();
-  const handLength = mode === "hours" ? radius * 0.6 : radius * 0.8;
+  const handAngleDeg = getHandAngleDeg();
+  const handLength = mode === "hours" ? radius * 0.65 : radius * 0.85;
+
+  // Handle AM/PM toggle
+  const handleAmPmToggle = (newIsPM: boolean) => {
+    setIsPM(newIsPM);
+    // Update hours to reflect AM/PM change
+    const hour12 = hours % 12;
+    if (newIsPM) {
+      onHoursChange(hour12 === 0 ? 12 : hour12 + 12);
+    } else {
+      onHoursChange(hour12);
+    }
+  };
+
+  // Handle hour click
+  const handleHourClick = (hour: number) => {
+    let h24: number;
+    if (isPM) {
+      h24 = hour === 12 ? 12 : hour + 12;
+    } else {
+      h24 = hour === 12 ? 0 : hour;
+    }
+    onHoursChange(h24);
+    // Auto-switch to minutes
+    setTimeout(() => setMode("minutes"), 200);
+  };
 
   return (
     <div className="flex flex-col items-center">
-      {/* Mode Toggle */}
-      <div className="flex gap-2 mb-6">
-        <button
-          onClick={() => setMode("hours")}
-          className={cn(
-            "px-4 py-2 rounded-lg font-medium transition-colors",
-            mode === "hours"
-              ? "bg-orange-500 text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          )}
-        >
-          Hours
-        </button>
-        <button
-          onClick={() => setMode("minutes")}
-          className={cn(
-            "px-4 py-2 rounded-lg font-medium transition-colors",
-            mode === "minutes"
-              ? "bg-orange-500 text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          )}
-        >
-          Minutes
-        </button>
+      {/* Mode Toggle & AM/PM Toggle Row */}
+      <div className="flex items-center justify-between w-full mb-4 gap-3">
+        {/* Hours/Minutes Toggle */}
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => setMode("hours")}
+            className={cn(
+              "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+              mode === "hours"
+                ? "bg-orange-500 text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-800"
+            )}
+          >
+            Hours
+          </button>
+          <button
+            onClick={() => setMode("minutes")}
+            className={cn(
+              "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+              mode === "minutes"
+                ? "bg-orange-500 text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-800"
+            )}
+          >
+            Minutes
+          </button>
+        </div>
+
+        {/* AM/PM Toggle */}
+        <div className="flex gap-1 bg-gray-100 rounded-lg p-1">
+          <button
+            onClick={() => handleAmPmToggle(false)}
+            className={cn(
+              "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+              !isPM
+                ? "bg-orange-500 text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-800"
+            )}
+          >
+            AM
+          </button>
+          <button
+            onClick={() => handleAmPmToggle(true)}
+            className={cn(
+              "px-3 py-1.5 rounded-md text-sm font-medium transition-colors",
+              isPM
+                ? "bg-orange-500 text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-800"
+            )}
+          >
+            PM
+          </button>
+        </div>
       </div>
 
       {/* Clock Face */}
       <div
         ref={clockRef}
-        className="relative w-[300px] h-[300px] mx-auto"
+        className="relative touch-none select-none"
+        style={{ width: clockSize, height: clockSize }}
         onMouseDown={handleMouseDown}
         onTouchStart={handleTouchStart}
-        onMouseMove={handleMouseMove}
-        onTouchMove={handleTouchMove}
-        onMouseUp={handleMouseUp}
-        onTouchEnd={handleMouseUp}
       >
-        {/* Clock Circle */}
-        <div className="absolute inset-0 rounded-full border-4 border-gray-200 bg-white" />
+        {/* Clock Background Circle */}
+        <div 
+          className="absolute rounded-full bg-gray-50 border-2 border-gray-200"
+          style={{
+            width: clockSize,
+            height: clockSize,
+            left: 0,
+            top: 0,
+          }}
+        />
+
+        {/* Inner circle for visual effect */}
+        <div 
+          className="absolute rounded-full bg-orange-50"
+          style={{
+            width: clockSize - 40,
+            height: clockSize - 40,
+            left: 20,
+            top: 20,
+          }}
+        />
 
         {/* Hour Markers */}
         {mode === "hours" &&
-          hourPositions.map((pos, idx) => {
+          hourPositions.map((pos) => {
             const isSelected = (hours % 12 || 12) === pos.hour;
             return (
-              <div
-                key={idx}
+              <button
+                key={pos.hour}
+                type="button"
                 className={cn(
-                  "absolute w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium cursor-pointer transition-all",
+                  "absolute w-9 h-9 -ml-[18px] -mt-[18px] rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-150 z-10",
                   isSelected
-                    ? "bg-orange-500 text-white scale-110"
-                    : "bg-white text-gray-700 hover:bg-orange-100"
+                    ? "bg-orange-500 text-white shadow-md scale-110"
+                    : "bg-white text-gray-700 hover:bg-orange-100 shadow-sm border border-gray-200"
                 )}
                 style={{
-                  left: `${pos.x - 16}px`,
-                  top: `${pos.y - 16}px`,
+                  left: pos.x,
+                  top: pos.y,
                 }}
-                onClick={() => {
-                  let h24 = pos.hour;
-                  if (hours >= 12) {
-                    if (pos.hour === 12) h24 = 12;
-                    else h24 = pos.hour + 12;
-                  } else {
-                    if (pos.hour === 12) h24 = 0;
-                    else h24 = pos.hour;
-                  }
-                  onHoursChange(h24);
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleHourClick(pos.hour);
                 }}
               >
                 {pos.hour}
-              </div>
+              </button>
             );
           })}
 
         {/* Minute Markers */}
         {mode === "minutes" &&
-          minutePositions.map((pos, idx) => {
-            const isSelected = minutes === pos.minute;
+          minutePositions.map((pos) => {
+            const isSelected = Math.round(minutes / 5) * 5 === pos.minute;
             return (
-              <div
-                key={idx}
+              <button
+                key={pos.minute}
+                type="button"
                 className={cn(
-                  "absolute w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium cursor-pointer transition-all",
+                  "absolute w-9 h-9 -ml-[18px] -mt-[18px] rounded-full flex items-center justify-center text-sm font-semibold transition-all duration-150 z-10",
                   isSelected
-                    ? "bg-orange-500 text-white scale-110"
-                    : "bg-white text-gray-700 hover:bg-orange-100"
+                    ? "bg-orange-500 text-white shadow-md scale-110"
+                    : "bg-white text-gray-700 hover:bg-orange-100 shadow-sm border border-gray-200"
                 )}
                 style={{
-                  left: `${pos.x - 16}px`,
-                  top: `${pos.y - 16}px`,
+                  left: pos.x,
+                  top: pos.y,
                 }}
-                onClick={() => onMinutesChange(pos.minute)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMinutesChange(pos.minute);
+                }}
               >
-                {pos.minute}
-              </div>
+                {String(pos.minute).padStart(2, "0")}
+              </button>
             );
           })}
 
-        {/* Clock Hand */}
-        <div
-          className="absolute origin-bottom transition-transform duration-200"
-          style={{
-            left: `${centerX}px`,
-            top: `${centerY}px`,
-            width: "4px",
-            height: `${handLength}px`,
-            transform: `rotate(${handAngle * (180 / Math.PI)}deg)`,
-            transformOrigin: "bottom center",
-          }}
+        {/* Clock Hand - SVG for precise rendering */}
+        <svg
+          className="absolute inset-0 pointer-events-none"
+          width={clockSize}
+          height={clockSize}
+          style={{ overflow: "visible" }}
         >
-          <div className="w-full h-full bg-orange-500 rounded-full" />
-        </div>
+          {/* Hand line */}
+          <line
+            x1={center}
+            y1={center}
+            x2={center + handLength * Math.sin(handAngleDeg * Math.PI / 180)}
+            y2={center - handLength * Math.cos(handAngleDeg * Math.PI / 180)}
+            stroke="#F97316"
+            strokeWidth="3"
+            strokeLinecap="round"
+            className="transition-all duration-200"
+          />
+          {/* Center dot */}
+          <circle
+            cx={center}
+            cy={center}
+            r="6"
+            fill="#F97316"
+          />
+          {/* Hand tip dot */}
+          <circle
+            cx={center + handLength * Math.sin(handAngleDeg * Math.PI / 180)}
+            cy={center - handLength * Math.cos(handAngleDeg * Math.PI / 180)}
+            r="4"
+            fill="#F97316"
+            className="transition-all duration-200"
+          />
+        </svg>
+      </div>
 
-        {/* Center Dot */}
-        <div
-          className="absolute w-4 h-4 bg-orange-500 rounded-full"
-          style={{
-            left: `${centerX - 8}px`,
-            top: `${centerY - 8}px`,
-          }}
-        />
+      {/* Current Time Display */}
+      <div className="mt-4 text-center">
+        <span className="text-2xl font-bold text-gray-800">
+          {String(hours % 12 || 12).padStart(2, "0")}
+          <span className="text-orange-500">:</span>
+          {String(minutes).padStart(2, "0")}
+        </span>
+        <span className="ml-2 text-lg font-medium text-orange-500">
+          {isPM ? "PM" : "AM"}
+        </span>
       </div>
     </div>
   );
 };
 
 export default ClockDial;
-
