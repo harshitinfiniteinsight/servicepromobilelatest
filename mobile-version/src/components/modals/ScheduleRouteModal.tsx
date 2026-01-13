@@ -371,10 +371,10 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [jobToReschedule, setJobToReschedule] = useState<typeof mockJobs[0] | null>(null);
   
-  // State for route reorder confirmation time picker
-  const [jobRescheduleTimes, setJobRescheduleTimes] = useState<Record<string, string>>({}); // Map of job ID -> 24-hour time
+  // State for route reorder confirmation time picker (per-customer)
+  const [customerRescheduleTimes, setCustomerRescheduleTimes] = useState<Record<string, string>>({}); // Map of customerName -> 24-hour time
   const [showRouteTimePicker, setShowRouteTimePicker] = useState(false);
-  const [activeTimePickerJobId, setActiveTimePickerJobId] = useState<string | null>(null);
+  const [activeTimePickerCustomer, setActiveTimePickerCustomer] = useState<string | null>(null);
   
   // Route start time and job duration configuration
   const [routeStartTime, setRouteStartTime] = useState<string>("09:00");
@@ -698,12 +698,15 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
       const newIndex = routeStops.findIndex((item) => item.id === over.id);
       const newOrder = arrayMove(routeStops, oldIndex, newIndex);
       
-      // Initialize times for all jobs in the new order
-      const initialTimes: Record<string, string> = {};
+      // Initialize times per customer (use first job's time for each customer)
+      const customerTimes: Record<string, string> = {};
       newOrder.forEach((job) => {
-        initialTimes[job.id] = format12To24Hour(job.time);
+        // Only set time for customer if not already set (use first occurrence)
+        if (!customerTimes[job.customerName]) {
+          customerTimes[job.customerName] = format12To24Hour(job.time);
+        }
       });
-      setJobRescheduleTimes(initialTimes);
+      setCustomerRescheduleTimes(customerTimes);
       
       // Store pending order and show confirmation modal
       setPendingRouteOrder(newOrder);
@@ -711,12 +714,12 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     }
   };
 
-  // Confirm route reorder - apply the pending order with the new times for all jobs
+  // Confirm route reorder - apply the pending order with the new times for all jobs (using customer times)
   const handleConfirmReorder = () => {
     if (pendingRouteOrder) {
-      // Apply the new order with updated times for all jobs
+      // Apply the new order with updated times for all jobs based on customer times
       const updatedRouteOrder = pendingRouteOrder.map((job) => {
-        const newTime24 = jobRescheduleTimes[job.id];
+        const newTime24 = customerRescheduleTimes[job.customerName];
         if (newTime24) {
           return {
             ...job,
@@ -732,7 +735,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
     
     // Clear pending state and close confirmation modal
     setPendingRouteOrder(null);
-    setJobRescheduleTimes({});
+    setCustomerRescheduleTimes({});
     setShowReorderConfirmModal(false);
   };
 
@@ -1186,49 +1189,87 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
               Confirm Route Update
             </AlertDialogTitle>
             <AlertDialogDescription className="sr-only">
-              Update the job route by selecting new times for each job. This will reschedule your job route.
+              Update the job route by selecting new times for each customer. This will reschedule your job route.
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          {/* Job List with Time Pickers - Scrollable */}
+          {/* Customer-Grouped Job List with Time Pickers - Scrollable */}
           <div className="px-5 py-3 overflow-y-auto flex-1 min-h-0">
             <div className="space-y-3">
-              {pendingRouteOrder?.map((job, index) => (
-                <div 
-                  key={job.id}
-                  className={cn(
-                    "flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 py-3",
-                    index !== (pendingRouteOrder.length - 1) && "border-b border-gray-100"
-                  )}
-                >
-                  {/* Left side: Job Order Badge + Job Name */}
-                  <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#F97316] text-white text-xs font-medium flex items-center justify-center">
-                      {index + 1}
-                    </span>
-                    <p className="text-sm font-medium text-gray-900 truncate">
-                      {job.title}
-                    </p>
-                  </div>
+              {(() => {
+                // Group jobs by customer while maintaining route order
+                const customerGroups: Array<{
+                  customerName: string;
+                  jobs: typeof pendingRouteOrder;
+                  firstJobIndex: number;
+                }> = [];
+                const seenCustomers = new Set<string>();
+                
+                pendingRouteOrder?.forEach((job, index) => {
+                  if (!seenCustomers.has(job.customerName)) {
+                    seenCustomers.add(job.customerName);
+                    const customerJobs = pendingRouteOrder.filter(j => j.customerName === job.customerName);
+                    customerGroups.push({
+                      customerName: job.customerName,
+                      jobs: customerJobs,
+                      firstJobIndex: index
+                    });
+                  }
+                });
+                
+                return customerGroups.map((group, groupIndex) => {
+                  const jobCount = group.jobs?.length || 0;
+                  const firstJob = group.jobs?.[0];
+                  const additionalJobs = jobCount - 1;
                   
-                  {/* Right side: Time Picker */}
-                  <div className="flex-shrink-0 sm:ml-3">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setActiveTimePickerJobId(job.id);
-                        setShowRouteTimePicker(true);
-                      }}
-                      className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[120px]"
+                  return (
+                    <div 
+                      key={group.customerName}
+                      className={cn(
+                        "flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 py-3",
+                        groupIndex !== (customerGroups.length - 1) && "border-b border-gray-100"
+                      )}
                     >
-                      <Clock className="h-4 w-4 text-gray-500" />
-                      <span className="text-sm font-medium text-gray-900">
-                        {formatTo12Hour(jobRescheduleTimes[job.id] || format12To24Hour(job.time))}
-                      </span>
-                    </button>
-                  </div>
-                </div>
-              ))}
+                      {/* Left side: Customer & Job Info */}
+                      <div className="flex items-start gap-3 flex-1 min-w-0">
+                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#F97316] text-white text-xs font-medium flex items-center justify-center mt-0.5">
+                          {group.firstJobIndex + 1}
+                        </span>
+                        <div className="flex-1 min-w-0">
+                          {/* Customer Name - Primary Label */}
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {group.customerName}
+                          </p>
+                          {/* Job Summary */}
+                          <p className="text-xs text-gray-600 mt-0.5 truncate">
+                            {firstJob?.title}
+                            {additionalJobs > 0 && (
+                              <span className="text-gray-500"> + {additionalJobs} more</span>
+                            )}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {/* Right side: Time Picker */}
+                      <div className="flex-shrink-0 sm:ml-3 pl-9 sm:pl-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveTimePickerCustomer(group.customerName);
+                            setShowRouteTimePicker(true);
+                          }}
+                          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[120px]"
+                        >
+                          <Clock className="h-4 w-4 text-gray-500" />
+                          <span className="text-sm font-medium text-gray-900">
+                            {formatTo12Hour(customerRescheduleTimes[group.customerName] || format12To24Hour(firstJob?.time || "09:00 AM"))}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                });
+              })()}
             </div>
             
             {/* Helper text */}
@@ -1257,20 +1298,20 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
       {/* Time Picker Modal for Route Reorder */}
       <TimePickerModal
         visible={showRouteTimePicker}
-        initialTime={activeTimePickerJobId ? (jobRescheduleTimes[activeTimePickerJobId] || "09:00") : "09:00"}
+        initialTime={activeTimePickerCustomer ? (customerRescheduleTimes[activeTimePickerCustomer] || "09:00") : "09:00"}
         onCancel={() => {
           setShowRouteTimePicker(false);
-          setActiveTimePickerJobId(null);
+          setActiveTimePickerCustomer(null);
         }}
         onConfirm={(time) => {
-          if (activeTimePickerJobId) {
-            setJobRescheduleTimes((prev) => ({
+          if (activeTimePickerCustomer) {
+            setCustomerRescheduleTimes((prev) => ({
               ...prev,
-              [activeTimePickerJobId]: time
+              [activeTimePickerCustomer]: time
             }));
           }
           setShowRouteTimePicker(false);
-          setActiveTimePickerJobId(null);
+          setActiveTimePickerCustomer(null);
         }}
         mode="start"
       />
