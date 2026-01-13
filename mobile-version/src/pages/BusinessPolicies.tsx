@@ -3,75 +3,82 @@ import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Building2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { showSuccessToast } from "@/utils/toast";
 
 const BusinessPolicies = () => {
-  const [policies, setPolicies] = useState({
-    cancellation: "Cancellations must be made at least 24 hours in advance. Same-day cancellations may incur a 50% charge.",
-    payment: "Payment is due upon completion of service unless otherwise agreed. Late payments may incur a 5% monthly fee.",
-    guarantee: "We guarantee all work for 90 days. If issues arise due to our workmanship, we will return to fix at no charge.",
-  });
+  const [termsConditions, setTermsConditions] = useState("");
+  const [cancellationReturn, setCancellationReturn] = useState("");
 
-  const handleSave = () => {
-    // In real app, save policies
-    alert("Business policies updated successfully!");
+  const handleSubmit = () => {
+    // Validate fields (if required by backend)
+    // For now, we'll allow empty fields but you can add validation if needed
+    // if (!termsConditions.trim() || !cancellationReturn.trim()) {
+    //   return;
+    // }
+
+    // In real app, save to server
+    // For now, simulate save
+    
+    // Show success toast
+    showSuccessToast("Business policies saved successfully.");
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
       <MobileHeader title="Business Policies" showBack={true} />
       
-      <div className="flex-1 overflow-y-auto scrollable pt-14 px-4 pb-6 space-y-4">
-        {/* Info */}
-        <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
-          <div className="flex items-start gap-3">
-            <Building2 className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
-            <div>
-              <h3 className="font-semibold mb-1">Business Policies</h3>
-              <p className="text-sm text-muted-foreground">
-                Define your business policies that will be shown to customers.
-              </p>
+      <div className="flex-1 overflow-y-auto scrollable pt-12 pb-6">
+        {/* Card Container */}
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mt-2 mx-4 mb-8">
+          {/* Form Fields */}
+          <div className="space-y-6">
+            {/* Terms & Conditions */}
+            <div className="space-y-2">
+              <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                Terms & Conditions:
+              </Label>
+              <Textarea
+                value={termsConditions}
+                onChange={(e) => setTermsConditions(e.target.value)}
+                placeholder="Enter your terms and conditions..."
+                className={cn(
+                  "min-h-[150px] rounded-lg border-gray-300 resize-none",
+                  "focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",
+                  "placeholder:text-gray-400"
+                )}
+              />
+            </div>
+
+            {/* Cancellation & Return */}
+            <div className="space-y-2">
+              <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                Cancellation & Return:
+              </Label>
+              <Textarea
+                value={cancellationReturn}
+                onChange={(e) => setCancellationReturn(e.target.value)}
+                placeholder="Enter your cancellation and return policy..."
+                className={cn(
+                  "min-h-[150px] rounded-lg border-gray-300 resize-none",
+                  "focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",
+                  "placeholder:text-gray-400"
+                )}
+              />
             </div>
           </div>
-        </div>
 
-        {/* Policy Forms */}
-        <div className="space-y-4">
-          <div>
-            <Label>Cancellation Policy</Label>
-            <Textarea
-              className="min-h-[120px] mt-2"
-              value={policies.cancellation}
-              onChange={(e) => setPolicies({ ...policies, cancellation: e.target.value })}
-              placeholder="Enter cancellation policy..."
-            />
-          </div>
-
-          <div>
-            <Label>Payment Terms</Label>
-            <Textarea
-              className="min-h-[120px] mt-2"
-              value={policies.payment}
-              onChange={(e) => setPolicies({ ...policies, payment: e.target.value })}
-              placeholder="Enter payment terms..."
-            />
-          </div>
-
-          <div>
-            <Label>Service Guarantee</Label>
-            <Textarea
-              className="min-h-[120px] mt-2"
-              value={policies.guarantee}
-              onChange={(e) => setPolicies({ ...policies, guarantee: e.target.value })}
-              placeholder="Enter service guarantee..."
-            />
+          {/* Submit Button */}
+          <div className="mt-6 mb-8">
+            <Button
+              onClick={handleSubmit}
+              className="w-full rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all h-14 text-base"
+              style={{ backgroundColor: "#F97316" }}
+            >
+              SUBMIT
+            </Button>
           </div>
         </div>
-
-        {/* Save Button */}
-        <Button className="w-full" size="lg" onClick={handleSave}>
-          Save Policies
-        </Button>
       </div>
     </div>
   );

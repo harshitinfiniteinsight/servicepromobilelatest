@@ -1,4 +1,4 @@
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 
 interface BottomSheetProps {
@@ -21,8 +21,10 @@ const BottomSheet = ({ open, onOpenChange, title, children, className }: BottomS
         {title && (
           <DialogHeader className="p-4 pb-0">
             <DialogTitle>{title}</DialogTitle>
+            <DialogDescription className="sr-only">{title}</DialogDescription>
           </DialogHeader>
         )}
+        {!title && <DialogDescription className="sr-only">Bottom sheet content</DialogDescription>}
         <div className="p-4 overflow-y-auto max-h-[80vh]">
           {children}
         </div>

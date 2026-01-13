@@ -244,36 +244,120 @@ export const mockCustomers = [
 ];
 
 export const mockInvoices = [
-  { id: "INV-001", customerId: "1", customerName: "John Smith", issueDate: "2024-01-25", dueDate: "2024-02-10", amount: 450, status: "Open", paymentMethod: "Credit Card" },
-  { id: "INV-002", customerId: "2", customerName: "Sarah Johnson", issueDate: "2024-01-24", dueDate: "2024-02-09", amount: 875, status: "Paid", paymentMethod: "ACH" },
-  { id: "INV-003", customerId: "4", customerName: "Emma Davis", issueDate: "2024-01-20", dueDate: "2024-02-05", amount: 1250, status: "Paid", paymentMethod: "Check" },
-  { id: "INV-004", customerId: "5", customerName: "Robert Miller", issueDate: "2024-01-18", dueDate: "2024-02-03", amount: 675, status: "Open", paymentMethod: "Cash" },
-  { id: "INV-005", customerId: "7", customerName: "David Brown", issueDate: "2024-01-15", dueDate: "2024-01-30", amount: 520, status: "Overdue", paymentMethod: "Credit Card" },
-  { id: "INV-006", customerId: "8", customerName: "Lisa Anderson", issueDate: "2024-01-28", dueDate: "2024-02-12", amount: 395, status: "Open", paymentMethod: "Credit Card" },
-  { id: "INV-007", customerId: "9", customerName: "William Taylor", issueDate: "2024-01-22", dueDate: "2024-02-07", amount: 2100, status: "Paid", paymentMethod: "ACH" },
-  { id: "INV-008", customerId: "10", customerName: "Jessica Martinez", issueDate: "2024-01-19", dueDate: "2024-02-04", amount: 780, status: "Open", paymentMethod: "Credit Card" },
-  { id: "INV-009", customerId: "13", customerName: "Daniel Lee", issueDate: "2024-01-10", dueDate: "2024-01-25", amount: 1450, status: "Overdue", paymentMethod: "ACH" },
-  { id: "INV-010", customerId: "14", customerName: "Michelle White", issueDate: "2024-01-26", dueDate: "2024-02-11", amount: 325, status: "Paid", paymentMethod: "Cash" },
-  { id: "INV-011", customerId: "15", customerName: "Kevin Harris", issueDate: "2024-01-21", dueDate: "2024-02-06", amount: 950, status: "Open", paymentMethod: "Check" },
-  { id: "INV-012", customerId: "17", customerName: "Steven Lewis", issueDate: "2024-01-23", dueDate: "2024-02-08", amount: 1875, status: "Paid", paymentMethod: "ACH" },
-  { id: "INV-013", customerId: "18", customerName: "Karen Walker", issueDate: "2024-01-16", dueDate: "2024-02-01", amount: 540, status: "Open", paymentMethod: "Credit Card" },
-  { id: "INV-014", customerId: "19", customerName: "Thomas Young", issueDate: "2024-01-27", dueDate: "2024-02-12", amount: 695, status: "Open", paymentMethod: "Credit Card" },
-  { id: "INV-015", customerId: "20", customerName: "Patricia King", issueDate: "2024-01-29", dueDate: "2024-02-14", amount: 825, status: "Open", paymentMethod: "ACH" },
-  { id: "INV-016", customerId: "1", customerName: "John Smith", issueDate: "2024-01-12", dueDate: "2024-01-27", amount: 450, status: "Paid", paymentMethod: "Credit Card" },
-  { id: "INV-017", customerId: "6", customerName: "Jennifer Wilson", issueDate: "2024-01-11", dueDate: "2024-01-26", amount: 1100, status: "Overdue", paymentMethod: "Check" },
-  { id: "INV-018", customerId: "4", customerName: "Emma Davis", issueDate: "2024-01-14", dueDate: "2024-01-29", amount: 890, status: "Paid", paymentMethod: "ACH" },
-  { id: "INV-019", customerId: "2", customerName: "Sarah Johnson", issueDate: "2024-01-17", dueDate: "2024-02-02", amount: 1350, status: "Open", paymentMethod: "Credit Card" },
-  { id: "INV-020", customerId: "9", customerName: "William Taylor", issueDate: "2024-01-13", dueDate: "2024-01-28", amount: 2450, status: "Paid", paymentMethod: "ACH" },
-  { id: "INV-021", customerId: "11", customerName: "Christopher Garcia", issueDate: "2024-01-19", dueDate: "2024-02-04", amount: 675, status: "Open", paymentMethod: "Cash" },
-  { id: "INV-022", customerId: "13", customerName: "Daniel Lee", issueDate: "2024-01-24", dueDate: "2024-02-09", amount: 1820, status: "Open", paymentMethod: "ACH" },
-  { id: "INV-023", customerId: "16", customerName: "Nancy Clark", issueDate: "2024-01-17", dueDate: "2024-02-02", amount: 425, status: "Paid", paymentMethod: "Credit Card" },
-  { id: "INV-024", customerId: "7", customerName: "David Brown", issueDate: "2024-01-08", dueDate: "2024-01-23", amount: 980, status: "Overdue", paymentMethod: "Check" },
-  { id: "INV-025", customerId: "10", customerName: "Jessica Martinez", issueDate: "2024-01-25", dueDate: "2024-02-10", amount: 595, status: "Open", paymentMethod: "Credit Card" },
-  { id: "INV-026", customerId: "15", customerName: "Kevin Harris", issueDate: "2024-01-09", dueDate: "2024-01-24", amount: 1200, status: "Paid", paymentMethod: "ACH" },
-  { id: "INV-027", customerId: "18", customerName: "Karen Walker", issueDate: "2024-01-22", dueDate: "2024-02-07", amount: 735, status: "Open", paymentMethod: "Credit Card" },
-  { id: "INV-028", customerId: "8", customerName: "Lisa Anderson", issueDate: "2024-01-15", dueDate: "2024-01-30", amount: 510, status: "Paid", paymentMethod: "Cash" },
-  { id: "INV-029", customerId: "17", customerName: "Steven Lewis", issueDate: "2024-01-26", dueDate: "2024-02-11", amount: 2650, status: "Open", paymentMethod: "ACH" },
-  { id: "INV-030", customerId: "19", customerName: "Thomas Young", issueDate: "2024-01-20", dueDate: "2024-02-05", amount: 845, status: "Open", paymentMethod: "Credit Card" },
+  { id: "INV-001", customerId: "1", customerName: "John Smith", issueDate: "2024-01-25", dueDate: "2024-02-10", amount: 450, status: "Open", paymentMethod: "Credit Card", type: "single" },
+  { id: "INV-002", customerId: "2", customerName: "Sarah Johnson", issueDate: "2024-01-24", dueDate: "2024-02-09", amount: 875, status: "Paid", paymentMethod: "ACH", type: "single" },
+  { id: "INV-003", customerId: "4", customerName: "Emma Davis", issueDate: "2024-01-20", dueDate: "2024-02-05", amount: 1250, status: "Paid", paymentMethod: "Check", type: "single" },
+  { id: "INV-004", customerId: "5", customerName: "Robert Miller", issueDate: "2024-01-18", dueDate: "2024-02-03", amount: 675, status: "Open", paymentMethod: "Cash", type: "single" },
+  { id: "INV-005", customerId: "7", customerName: "David Brown", issueDate: "2024-01-15", dueDate: "2024-01-30", amount: 520, status: "Overdue", paymentMethod: "Credit Card", type: "single" },
+  { id: "INV-006", customerId: "8", customerName: "Lisa Anderson", issueDate: "2024-01-28", dueDate: "2024-02-12", amount: 395, status: "Open", paymentMethod: "Credit Card", type: "single" },
+  { id: "INV-007", customerId: "9", customerName: "William Taylor", issueDate: "2024-01-22", dueDate: "2024-02-07", amount: 2100, status: "Paid", paymentMethod: "ACH", type: "single" },
+  { id: "INV-008", customerId: "10", customerName: "Jessica Martinez", issueDate: "2024-01-19", dueDate: "2024-02-04", amount: 780, status: "Open", paymentMethod: "Credit Card", type: "single" },
+  { id: "INV-009", customerId: "13", customerName: "Daniel Lee", issueDate: "2024-01-10", dueDate: "2024-01-25", amount: 1450, status: "Overdue", paymentMethod: "ACH", type: "single" },
+  { id: "INV-010", customerId: "14", customerName: "Michelle White", issueDate: "2024-01-26", dueDate: "2024-02-11", amount: 325, status: "Paid", paymentMethod: "Cash", type: "single" },
+  { id: "INV-011", customerId: "15", customerName: "Kevin Harris", issueDate: "2024-01-21", dueDate: "2024-02-06", amount: 950, status: "Open", paymentMethod: "Check", type: "single" },
+  { id: "INV-012", customerId: "17", customerName: "Steven Lewis", issueDate: "2024-01-23", dueDate: "2024-02-08", amount: 1875, status: "Paid", paymentMethod: "ACH", type: "single" },
+  { id: "INV-013", customerId: "18", customerName: "Karen Walker", issueDate: "2024-01-16", dueDate: "2024-02-01", amount: 540, status: "Open", paymentMethod: "Credit Card", type: "recurring" },
+  { id: "INV-014", customerId: "19", customerName: "Thomas Young", issueDate: "2024-01-27", dueDate: "2024-02-12", amount: 695, status: "Open", paymentMethod: "Credit Card", type: "recurring" },
+  { id: "INV-015", customerId: "20", customerName: "Patricia King", issueDate: "2024-01-29", dueDate: "2024-02-14", amount: 825, status: "Open", paymentMethod: "ACH", type: "recurring" },
+  { id: "INV-016", customerId: "1", customerName: "John Smith", issueDate: "2024-01-12", dueDate: "2024-01-27", amount: 450, status: "Paid", paymentMethod: "Credit Card", type: "recurring" },
+  { id: "INV-017", customerId: "6", customerName: "Jennifer Wilson", issueDate: "2024-01-11", dueDate: "2024-01-26", amount: 1100, status: "Overdue", paymentMethod: "Check", type: "recurring" },
+  { id: "INV-018", customerId: "4", customerName: "Emma Davis", issueDate: "2024-01-14", dueDate: "2024-01-29", amount: 890, status: "Paid", paymentMethod: "ACH", type: "recurring" },
+  { id: "INV-019", customerId: "2", customerName: "Sarah Johnson", issueDate: "2024-01-17", dueDate: "2024-02-02", amount: 1350, status: "Open", paymentMethod: "Credit Card", type: "recurring" },
+  { id: "INV-020", customerId: "9", customerName: "William Taylor", issueDate: "2024-01-13", dueDate: "2024-01-28", amount: 2450, status: "Paid", paymentMethod: "ACH", type: "recurring" },
+  { id: "INV-021", customerId: "11", customerName: "Christopher Garcia", issueDate: "2024-01-19", dueDate: "2024-02-04", amount: 675, status: "Open", paymentMethod: "Cash", type: "recurring" },
+  { id: "INV-022", customerId: "13", customerName: "Daniel Lee", issueDate: "2024-01-24", dueDate: "2024-02-09", amount: 1820, status: "Open", paymentMethod: "ACH", type: "recurring" },
+  { id: "INV-023", customerId: "16", customerName: "Nancy Clark", issueDate: "2024-01-17", dueDate: "2024-02-02", amount: 425, status: "Paid", paymentMethod: "Credit Card", type: "recurring" },
+  { id: "INV-024", customerId: "7", customerName: "David Brown", issueDate: "2024-01-08", dueDate: "2024-01-23", amount: 980, status: "Overdue", paymentMethod: "Check", type: "recurring" },
+  { id: "INV-025", customerId: "10", customerName: "Jessica Martinez", issueDate: "2024-01-25", dueDate: "2024-02-10", amount: 595, status: "Deactivated", paymentMethod: "Credit Card", type: "deactivated" },
+  { id: "INV-026", customerId: "15", customerName: "Kevin Harris", issueDate: "2024-01-09", dueDate: "2024-01-24", amount: 1200, status: "Deactivated", paymentMethod: "ACH", type: "deactivated" },
+  { id: "INV-027", customerId: "18", customerName: "Karen Walker", issueDate: "2024-01-22", dueDate: "2024-02-07", amount: 735, status: "Deactivated", paymentMethod: "Credit Card", type: "deactivated" },
+  { id: "INV-028", customerId: "8", customerName: "Lisa Anderson", issueDate: "2024-01-15", dueDate: "2024-01-30", amount: 510, status: "Deactivated", paymentMethod: "Cash", type: "deactivated" },
+  { id: "INV-029", customerId: "17", customerName: "Steven Lewis", issueDate: "2024-01-26", dueDate: "2024-02-11", amount: 2650, status: "Deactivated", paymentMethod: "ACH", type: "deactivated" },
+  { id: "INV-030", customerId: "19", customerName: "Thomas Young", issueDate: "2024-01-20", dueDate: "2024-02-05", amount: 845, status: "Deactivated", paymentMethod: "Credit Card", type: "deactivated" },
+  {
+    id: "INV-033",
+    customerId: "16",
+    customerName: "Nancy Clark",
+    customerEmail: "nancy.c@email.com",
+    customerPhone: "(555) 666-7777",
+    issueDate: "2024-01-16",
+    dueDate: "2026-01-15",
+    amount: 25.99,
+    status: "Open",
+    paymentMethod: "Credit Card",
+    type: "single",
+    invoiceVariant: "standard",
+    items: [
+      {
+        name: "HVAC Filter - Standard",
+        quantity: 1,
+        price: 25.99,
+        total: 25.99,
+        discount: 2.60,
+        discountName: "Percent Discount",
+        discountType: "$"
+      }
+    ],
+    subtotal: 19.49,
+    discount: 6.50,
+    tax: 1.95
+  },
+  {
+    id: "INV-034",
+    customerId: "1",
+    customerName: "John Smith",
+    customerEmail: "john.smith@email.com",
+    customerPhone: "(555) 123-4567",
+    issueDate: "2024-01-30",
+    dueDate: "2024-03-01",
+    amount: 315.50,
+    status: "Open",
+    paymentMethod: "Credit Card",
+    type: "single",
+    invoiceVariant: "itemLevel",
+    items: [
+      {
+        id: "item-1",
+        name: "Air Filter Replacement",
+        quantity: 2,
+        price: 45.00,
+        amount: 90.00,
+        defaultDiscounts: [
+          { name: "Bulk Discount", type: "%", value: 10 }
+        ],
+        defaultTaxes: [
+          { name: "State Tax", value: 8.5 }
+        ]
+      },
+      {
+        id: "item-2",
+        name: "HVAC System Inspection",
+        quantity: 1,
+        price: 120.00,
+        amount: 120.00,
+        defaultDiscounts: [
+          { name: "Service Discount", type: "$", value: 15 }
+        ],
+        defaultTaxes: [
+          { name: "State Tax", value: 8.5 }
+        ]
+      },
+      {
+        id: "item-3",
+        name: "Thermostat Calibration",
+        quantity: 1,
+        price: 75.00,
+        amount: 75.00,
+        defaultTaxes: [
+          { name: "State Tax", value: 8.5 }
+        ]
+      }
+    ],
+    subtotal: 285.00,
+    discount: 0,
+    tax: 30.50,
+    total: 315.50
+  },
 ];
 
 export const mockEstimates = [
@@ -297,37 +381,86 @@ export const mockEstimates = [
   { id: "EST-018", customerId: "18", customerName: "Karen Walker", date: "2024-01-11", amount: 725, status: "Unpaid", probability: 0 },
   { id: "EST-019", customerId: "19", customerName: "Thomas Young", date: "2024-01-10", amount: 1890, status: "Paid", probability: 100 },
   { id: "EST-020", customerId: "20", customerName: "Patricia King", date: "2024-01-09", amount: 1050, status: "Paid", probability: 70 },
+  { 
+    id: "EST-023", 
+    customerId: "16", 
+    customerName: "Nancy Clark", 
+    date: "2024-01-05", 
+    amount: 21.44, 
+    status: "Unpaid", 
+    probability: 0,
+    items: [
+      { 
+        name: "HVAC Filter - Standard", 
+        quantity: 1, 
+        price: 25.99, 
+        total: 25.99,
+        discount: 25,
+        discountName: "Inventory Discount",
+        discountLabel: "Inventory Discount"
+      }
+    ],
+    subtotal: 25.99,
+    discount: 6.50,
+    tax: 1.95
+  },
 ];
 
 export const mockJobs = [
-  { id: "JOB-001", title: "HVAC Installation", customerId: "1", customerName: "John Smith", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-01", time: "09:00 AM", status: "Scheduled", location: "123 Main St, Springfield, IL" },
-  { id: "JOB-002", title: "Plumbing Repair", customerId: "2", customerName: "Sarah Johnson", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-30", time: "02:00 PM", status: "In Progress", location: "456 Oak Ave, Chicago, IL" },
-  { id: "JOB-003", title: "Electrical Service", customerId: "4", customerName: "Emma Davis", technicianId: "3", technicianName: "Chris Davis", date: "2024-01-29", time: "10:30 AM", status: "Completed", location: "321 Elm St, Aurora, IL" },
-  { id: "JOB-004", title: "AC Maintenance", customerId: "5", customerName: "Robert Miller", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-02", time: "01:00 PM", status: "Scheduled", location: "654 Maple Dr, Joliet, IL" },
-  { id: "JOB-005", title: "Water Heater Replacement", customerId: "7", customerName: "David Brown", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-31", time: "11:00 AM", status: "In Progress", location: "246 Birch St, Peoria, IL" },
-  { id: "JOB-006", title: "Furnace Inspection", customerId: "8", customerName: "Lisa Anderson", technicianId: "4", technicianName: "Sarah Martinez", date: "2024-01-28", time: "03:00 PM", status: "Completed", location: "135 Spruce Ave, Decatur, IL" },
-  { id: "JOB-007", title: "Kitchen Plumbing", customerId: "9", customerName: "William Taylor", technicianId: "2", technicianName: "Tom Wilson", date: "2024-02-03", time: "09:30 AM", status: "Scheduled", location: "864 Willow Ct, Champaign, IL" },
-  { id: "JOB-008", title: "Panel Upgrade", customerId: "10", customerName: "Jessica Martinez", technicianId: "3", technicianName: "Chris Davis", date: "2024-02-01", time: "02:30 PM", status: "Scheduled", location: "753 Ash Blvd, Springfield, IL" },
-  { id: "JOB-009", title: "Drain Cleaning", customerId: "13", customerName: "Daniel Lee", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-30", time: "04:00 PM", status: "In Progress", location: "159 Walnut Ave, Evanston, IL" },
-  { id: "JOB-010", title: "AC Installation", customerId: "15", customerName: "Kevin Harris", technicianId: "1", technicianName: "Mike Johnson", date: "2024-01-27", time: "08:00 AM", status: "Completed", location: "792 Sycamore Rd, Bolingbrook, IL" },
-  { id: "JOB-011", title: "Outlet Installation", customerId: "17", customerName: "Steven Lewis", technicianId: "3", technicianName: "Chris Davis", date: "2024-02-04", time: "10:00 AM", status: "Scheduled", location: "348 Dogwood Ln, Des Plaines, IL" },
-  { id: "JOB-012", title: "Leak Repair", customerId: "18", customerName: "Karen Walker", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-29", time: "01:30 PM", status: "Completed", location: "875 Redwood Ct, Mount Prospect, IL" },
-  { id: "JOB-013", title: "Duct Cleaning", customerId: "19", customerName: "Thomas Young", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-05", time: "11:30 AM", status: "Scheduled", location: "521 Fir Ave, Wheaton, IL" },
-  { id: "JOB-014", title: "Bathroom Remodel", customerId: "20", customerName: "Patricia King", technicianId: "2", technicianName: "Tom Wilson", date: "2024-02-02", time: "09:00 AM", status: "Scheduled", location: "267 Beech St, Glen Ellyn, IL" },
-  { id: "JOB-015", title: "Thermostat Install", customerId: "6", customerName: "Jennifer Wilson", technicianId: "4", technicianName: "Sarah Martinez", date: "2024-01-26", time: "02:00 PM", status: "Completed", location: "987 Cedar Ln, Rockford, IL" },
+  { id: "JOB-001", title: "HVAC Installation", services: ["HVAC Installation", "Duct Inspection", "Filter Replacement"], customerId: "1", customerName: "John Smith", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-01", time: "09:00 AM", status: "Scheduled", location: "123 Main St, Springfield, IL", sourceType: "invoice" as const, sourceId: "INV-001" },
+  { id: "JOB-002", title: "Plumbing Repair", services: ["Plumbing Repair", "Pipe Inspection"], customerId: "2", customerName: "Sarah Johnson", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-30", time: "02:00 PM", status: "In Progress", location: "456 Oak Ave, Chicago, IL", sourceType: "estimate" as const, sourceId: "EST-001" },
+  { id: "JOB-003", title: "Electrical Service", services: ["Electrical Service"], customerId: "4", customerName: "Emma Davis", technicianId: "3", technicianName: "Chris Davis", date: "2024-01-29", time: "10:30 AM", status: "Completed", location: "321 Elm St, Aurora, IL", sourceType: "agreement" as const, sourceId: "AGR-001" },
+  { id: "JOB-004", title: "AC Maintenance", services: ["AC Maintenance", "Refrigerant Check", "Coil Cleaning", "Thermostat Calibration"], customerId: "5", customerName: "Robert Miller", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-02", time: "01:00 PM", status: "Scheduled", location: "654 Maple Dr, Joliet, IL", sourceType: "invoice" as const, sourceId: "INV-004" },
+  { id: "JOB-005", title: "Water Heater Replacement", services: ["Water Heater Replacement"], customerId: "7", customerName: "David Brown", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-31", time: "11:00 AM", status: "In Progress", location: "246 Birch St, Peoria, IL", sourceType: "estimate" as const, sourceId: "EST-002" },
+  { id: "JOB-006", title: "Furnace Inspection", services: ["Furnace Inspection", "Safety Check"], customerId: "8", customerName: "Lisa Anderson", technicianId: "4", technicianName: "Sarah Martinez", date: "2024-01-28", time: "03:00 PM", status: "Completed", location: "135 Spruce Ave, Decatur, IL", sourceType: "invoice" as const, sourceId: "INV-006" },
+  { id: "JOB-007", title: "Kitchen Plumbing", services: ["Kitchen Plumbing", "Faucet Installation", "Garbage Disposal Repair"], customerId: "9", customerName: "William Taylor", technicianId: "2", technicianName: "Tom Wilson", date: "2024-02-03", time: "09:30 AM", status: "Scheduled", location: "864 Willow Ct, Champaign, IL", sourceType: "agreement" as const, sourceId: "AGR-002" },
+  { id: "JOB-008", title: "Panel Upgrade", services: ["Panel Upgrade"], customerId: "10", customerName: "Jessica Martinez", technicianId: "3", technicianName: "Chris Davis", date: "2024-02-01", time: "02:30 PM", status: "Scheduled", location: "753 Ash Blvd, Springfield, IL", sourceType: "estimate" as const, sourceId: "EST-003" },
+  { id: "JOB-009", title: "Drain Cleaning", services: ["Drain Cleaning", "Camera Inspection"], customerId: "13", customerName: "Daniel Lee", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-30", time: "04:00 PM", status: "In Progress", location: "159 Walnut Ave, Evanston, IL", sourceType: "invoice" as const, sourceId: "INV-009" },
+  { id: "JOB-010", title: "AC Installation", services: ["AC Installation", "Ductwork", "Electrical Connection"], customerId: "15", customerName: "Kevin Harris", technicianId: "1", technicianName: "Mike Johnson", date: "2024-01-27", time: "08:00 AM", status: "Completed", location: "792 Sycamore Rd, Bolingbrook, IL", sourceType: "invoice" as const, sourceId: "INV-011" },
+  { id: "JOB-011", title: "Outlet Installation", services: ["Outlet Installation"], customerId: "17", customerName: "Steven Lewis", technicianId: "3", technicianName: "Chris Davis", date: "2024-02-04", time: "10:00 AM", status: "Scheduled", location: "348 Dogwood Ln, Des Plaines, IL", sourceType: "estimate" as const, sourceId: "EST-004" },
+  { id: "JOB-012", title: "Leak Repair", services: ["Leak Repair", "Pipe Replacement"], customerId: "18", customerName: "Karen Walker", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-29", time: "01:30 PM", status: "Completed", location: "875 Redwood Ct, Mount Prospect, IL", sourceType: "invoice" as const, sourceId: "INV-013" },
+  { id: "JOB-013", title: "Duct Cleaning", services: ["Duct Cleaning", "Air Quality Test", "Filter Replacement"], customerId: "19", customerName: "Thomas Young", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-05", time: "11:30 AM", status: "Scheduled", location: "521 Fir Ave, Wheaton, IL", sourceType: "agreement" as const, sourceId: "AGR-003" },
+  { id: "JOB-014", title: "Bathroom Remodel", services: ["Bathroom Remodel", "Plumbing Rough-In", "Fixture Installation", "Tile Work"], customerId: "20", customerName: "Patricia King", technicianId: "2", technicianName: "Tom Wilson", date: "2024-02-02", time: "09:00 AM", status: "Scheduled", location: "267 Beech St, Glen Ellyn, IL", sourceType: "estimate" as const, sourceId: "EST-005" },
+  { id: "JOB-015", title: "Thermostat Install", services: ["Thermostat Install"], customerId: "6", customerName: "Jennifer Wilson", technicianId: "4", technicianName: "Sarah Martinez", date: "2024-01-26", time: "02:00 PM", status: "Completed", location: "987 Cedar Ln, Rockford, IL", sourceType: "invoice" as const, sourceId: "INV-017" },
 ];
 
+// Helper function to get current month dates
+const getCurrentMonthDates = () => {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  
+  return {
+    year,
+    month: month + 1, // 1-indexed
+    daysInMonth,
+    today: now.getDate(),
+  };
+};
+
+const currentDates = getCurrentMonthDates();
+const formatDate = (day: number) => {
+  return `${currentDates.year}-${String(currentDates.month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+};
+
 export const mockAppointments = [
-  { id: "APT-001", customerId: "1", customerName: "John Smith", date: "2024-02-01", time: "09:00 AM", service: "HVAC Installation", duration: "3 hours", technicianId: "1", technicianName: "Mike Johnson", status: "Confirmed" },
-  { id: "APT-002", customerId: "2", customerName: "Sarah Johnson", date: "2024-01-30", time: "02:00 PM", service: "Plumbing Repair", duration: "2 hours", technicianId: "2", technicianName: "Tom Wilson", status: "Confirmed" },
-  { id: "APT-003", customerId: "5", customerName: "Robert Miller", date: "2024-02-02", time: "01:00 PM", service: "AC Maintenance", duration: "1.5 hours", technicianId: "1", technicianName: "Mike Johnson", status: "Confirmed" },
-  { id: "APT-004", customerId: "7", customerName: "David Brown", date: "2024-01-31", time: "11:00 AM", service: "Water Heater Replacement", duration: "4 hours", technicianId: "2", technicianName: "Tom Wilson", status: "Pending" },
-  { id: "APT-005", customerId: "9", customerName: "William Taylor", date: "2024-02-03", time: "09:30 AM", service: "Kitchen Plumbing", duration: "3 hours", technicianId: "2", technicianName: "Tom Wilson", status: "Confirmed" },
-  { id: "APT-006", customerId: "10", customerName: "Jessica Martinez", date: "2024-02-01", time: "02:30 PM", service: "Panel Upgrade", duration: "5 hours", technicianId: "3", technicianName: "Chris Davis", status: "Confirmed" },
-  { id: "APT-007", customerId: "13", customerName: "Daniel Lee", date: "2024-01-30", time: "04:00 PM", service: "Drain Cleaning", duration: "1 hour", technicianId: "2", technicianName: "Tom Wilson", status: "Confirmed" },
-  { id: "APT-008", customerId: "17", customerName: "Steven Lewis", date: "2024-02-04", time: "10:00 AM", service: "Outlet Installation", duration: "2 hours", technicianId: "3", technicianName: "Chris Davis", status: "Pending" },
-  { id: "APT-009", customerId: "19", customerName: "Thomas Young", date: "2024-02-05", time: "11:30 AM", service: "Duct Cleaning", duration: "2.5 hours", technicianId: "1", technicianName: "Mike Johnson", status: "Confirmed" },
-  { id: "APT-010", customerId: "20", customerName: "Patricia King", date: "2024-02-02", time: "09:00 AM", service: "Bathroom Remodel", duration: "8 hours", technicianId: "2", technicianName: "Tom Wilson", status: "Pending" },
+  // Current month appointments for testing
+  { id: "APT-001", customerId: "1", customerName: "John Smith", date: formatDate(1), time: "09:00 AM", service: "HVAC Installation", duration: "3 hours", technicianId: "1", technicianName: "Mike Johnson", status: "Confirmed" },
+  { id: "APT-002", customerId: "2", customerName: "Sarah Johnson", date: formatDate(3), time: "02:00 PM", service: "Plumbing Repair", duration: "2 hours", technicianId: "2", technicianName: "Tom Wilson", status: "Confirmed" },
+  { id: "APT-003", customerId: "5", customerName: "Robert Miller", date: formatDate(5), time: "01:00 PM", service: "AC Maintenance", duration: "1.5 hours", technicianId: "1", technicianName: "Mike Johnson", status: "Confirmed" },
+  { id: "APT-004", customerId: "7", customerName: "David Brown", date: formatDate(7), time: "11:00 AM", service: "Water Heater Replacement", duration: "4 hours", technicianId: "2", technicianName: "Tom Wilson", status: "Pending" },
+  { id: "APT-005", customerId: "9", customerName: "William Taylor", date: formatDate(10), time: "09:30 AM", service: "Kitchen Plumbing", duration: "3 hours", technicianId: "2", technicianName: "Tom Wilson", status: "Confirmed" },
+  { id: "APT-006", customerId: "10", customerName: "Jessica Martinez", date: formatDate(12), time: "02:30 PM", service: "Panel Upgrade", duration: "5 hours", technicianId: "3", technicianName: "Chris Davis", status: "Confirmed" },
+  { id: "APT-007", customerId: "13", customerName: "Daniel Lee", date: formatDate(15), time: "04:00 PM", service: "Drain Cleaning", duration: "1 hour", technicianId: "2", technicianName: "Tom Wilson", status: "Confirmed" },
+  { id: "APT-008", customerId: "17", customerName: "Steven Lewis", date: formatDate(18), time: "10:00 AM", service: "Outlet Installation", duration: "2 hours", technicianId: "3", technicianName: "Chris Davis", status: "Pending" },
+  { id: "APT-009", customerId: "19", customerName: "Thomas Young", date: formatDate(20), time: "11:30 AM", service: "Duct Cleaning", duration: "2.5 hours", technicianId: "1", technicianName: "Mike Johnson", status: "Confirmed" },
+  { id: "APT-010", customerId: "20", customerName: "Patricia King", date: formatDate(22), time: "09:00 AM", service: "Bathroom Remodel", duration: "8 hours", technicianId: "2", technicianName: "Tom Wilson", status: "Pending" },
+  { id: "APT-011", customerId: "1", customerName: "John Smith", date: formatDate(25), time: "10:00 AM", service: "Follow Up", duration: "1 hour", technicianId: "1", technicianName: "Mike Johnson", status: "Confirmed" },
+  { id: "APT-012", customerId: "4", customerName: "Emma Davis", date: formatDate(28), time: "02:00 PM", service: "Emergency Repair", duration: "2 hours", technicianId: "2", technicianName: "Tom Wilson", status: "Confirmed" },
+  // Multiple appointments on same day for testing
+  { id: "APT-013", customerId: "5", customerName: "Robert Miller", date: formatDate(1), time: "03:00 PM", service: "Inspection", duration: "1 hour", technicianId: "3", technicianName: "Chris Davis", status: "Confirmed" },
+  { id: "APT-014", customerId: "6", customerName: "Jennifer Wilson", date: formatDate(10), time: "02:00 PM", service: "Maintenance Check", duration: "1.5 hours", technicianId: "1", technicianName: "Mike Johnson", status: "Confirmed" },
 ];
 
 export const mockEmployees = [
@@ -344,16 +477,16 @@ export const mockEmployees = [
 ];
 
 export const mockInventory = [
-  { id: "INV-ITEM-001", name: "HVAC Filter - Standard", sku: "HVAC-FILT-001", category: "HVAC", stock: 150, lowStockThreshold: 50, unitPrice: 25.99, lastUpdated: "2024-01-28", supplier: "AirTech Supply", type: "F" },
-  { id: "INV-ITEM-002", name: "Copper Pipe - 1/2 inch", sku: "PLUMB-PIPE-002", category: "Plumbing", stock: 85, lowStockThreshold: 30, unitPrice: 8.50, lastUpdated: "2024-01-27", supplier: "PlumbPro Inc", type: "V" },
+  { id: "INV-ITEM-001", name: "HVAC Filter - Standard", sku: "HVAC-FILT-001", category: "HVAC", stock: 150, lowStockThreshold: 50, unitPrice: 25.99, lastUpdated: "2024-01-28", supplier: "AirTech Supply", type: "F", defaultDiscounts: [ { name: "Seasonal Discount", type: "%", value: 10 }, { name: "Loyalty Discount", type: "$", value: 5 } ], defaultTaxes: [ { name: "State Tax", type: "%", value: 8 } ] },
+  { id: "INV-ITEM-002", name: "Copper Pipe - 1/2 inch", sku: "PLUMB-PIPE-002", category: "Plumbing", stock: 85, lowStockThreshold: 30, unitPrice: 8.50, lastUpdated: "2024-01-27", supplier: "PlumbPro Inc", type: "V", defaultDiscounts: [ { name: "Bulk Discount", type: "%", value: 5 } ], defaultTaxes: [ { name: "Sales Tax", type: "%", value: 7.5 } ] },
   { id: "INV-ITEM-003", name: "Electrical Wire - 12 AWG", sku: "ELEC-WIRE-003", category: "Electrical", stock: 200, lowStockThreshold: 100, unitPrice: 1.25, lastUpdated: "2024-01-26", supplier: "Electric Depot", type: "U" },
-  { id: "INV-ITEM-004", name: "Thermostat - Programmable", sku: "HVAC-THER-004", category: "HVAC", stock: 35, lowStockThreshold: 15, unitPrice: 89.99, lastUpdated: "2024-01-25", supplier: "AirTech Supply", type: "F" },
-  { id: "INV-ITEM-005", name: "PVC Pipe - 3 inch", sku: "PLUMB-PIPE-005", category: "Plumbing", stock: 60, lowStockThreshold: 25, unitPrice: 12.75, lastUpdated: "2024-01-24", supplier: "PlumbPro Inc", type: "V" },
+  { id: "INV-ITEM-004", name: "Thermostat - Programmable", sku: "HVAC-THER-004", category: "HVAC", stock: 35, lowStockThreshold: 15, unitPrice: 89.99, lastUpdated: "2024-01-25", supplier: "AirTech Supply", type: "F", defaultDiscounts: [ { name: "Professional Discount", type: "%", value: 15 } ], defaultTaxes: [ { name: "State Tax", type: "%", value: 8 }, { name: "City Tax", type: "%", value: 2 } ] },
+  { id: "INV-ITEM-005", name: "PVC Pipe - 3 inch", sku: "PLUMB-PIPE-005", category: "Plumbing", stock: 60, lowStockThreshold: 25, unitPrice: 12.75, lastUpdated: "2024-01-24", supplier: "PlumbPro Inc", type: "V", defaultTaxes: [ { name: "Sales Tax", type: "%", value: 7.5 } ] },
   { id: "INV-ITEM-006", name: "Circuit Breaker - 20A", sku: "ELEC-BRKR-006", category: "Electrical", stock: 12, lowStockThreshold: 20, unitPrice: 15.50, lastUpdated: "2024-01-23", supplier: "Electric Depot", type: "F" },
-  { id: "INV-ITEM-007", name: "Refrigerant - R-410A", sku: "HVAC-REFR-007", category: "HVAC", stock: 28, lowStockThreshold: 10, unitPrice: 125.00, lastUpdated: "2024-01-22", supplier: "AirTech Supply", type: "U" },
-  { id: "INV-ITEM-008", name: "Water Heater - 50 Gal", sku: "PLUMB-WHT-008", category: "Plumbing", stock: 8, lowStockThreshold: 5, unitPrice: 450.00, lastUpdated: "2024-01-21", supplier: "PlumbPro Inc", type: "F" },
+  { id: "INV-ITEM-007", name: "Refrigerant - R-410A", sku: "HVAC-REFR-007", category: "HVAC", stock: 28, lowStockThreshold: 10, unitPrice: 125.00, lastUpdated: "2024-01-22", supplier: "AirTech Supply", type: "U", defaultTaxes: [ { name: "State Tax", type: "%", value: 8 } ] },
+  { id: "INV-ITEM-008", name: "Water Heater - 50 Gal", sku: "PLUMB-WHT-008", category: "Plumbing", stock: 8, lowStockThreshold: 5, unitPrice: 450.00, lastUpdated: "2024-01-21", supplier: "PlumbPro Inc", type: "F", defaultDiscounts: [ { name: "Volume Discount", type: "$", value: 50 } ], defaultTaxes: [ { name: "Sales Tax", type: "%", value: 7.5 } ] },
   { id: "INV-ITEM-009", name: "Light Switch - Dimmer", sku: "ELEC-SWCH-009", category: "Electrical", stock: 45, lowStockThreshold: 20, unitPrice: 18.99, lastUpdated: "2024-01-20", supplier: "Electric Depot", type: "F" },
-  { id: "INV-ITEM-010", name: "Air Filter - MERV 13", sku: "HVAC-FILT-010", category: "HVAC", stock: 95, lowStockThreshold: 40, unitPrice: 32.50, lastUpdated: "2024-01-19", supplier: "AirTech Supply", type: "F" },
+  { id: "INV-ITEM-010", name: "Air Filter - MERV 13", sku: "HVAC-FILT-010", category: "HVAC", stock: 95, lowStockThreshold: 40, unitPrice: 32.50, lastUpdated: "2024-01-19", supplier: "AirTech Supply", type: "F", defaultDiscounts: [ { name: "Seasonal Discount", type: "%", value: 10 } ], defaultTaxes: [ { name: "State Tax", type: "%", value: 8 } ] },
   { id: "INV-ITEM-011", name: "Drain Snake - 25 ft", sku: "PLUMB-TOOL-011", category: "Tools", stock: 18, lowStockThreshold: 10, unitPrice: 45.00, lastUpdated: "2024-01-18", supplier: "Tool Mart" },
   { id: "INV-ITEM-012", name: "Outlet - GFCI", sku: "ELEC-OUTL-012", category: "Electrical", stock: 72, lowStockThreshold: 30, unitPrice: 12.25, lastUpdated: "2024-01-17", supplier: "Electric Depot" },
   { id: "INV-ITEM-013", name: "Duct Tape - Heavy Duty", sku: "HVAC-TAPE-013", category: "HVAC", stock: 120, lowStockThreshold: 50, unitPrice: 8.99, lastUpdated: "2024-01-16", supplier: "AirTech Supply" },
@@ -397,11 +530,11 @@ export const mockInventory = [
 ];
 
 export const mockAgreements = [
-  { id: "AGR-001", customerId: "1", customerName: "John Smith", type: "Annual Maintenance", startDate: "2024-01-01", endDate: "2024-12-31", monthlyAmount: 49.99, status: "Active", renewalStatus: "Auto-renew" },
-  { id: "AGR-002", customerId: "4", customerName: "Emma Davis", type: "Quarterly Service", startDate: "2023-10-01", endDate: "2024-09-30", monthlyAmount: 129.99, status: "Active", renewalStatus: "Manual" },
-  { id: "AGR-003", customerId: "9", customerName: "William Taylor", type: "Premium Plan", startDate: "2024-01-15", endDate: "2025-01-14", monthlyAmount: 199.99, status: "Active", renewalStatus: "Auto-renew" },
-  { id: "AGR-004", customerId: "13", customerName: "Daniel Lee", type: "Basic Coverage", startDate: "2023-07-01", endDate: "2024-06-30", monthlyAmount: 79.99, status: "Expiring Soon", renewalStatus: "Pending" },
-  { id: "AGR-005", customerId: "17", customerName: "Steven Lewis", type: "Commercial Plan", startDate: "2024-02-01", endDate: "2025-01-31", monthlyAmount: 399.99, status: "Active", renewalStatus: "Auto-renew" },
+  { id: "AGR-001", customerId: "1", customerName: "John Smith", type: "Annual Maintenance", startDate: "2024-01-01", endDate: "2024-12-31", monthlyAmount: 49.99, status: "Paid", renewalStatus: "Auto-renew" },
+  { id: "AGR-002", customerId: "4", customerName: "Emma Davis", type: "Quarterly Service", startDate: "2023-10-01", endDate: "2024-09-30", monthlyAmount: 129.99, status: "Paid", renewalStatus: "Manual" },
+  { id: "AGR-003", customerId: "9", customerName: "William Taylor", type: "Premium Plan", startDate: "2024-01-15", endDate: "2025-01-14", monthlyAmount: 199.99, status: "Paid", renewalStatus: "Auto-renew" },
+  { id: "AGR-004", customerId: "13", customerName: "Daniel Lee", type: "Basic Coverage", startDate: "2023-07-01", endDate: "2024-06-30", monthlyAmount: 79.99, status: "Open", renewalStatus: "Pending" },
+  { id: "AGR-005", customerId: "17", customerName: "Steven Lewis", type: "Commercial Plan", startDate: "2024-02-01", endDate: "2025-01-31", monthlyAmount: 399.99, status: "Open", renewalStatus: "Auto-renew" },
 ];
 
 export const mockDiscounts = [
@@ -460,6 +593,7 @@ export const statusColors: Record<string, string> = {
   Unpaid: "bg-warning/10 text-warning border-warning/20",
   Open: "bg-warning/10 text-warning border-warning/20",
   Overdue: "bg-destructive/10 text-destructive border-destructive/20",
+  Deactivated: "bg-muted text-muted-foreground border-muted",
   Draft: "bg-muted text-muted-foreground border-muted",
   Sent: "bg-primary/10 text-primary border-primary/20",
   Approved: "bg-success/10 text-success border-success/20",
@@ -467,9 +601,11 @@ export const statusColors: Record<string, string> = {
   Scheduled: "bg-primary/10 text-primary border-primary/20",
   "In Progress": "bg-warning/10 text-warning border-warning/20",
   Completed: "bg-success/10 text-success border-success/20",
+  Cancel: "bg-destructive/10 text-destructive border-destructive/20",
   Confirmed: "bg-success/10 text-success border-success/20",
   Pending: "bg-warning/10 text-warning border-warning/20",
   "Expiring Soon": "bg-warning/10 text-warning border-warning/20",
+  "Converted to Invoice": "bg-primary/10 text-primary border-primary/20",
 };
 
 

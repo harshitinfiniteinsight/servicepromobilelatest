@@ -1,32 +1,57 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockCustomers, mockInventory, mockEmployees, mockDiscounts } from "@/data/mobileMockData";
+import { Checkbox } from "@/components/ui/checkbox";
+import { mockCustomers, mockInventory, mockEmployees, mockDiscounts, mockEstimates } from "@/data/mobileMockData";
 import { Search, Plus, Minus, X, RefreshCw, List, Check, ChevronsUpDown, Package, FileText, Save, Upload, Tag, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { showSuccessToast } from "@/utils/toast";
+import { addNotes } from "@/services/noteService";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 
 const AddEstimate = () => {
   const navigate = useNavigate();
+  const { id } = useParams();
+  const location = useLocation();
+  const isEditMode = id && location.pathname.includes('/edit');
   const [step, setStep] = useState(1);
   const [customerOpen, setCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [jobAddress, setJobAddress] = useState("");
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+
+  // Get user role and current employee ID
+  const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
+  const isEmployee = userType === "employee";
+  const currentEmployeeId = typeof window !== "undefined" ? localStorage.getItem("currentEmployeeId") || "1" : "1";
+
+  // Auto-fill employee field for employees on component mount
+  useEffect(() => {
+    if (isEmployee && currentEmployeeId) {
+      // Always set to current employee for employees, preventing changes
+      if (selectedEmployee !== currentEmployeeId) {
+        setSelectedEmployee(currentEmployeeId);
+      }
+    }
+  }, [isEmployee, currentEmployeeId, selectedEmployee]);
   const [items, setItems] = useState<Array<{ id: string; name: string; quantity: number; price: number; isCustom?: boolean }>>([]);
   const [itemSearch, setItemSearch] = useState("");
   const [tax, setTax] = useState(0);
   const [discount, setDiscount] = useState(0);
   const [discountType, setDiscountType] = useState<"%" | "$">("%");
-  const [selectedDiscount, setSelectedDiscount] = useState<any>(null);
+  const [selectedDiscounts, setSelectedDiscounts] = useState<Array<typeof mockDiscounts[0]>>([]);
+  const [customDiscounts, setCustomDiscounts] = useState<Array<{ name: string; type: "%" | "$"; value: number }>>([]);
   const [showDiscountModal, setShowDiscountModal] = useState(false);
   const [customDiscountValue, setCustomDiscountValue] = useState("");
   const [customDiscountType, setCustomDiscountType] = useState<"%" | "$">("%");
@@ -35,16 +60,143 @@ const AddEstimate = () => {
   const [cancellationPolicy, setCancellationPolicy] = useState<string>("");
   const [notes, setNotes] = useState("");
   const [uploadedDocs, setUploadedDocs] = useState<string[]>([]);
+  const [customerList, setCustomerList] = useState(() => [...mockCustomers]);
   const [showAddExisting, setShowAddExisting] = useState(false);
+  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
+  const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
+  const [newCustomerLastName, setNewCustomerLastName] = useState("");
+  const [newCustomerEmail, setNewCustomerEmail] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
   const [showAddCustom, setShowAddCustom] = useState(false);
-  const [showAddToInventory, setShowAddToInventory] = useState(false);
   const [customItemName, setCustomItemName] = useState("");
   const [customItemPrice, setCustomItemPrice] = useState("");
   const [customItemImage, setCustomItemImage] = useState<string | null>(null);
   const [showVariablePriceDialog, setShowVariablePriceDialog] = useState(false);
   const [pendingVariableItem, setPendingVariableItem] = useState<typeof mockInventory[0] | null>(null);
   const [variableItemPrice, setVariableItemPrice] = useState("");
+  const processedReturnStateRef = useRef<string | null>(null);
 
+  // Handle prefill data from location.state (when creating new from paid item)
+  useEffect(() => {
+    if (!isEditMode) {
+      const prefill = (location.state as any)?.prefill;
+      if (prefill) {
+        // Prefill customer
+        if (prefill.customerId) {
+          setSelectedCustomer(prefill.customerId);
+        }
+        
+        // Prefill job address
+        if (prefill.jobAddress) {
+          setJobAddress(prefill.jobAddress);
+        }
+        
+        // Prefill employee (only if not employee mode, as employees are auto-filled)
+        if (!isEmployee && prefill.employeeId) {
+          setSelectedEmployee(prefill.employeeId);
+        }
+      }
+    }
+  }, [location.state, isEditMode, isEmployee]);
+
+  // Load estimate data when in edit mode
+  useEffect(() => {
+    if (isEditMode && id) {
+      const estimate = mockEstimates.find(est => est.id === id);
+      if (estimate) {
+        // Prefill customer
+        setSelectedCustomer(estimate.customerId);
+        
+        // Prefill job address (use stored jobAddress or fall back to customer address)
+        const customer = mockCustomers.find(c => c.id === estimate.customerId);
+        if (estimate.jobAddress) {
+          setJobAddress(estimate.jobAddress);
+        } else if (customer?.address) {
+          setJobAddress(customer.address);
+        }
+        
+        // Prefill employee (using first employee as default)
+        if (mockEmployees.length > 0) {
+          setSelectedEmployee(mockEmployees[0].id);
+        }
+        
+        // Prefill items - create items from estimate amount
+        // In a real app, you'd load actual items from the estimate
+        setItems([{
+          id: `item-${estimate.id}`,
+          name: "Service Item",
+          quantity: 1,
+          price: estimate.amount,
+        }]);
+        
+        // Prefill terms (default to "Due on Receipt")
+        setTerms("Due on Receipt");
+        
+        // Prefill tax and discount (defaults)
+        setTax(0);
+        setDiscount(0);
+        setSelectedDiscounts([]);
+        setCustomDiscounts([]);
+        
+        // Prefill notes and other fields (empty by default, can be enhanced)
+        setNotes("");
+        setTermsAndConditions("");
+        setCancellationPolicy("");
+        setUploadedDocs([]);
+      }
+    }
+  }, [isEditMode, id]);
+
+  // Clear job address when customer changes in NEW mode (don't auto-fill)
+  useEffect(() => {
+    if (selectedCustomer && !isEditMode) {
+      // In NEW mode, keep job address empty when customer changes
+      setJobAddress("");
+    }
+  }, [selectedCustomer, isEditMode]);
+
+  // Handle return from Add Inventory page
+  useEffect(() => {
+    const state = location.state as { newInventoryItem?: any; returnTo?: string } | null;
+    if (state?.newInventoryItem && state?.returnTo === "estimate") {
+      const newItem = state.newInventoryItem;
+      const stateKey = `${newItem.id}-${newItem.name}`;
+      
+      // Prevent processing the same state multiple times
+      if (processedReturnStateRef.current === stateKey) {
+        return;
+      }
+      
+      // Check if item already exists and add it if not
+      setItems(prev => {
+        // Check if item already exists in items list
+        if (prev.find(i => i.id === newItem.id)) {
+          return prev;
+        }
+        
+        processedReturnStateRef.current = stateKey;
+        
+        // Add the new item to the items list
+        const price = parseFloat(newItem.price) || 0;
+        const updatedItems = [...prev, {
+          id: newItem.id,
+          name: newItem.name,
+          quantity: 1,
+          price: price
+        }];
+        
+        // Ensure we're on step 2
+        setStep(2);
+        
+        // Clear the state to prevent re-adding on re-render
+        window.history.replaceState({}, document.title);
+        
+        toast.success("Item added to inventory and selected");
+        
+        return updatedItems;
+      });
+    }
+  }, [location.state]);
 
   const filteredInventory = mockInventory.filter(i =>
     i.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
@@ -52,11 +204,66 @@ const AddEstimate = () => {
   );
 
   // Sort customers by joinedDate (most recent first)
-  const sortedCustomers = [...mockCustomers].sort((a, b) => {
+  const sortedCustomers = [...customerList].sort((a, b) => {
     const dateA = new Date(a.joinedDate).getTime();
     const dateB = new Date(b.joinedDate).getTime();
     return dateB - dateA; // Descending order (most recent first)
   });
+
+  // Filter customers based on search
+  const filteredCustomers = sortedCustomers.filter(customer =>
+    customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    customer.email.toLowerCase().includes(customerSearch.toLowerCase())
+  );
+
+  // Filter employees based on search
+  const filteredEmployees = mockEmployees.filter(employee =>
+    employee.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+    employee.email.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+    employee.role.toLowerCase().includes(employeeSearch.toLowerCase())
+  );
+
+  const resetQuickAddForm = () => {
+    setNewCustomerFirstName("");
+    setNewCustomerLastName("");
+    setNewCustomerEmail("");
+    setNewCustomerPhone("");
+  };
+
+  const handleQuickAddCustomer = () => {
+    if (
+      !newCustomerFirstName.trim() ||
+      !newCustomerLastName.trim() ||
+      !newCustomerEmail.trim() ||
+      !newCustomerPhone.trim()
+    ) {
+      toast.error("Please fill in all customer details.");
+      return;
+    }
+
+    const id = `CUST-${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    const newCustomer = {
+      id,
+      name: `${newCustomerFirstName.trim()} ${newCustomerLastName.trim()}`,
+      email: newCustomerEmail.trim(),
+      phone: newCustomerPhone.trim(),
+      address: "",
+      status: "Active",
+      lastVisit: nowIso,
+      totalSpent: 0,
+      joinedDate: nowIso,
+      notes: "Added via quick add",
+    };
+
+    setCustomerList(prev => [newCustomer, ...prev]);
+    setSelectedCustomer(id);
+    setShowQuickAddCustomer(false);
+    setCustomerOpen(false);
+    setCustomerSearch("");
+    resetQuickAddForm();
+    toast.success("Customer added successfully.");
+  };
 
   const addItem = (item: typeof mockInventory[0]) => {
     if (!items.find(i => i.id === item.id)) {
@@ -68,7 +275,7 @@ const AddEstimate = () => {
         setShowVariablePriceDialog(true);
       } else {
         // Add item directly with unit price for fixed and per unit items
-        setItems([...items, { id: item.id, name: item.name, quantity: 1, price: item.unitPrice }]);
+      setItems([...items, { id: item.id, name: item.name, quantity: 1, price: item.unitPrice }]);
         setShowAddExisting(false);
         setItemSearch("");
       }
@@ -142,32 +349,6 @@ const AddEstimate = () => {
     }
   };
 
-  const addToInventoryAndItem = () => {
-    if (customItemName && customItemPrice) {
-      const newId = `INV-ITEM-${Date.now()}`;
-      // Add to items list
-      setItems([...items, { 
-        id: newId, 
-        name: customItemName, 
-        quantity: 1, 
-        price: parseFloat(customItemPrice)
-      }]);
-      setCustomItemName("");
-      setCustomItemPrice("");
-      setShowAddToInventory(false);
-      toast.success("Item added to inventory and estimate");
-    }
-  };
-
-  const updatePrice = (id: string, newPrice: number) => {
-    setItems(items.map(item => {
-      if (item.id === id) {
-        return { ...item, price: Math.max(0, newPrice) };
-      }
-      return item;
-    }));
-  };
-
   const updateQuantity = (id: string, delta: number) => {
     setItems(items.map(item => {
       if (item.id === id) {
@@ -182,16 +363,28 @@ const AddEstimate = () => {
     setItems(items.filter(i => i.id !== id));
   };
 
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  // Calculate Item Total (sum of all line items)
+  const itemTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  // Calculate total discount from all sources (based on item total)
+  const selectedDiscountsAmount = selectedDiscounts.reduce((sum, disc) => {
+    return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+  }, 0);
+  
+  const customDiscountsAmount = customDiscounts.reduce((sum, disc) => {
+    return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+  }, 0);
+  
+  const totalDiscounts = selectedDiscountsAmount + customDiscountsAmount;
+  
+  // Calculate Subtotal (after discounts)
+  const subtotal = Math.max(0, itemTotal - totalDiscounts);
+  
+  // Calculate Tax (on subtotal after discounts)
   const taxAmount = subtotal * (tax / 100);
-  const discountAmount = selectedDiscount 
-    ? (selectedDiscount.type === "%" 
-        ? (subtotal * selectedDiscount.value / 100) 
-        : selectedDiscount.value)
-    : (discountType === "%" 
-        ? (subtotal * discount / 100) 
-        : discount);
-  const total = Math.max(0, subtotal + taxAmount - discountAmount);
+  
+  // Calculate Total
+  const total = subtotal + taxAmount;
 
   const handleSyncItem = () => {
     toast.success("Syncing items...");
@@ -234,29 +427,106 @@ const AddEstimate = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader title="New Estimate" showBack={true} actions={headerActions} />
+      <MobileHeader title={isEditMode ? "Edit Estimate" : "New Estimate"} showBack={true} actions={headerActions} />
+
+      <Dialog
+        open={showQuickAddCustomer}
+        onOpenChange={(open) => {
+          setShowQuickAddCustomer(open);
+          if (!open) {
+            resetQuickAddForm();
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Quick Add Customer</DialogTitle>
+            <DialogDescription>Add a new customer to your list</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div>
+              <Label htmlFor="quick-first-name">First Name</Label>
+              <Input
+                id="quick-first-name"
+                value={newCustomerFirstName}
+                onChange={(e) => setNewCustomerFirstName(e.target.value)}
+                placeholder="Enter first name"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="quick-last-name">Last Name</Label>
+              <Input
+                id="quick-last-name"
+                value={newCustomerLastName}
+                onChange={(e) => setNewCustomerLastName(e.target.value)}
+                placeholder="Enter last name"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="quick-email">Email</Label>
+              <Input
+                id="quick-email"
+                type="email"
+                value={newCustomerEmail}
+                onChange={(e) => setNewCustomerEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="quick-phone">Phone Number</Label>
+              <Input
+                id="quick-phone"
+                type="tel"
+                value={newCustomerPhone}
+                onChange={(e) => setNewCustomerPhone(e.target.value)}
+                placeholder="(555) 123-4567"
+                className="mt-2"
+              />
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleQuickAddCustomer}
+              disabled={
+                !newCustomerFirstName.trim() ||
+                !newCustomerLastName.trim() ||
+                !newCustomerEmail.trim() ||
+                !newCustomerPhone.trim()
+              }
+            >
+              Add Customer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       {/* Progress Indicator */}
-      <div className="px-4 pt-16 pb-4">
-        <div className="flex items-center justify-between mb-2">
-          {steps.map((s, idx) => (
-            <div key={s.number} className="flex items-center flex-1">
-              <div className={cn(
-                "flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold",
-                step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
-              )}>
-                {step > s.number ? "✓" : s.number}
+      <div className="px-2 sm:px-4 pt-16 pb-4">
+        <div className="flex items-center justify-center mb-2 overflow-x-auto">
+          <div className="flex items-center justify-between w-full min-w-max px-1">
+            {steps.map((s, idx) => (
+              <div key={s.number} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center flex-1 min-w-0">
+                  <div className={cn(
+                    "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-semibold shrink-0",
+                    step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {step > s.number ? "✓" : s.number}
+                  </div>
+                </div>
+                {idx < steps.length - 1 && (
+                  <div className={cn(
+                    "h-0.5 flex-1 mx-1 sm:mx-2 min-w-[12px] sm:min-w-[16px] max-w-[24px] sm:max-w-[32px]",
+                    step > s.number ? "bg-primary" : "bg-muted"
+                  )} />
+                )}
               </div>
-              {idx < steps.length - 1 && (
-                <div className={cn(
-                  "flex-1 h-1 mx-2",
-                  step > s.number ? "bg-primary" : "bg-muted"
-                )} />
-              )}
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground text-center">
+        <p className="text-xs sm:text-sm text-muted-foreground text-center whitespace-nowrap px-2">
           Step {step} of {steps.length}: {steps[step - 1].title}
         </p>
       </div>
@@ -266,8 +536,28 @@ const AddEstimate = () => {
         {step === 1 && (
           <div className="space-y-4">
             <div>
-              <Label>Customer</Label>
-              <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
+              <div className="flex items-center justify-between">
+                <Label>Customer</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-sm font-semibold text-orange-500 hover:text-orange-600"
+                  onClick={() => setShowQuickAddCustomer(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Add
+                </Button>
+              </div>
+              <Popover 
+                open={customerOpen} 
+                onOpenChange={(open) => {
+                  setCustomerOpen(open);
+                  if (!open) {
+                    setCustomerSearch("");
+                  }
+                }}
+              >
                 <PopoverTrigger asChild>
                   <Button
                     variant="outline"
@@ -282,40 +572,62 @@ const AddEstimate = () => {
                   </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search customers..." />
+                  <Command shouldFilter={false} value="">
+                    <CommandInput 
+                      placeholder="Search customers..." 
+                      value={customerSearch}
+                      onValueChange={setCustomerSearch}
+                    />
                     <CommandList>
                       <CommandEmpty>No customer found.</CommandEmpty>
                       <CommandGroup>
-                        {sortedCustomers.map((customer, index) => (
-                          <CommandItem
-                            key={customer.id}
-                            value={`${customer.name} ${customer.email}`}
-                            onSelect={() => {
-                              setSelectedCustomer(customer.id);
-                              setCustomerOpen(false);
-                            }}
-                            className="flex items-center justify-between"
-                          >
-                            <div className="flex items-center flex-1 min-w-0">
-                              <Check
-                                className={cn(
-                                  "mr-2 h-4 w-4 shrink-0",
-                                  selectedCustomer === customer.id ? "opacity-100" : "opacity-0"
-                                )}
-                              />
-                              <div className="flex flex-col flex-1 min-w-0">
-                                <span className="font-medium truncate">{customer.name}</span>
-                                <span className="text-xs text-muted-foreground truncate">{customer.email}</span>
+                        {filteredCustomers.map((customer, index) => {
+                          const isSelected = selectedCustomer === customer.id;
+                          return (
+                            <CommandItem
+                              key={customer.id}
+                              value={`${customer.name} ${customer.email}`}
+                              onSelect={() => {
+                                setSelectedCustomer(customer.id);
+                                setCustomerOpen(false);
+                              }}
+                              className={cn(
+                                "flex items-center justify-between",
+                                isSelected 
+                                  ? "!bg-primary !text-white [&>div>div>span]:!text-white [&>div>div>span.text-xs]:!text-white data-[selected='true']:!bg-primary data-[selected=true]:!text-white" 
+                                  : "data-[selected='true']:bg-accent/50 data-[selected=true]:text-foreground"
+                              )}
+                              data-selected={isSelected ? "true" : undefined}
+                            >
+                              <div className="flex items-center flex-1 min-w-0">
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4 shrink-0",
+                                    isSelected ? "opacity-100 text-white" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col flex-1 min-w-0">
+                                  <span className="font-medium truncate">{customer.name}</span>
+                                  <span className={cn(
+                                    "text-xs truncate",
+                                    isSelected ? "text-white" : "text-muted-foreground"
+                                  )}>{customer.email}</span>
+                                </div>
                               </div>
-                            </div>
-                            {index < 5 && (
-                              <Badge variant="secondary" className="text-xs px-1.5 py-0 h-5 ml-2 shrink-0">
-                                Recently Added
-                              </Badge>
-                            )}
-                          </CommandItem>
-                        ))}
+                              {index < 5 && (
+                                <Badge 
+                                  variant="secondary" 
+                                  className={cn(
+                                    "text-xs px-1.5 py-0 h-5 ml-2 shrink-0",
+                                    isSelected && "bg-white/20 text-white border-white/30"
+                                  )}
+                                >
+                                  Recently Added
+                                </Badge>
+                              )}
+                            </CommandItem>
+                          );
+                        })}
                       </CommandGroup>
                     </CommandList>
                   </Command>
@@ -323,54 +635,106 @@ const AddEstimate = () => {
               </Popover>
             </div>
 
+            {selectedCustomer && (
+              <div>
+                <Label>Job Address</Label>
+                <Input
+                  type="text"
+                  value={jobAddress}
+                  onChange={(e) => setJobAddress(e.target.value)}
+                  placeholder="Enter job address"
+                  className="mt-2 h-11"
+                />
+              </div>
+            )}
+
             <div>
               <Label>Employee</Label>
-              <Popover open={employeeOpen} onOpenChange={setEmployeeOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={employeeOpen}
-                    className="w-full justify-between mt-2 h-11"
-                  >
-                    {selectedEmployee
-                      ? mockEmployees.find((employee) => employee.id === selectedEmployee)?.name
-                      : "Select employee..."}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
-                  <Command>
-                    <CommandInput placeholder="Search employees..." />
-                    <CommandList>
-                      <CommandEmpty>No employee found.</CommandEmpty>
-                      <CommandGroup>
-                        {mockEmployees.map((employee) => (
-                          <CommandItem
-                            key={employee.id}
-                            value={`${employee.name} ${employee.email} ${employee.role}`}
-                            onSelect={() => {
-                              setSelectedEmployee(employee.id);
-                              setEmployeeOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedEmployee === employee.id ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            <div className="flex flex-col">
-                              <span className="font-medium">{employee.name}</span>
-                              <span className="text-xs text-muted-foreground">{employee.role}</span>
-                            </div>
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+              {isEmployee ? (
+                // Disabled input for employees
+                <div className="mt-2">
+                  <Input
+                    value={selectedEmployee ? mockEmployees.find(employee => employee.id === selectedEmployee)?.name || "" : ""}
+                    disabled
+                    className="w-full h-11 bg-gray-50 text-gray-600 cursor-not-allowed"
+                    readOnly
+                  />
+                </div>
+              ) : (
+                // Editable popover for merchants
+                <Popover 
+                  open={employeeOpen} 
+                  onOpenChange={(open) => {
+                    if (!isEmployee) {
+                      setEmployeeOpen(open);
+                      if (!open) {
+                        setEmployeeSearch("");
+                      }
+                    }
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={employeeOpen}
+                      className="w-full justify-between mt-2 h-11"
+                    >
+                      {selectedEmployee
+                        ? mockEmployees.find((employee) => employee.id === selectedEmployee)?.name
+                        : "Select employee..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command shouldFilter={false} value="">
+                      <CommandInput 
+                        placeholder="Search employees..." 
+                        value={employeeSearch}
+                        onValueChange={setEmployeeSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>No employee found.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredEmployees.map((employee) => {
+                            const isSelected = selectedEmployee === employee.id;
+                            return (
+                              <CommandItem
+                                key={employee.id}
+                                value={`${employee.name} ${employee.email} ${employee.role}`}
+                                onSelect={() => {
+                                  setSelectedEmployee(employee.id);
+                                  setEmployeeOpen(false);
+                                }}
+                                className={cn(
+                                  isSelected 
+                                    ? "!bg-primary !text-white [&>div>span]:!text-white [&>div>span.text-xs]:!text-white data-[selected='true']:!bg-primary data-[selected=true]:!text-white" 
+                                    : "data-[selected='true']:bg-accent/50 data-[selected=true]:text-foreground"
+                                )}
+                                data-selected={isSelected ? "true" : undefined}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    isSelected ? "opacity-100 text-white" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{employee.name}</span>
+                                  <span className={cn(
+                                    "text-xs",
+                                    isSelected ? "text-white" : "text-muted-foreground"
+                                  )}>{employee.role}</span>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           </div>
         )}
@@ -390,6 +754,7 @@ const AddEstimate = () => {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Add Existing Item</DialogTitle>
+                    <DialogDescription>Select items from your inventory</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 mt-4">
                     {/* Inventory Type Legend */}
@@ -410,22 +775,22 @@ const AddEstimate = () => {
                         </div>
                       </div>
                     </div>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search inventory..."
-                        value={itemSearch}
-                        onChange={(e) => setItemSearch(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search inventory..."
+                value={itemSearch}
+                onChange={(e) => setItemSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
                     <div className="space-y-2 max-h-[400px] overflow-y-auto">
                       {filteredInventory.length > 0 ? (
                         filteredInventory.map(item => {
                           const isAlreadyAdded = !!items.find(i => i.id === item.id);
                           return (
-                            <div
-                              key={item.id}
+                  <div
+                    key={item.id}
                               onClick={() => {
                                 if (!isAlreadyAdded) {
                                   addItem(item);
@@ -437,10 +802,10 @@ const AddEstimate = () => {
                                   ? "opacity-50 cursor-not-allowed" 
                                   : "hover:bg-accent/5 active:bg-accent/10"
                               )}
-                            >
-                              <div className="flex-1">
+                  >
+                    <div className="flex-1">
                                 <div className="flex items-center gap-2 mb-1">
-                                  <p className="font-semibold">{item.name}</p>
+                      <p className="font-semibold">{item.name}</p>
                                   {(item as any).type && (
                                     <Badge variant="outline" className="text-xs px-1.5 py-0 h-5">
                                       {(item as any).type}
@@ -448,8 +813,8 @@ const AddEstimate = () => {
                                   )}
                                 </div>
                                 <div className="flex items-center justify-between">
-                                  <p className="text-sm text-muted-foreground">{item.sku}</p>
-                                  <p className="text-sm font-medium">${item.unitPrice.toFixed(2)}</p>
+                      <p className="text-sm text-muted-foreground">{item.sku}</p>
+                      <p className="text-sm font-medium">${item.unitPrice.toFixed(2)}</p>
                                 </div>
                                 {isAlreadyAdded && (
                                   <p className="text-xs text-muted-foreground mt-1">Already added</p>
@@ -478,6 +843,7 @@ const AddEstimate = () => {
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Add Custom Item</DialogTitle>
+                    <DialogDescription>Create and add a custom item</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 mt-4">
                     <div>
@@ -547,55 +913,33 @@ const AddEstimate = () => {
                 </DialogContent>
               </Dialog>
 
-              <Dialog open={showAddToInventory} onOpenChange={setShowAddToInventory}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" className="w-full flex-col h-auto py-2.5 px-1 min-h-[70px]">
-                    <Save className="h-4 w-4 mb-1.5 flex-shrink-0" />
-                    <span className="text-[11px] leading-tight text-center whitespace-normal break-words w-full px-0.5">Add to Inventory</span>
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>Add to Inventory</DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-4 mt-4">
-                    <div>
-                      <Label>Item Name</Label>
-                      <Input
-                        placeholder="Enter item name"
-                        value={customItemName}
-                        onChange={(e) => setCustomItemName(e.target.value)}
-                        className="mt-2"
-                      />
-                    </div>
-                    <div>
-                      <Label>Price</Label>
-                      <Input
-                        type="number"
-                        placeholder="0.00"
-                        value={customItemPrice}
-                        onChange={(e) => setCustomItemPrice(e.target.value)}
-                        className="mt-2"
-                        min="0"
-                        step="0.01"
-                      />
-                    </div>
-                    <Button 
-                      className="w-full" 
-                      onClick={addToInventoryAndItem}
-                      disabled={!customItemName || !customItemPrice}
-                    >
-                      Add to Inventory & Estimate
-                    </Button>
-                  </div>
-                </DialogContent>
-              </Dialog>
+              <Button 
+                variant="outline" 
+                className="w-full flex-col h-auto py-2.5 px-1 min-h-[70px]"
+                onClick={() => {
+                  // Navigate to Add Inventory page with return state
+                  const returnPath = isEditMode ? `/estimates/${id}/edit` : "/estimates/new";
+                  navigate("/inventory/new", {
+                    state: {
+                      returnTo: "estimate",
+                      returnPath: returnPath,
+                      returnStep: 2,
+                      currentItems: items,
+                      preserveState: true
+                    }
+                  });
+                }}
+              >
+                <Save className="h-4 w-4 mb-1.5 flex-shrink-0" />
+                <span className="text-[11px] leading-tight text-center whitespace-normal break-words w-full px-0.5">Add to Inventory</span>
+              </Button>
 
               {/* Variable Price Dialog */}
               <Dialog open={showVariablePriceDialog} onOpenChange={setShowVariablePriceDialog}>
                 <DialogContent className="max-w-md">
                   <DialogHeader>
                     <DialogTitle>Set Price for Variable Item</DialogTitle>
+                    <DialogDescription>Enter the price for this variable-priced item</DialogDescription>
                   </DialogHeader>
                   <div className="space-y-4 mt-4">
                     {pendingVariableItem && (
@@ -604,8 +948,8 @@ const AddEstimate = () => {
                         <p className="text-xs text-muted-foreground mt-1">
                           Default Price: ${pendingVariableItem.unitPrice.toFixed(2)}
                         </p>
-                      </div>
-                    )}
+              </div>
+            )}
                     <div>
                       <Label>Enter Price</Label>
                       <Input
@@ -674,16 +1018,16 @@ const AddEstimate = () => {
                                 </Badge>
                               )}
                             </div>
-                          </div>
-                          <Button
-                            size="sm"
-                            variant="ghost"
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
                             className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors flex-shrink-0"
-                            onClick={() => removeItem(item.id)}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
-                        </div>
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
 
                         {/* Card Content */}
                         <div className="space-y-3">
@@ -699,14 +1043,14 @@ const AddEstimate = () => {
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-gray-600">Quantity:</span>
                             <div className="flex items-center border border-gray-300 rounded-lg bg-white">
-                              <Button
-                                size="sm"
+                      <Button
+                        size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 p-0 rounded-l-lg hover:bg-green-50 active:bg-green-100 transition-colors"
-                                onClick={() => updateQuantity(item.id, -1)}
-                              >
+                        onClick={() => updateQuantity(item.id, -1)}
+                      >
                                 <Minus className="h-4 w-4 text-green-600" />
-                              </Button>
+                      </Button>
                               <Input
                                 type="number"
                                 value={item.quantity}
@@ -717,14 +1061,14 @@ const AddEstimate = () => {
                                 className="w-12 h-8 text-center border-0 border-x border-gray-300 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-medium"
                                 min="1"
                               />
-                              <Button
-                                size="sm"
+                      <Button
+                        size="sm"
                                 variant="ghost"
                                 className="h-8 w-8 p-0 rounded-r-lg hover:bg-green-50 active:bg-green-100 transition-colors"
-                                onClick={() => updateQuantity(item.id, 1)}
-                              >
+                        onClick={() => updateQuantity(item.id, 1)}
+                      >
                                 <Plus className="h-4 w-4 text-green-600" />
-                              </Button>
+                      </Button>
                             </div>
                           </div>
 
@@ -734,9 +1078,9 @@ const AddEstimate = () => {
                             <span className="text-base font-bold text-gray-900">
                               ${(item.price * item.quantity).toFixed(2)}
                             </span>
-                          </div>
-                        </div>
                       </div>
+                    </div>
+                  </div>
                     );
                   })}
                 </div>
@@ -774,36 +1118,97 @@ const AddEstimate = () => {
                 onClick={() => setShowDiscountModal(true)}
               >
                 <Tag className="h-4 w-4 mr-2" />
-                {selectedDiscount || discount > 0 
-                  ? selectedDiscount 
-                    ? `${selectedDiscount.name} (${selectedDiscount.type === "%" ? `${selectedDiscount.value}%` : `$${selectedDiscount.value}`})`
-                    : `Custom Discount (${discountType === "%" ? `${discount}%` : `$${discount}`})`
+                {selectedDiscounts.length > 0 || customDiscounts.length > 0
+                  ? `Discounts (${selectedDiscounts.length + customDiscounts.length})`
                   : "Add Order Discount"}
               </Button>
-              {(selectedDiscount || discount > 0) && (
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="w-full text-destructive"
-                  onClick={() => {
-                    setSelectedDiscount(null);
-                    setDiscount(0);
-                    setCustomDiscountValue("");
-                  }}
-                >
-                  Remove Discount
-                </Button>
-              )}
+              
+              {/* Display all applied discounts */}
+              {selectedDiscounts.map((disc, index) => (
+                <div key={`selected-${index}`} className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                  <span className="text-sm text-gray-700">
+                    {disc.name} ({disc.type === "%" ? `${disc.value}%` : `$${disc.value}`})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-destructive"
+                    onClick={() => {
+                      setSelectedDiscounts(prev => prev.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              
+              {customDiscounts.map((disc, index) => (
+                <div key={`custom-${index}`} className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                  <span className="text-sm text-gray-700">
+                    Custom: {disc.name} ({disc.type === "%" ? `${disc.value}%` : `$${disc.value}`})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-destructive"
+                    onClick={() => {
+                      setCustomDiscounts(prev => prev.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
             </div>
 
             {/* Order Summary */}
             <div className="p-4 rounded-xl bg-red-50/50 border border-red-100/50 shadow-sm">
               <h3 className="text-lg font-bold mb-4 text-gray-900">Order Summary</h3>
+              
+              {/* 1. Item Total */}
               <div className="flex justify-between mb-2">
-                <span className="text-sm text-gray-700">Subtotal:</span>
-                <span className="text-sm font-medium text-gray-900">${subtotal.toFixed(2)}</span>
+                <span className="text-sm text-gray-700">Item Total:</span>
+                <span className="text-sm font-medium text-gray-900">${itemTotal.toFixed(2)}</span>
               </div>
+              
+              {/* 2. Discounts - List each individually */}
+              {selectedDiscounts.length > 0 || customDiscounts.length > 0 ? (
+                <div className="mb-2">
+                  {selectedDiscounts.map((disc, index) => {
+                    const amount = disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value;
+                    return (
+                      <div key={`summary-selected-${index}`} className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-600">  {disc.name}:</span>
+                        <span className="text-sm font-medium text-green-600">-${amount.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                  {customDiscounts.map((disc, index) => {
+                    const amount = disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value;
+                    return (
+                      <div key={`summary-custom-${index}`} className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-600">  {disc.name}:</span>
+                        <span className="text-sm font-medium text-green-600">-${amount.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                  {/* Total Discounts */}
+                  <div className="flex justify-between mb-2 pt-1 border-t border-gray-200">
+                    <span className="text-sm font-semibold text-gray-700">Total Discounts:</span>
+                    <span className="text-sm font-semibold text-green-600">-${totalDiscounts.toFixed(2)}</span>
+                  </div>
+                </div>
+              ) : null}
+              
+              {/* 3. Subtotal (after discounts) */}
+              <div className="flex justify-between mb-2 pb-2 border-b border-gray-200">
+                <span className="text-sm font-semibold text-gray-700">Subtotal:</span>
+                <span className="text-sm font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
+              </div>
+              
+              {/* 4. Tax (calculated on subtotal) */}
               <div className="flex items-center justify-between mb-2">
                 <span className="text-sm text-gray-700">Tax:</span>
                 <div className="flex items-center gap-1">
@@ -822,12 +1227,8 @@ const AddEstimate = () => {
                   <span className="text-sm font-medium text-gray-900 ml-2">${taxAmount.toFixed(2)}</span>
                 </div>
               </div>
-              {(selectedDiscount || discount > 0) && (
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm text-gray-700">Discount:</span>
-                  <span className="text-sm font-medium text-green-600">-${discountAmount.toFixed(2)}</span>
-                </div>
-              )}
+              
+              {/* 5. Total */}
               <div className="flex justify-between pt-2 mt-2 border-t border-gray-200 items-baseline">
                 <span className="text-lg font-bold text-gray-900">Total:</span>
                 <span className="text-2xl font-bold text-orange-600">${total.toFixed(2)}</span>
@@ -837,12 +1238,12 @@ const AddEstimate = () => {
             <div>
               <Label>Notes</Label>
               <div className="relative mt-2">
-                <textarea
+              <textarea
                   className="w-full min-h-[120px] p-3 pr-12 rounded-lg border bg-background"
-                  placeholder="Add any notes or special instructions..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                />
+                placeholder="Add any notes or special instructions..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
                 <label className="absolute bottom-3 right-3 cursor-pointer">
                   <input
                     type="file"
@@ -886,64 +1287,14 @@ const AddEstimate = () => {
         <Dialog open={showDiscountModal} onOpenChange={setShowDiscountModal}>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Add Discount</DialogTitle>
-              <p className="text-sm text-muted-foreground mt-1">
-                Select an existing discount or create a custom one
-              </p>
+              <DialogTitle>Add Discounts</DialogTitle>
+              <DialogDescription>
+                Select multiple discounts or create custom ones
+              </DialogDescription>
             </DialogHeader>
             <div className="space-y-6 mt-4">
-              {/* Add Custom Discount */}
-              <div className="border-t pt-4">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <Plus className="h-4 w-4" />
-                  Add Custom Discount
-                </h3>
-                <div className="space-y-4">
-                  <div>
-                    <Label>Discount Value *</Label>
-                    <Input
-                      type="number"
-                      placeholder="Enter amount"
-                      value={customDiscountValue}
-                      onChange={(e) => setCustomDiscountValue(e.target.value)}
-                      className="mt-2"
-                      min="0"
-                      step="0.01"
-                    />
-                  </div>
-                  <div>
-                    <Label>Type *</Label>
-                    <Select value={customDiscountType} onValueChange={(value: "%" | "$") => setCustomDiscountType(value)}>
-                      <SelectTrigger className="mt-2">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="%">Percentage (%)</SelectItem>
-                        <SelectItem value="$">Fixed Amount ($)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <Button
-                    className="w-full"
-                    onClick={() => {
-                      if (customDiscountValue) {
-                        const value = parseFloat(customDiscountValue);
-                        setDiscount(value);
-                        setDiscountType(customDiscountType);
-                        setSelectedDiscount(null);
-                        setCustomDiscountValue("");
-                        setShowDiscountModal(false);
-                      }
-                    }}
-                    disabled={!customDiscountValue || parseFloat(customDiscountValue) <= 0}
-                  >
-                    Add Custom Discount
-                  </Button>
-                </div>
-              </div>
-
               {/* Select from Existing Discounts */}
-              <div className="border-t pt-4">
+              <div>
                 <h3 className="font-semibold mb-4">Select from Existing Discounts</h3>
                 <div className="space-y-2">
                   {mockDiscounts.filter(d => d.active).map((disc) => {
@@ -951,20 +1302,23 @@ const AddEstimate = () => {
                       ? subtotal * (disc.value / 100)
                       : disc.value;
                     const isExceedsSubtotal = calculatedDiscount > subtotal;
+                    const isSelected = selectedDiscounts.some(d => d.id === disc.id);
                     
                     return (
                       <div
                         key={disc.id}
                         onClick={() => {
                           if (!isExceedsSubtotal) {
-                            setSelectedDiscount(disc);
-                            setDiscount(0);
-                            setShowDiscountModal(false);
+                            if (isSelected) {
+                              setSelectedDiscounts(prev => prev.filter(d => d.id !== disc.id));
+                            } else {
+                              setSelectedDiscounts(prev => [...prev, disc]);
+                            }
                           }
                         }}
                         className={cn(
                           "p-4 rounded-xl border cursor-pointer transition-colors",
-                          selectedDiscount?.id === disc.id
+                          isSelected
                             ? "bg-primary/10 border-primary"
                             : isExceedsSubtotal
                             ? "opacity-50 cursor-not-allowed"
@@ -974,13 +1328,18 @@ const AddEstimate = () => {
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={isSelected}
+                                disabled={isExceedsSubtotal}
+                                className="pointer-events-none"
+                              />
                               <p className="font-semibold">{disc.name}</p>
                             </div>
-                            <p className="text-sm text-primary font-medium mt-1">
+                            <p className="text-sm text-primary font-medium mt-1 ml-6">
                               {disc.type} {disc.value}{disc.type === "%" ? "%" : ""}
                             </p>
                             {isExceedsSubtotal && (
-                              <p className="text-xs text-destructive mt-1">
+                              <p className="text-xs text-destructive mt-1 ml-6">
                                 Exceeds subtotal amount
                               </p>
                             )}
@@ -990,6 +1349,79 @@ const AddEstimate = () => {
                     );
                   })}
                 </div>
+              </div>
+
+              {/* Add Custom Discount */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Custom Discount
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Discount Name *</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., Special Offer"
+                      value={customDiscountValue}
+                      onChange={(e) => setCustomDiscountValue(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Value *</Label>
+                      <Input
+                        type="number"
+                        placeholder="Amount"
+                        value={discount}
+                        onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                        className="mt-2"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                      <Label>Type *</Label>
+                      <Select value={customDiscountType} onValueChange={(value: "%" | "$") => setCustomDiscountType(value)}>
+                        <SelectTrigger className="mt-2">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="%">Percentage (%)</SelectItem>
+                          <SelectItem value="$">Fixed Amount ($)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      if (customDiscountValue && discount > 0) {
+                        setCustomDiscounts(prev => [...prev, {
+                          name: customDiscountValue,
+                          type: customDiscountType,
+                          value: discount
+                        }]);
+                        setCustomDiscountValue("");
+                        setDiscount(0);
+                      }
+                    }}
+                    disabled={!customDiscountValue || discount <= 0}
+                  >
+                    Add Custom Discount
+                  </Button>
+                </div>
+              </div>
+
+              {/* Done Button */}
+              <div className="border-t pt-4">
+                <Button
+                  className="w-full"
+                  onClick={() => setShowDiscountModal(false)}
+                >
+                  Done
+                </Button>
               </div>
             </div>
           </DialogContent>
@@ -1039,8 +1471,147 @@ const AddEstimate = () => {
               Next
             </Button>
           ) : (
-            <Button className="flex-1" onClick={() => navigate("/estimates")}>
-              Create Estimate
+            <Button className="flex-1" onClick={async () => {
+              // Calculate amounts (used for both create and update)
+              const itemTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+              
+              // Calculate total discount from all sources
+              const selectedDiscountsTotal = selectedDiscounts.reduce((sum, disc) => {
+                return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+              }, 0);
+              
+              const customDiscountsTotal = customDiscounts.reduce((sum, disc) => {
+                return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+              }, 0);
+              
+              const discountAmount = selectedDiscountsTotal + customDiscountsTotal;
+              const subtotal = Math.max(0, itemTotal - discountAmount);
+              const taxAmount = subtotal * (tax / 100);
+              const total = subtotal + taxAmount;
+
+              if (isEditMode) {
+                // Update existing estimate
+                try {
+                  const existingEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+                  const estimateIndex = existingEstimates.findIndex((est: any) => est.id === id);
+                  
+                  if (estimateIndex !== -1) {
+                    // Update the estimate
+                    existingEstimates[estimateIndex] = {
+                      ...existingEstimates[estimateIndex],
+                      items: items.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        amount: item.price * item.quantity,
+                      })),
+                      subtotal,
+                      tax: taxAmount,
+                      total,
+                      amount: total,
+                      discount: discountAmount,
+                      notes: notes || undefined,
+                    };
+                    
+                    localStorage.setItem("servicepro_estimates", JSON.stringify(existingEstimates));
+                    showSuccessToast("Estimate updated successfully");
+                    navigate("/estimates");
+                  } else {
+                    toast.error("Estimate not found");
+                  }
+                } catch (error) {
+                  console.error("Error updating estimate:", error);
+                  toast.error("Failed to update estimate");
+                }
+              } else {
+                // Create estimate and save notes
+                if (!selectedCustomer) {
+                  toast.error("Please select a customer");
+                  return;
+                }
+                
+                const selectedCustomerData = customerList.find(c => c.id === selectedCustomer);
+                if (!selectedCustomerData) {
+                  toast.error("Customer not found");
+                  return;
+                }
+
+                // Generate estimate ID (similar to invoice ID format)
+                const existingEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+                const allEstimateIds = [
+                  ...existingEstimates.map((est: any) => est.id),
+                  ...mockEstimates.map(est => est.id)
+                ];
+                const maxNum = allEstimateIds.reduce((max: number, id: string) => {
+                  const match = id.match(/EST-(\d+)/);
+                  if (match) {
+                    return Math.max(max, parseInt(match[1], 10));
+                  }
+                  return max;
+                }, 0);
+                const newEstimateId = `EST-${String(maxNum + 1).padStart(3, '0')}`;
+
+                const estimateData = {
+                  id: newEstimateId,
+                  customerId: selectedCustomer,
+                  customerName: selectedCustomerData.name,
+                  issueDate: new Date().toISOString().split("T")[0],
+                  dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+                  amount: total,
+                  status: "Unpaid" as const,
+                  items: items.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    amount: item.price * item.quantity,
+                  })),
+                  subtotal,
+                  tax: taxAmount,
+                  total,
+                  discount: discountAmount,
+                  notes: notes || undefined,
+                  employeeId: selectedEmployee || undefined,
+                  employeeName: selectedEmployee ? mockEmployees.find(e => e.id === selectedEmployee)?.name : undefined,
+                  createdAt: new Date().toISOString(),
+                };
+
+                // Save estimate to localStorage
+                existingEstimates.push(estimateData);
+                localStorage.setItem("servicepro_estimates", JSON.stringify(existingEstimates));
+
+                // Save notes if they exist (text + all attachments as single note)
+                if (notes.trim() || uploadedDocs.length > 0) {
+                  // Prepare attachments array
+                  const attachments = uploadedDocs.map((docUrl) => {
+                    // Extract filename from data URL or use default
+                    const fileName = docUrl.includes(";base64,") 
+                      ? `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${docUrl.match(/data:([^;]+)/)?.[1]?.split("/")[1] || "file"}`
+                      : `attachment-${Date.now()}`;
+                    
+                    return {
+                      name: fileName,
+                      url: docUrl,
+                      type: docUrl.startsWith("data:image") ? "image/png" : "application/octet-stream",
+                    };
+                  });
+                  
+                  // Save as single note with text + all attachments
+                  await addNotes([{
+                    entityId: newEstimateId,
+                    entityType: "estimate" as const,
+                    customerId: selectedCustomer,
+                    text: notes.trim() || "", // Empty text if only attachments
+                    attachments: attachments.length > 0 ? attachments : undefined,
+                  }]);
+                }
+                
+                showSuccessToast("Estimate created successfully");
+                navigate("/estimates");
+              }
+            }}>
+              {isEditMode ? "Update Estimate" : "Create Estimate"}
             </Button>
           )}
         </div>

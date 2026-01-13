@@ -1,58 +1,485 @@
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, MapPin, User } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Calendar, Edit, Eye, Share2, FileText, MapPin, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
+import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
+import { toast } from "sonner";
 
 interface JobCardProps {
   job: {
     id: string;
     title: string;
     customerName: string;
+    technicianId?: string;
     technicianName: string;
     date: string;
     time: string;
     status: string;
     location: string;
   };
+  jobType?: "Agreement" | "Estimate" | "Invoice";
+  paymentStatus?: "Paid" | "Open";
+  customerEmail?: string;
+  customerPhone?: string;
+  hasFeedback?: boolean;
+  isEmployee?: boolean;
+  hasPictures?: boolean;
   onClick?: () => void;
+  onStatusChange?: (newStatus: string) => void;
+  onSendFeedbackForm?: () => void;
+  onViewFeedback?: () => void;
+  onQuickAction?: (action: string) => void;
+  onPreview?: (documentId: string, jobType: "Agreement" | "Estimate" | "Invoice") => void;
+  onReschedule?: () => void;
+  onAddPictures?: () => void;
+  onViewPictures?: () => void;
 }
 
-const JobCard = ({ job, onClick }: JobCardProps) => {
+const JobCard = ({ 
+  job, 
+  jobType,
+  paymentStatus,
+  customerEmail,
+  customerPhone,
+  hasFeedback = false,
+  isEmployee = false,
+  hasPictures = false,
+  onClick, 
+  onStatusChange,
+  onSendFeedbackForm,
+  onViewFeedback,
+  onQuickAction,
+  onPreview,
+  onReschedule,
+  onAddPictures,
+  onViewPictures
+}: JobCardProps) => {
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
+
+  // Derive document ID display format (INV-001, EST-001, AGR-001)
+  const getDocumentIdDisplay = () => {
+    // If jobType is provided, use it to determine the prefix
+    if (jobType) {
+      const id = job.id.toUpperCase();
+      const numPart = id.replace(/[^0-9]/g, "").slice(-3).padStart(3, "0");
+      if (jobType === "Agreement") return `AGR-${numPart}`;
+      if (jobType === "Estimate") return `EST-${numPart}`;
+      if (jobType === "Invoice") return `INV-${numPart}`;
+    }
+    
+    // Otherwise, derive from job ID
+    const id = job.id.toUpperCase();
+    if (id.startsWith("AG") || id.includes("AGR")) {
+      const numPart = id.replace(/[^0-9]/g, "").slice(-3).padStart(3, "0");
+      return `AGR-${numPart}`;
+    } else if (id.startsWith("EST")) {
+      const numPart = id.replace(/[^0-9]/g, "").slice(-3).padStart(3, "0");
+      return `EST-${numPart}`;
+    } else if (id.startsWith("INV")) {
+      const numPart = id.replace(/[^0-9]/g, "").slice(-3).padStart(3, "0");
+      return `INV-${numPart}`;
+    } else if (id.startsWith("JOB")) {
+      // For generic jobs, derive from jobType if available
+      const numPart = id.replace(/[^0-9]/g, "").slice(-3).padStart(3, "0");
+      if (jobType === "Agreement") return `AGR-${numPart}`;
+      if (jobType === "Estimate") return `EST-${numPart}`;
+      if (jobType === "Invoice") return `INV-${numPart}`;
+      return `JOB-${numPart}`;
+    }
+    return id;
+  };
+
+  // Get status badge colors for employee dropdown
+  const getStatusBadgeColor = (status: string) => {
+    if (status === "Scheduled") {
+      return "bg-orange-100 text-orange-700 border-orange-200 hover:bg-orange-200";
+    } else if (status === "In Progress") {
+      return "bg-yellow-100 text-yellow-700 border-yellow-200 hover:bg-yellow-200";
+    } else if (status === "Completed") {
+      return "bg-green-100 text-green-700 border-green-200 hover:bg-green-200";
+    } else if (status === "Cancel") {
+      return "bg-red-100 text-red-700 border-red-200 hover:bg-red-200";
+    }
+    return statusColors[status] || "bg-gray-100 text-gray-700 border-gray-200";
+  };
+
+  // Handle preview - open modal instead of navigating
+  const handlePreview = () => {
+    const docIdDisplay = getDocumentIdDisplay();
+    
+    // Determine job type from prop or document ID format
+    let determinedJobType: "Agreement" | "Estimate" | "Invoice" | undefined = jobType;
+    
+    if (!determinedJobType) {
+      if (docIdDisplay.startsWith("AGR-")) {
+        determinedJobType = "Agreement";
+      } else if (docIdDisplay.startsWith("EST-")) {
+        determinedJobType = "Estimate";
+      } else if (docIdDisplay.startsWith("INV-")) {
+        determinedJobType = "Invoice";
+      }
+    }
+    
+    // Call onPreview callback if available
+    if (onPreview && determinedJobType) {
+      onPreview(docIdDisplay, determinedJobType);
+    } else if (onQuickAction) {
+      // Fallback to onQuickAction if onPreview not available
+      onQuickAction("preview");
+    }
+  };
+
+  // Open Google Maps with job address
+  const openGoogleMaps = (address: string) => {
+    if (!address || address.trim() === "") {
+      toast.error("Location unavailable");
+      return;
+    }
+
+    // URL encode the address
+    const encodedAddress = encodeURIComponent(address.trim());
+    const googleMapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodedAddress}`;
+
+    // Open in new tab/window
+    try {
+      window.open(googleMapsUrl, "_blank");
+    } catch (error) {
+      console.error("Failed to open Google Maps:", error);
+      toast.error("Failed to open map");
+    }
+  };
+
+  // Build menu items for three-dot menu based on job status
+  const buildMenuItems = (): KebabMenuItem[] => {
+    const items: KebabMenuItem[] = [];
+    
+    // Get global feedback auto-send setting
+    // feedbackSettingsEnabled = false means auto-send is OFF (show manual send option)
+    // feedbackSettingsEnabled = true means auto-send is ON (don't show manual send option)
+    const feedbackSettingsEnabled = typeof window !== "undefined" 
+      ? localStorage.getItem("autoSendFeedback") === "true" 
+      : false;
+    
+    const jobStatus = job.status;
+    
+    // Status-based menu logic
+    if (jobStatus === "Scheduled") {
+      // Scheduled: Preview, Edit, Reschedule Job, Reassign Employee, Share, Show on Map, Add Pictures, View Pictures (if exists)
+      
+      // Preview - always first
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreview,
+        separator: false,
+      });
+      
+      // Edit - only if payment status is Open AND user is NOT an employee
+      if (paymentStatus === "Open" && onQuickAction && !isEmployee) {
+        items.push({
+          label: "Edit",
+          icon: Edit,
+          action: () => onQuickAction("edit"),
+          separator: false,
+        });
+      }
+      
+      // Reschedule Job - for merchants and employees
+      // Note: Employee reassignment is now handled within this flow
+      if (onReschedule) {
+        items.push({
+          label: "Reschedule Job",
+          icon: RefreshCw,
+          action: () => onReschedule(),
+          separator: false,
+        });
+      }
+      
+      // Share
+      if (onQuickAction) {
+        items.push({
+          label: "Share",
+          icon: Share2,
+          action: () => onQuickAction("share"),
+          separator: false,
+        });
+      }
+      
+      // Show on Map
+      items.push({
+        label: "Show on Map",
+        icon: MapPin,
+        action: () => openGoogleMaps(job.location),
+        separator: false,
+      });
+      
+      // Add Pictures
+      if (onAddPictures) {
+        items.push({
+          label: "Add Pictures",
+          icon: ImageIcon,
+          action: () => onAddPictures(),
+          separator: false,
+        });
+      }
+      
+      // View Pictures - only if pictures exist
+      if (hasPictures && onViewPictures) {
+        items.push({
+          label: "View Pictures",
+          icon: ImageIcon,
+          action: () => onViewPictures(),
+          separator: false,
+        });
+      }
+      
+    } else if (jobStatus === "In Progress") {
+      // In Progress: Preview, Reschedule Job, Share, Show on Map, Add Pictures, View Pictures (if exists)
+      
+      // Preview
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreview,
+        separator: false,
+      });
+      
+      // Reschedule Job - for merchants and employees
+      if (onReschedule) {
+        items.push({
+          label: "Reschedule Job",
+          icon: RefreshCw,
+          action: () => onReschedule(),
+          separator: false,
+        });
+      }
+      
+      // Share
+      if (onQuickAction) {
+        items.push({
+          label: "Share",
+          icon: Share2,
+          action: () => onQuickAction("share"),
+          separator: false,
+        });
+      }
+      
+      // Show on Map
+      items.push({
+        label: "Show on Map",
+        icon: MapPin,
+        action: () => openGoogleMaps(job.location),
+        separator: false,
+      });
+      
+      // Add Pictures
+      if (onAddPictures) {
+        items.push({
+          label: "Add Pictures",
+          icon: ImageIcon,
+          action: () => onAddPictures(),
+          separator: false,
+        });
+      }
+      
+      // View Pictures - only if pictures exist
+      if (hasPictures && onViewPictures) {
+        items.push({
+          label: "View Pictures",
+          icon: ImageIcon,
+          action: () => onViewPictures(),
+          separator: false,
+        });
+      }
+      
+    } else if (jobStatus === "Completed") {
+      // Completed: Preview, Share, Show on Map, Add Pictures, View Pictures (if exists), Send Feedback Form (if feedback settings OFF)
+      
+      // Preview
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreview,
+        separator: false,
+      });
+      
+      // Share
+      if (onQuickAction) {
+        items.push({
+          label: "Share",
+          icon: Share2,
+          action: () => onQuickAction("share"),
+          separator: false,
+        });
+      }
+      
+      // Show on Map
+      items.push({
+        label: "Show on Map",
+        icon: MapPin,
+        action: () => openGoogleMaps(job.location),
+        separator: false,
+      });
+      
+      // Add Pictures
+      if (onAddPictures) {
+        items.push({
+          label: "Add Pictures",
+          icon: ImageIcon,
+          action: () => onAddPictures(),
+          separator: false,
+        });
+      }
+      
+      // View Pictures - only if pictures exist
+      if (hasPictures && onViewPictures) {
+        items.push({
+          label: "View Pictures",
+          icon: ImageIcon,
+          action: () => onViewPictures(),
+          separator: false,
+        });
+      }
+      
+      // Send Feedback Form - ONLY IF feedback settings = OFF (autoSendFeedback !== "true")
+      // This means feedbackSettingsEnabled = false
+      if (!feedbackSettingsEnabled && onSendFeedbackForm) {
+        items.push({
+          label: "Send Feedback Form",
+          icon: FileText,
+          action: () => onSendFeedbackForm(),
+          separator: false,
+        });
+      }
+      
+    } else if (jobStatus === "Cancel" || jobStatus === "Canceled") {
+      // Cancel/Canceled: Preview only
+      
+      // Preview - only option
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreview,
+        separator: false,
+      });
+      
+    } else {
+      // Fallback for any other status: Show Preview at minimum
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreview,
+        separator: false,
+      });
+    }
+    
+    return items;
+  };
+
+  const menuItems = buildMenuItems();
 
   return (
     <div
-      className="p-4 rounded-xl border border-gray-200 bg-white active:scale-[0.98] transition-all duration-200 cursor-pointer hover:shadow-md hover:border-primary/30"
-      onClick={onClick}
+      className="p-3 rounded-xl border border-gray-200 bg-white active:scale-[0.98] transition-all duration-200 hover:shadow-md hover:border-primary/30"
     >
-      <div className="flex items-start justify-between mb-3">
-        <div className="flex-1">
-          <h3 className="font-semibold mb-1">{job.title}</h3>
-          <p className="text-sm text-muted-foreground">{job.customerName}</p>
+      {/* Row 1: Document ID + Status Dropdown + Three-dot Menu */}
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-xs font-medium text-muted-foreground">{getDocumentIdDisplay()}</span>
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          {/* Status Dropdown */}
+          {onStatusChange ? (
+            <div onClick={(e) => e.stopPropagation()} className="relative">
+              <Select
+                value={job.status}
+                onValueChange={(value) => {
+                  if (value !== job.status) {
+                    onStatusChange(value);
+                  }
+                }}
+              >
+                <SelectTrigger
+                  className={cn(
+                    "h-auto py-0.5 px-2 text-xs font-medium whitespace-nowrap border rounded-full",
+                    "focus:ring-0 focus:ring-offset-0 shadow-none",
+                    "cursor-pointer transition-colors w-auto min-w-[90px]",
+                    getStatusBadgeColor(job.status)
+                  )}
+                >
+                  <SelectValue className="text-xs">{job.status}</SelectValue>
+                </SelectTrigger>
+                <SelectContent 
+                  className="rounded-xl border border-gray-200 bg-white shadow-lg min-w-[120px]"
+                  align="end"
+                  sideOffset={4}
+                >
+                  <SelectItem value="Scheduled" className="text-xs">Scheduled</SelectItem>
+                  <SelectItem value="In Progress" className="text-xs">In Progress</SelectItem>
+                  <SelectItem value="Completed" className="text-xs">Completed</SelectItem>
+                  <SelectItem value="Cancel" className="text-xs">Cancel</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : (
+            <Badge className={cn("text-xs whitespace-nowrap cursor-pointer", statusColors[job.status])}>
+              {job.status}
+            </Badge>
+          )}
+          {/* Three-dot Menu */}
+          {menuItems.length > 0 && (
+            <div onClick={(e) => e.stopPropagation()}>
+              <KebabMenu
+                items={menuItems}
+                menuWidth="w-48"
+              />
+            </div>
+          )}
         </div>
-        <Badge className={cn("text-xs whitespace-nowrap", statusColors[job.status])}>
-          {job.status}
-        </Badge>
+      </div>
+
+      {/* Row 2: Customer Name + Payment Status + Job Type (right-aligned) */}
+      <div className="mb-2 cursor-pointer" onClick={onClick}>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold text-base flex-1 min-w-0">{job.customerName}</h3>
+          <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end">
+            {paymentStatus && (
+              <Badge 
+                className={cn(
+                  "text-[10px] px-1.5 py-0 h-4 rounded-full whitespace-nowrap",
+                  paymentStatus === "Paid" 
+                    ? "bg-green-100 text-green-700 border-green-200" 
+                    : "bg-orange-100 text-orange-700 border-orange-200"
+                )}
+              >
+                {paymentStatus}
+              </Badge>
+            )}
+            {jobType && (
+              <Badge 
+                variant="outline" 
+                className="text-[10px] px-1.5 py-0 h-4 rounded-full border-muted-foreground/30 bg-muted/30 whitespace-nowrap"
+              >
+                {jobType}
+              </Badge>
+            )}
+          </div>
+        </div>
       </div>
       
-      <div className="space-y-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="h-3 w-3" />
-          <span>{new Date(job.date).toLocaleDateString()}</span>
-          <Clock className="h-3 w-3 ml-2" />
-          <span>{job.time}</span>
+      {/* Row 3: Service Date & Time + Employee */}
+      <div className="flex items-center justify-between pt-1.5 border-t border-gray-100 cursor-pointer" onClick={onClick}>
+        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <Calendar className="h-3 w-3 flex-shrink-0" />
+          <span>
+            {new Date(job.date).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
+            {job.time && <> • {job.time}</>}
+          </span>
         </div>
-        
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <MapPin className="h-3 w-3" />
-          <span className="truncate">{job.location}</span>
-        </div>
-        
-        <div className="flex items-center gap-2 pt-2 border-t border-gray-200">
-          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
-            <span className="text-xs font-bold text-primary">{techInitials}</span>
+        <div className="flex items-center gap-1.5">
+          <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
+            <span className="text-[10px] font-bold text-primary">{techInitials}</span>
           </div>
-          <span className="text-sm text-muted-foreground">{job.technicianName}</span>
+          <span className="text-xs text-muted-foreground">{job.technicianName}</span>
         </div>
       </div>
     </div>

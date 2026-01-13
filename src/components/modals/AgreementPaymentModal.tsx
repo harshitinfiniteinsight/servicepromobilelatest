@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ArrowLeft, Zap, Wifi, MoreVertical, CreditCard, DollarSign, RefreshCw, Building2, X } from "lucide-react";
+import { ArrowLeft, Zap, Wifi, MoreVertical, CreditCard, DollarSign, Building2, X } from "lucide-react";
 import { toast } from "sonner";
 import { CardDetailsModal } from "./CardDetailsModal";
 import { ACHPaymentModal } from "./ACHPaymentModal";
@@ -70,7 +70,7 @@ export const AgreementPaymentModal = ({ open, onOpenChange, agreement }: Agreeme
           <div className="flex flex-col items-center justify-center py-6">
             <div className="relative mb-4">
               <div className="h-20 w-20 rounded-full bg-orange-100 flex items-center justify-center">
-                <RefreshCw className="h-10 w-10 text-orange-500" />
+                <CreditCard className="h-10 w-10 text-orange-500" />
               </div>
             </div>
             <p className="text-sm text-muted-foreground mb-2">Total Amount</p>

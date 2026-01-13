@@ -1,0 +1,29 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Run tablet version (Vite)",
+			"type": "shell",
+			"command": "npm install && npm run dev",
+			"group": "build"
+		},
+		{
+			"label": "Run tablet version (Vite)",
+			"type": "shell",
+			"command": "npm install && npm run dev",
+			"group": "build"
+		},
+		{
+			"label": "Run tablet version (Vite)",
+			"type": "shell",
+			"command": "npm install && npm run dev",
+			"group": "build"
+		},
+		{
+			"label": "Run tablet version on new port",
+			"type": "shell",
+			"command": "PORT=5174 npm run dev",
+			"group": "build"
+		}
+	]
+}

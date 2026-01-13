@@ -20,7 +20,7 @@ import MinimumDepositPercentage from "./pages/MinimumDepositPercentage";
 import Employees from "./pages/Employees";
 import EmployeeSchedule from "./pages/EmployeeSchedule";
 import EmployeeTracking from "./pages/EmployeeTracking";
-import Inventory from "./pages/Inventory";
+import Inventory from "../../tablet-version/src/pages/Inventory";
 import LowInventoryAlertSettings from "./pages/LowInventoryAlertSettings";
 import InventoryStockInOut from "./pages/InventoryStockInOut";
 import InventoryRefund from "./pages/InventoryRefund";
@@ -112,7 +112,12 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      <BrowserRouter
+        future={{
+          v7_startTransition: true,
+          v7_relativeSplatPath: true,
+        }}
+      >
         <SidebarProvider defaultOpen>
           <AppContent />
         </SidebarProvider>

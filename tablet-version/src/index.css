@@ -1,0 +1,254 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 15%;
+    --primary: 12 95% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 20%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+    --accent: 12 95% 58%;
+    --accent-foreground: 0 0% 15%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 90%;
+    --input: 0 0% 96%;
+    --ring: 12 95% 58%;
+    --radius: 0.75rem;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 200 95% 50%;
+    
+    /* Inventory compact mode spacing variables */
+    --inventory-card-padding: 0.5rem;
+    --inventory-card-gap: 0.375rem;
+    --inventory-section-gap: 0.25rem;
+  }
+
+  .dark {
+    --background: 0 0% 8%;
+    --foreground: 0 0% 95%;
+    --card: 0 0% 12%;
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 12 95% 58%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 0 0% 20%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 60%;
+    --accent: 12 95% 58%;
+    --accent-foreground: 0 0% 95%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 0 0% 25%;
+    --input: 0 0% 20%;
+    --ring: 12 95% 58%;
+    --success: 142 76% 36%;
+    --warning: 38 92% 50%;
+    --info: 200 95% 50%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+  
+  /* Tablet optimizations */
+  html, body, #root {
+    height: 100%;
+    width: 100%;
+    overflow: hidden;
+    touch-action: pan-y;
+  }
+  
+  /* Tablet landscape specific optimizations */
+  @media (min-width: 768px) and (orientation: landscape) {
+    body {
+      font-size: 14px;
+      line-height: 1.5;
+    }
+    
+    /* Balanced spacing for tablet */
+    .tablet-spacing {
+      padding: 1.5rem;
+    }
+    
+    /* Denser content than mobile, lighter than desktop */
+    .tablet-density {
+      gap: 0.75rem;
+    }
+    
+    /* Constrained content width for better readability */
+    .tablet-constrained {
+      max-width: 1152px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+  
+  @media (min-width: 1024px) and (orientation: landscape) {
+    body {
+      font-size: 16px;
+      line-height: 1.65;
+    }
+  }
+
+  /* Safe area support */
+  body {
+    padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+
+  /* Prevent text selection on mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+  }
+
+  input, textarea {
+    user-select: text;
+  }
+
+  /* Scrollbar styling for tablet */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 4px;
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+  
+  /* Smooth transitions for layout changes */
+  * {
+    transition-property: margin, padding;
+    transition-duration: 200ms;
+    transition-timing-function: ease-in-out;
+  }
+  
+  button, a, input, select, textarea {
+    transition-property: all;
+    transition-duration: 150ms;
+  }
+}
+
+@layer utilities {
+  .touch-target {
+    @apply min-h-touch min-w-touch;
+  }
+
+  .safe-top {
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .safe-left {
+    padding-left: env(safe-area-inset-left);
+  }
+
+  .safe-right {
+    padding-right: env(safe-area-inset-right);
+  }
+
+  .scrollable {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tap-insert-icon {
+    width: 160px;
+    height: auto;
+    display: block;
+    margin: 32px auto 12px auto;
+    object-fit: contain;
+  }
+
+  /* Leaflet Map Customizations */
+  .leaflet-container {
+    font-family: inherit;
+  }
+
+  .leaflet-popup-content-wrapper {
+    border-radius: 8px;
+  }
+
+  .leaflet-popup-content {
+    margin: 12px;
+  }
+
+  .custom-marker {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .route-marker {
+    background: transparent !important;
+    border: none !important;
+  }
+
+  .route-marker .marker-wrapper {
+    position: relative;
+    display: inline-block;
+  }
+
+  .route-marker .marker-circle {
+    transition: transform 0.2s ease;
+  }
+
+  .route-marker:hover .marker-circle {
+    transform: scale(1.1);
+  }
+
+  @keyframes pulse {
+    0%, 100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.7;
+      transform: scale(1.1);
+    }
+  }
+}
+
+
