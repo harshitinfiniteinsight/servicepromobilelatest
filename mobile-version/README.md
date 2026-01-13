@@ -269,3 +269,4 @@ Same as parent project.
 **Built with ❤️ using React + Capacitor**
 
 
+# Deployment trigger: Tue Jan 13 18:12:30 IST 2026
