@@ -1229,9 +1229,9 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
 
       {/* Route Reorder Confirmation Modal */}
       <AlertDialog open={showReorderConfirmModal} onOpenChange={setShowReorderConfirmModal}>
-        <AlertDialogContent className="max-w-[90%] sm:max-w-md rounded-xl p-0 overflow-hidden max-h-[85vh] flex flex-col">
-          <AlertDialogHeader className="px-5 pt-5 pb-3 flex-shrink-0">
-            <AlertDialogTitle className="text-lg font-semibold text-gray-900">
+        <AlertDialogContent className="max-w-[92%] sm:max-w-md rounded-xl p-0 overflow-hidden max-h-[80vh] flex flex-col">
+          <AlertDialogHeader className="px-4 pt-4 pb-2 flex-shrink-0 border-b border-gray-100">
+            <AlertDialogTitle className="text-base font-semibold text-gray-900">
               Confirm Route Update
             </AlertDialogTitle>
             <AlertDialogDescription className="sr-only">
@@ -1239,15 +1239,16 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
             </AlertDialogDescription>
           </AlertDialogHeader>
           
-          {/* Customer-Grouped Job List with Time Pickers - Scrollable (sorted by time) */}
-          <div className="px-5 py-3 overflow-y-auto flex-1 min-h-0">
-            <div className="space-y-3">
+          {/* Customer-Grouped Job List with Time Pickers - Compact Mobile Layout */}
+          <div className="px-4 py-2 overflow-y-auto flex-1 min-h-0">
+            <div className="divide-y divide-gray-100">
               {(() => {
                 // Group jobs by customer from SORTED route order (earliest time first)
                 const customerGroups: Array<{
                   customerName: string;
                   jobs: typeof sortedPendingRouteOrder;
                   firstJobIndex: number;
+                  allServices: string[];
                 }> = [];
                 const seenCustomers = new Set<string>();
                 
@@ -1255,63 +1256,62 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
                   if (!seenCustomers.has(job.customerName)) {
                     seenCustomers.add(job.customerName);
                     const customerJobs = sortedPendingRouteOrder.filter(j => j.customerName === job.customerName);
+                    // Collect all services across all jobs for this customer
+                    const allServices = customerJobs.flatMap(j => j.services || [j.title]);
                     customerGroups.push({
                       customerName: job.customerName,
                       jobs: customerJobs,
-                      firstJobIndex: index
+                      firstJobIndex: index,
+                      allServices
                     });
                   }
                 });
                 
                 return customerGroups.map((group, groupIndex) => {
-                  const jobCount = group.jobs?.length || 0;
                   const firstJob = group.jobs?.[0];
-                  const additionalJobs = jobCount - 1;
+                  const serviceCount = group.allServices.length;
+                  const firstService = group.allServices[0] || firstJob?.title || "Service";
+                  const additionalServices = serviceCount - 1;
                   
                   return (
                     <div 
                       key={group.customerName}
-                      className={cn(
-                        "flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2 py-3",
-                        groupIndex !== (customerGroups.length - 1) && "border-b border-gray-100"
-                      )}
+                      className="flex items-center justify-between gap-3 py-2.5"
                     >
-                      {/* Left side: Customer & Job Info */}
-                      <div className="flex items-start gap-3 flex-1 min-w-0">
-                        <span className="flex-shrink-0 w-6 h-6 rounded-full bg-[#F97316] text-white text-xs font-medium flex items-center justify-center mt-0.5">
-                          {group.firstJobIndex + 1}
+                      {/* Left side: Order Badge + Customer & Service Info */}
+                      <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                        <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[#F97316] text-white text-[10px] font-semibold flex items-center justify-center">
+                          {groupIndex + 1}
                         </span>
                         <div className="flex-1 min-w-0">
                           {/* Customer Name - Primary Label */}
-                          <p className="text-sm font-semibold text-gray-900 truncate">
+                          <p className="text-sm font-semibold text-gray-900 truncate leading-tight">
                             {group.customerName}
                           </p>
-                          {/* Job Summary */}
-                          <p className="text-xs text-gray-600 mt-0.5 truncate">
-                            {firstJob?.title}
-                            {additionalJobs > 0 && (
-                              <span className="text-gray-500"> + {additionalJobs} more</span>
+                          {/* Service Summary */}
+                          <p className="text-xs text-gray-500 truncate leading-tight mt-0.5">
+                            {firstService}
+                            {additionalServices > 0 && (
+                              <span className="text-gray-400"> + {additionalServices} more</span>
                             )}
                           </p>
                         </div>
                       </div>
                       
-                      {/* Right side: Time Picker */}
-                      <div className="flex-shrink-0 sm:ml-3 pl-9 sm:pl-0">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setActiveTimePickerCustomer(group.customerName);
-                            setShowRouteTimePicker(true);
-                          }}
-                          className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-lg bg-white hover:bg-gray-50 transition-colors min-w-[120px]"
-                        >
-                          <Clock className="h-4 w-4 text-gray-500" />
-                          <span className="text-sm font-medium text-gray-900">
-                            {formatTo12Hour(customerRescheduleTimes[group.customerName] || format12To24Hour(firstJob?.time || "09:00 AM"))}
-                          </span>
-                        </button>
-                      </div>
+                      {/* Right side: Compact Time Picker Pill */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveTimePickerCustomer(group.customerName);
+                          setShowRouteTimePicker(true);
+                        }}
+                        className="flex-shrink-0 flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 rounded-full transition-colors"
+                      >
+                        <Clock className="h-3.5 w-3.5 text-gray-600" />
+                        <span className="text-xs font-medium text-gray-800 whitespace-nowrap">
+                          {formatTo12Hour(customerRescheduleTimes[group.customerName] || format12To24Hour(firstJob?.time || "09:00 AM"))}
+                        </span>
+                      </button>
                     </div>
                   );
                 });
@@ -1319,23 +1319,23 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
             </div>
             
             {/* Helper text */}
-            <p className="text-xs text-gray-500 mt-4">
-              Updating the job time will reschedule your job route.
+            <p className="text-[11px] text-gray-400 mt-3 text-center">
+              Tap time to reschedule. Route auto-sorts by time.
             </p>
           </div>
           
-          <AlertDialogFooter className="flex-col-reverse sm:flex-row gap-2 px-5 pb-5 pt-2 flex-shrink-0 border-t border-gray-100">
+          <AlertDialogFooter className="flex-row gap-2 px-4 pb-4 pt-2 flex-shrink-0 border-t border-gray-100">
             <AlertDialogCancel 
               onClick={handleCancelReorder}
-              className="w-full sm:w-auto rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50"
+              className="flex-1 h-10 rounded-lg border-gray-300 text-gray-700 hover:bg-gray-50 text-sm"
             >
               Cancel
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmReorder}
-              className="w-full sm:w-auto rounded-lg bg-[#F97316] hover:bg-[#EA6820] text-white"
+              className="flex-1 h-10 rounded-lg bg-[#F97316] hover:bg-[#EA6820] text-white text-sm"
             >
-              Confirm & Update Route
+              Update Route
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
