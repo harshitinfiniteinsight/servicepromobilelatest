@@ -1295,6 +1295,12 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
                               <span className="text-gray-400"> + {additionalServices} more</span>
                             )}
                           </p>
+                          {/* Job Address - Secondary Info */}
+                          {firstJob?.location && (
+                            <p className="text-[11px] text-gray-400 truncate leading-tight mt-0.5">
+                              {firstJob.location}
+                            </p>
+                          )}
                         </div>
                       </div>
                       
