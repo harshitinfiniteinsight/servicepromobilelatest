@@ -981,18 +981,6 @@ const EmployeeTracking = () => {
       <MobileHeader 
         title="Job Route" 
         showBack={true}
-        actions={
-          !isEmployee && (
-            <button
-              onClick={() => setShowScheduleRouteModal(true)}
-              className="h-8 px-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-md flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 shrink-0 text-xs font-medium"
-              aria-label="Schedule Route"
-            >
-              <Plus className="h-4 w-4" />
-              <span>Add Route</span>
-            </button>
-          )
-        }
       />
 
       <div className="flex-1 overflow-hidden flex flex-col pt-14">
@@ -1135,20 +1123,6 @@ const EmployeeTracking = () => {
                               />
                             </PopoverContent>
                           </Popover>
-
-                          {/* Add Route Button */}
-                          <button
-                            onClick={() => {
-                              // Pre-fill with current employee for employee login (but don't set editingEmployeeId to keep it in create mode)
-                              // The modal will detect employee mode and pre-fill/disable the dropdown
-                              setShowScheduleRouteModal(true);
-                            }}
-                            className="h-9 px-3 bg-orange-500 hover:bg-orange-600 text-white rounded-full shadow-md flex items-center justify-center gap-1.5 transition-all duration-200 active:scale-95 shrink-0 text-xs font-medium"
-                            aria-label="Add Route"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                            <span>Add Route</span>
-                          </button>
                         </div>
                       </div>
 

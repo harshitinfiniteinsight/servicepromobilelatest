@@ -32,18 +32,16 @@ const AddInvoice = () => {
   const [customerSearch, setCustomerSearch] = useState("");
   const [jobAddress, setJobAddress] = useState("");
   
-  // Structured job address fields
+  // Structured job address fields with autocomplete
   const [streetAddress, setStreetAddress] = useState("");
-  const [country, setCountry] = useState("United States");
+  const [country, setCountry] = useState("");
   const [zipcode, setZipcode] = useState("");
-  const [isValidatingAddress, setIsValidatingAddress] = useState(false);
-  const [showAddressRecommendation, setShowAddressRecommendation] = useState(false);
-  const [recommendedAddress, setRecommendedAddress] = useState("");
-  const [useRecommendedAddress, setUseRecommendedAddress] = useState(false);
-  const [addressValidationError, setAddressValidationError] = useState("");
-  // Store original entered values before using recommended address
-  const [originalStreetAddress, setOriginalStreetAddress] = useState("");
-  const [originalZipcode, setOriginalZipcode] = useState("");
+  const [addressSearch, setAddressSearch] = useState("");
+  const [addressOpen, setAddressOpen] = useState(false);
+  const [isAddressSelected, setIsAddressSelected] = useState(false);
+  const [isSearchingAddress, setIsSearchingAddress] = useState(false);
+  const [addressTouched, setAddressTouched] = useState(false);
+  const addressSearchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
   const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
@@ -265,100 +263,119 @@ const AddInvoice = () => {
       setJobAddress("");
       setStreetAddress("");
       setZipcode("");
-      setCountry("United States");
-      setShowAddressRecommendation(false);
-      setRecommendedAddress("");
-      setUseRecommendedAddress(false);
-      setAddressValidationError("");
-      setOriginalStreetAddress("");
-      setOriginalZipcode("");
+      setCountry("");
+      setAddressSearch("");
+      setIsAddressSelected(false);
     }
   }, [selectedCustomer, isEditMode]);
 
-  // Address validation function - simulates address validation service
-  const handleValidateAddress = async () => {
-    if (!streetAddress.trim() || !zipcode.trim()) {
-      toast.error("Please enter street address and zipcode");
-      return;
+  // Mock address suggestions based on search input
+  const mockAddressSuggestions = [
+    { street: "123 Main Street", city: "Chicago", state: "IL", zipcode: "60601", country: "United States" },
+    { street: "456 Oak Avenue", city: "Chicago", state: "IL", zipcode: "60602", country: "United States" },
+    { street: "789 Pine Road", city: "Chicago", state: "IL", zipcode: "60603", country: "United States" },
+    { street: "321 Elm Boulevard", city: "Los Angeles", state: "CA", zipcode: "90001", country: "United States" },
+    { street: "654 Maple Drive", city: "Los Angeles", state: "CA", zipcode: "90002", country: "United States" },
+    { street: "987 Cedar Lane", city: "New York", state: "NY", zipcode: "10001", country: "United States" },
+    { street: "147 Birch Court", city: "New York", state: "NY", zipcode: "10002", country: "United States" },
+    { street: "258 Walnut Street", city: "Houston", state: "TX", zipcode: "77001", country: "United States" },
+    { street: "369 Cherry Avenue", city: "Phoenix", state: "AZ", zipcode: "85001", country: "United States" },
+    { street: "741 Spruce Road", city: "Philadelphia", state: "PA", zipcode: "19101", country: "United States" },
+  ];
+
+  // Debounced address suggestions state
+  const [debouncedAddressSearch, setDebouncedAddressSearch] = useState("");
+
+  // Debounce address search input (300ms)
+  useEffect(() => {
+    if (addressSearchTimeoutRef.current) {
+      clearTimeout(addressSearchTimeoutRef.current);
+    }
+    
+    if (addressSearch.length >= 3 && !isAddressSelected) {
+      setIsSearchingAddress(true);
+      addressSearchTimeoutRef.current = setTimeout(() => {
+        setDebouncedAddressSearch(addressSearch);
+        setIsSearchingAddress(false);
+      }, 300);
+    } else {
+      setDebouncedAddressSearch("");
+      setIsSearchingAddress(false);
     }
 
-    setIsValidatingAddress(true);
-    setAddressValidationError("");
-    
-    // Store original values before validation
-    setOriginalStreetAddress(streetAddress.trim());
-    setOriginalZipcode(zipcode.trim());
-    
-    // Simulate API call for address validation
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    // Simulate: some zipcodes don't return recommendations (e.g., starting with 00)
-    const hasRecommendation = !zipcode.startsWith("00");
-    
-    if (!hasRecommendation) {
-      setShowAddressRecommendation(false);
-      setRecommendedAddress("");
-      setAddressValidationError("No recommended address found for the entered street and zipcode.");
-      setIsValidatingAddress(false);
-      return;
-    }
-    
-    // Generate mock recommended address based on input
-    const mockRecommended = `${streetAddress.trim().replace(/\b(St|Ave|Rd|Dr|Blvd|Ln|Ct)\b\.?/gi, (match) => {
-      const expansions: Record<string, string> = {
-        'st': 'Street',
-        'ave': 'Avenue', 
-        'rd': 'Road',
-        'dr': 'Drive',
-        'blvd': 'Boulevard',
-        'ln': 'Lane',
-        'ct': 'Court'
-      };
-      return expansions[match.toLowerCase().replace('.', '')] || match;
-    })}, ${zipcode.trim()}, ${country}`;
-    
-    setRecommendedAddress(mockRecommended);
-    setShowAddressRecommendation(true);
-    setUseRecommendedAddress(false);
-    setIsValidatingAddress(false);
-    
-    toast.success("Address validated");
+    return () => {
+      if (addressSearchTimeoutRef.current) {
+        clearTimeout(addressSearchTimeoutRef.current);
+      }
+    };
+  }, [addressSearch, isAddressSelected]);
+
+  // Filter address suggestions based on debounced search
+  const filteredAddressSuggestions = debouncedAddressSearch.length >= 3
+    ? mockAddressSuggestions.filter(addr => 
+        addr.street.toLowerCase().includes(debouncedAddressSearch.toLowerCase()) ||
+        addr.city.toLowerCase().includes(debouncedAddressSearch.toLowerCase()) ||
+        addr.zipcode.includes(debouncedAddressSearch)
+      )
+    : [];
+
+  // Handle address selection from autocomplete
+  const handleAddressSelect = (address: typeof mockAddressSuggestions[0]) => {
+    const fullStreet = `${address.street}, ${address.city}, ${address.state}`;
+    setStreetAddress(fullStreet);
+    setZipcode(address.zipcode);
+    setCountry(address.country);
+    setJobAddress(`${fullStreet}, ${address.zipcode}, ${address.country}`);
+    setAddressSearch(fullStreet);
+    setAddressOpen(false);
+    setIsAddressSelected(true);
+    setAddressTouched(false);
+    setDebouncedAddressSearch("");
   };
 
-  // Handle use recommended address toggle - syncs form fields and jobAddress
-  useEffect(() => {
-    if (useRecommendedAddress && recommendedAddress) {
-      // When using recommended address, update the jobAddress
-      setJobAddress(recommendedAddress);
-      // Parse recommended address to update form fields
-      const parts = recommendedAddress.split(',').map((p: string) => p.trim());
-      if (parts.length >= 1) {
-        setStreetAddress(parts[0]);
-      }
-      if (parts.length >= 2 && /^\d{5}(-\d{4})?$/.test(parts[1])) {
-        setZipcode(parts[1]);
-      }
-    } else if (!useRecommendedAddress && originalStreetAddress && originalZipcode) {
-      // When unchecking, revert to original entered values
-      setStreetAddress(originalStreetAddress);
-      setZipcode(originalZipcode);
-      setJobAddress(`${originalStreetAddress}, ${originalZipcode}, ${country}`);
-    }
-  }, [useRecommendedAddress, recommendedAddress, originalStreetAddress, originalZipcode, country]);
+  // Handle clearing the selected address
+  const handleClearAddress = () => {
+    setStreetAddress("");
+    setZipcode("");
+    setCountry("");
+    setJobAddress("");
+    setAddressSearch("");
+    setIsAddressSelected(false);
+    setAddressTouched(false);
+    setDebouncedAddressSearch("");
+  };
 
-  // Compute entered address for display (always derived from current form fields)
-  const enteredAddressDisplay = streetAddress.trim() || zipcode.trim() || country !== "United States"
-    ? `${streetAddress.trim()}${streetAddress.trim() && zipcode.trim() ? ', ' : ''}${zipcode.trim()}${(streetAddress.trim() || zipcode.trim()) ? ', ' : ''}${country}`
-    : "";
-
-  // Update jobAddress when form fields change (if not using recommended)
-  useEffect(() => {
-    if (!useRecommendedAddress && streetAddress.trim() && zipcode.trim()) {
-      setJobAddress(`${streetAddress.trim()}, ${zipcode.trim()}, ${country}`);
-    } else if (!useRecommendedAddress && !streetAddress.trim() && !zipcode.trim()) {
+  // Handle address input change with re-enable autocomplete
+  const handleAddressInputChange = (value: string) => {
+    setAddressSearch(value);
+    setAddressTouched(true);
+    
+    // If user edits after selection, clear Country & Zipcode and re-enable autocomplete
+    if (isAddressSelected) {
+      setIsAddressSelected(false);
+      setStreetAddress("");
+      setZipcode("");
+      setCountry("");
       setJobAddress("");
     }
-  }, [streetAddress, zipcode, country, useRecommendedAddress]);
+    
+    // Open dropdown if >= 3 chars
+    if (value.length >= 3) {
+      setAddressOpen(true);
+    } else {
+      setAddressOpen(false);
+    }
+  };
+
+  // Update jobAddress when form fields change
+  useEffect(() => {
+    if (streetAddress.trim() && zipcode.trim() && country.trim()) {
+      setJobAddress(`${streetAddress.trim()}, ${zipcode.trim()}, ${country}`);
+    } else if (!streetAddress.trim() && !zipcode.trim()) {
+      setJobAddress("");
+    }
+  }, [streetAddress, zipcode, country]);
+
   const [items, setItems] = useState<Array<{ 
     id: string
     name: string
@@ -985,129 +1002,160 @@ const AddInvoice = () => {
                   <Label className="text-base font-semibold">Job Address</Label>
                 </div>
                 
-                {/* Street Address */}
+                {/* Street Address with Autocomplete */}
                 <div>
                   <Label htmlFor="street-address">
                     Street Address <span className="text-red-500">*</span>
                   </Label>
-                  <Input
-                    id="street-address"
-                    type="text"
-                    value={streetAddress}
-                    onChange={(e) => {
-                      setStreetAddress(e.target.value);
-                      setShowAddressRecommendation(false);
-                      setAddressValidationError("");
-                    }}
-                    placeholder="Enter street address"
-                    className="mt-2 h-11"
-                  />
+                  <Popover open={addressOpen && !isAddressSelected} onOpenChange={(open) => {
+                    if (!isAddressSelected) {
+                      setAddressOpen(open);
+                    }
+                  }}>
+                    <PopoverTrigger asChild>
+                      <div className="relative mt-2">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                        <Input
+                          id="street-address"
+                          type="text"
+                          value={addressSearch}
+                          onChange={(e) => handleAddressInputChange(e.target.value)}
+                          onFocus={() => {
+                            if (addressSearch.length >= 3 && !isAddressSelected) {
+                              setAddressOpen(true);
+                            }
+                          }}
+                          onBlur={() => {
+                            // Small delay to allow click on dropdown items
+                            setTimeout(() => {
+                              if (addressSearch.length > 0 && !isAddressSelected) {
+                                setAddressTouched(true);
+                              }
+                            }, 200);
+                          }}
+                          placeholder="Start typing to search address..."
+                          className={cn(
+                            "h-11 pl-10 pr-10",
+                            isAddressSelected && "bg-gray-50 border-green-300"
+                          )}
+                        />
+                        {isAddressSelected ? (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 p-0 hover:bg-gray-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleClearAddress();
+                            }}
+                          >
+                            <X className="h-4 w-4 text-gray-500" />
+                          </Button>
+                        ) : isSearchingAddress && (
+                          <RefreshCw className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 animate-spin" />
+                        )}
+                      </div>
+                    </PopoverTrigger>
+                    <PopoverContent 
+                      className="w-[var(--radix-popover-trigger-width)] p-0 max-h-60 overflow-hidden" 
+                      align="start"
+                      onOpenAutoFocus={(e) => e.preventDefault()}
+                      sideOffset={4}
+                    >
+                      {isSearchingAddress ? (
+                        <div className="flex items-center justify-center py-6 text-sm text-muted-foreground">
+                          <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                          Searching addresses...
+                        </div>
+                      ) : filteredAddressSuggestions.length > 0 ? (
+                        <Command shouldFilter={false}>
+                          <CommandList className="max-h-60">
+                            <CommandGroup>
+                              {filteredAddressSuggestions.map((addr, index) => (
+                                <CommandItem
+                                  key={index}
+                                  value={`${addr.street}-${index}`}
+                                  onSelect={() => handleAddressSelect(addr)}
+                                  className="cursor-pointer py-3 px-4 hover:bg-orange-50"
+                                >
+                                  <div className="flex flex-col gap-0.5">
+                                    <span className="font-semibold text-gray-900">
+                                      {addr.street}, {addr.city}, {addr.state} {addr.zipcode}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      {addr.country}
+                                    </span>
+                                  </div>
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </CommandList>
+                        </Command>
+                      ) : debouncedAddressSearch.length >= 3 ? (
+                        <div className="flex flex-col items-center justify-center py-6 text-sm text-muted-foreground">
+                          <MapPin className="h-5 w-5 mb-2 text-gray-300" />
+                          No matching addresses found
+                        </div>
+                      ) : null}
+                    </PopoverContent>
+                  </Popover>
+                  
+                  {/* Validation message */}
+                  {addressTouched && addressSearch.length > 0 && !isAddressSelected && (
+                    <p className="text-xs text-red-500 mt-1.5 flex items-center gap-1">
+                      <span className="inline-block w-1 h-1 rounded-full bg-red-500"></span>
+                      Please select an address from the list
+                    </p>
+                  )}
+                  
+                  {/* Helper text */}
+                  {!addressTouched && !isAddressSelected && addressSearch.length === 0 && (
+                    <p className="text-xs text-muted-foreground mt-1.5">
+                      Type at least 3 characters to see suggestions
+                    </p>
+                  )}
                 </div>
                 
-                {/* Country */}
+                {/* Country - Read-only after selection */}
                 <div>
                   <Label htmlFor="country">
                     Country <span className="text-red-500">*</span>
                   </Label>
-                  <Select value={country} onValueChange={(val) => {
-                    setCountry(val);
-                    setShowAddressRecommendation(false);
-                    setAddressValidationError("");
-                  }}>
-                    <SelectTrigger className="mt-2 h-11">
-                      <SelectValue placeholder="Select country" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="United States">United States</SelectItem>
-                      <SelectItem value="Canada">Canada</SelectItem>
-                      <SelectItem value="Mexico">Mexico</SelectItem>
-                      <SelectItem value="United Kingdom">United Kingdom</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Input
+                    id="country"
+                    type="text"
+                    value={country}
+                    readOnly
+                    placeholder={isAddressSelected ? "" : "Auto-filled from address selection"}
+                    className={cn(
+                      "mt-2 h-11 cursor-not-allowed",
+                      isAddressSelected 
+                        ? "bg-gray-50 text-gray-700 border-gray-300" 
+                        : "bg-gray-100 text-gray-400 border-gray-200"
+                    )}
+                  />
                 </div>
                 
-                {/* Zipcode with validation button */}
+                {/* Zipcode - Read-only after selection */}
                 <div>
-                  <Label htmlFor="zipcode">Zipcode</Label>
-                  <div className="relative mt-2">
-                    <Input
-                      id="zipcode"
-                      type="text"
-                      inputMode="numeric"
-                      value={zipcode}
-                      onChange={(e) => {
-                        setZipcode(e.target.value.replace(/\D/g, '').slice(0, 5));
-                        setShowAddressRecommendation(false);
-                        setAddressValidationError("");
-                      }}
-                      placeholder="Enter zipcode"
-                      className="h-11 pr-12"
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="absolute right-1 top-1/2 -translate-y-1/2 h-9 w-9 p-0 hover:bg-primary/10"
-                      onClick={handleValidateAddress}
-                      disabled={isValidatingAddress || !streetAddress.trim() || !zipcode.trim()}
-                    >
-                      {isValidatingAddress ? (
-                        <RefreshCw className="h-4 w-4 animate-spin text-primary" />
-                      ) : (
-                        <ArrowRight className="h-4 w-4 text-primary" />
-                      )}
-                    </Button>
-                  </div>
+                  <Label htmlFor="zipcode">
+                    Zipcode <span className="text-red-500">*</span>
+                  </Label>
+                  <Input
+                    id="zipcode"
+                    type="text"
+                    value={zipcode}
+                    readOnly
+                    placeholder={isAddressSelected ? "" : "Auto-filled from address selection"}
+                    className={cn(
+                      "mt-2 h-11 cursor-not-allowed",
+                      isAddressSelected 
+                        ? "bg-gray-50 text-gray-700 border-gray-300" 
+                        : "bg-gray-100 text-gray-400 border-gray-200"
+                    )}
+                  />
                 </div>
-                
-                {/* Inline validation error */}
-                {addressValidationError && (
-                  <p className="text-sm text-red-500 -mt-2">
-                    {addressValidationError}
-                  </p>
-                )}
-                
-                {/* Entered Address - Always Visible */}
-                {(streetAddress.trim() || zipcode.trim()) && (
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <Label className="text-xs font-medium text-gray-500 uppercase tracking-wide">
-                      Entered Address
-                    </Label>
-                    <div className="mt-1 p-3 bg-white rounded-md border border-gray-200 text-sm text-gray-700">
-                      {enteredAddressDisplay || "Start typing to see address preview"}
-                    </div>
-                  </div>
-                )}
-                
-                {/* Recommended Address Section - Only shown after successful validation */}
-                {showAddressRecommendation && recommendedAddress && (
-                  <div className="space-y-3 p-4 bg-green-50 rounded-lg border border-green-200">
-                    {/* Recommended Address */}
-                    <div>
-                      <Label className="text-xs font-medium text-green-600 uppercase tracking-wide">
-                        Recommended Address
-                      </Label>
-                      <div className="mt-1 p-3 bg-white rounded-md border border-green-200 text-sm text-gray-700">
-                        {recommendedAddress}
-                      </div>
-                    </div>
-                    
-                    {/* Use Recommended Address Checkbox */}
-                    <div className="flex items-center space-x-2 pt-2">
-                      <Checkbox
-                        id="use-recommended"
-                        checked={useRecommendedAddress}
-                        onCheckedChange={(checked) => setUseRecommendedAddress(checked === true)}
-                      />
-                      <Label 
-                        htmlFor="use-recommended" 
-                        className="text-sm font-medium cursor-pointer text-green-700"
-                      >
-                        Use Recommended Address
-                      </Label>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
 

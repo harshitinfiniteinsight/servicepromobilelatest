@@ -1254,35 +1254,36 @@ const Jobs = () => {
       )}
 
       {/* Add Pictures Modal */}
-      {selectedJobForPictures && (
-        <AddServicePicturesModal
-          isOpen={showAddPicturesModal}
-          onClose={() => {
-            setShowAddPicturesModal(false);
+      <AddServicePicturesModal
+        open={showAddPicturesModal && selectedJobForPictures !== null}
+        onOpenChange={(open) => {
+          setShowAddPicturesModal(open);
+          if (!open) {
             setSelectedJobForPictures(null);
-          }}
-          jobId={selectedJobForPictures.id}
-          existingBeforeImage={jobPictures[selectedJobForPictures.id]?.beforeImage || null}
-          existingAfterImage={jobPictures[selectedJobForPictures.id]?.afterImage || null}
-          onSave={handleSavePictures}
-        />
-      )}
+          }
+        }}
+        jobId={selectedJobForPictures?.id || ""}
+        jobStatus={selectedJobForPictures?.status || ""}
+        beforeImage={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.beforeImage || null) : null}
+        afterImage={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.afterImage || null) : null}
+        onSave={handleSavePictures}
+      />
 
       {/* View Pictures Modal */}
-      {selectedJobForPictures && (
-        <ViewServicePicturesModal
-          isOpen={showViewPicturesModal}
-          onClose={() => {
-            setShowViewPicturesModal(false);
+      <ViewServicePicturesModal
+        open={showViewPicturesModal && selectedJobForPictures !== null}
+        onOpenChange={(open) => {
+          setShowViewPicturesModal(open);
+          if (!open) {
             setSelectedJobForPictures(null);
-          }}
-          jobId={selectedJobForPictures.id}
-          beforeImage={jobPictures[selectedJobForPictures.id]?.beforeImage || null}
-          afterImage={jobPictures[selectedJobForPictures.id]?.afterImage || null}
-          onDelete={handleDeletePicture}
-          onReplace={handleReplacePicture}
-        />
-      )}
+          }
+        }}
+        jobId={selectedJobForPictures?.id || ""}
+        beforeImage={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.beforeImage || null) : null}
+        afterImage={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.afterImage || null) : null}
+        onDelete={handleDeletePicture}
+        onReplace={handleReplacePicture}
+      />
 
       {/* Cannot Edit Modal */}
       <CannotEditModal

@@ -1082,44 +1082,6 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
           {/* Draggable Route Cards */}
           {selectedEmployeeId && routeStops.length > 0 && (
             <div className="flex-1 overflow-y-auto px-4 pb-24">
-              {/* Route Timing Configuration */}
-              <div className="mb-4 p-3 bg-white rounded-xl border border-gray-200 shadow-sm">
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="h-4 w-4 text-orange-500" />
-                  <h4 className="text-sm font-semibold text-gray-800">Route Timing</h4>
-                </div>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Start Time</label>
-                    <input
-                      type="time"
-                      value={routeStartTime}
-                      onChange={(e) => setRouteStartTime(e.target.value)}
-                      className="w-full h-9 px-3 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-xs font-medium text-gray-600 mb-1 block">Job Duration</label>
-                    <Select value={defaultJobDuration.toString()} onValueChange={(v) => setDefaultJobDuration(Number(v))}>
-                      <SelectTrigger className="h-9 bg-white border-gray-300">
-                        <SelectValue placeholder="Duration" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="30">30 mins</SelectItem>
-                        <SelectItem value="45">45 mins</SelectItem>
-                        <SelectItem value="60">1 hour</SelectItem>
-                        <SelectItem value="90">1.5 hours</SelectItem>
-                        <SelectItem value="120">2 hours</SelectItem>
-                        <SelectItem value="180">3 hours</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <p className="text-[11px] text-gray-500 mt-2">
-                  Jobs will be auto-scheduled starting at {formatTo12Hour(routeStartTime)}, {defaultJobDuration} min apart
-                </p>
-              </div>
-
               <div className="mb-3">
                 <h3 className="text-sm font-semibold text-gray-800">Route Stops</h3>
                 <p className="text-xs text-gray-500 mt-0.5">
