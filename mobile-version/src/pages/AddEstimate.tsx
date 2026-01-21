@@ -16,6 +16,7 @@ import { addNotes } from "@/services/noteService";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
+import AddressAutocomplete, { AddressData } from "@/components/common/AddressAutocomplete";
 
 const AddEstimate = () => {
   const navigate = useNavigate();
@@ -27,6 +28,15 @@ const AddEstimate = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [jobAddress, setJobAddress] = useState("");
+  
+  // Structured job address fields with autocomplete
+  const [addressData, setAddressData] = useState<AddressData>({
+    streetAddress: "",
+    zipcode: "",
+    country: "",
+    fullAddress: "",
+  });
+  
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState("");
@@ -152,6 +162,12 @@ const AddEstimate = () => {
     if (selectedCustomer && !isEditMode) {
       // In NEW mode, keep job address empty when customer changes
       setJobAddress("");
+      setAddressData({
+        streetAddress: "",
+        zipcode: "",
+        country: "",
+        fullAddress: "",
+      });
     }
   }, [selectedCustomer, isEditMode]);
 
@@ -636,16 +652,15 @@ const AddEstimate = () => {
             </div>
 
             {selectedCustomer && (
-              <div>
-                <Label>Job Address</Label>
-                <Input
-                  type="text"
-                  value={jobAddress}
-                  onChange={(e) => setJobAddress(e.target.value)}
-                  placeholder="Enter job address"
-                  className="mt-2 h-11"
-                />
-              </div>
+              <AddressAutocomplete
+                value={addressData}
+                onChange={(data) => {
+                  setAddressData(data);
+                  setJobAddress(data.fullAddress);
+                }}
+                showHeading={true}
+                required={true}
+              />
             )}
 
             <div>

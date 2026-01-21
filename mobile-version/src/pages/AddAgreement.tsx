@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccessToast } from "@/utils/toast";
+import AddressAutocomplete, { AddressData } from "@/components/common/AddressAutocomplete";
 
 const BASE_SERVICE_CATALOG = [
   { id: "svc-1", name: "Service Call Fee", price: 95 },
@@ -41,6 +42,15 @@ const AddAgreement = () => {
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
   const [jobAddress, setJobAddress] = useState("");
+  
+  // Structured job address fields with autocomplete
+  const [addressData, setAddressData] = useState<AddressData>({
+    streetAddress: "",
+    zipcode: "",
+    country: "",
+    fullAddress: "",
+  });
+  
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
   const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
   const [newCustomerLastName, setNewCustomerLastName] = useState("");
@@ -70,6 +80,12 @@ const AddAgreement = () => {
     if (selectedCustomer && !isEditMode) {
       // In NEW mode, keep job address empty when customer changes
       setJobAddress("");
+      setAddressData({
+        streetAddress: "",
+        zipcode: "",
+        country: "",
+        fullAddress: "",
+      });
     }
   }, [selectedCustomer, isEditMode]);
   const [agreementType, setAgreementType] = useState("One Time");
@@ -616,16 +632,15 @@ const AddAgreement = () => {
             </div>
 
             {selectedCustomer && (
-              <div>
-                <Label>Job Address</Label>
-                <Input
-                  type="text"
-                  value={jobAddress}
-                  onChange={(e) => setJobAddress(e.target.value)}
-                  placeholder="Enter job address"
-                  className="mt-2 h-11"
-                />
-              </div>
+              <AddressAutocomplete
+                value={addressData}
+                onChange={(data) => {
+                  setAddressData(data);
+                  setJobAddress(data.fullAddress);
+                }}
+                showHeading={true}
+                required={true}
+              />
             )}
 
             <div>
