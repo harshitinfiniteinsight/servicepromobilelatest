@@ -3,12 +3,18 @@ import { useParams, useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { mockJobs, mockCustomers, mockEmployees } from "@/data/mobileMockData";
-import { Calendar, Clock, MapPin, User, Phone, Mail, Navigation } from "lucide-react";
+import { mockJobs, mockCustomers, mockEmployees, mockInvoices, mockEstimates, mockAgreements } from "@/data/mobileMockData";
+import type { JobPaymentStatus, JobSourceType } from "@/data/mobileMockData";
+import { Calendar, Clock, MapPin, User, Phone, Mail, Navigation, CreditCard, Receipt, FileCheck, ScrollText, DollarSign, Edit, PlusCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
 import SendFeedbackFormModal from "@/components/modals/SendFeedbackFormModal";
+import { JobFinancialActions, getFinancialActions } from "@/components/jobs/JobFinancialActions";
+import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
+import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
+import PreviewAgreementModal from "@/components/modals/PreviewAgreementModal";
+import JobPaymentModal from "@/components/modals/JobPaymentModal";
 
 const JobDetails = () => {
   const { id } = useParams();
@@ -24,7 +30,33 @@ const JobDetails = () => {
     }
   });
 
-  const job = mockJobs.find(j => j.id === id);
+  // Preview modals state for financial documents
+  const [showEstimatePreview, setShowEstimatePreview] = useState(false);
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [showAgreementPreview, setShowAgreementPreview] = useState(false);
+  const [previewEstimate, setPreviewEstimate] = useState<any>(null);
+  const [previewInvoice, setPreviewInvoice] = useState<any>(null);
+  const [previewAgreement, setPreviewAgreement] = useState<any>(null);
+
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [currentPaymentStatus, setCurrentPaymentStatus] = useState<JobPaymentStatus>("unpaid");
+
+  // Get job with extended data from localStorage or mockJobs
+  const getJobWithPaymentStatus = () => {
+    // First check localStorage for jobs (manually created jobs)
+    try {
+      const storedJobs = JSON.parse(localStorage.getItem("mockJobs") || "[]");
+      const storedJob = storedJobs.find((j: any) => j.id === id);
+      if (storedJob) return storedJob;
+    } catch (e) {
+      console.warn("Could not read stored jobs");
+    }
+    // Fallback to mockJobs
+    return mockJobs.find(j => j.id === id);
+  };
+
+  const job = getJobWithPaymentStatus();
   
   useEffect(() => {
     if (job) {
@@ -115,6 +147,127 @@ const JobDetails = () => {
     setShowFeedbackFormModal(false);
     toast.success("Feedback form sent successfully");
   };
+
+  // Get job source type and payment status
+  const jobSourceType: JobSourceType = (job as any).sourceType || "none";
+  const jobSourceId: string | undefined = (job as any).sourceId;
+  const jobPaymentStatus: JobPaymentStatus = (job as any).paymentStatus || "unpaid";
+
+  // Financial action handlers
+  const handleCreateInvoice = () => {
+    // Navigate to create invoice with pre-filled job data
+    navigate(`/invoices/new?jobId=${job.id}&customerId=${job.customerId}`);
+    toast.success("Creating new invoice...");
+  };
+
+  const handleViewInvoice = () => {
+    if (jobSourceId) {
+      const invoice = mockInvoices.find(inv => inv.id === jobSourceId);
+      if (invoice) {
+        setPreviewInvoice(invoice);
+        setShowInvoicePreview(true);
+      } else {
+        toast.error("Invoice not found");
+      }
+    }
+  };
+
+  const handleCreateEstimate = () => {
+    // Navigate to create estimate with pre-filled job data
+    navigate(`/estimates/new?jobId=${job.id}&customerId=${job.customerId}`);
+    toast.success("Creating new estimate...");
+  };
+
+  const handleViewEstimate = () => {
+    if (jobSourceId) {
+      const estimate = mockEstimates.find(est => est.id === jobSourceId);
+      if (estimate) {
+        setPreviewEstimate(estimate);
+        setShowEstimatePreview(true);
+      } else {
+        toast.error("Estimate not found");
+      }
+    }
+  };
+
+  const handleViewAgreement = () => {
+    if (jobSourceId) {
+      const agreement = mockAgreements.find(agr => agr.id === jobSourceId);
+      if (agreement) {
+        setPreviewAgreement(agreement);
+        setShowAgreementPreview(true);
+      } else {
+        toast.error("Agreement not found");
+      }
+    }
+  };
+
+  const handlePay = () => {
+    // Open payment modal instead of navigating
+    setShowPaymentModal(true);
+  };
+
+  // Handle payment completion
+  const handlePaymentComplete = (jobId: string, transactionId: string) => {
+    // Update local state to reflect payment
+    setCurrentPaymentStatus("paid");
+    setShowPaymentModal(false);
+  };
+
+  // Edit handlers - for unpaid jobs to modify existing associated documents
+  const handleEditInvoice = () => {
+    if (jobSourceId) {
+      navigate(`/invoices/edit/${jobSourceId}`);
+      toast.success("Editing invoice...");
+    } else {
+      toast.error("No invoice to edit");
+    }
+  };
+
+  const handleEditEstimate = () => {
+    if (jobSourceId) {
+      navigate(`/estimates/edit/${jobSourceId}`);
+      toast.success("Editing estimate...");
+    } else {
+      toast.error("No estimate to edit");
+    }
+  };
+
+  const handleEditAgreement = () => {
+    if (jobSourceId) {
+      navigate(`/agreements/edit/${jobSourceId}`);
+      toast.success("Editing agreement...");
+    } else {
+      toast.error("No agreement to edit");
+    }
+  };
+
+  // Associate New handlers - for paid jobs to create additional documents
+  const handleAssociateNewInvoice = () => {
+    navigate(`/invoices/new?jobId=${job.id}&customerId=${job.customerId}&associateNew=true`);
+    toast.success("Creating new associated invoice...");
+  };
+
+  const handleAssociateNewEstimate = () => {
+    navigate(`/estimates/new?jobId=${job.id}&customerId=${job.customerId}&associateNew=true`);
+    toast.success("Creating new associated estimate...");
+  };
+
+  const handleAssociateNewAgreement = () => {
+    navigate(`/agreements/new?jobId=${job.id}&customerId=${job.customerId}&associateNew=true`);
+    toast.success("Creating new associated agreement...");
+  };
+
+  // Determine if job is paid for conditional rendering
+  // Use currentPaymentStatus if it's been updated by payment completion, otherwise use original
+  const isPaid = currentPaymentStatus === "paid" || jobPaymentStatus === "paid";
+
+  // Initialize currentPaymentStatus from job data
+  useEffect(() => {
+    if (job) {
+      setCurrentPaymentStatus(jobPaymentStatus);
+    }
+  }, [job, jobPaymentStatus]);
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
@@ -224,6 +377,166 @@ const JobDetails = () => {
             </div>
           </div>
 
+          {/* Financial Actions Card */}
+          <div className="p-4 rounded-xl border bg-card">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <DollarSign className="h-4 w-4 text-primary" />
+              Financial Actions
+            </h3>
+            
+            {/* Payment Status */}
+            <div className="flex items-center justify-between mb-4 pb-3 border-b">
+              <span className="text-sm text-muted-foreground">Payment Status</span>
+              <Badge 
+                className={cn(
+                  "text-xs",
+                  currentPaymentStatus === "paid" 
+                    ? "bg-green-100 text-green-700 border-green-200" 
+                    : currentPaymentStatus === "partial"
+                    ? "bg-yellow-100 text-yellow-700 border-yellow-200"
+                    : "bg-orange-100 text-orange-700 border-orange-200"
+                )}
+              >
+                {currentPaymentStatus === "paid" ? "Paid" : currentPaymentStatus === "partial" ? "Partially Paid" : "Unpaid"}
+              </Badge>
+            </div>
+
+            {/* Source Document Info */}
+            {jobSourceType !== "none" && (
+              <div className="flex items-center justify-between mb-4 pb-3 border-b">
+                <span className="text-sm text-muted-foreground">Source</span>
+                <div className="flex items-center gap-2">
+                  {jobSourceType === "invoice" && <Receipt className="h-4 w-4 text-muted-foreground" />}
+                  {jobSourceType === "estimate" && <FileCheck className="h-4 w-4 text-muted-foreground" />}
+                  {jobSourceType === "agreement" && <ScrollText className="h-4 w-4 text-muted-foreground" />}
+                  <span className="text-sm font-medium">
+                    {jobSourceType === "invoice" ? "Invoice" : jobSourceType === "estimate" ? "Estimate" : "Agreement"}
+                    {jobSourceId && ` (${jobSourceId})`}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Action Buttons */}
+            <div className="space-y-2">
+              {/* Pay Button - Prominent for unpaid/partial */}
+              {!isPaid && jobStatus !== "Cancel" && (
+                <Button 
+                  className="w-full gap-2" 
+                  size="lg"
+                  onClick={handlePay}
+                >
+                  <CreditCard className="h-4 w-4" />
+                  {currentPaymentStatus === "partial" ? "Complete Payment" : "Pay Now"}
+                </Button>
+              )}
+
+              {/* Source-based actions with Edit vs Associate New logic */}
+              {jobSourceType === "estimate" && (
+                <>
+                  {/* View Estimate */}
+                  <Button variant="outline" className="w-full gap-2" onClick={handleViewEstimate}>
+                    <FileCheck className="h-4 w-4" />
+                    View Estimate
+                  </Button>
+                  {/* Edit for unpaid, Associate New for paid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {!isPaid ? (
+                      <Button variant="outline" className="gap-2" onClick={handleEditEstimate}>
+                        <Edit className="h-4 w-4" />
+                        Edit Estimate
+                      </Button>
+                    ) : (
+                      <Button variant="outline" className="gap-2" onClick={handleAssociateNewEstimate}>
+                        <PlusCircle className="h-4 w-4" />
+                        New Estimate
+                      </Button>
+                    )}
+                    {!isPaid ? (
+                      <Button variant="outline" className="gap-2" onClick={handleCreateInvoice}>
+                        <Receipt className="h-4 w-4" />
+                        Create Invoice
+                      </Button>
+                    ) : (
+                      <Button variant="outline" className="gap-2" onClick={handleAssociateNewInvoice}>
+                        <PlusCircle className="h-4 w-4" />
+                        New Invoice
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {jobSourceType === "invoice" && (
+                <>
+                  <Button variant="outline" className="w-full gap-2" onClick={handleViewInvoice}>
+                    <Receipt className="h-4 w-4" />
+                    View Invoice
+                  </Button>
+                  {/* Edit for unpaid, Associate New for paid */}
+                  {!isPaid ? (
+                    <Button variant="outline" className="w-full gap-2" onClick={handleEditInvoice}>
+                      <Edit className="h-4 w-4" />
+                      Edit Invoice
+                    </Button>
+                  ) : (
+                    <Button variant="outline" className="w-full gap-2" onClick={handleAssociateNewInvoice}>
+                      <PlusCircle className="h-4 w-4" />
+                      Associate New Invoice
+                    </Button>
+                  )}
+                </>
+              )}
+
+              {jobSourceType === "agreement" && (
+                <>
+                  <Button variant="outline" className="w-full gap-2" onClick={handleViewAgreement}>
+                    <ScrollText className="h-4 w-4" />
+                    View Agreement
+                  </Button>
+                  {/* Edit for unpaid, Associate New for paid */}
+                  <div className="grid grid-cols-2 gap-2">
+                    {!isPaid ? (
+                      <Button variant="outline" className="gap-2" onClick={handleEditAgreement}>
+                        <Edit className="h-4 w-4" />
+                        Edit Agreement
+                      </Button>
+                    ) : (
+                      <Button variant="outline" className="gap-2" onClick={handleAssociateNewAgreement}>
+                        <PlusCircle className="h-4 w-4" />
+                        New Agreement
+                      </Button>
+                    )}
+                    {!isPaid ? (
+                      <Button variant="outline" className="gap-2" onClick={handleCreateInvoice}>
+                        <Receipt className="h-4 w-4" />
+                        Create Invoice
+                      </Button>
+                    ) : (
+                      <Button variant="outline" className="gap-2" onClick={handleAssociateNewInvoice}>
+                        <PlusCircle className="h-4 w-4" />
+                        New Invoice
+                      </Button>
+                    )}
+                  </div>
+                </>
+              )}
+
+              {jobSourceType === "none" && (
+                <div className="grid grid-cols-2 gap-2">
+                  <Button variant="outline" className="gap-2" onClick={handleCreateEstimate}>
+                    <FileCheck className="h-4 w-4" />
+                    Create Estimate
+                  </Button>
+                  <Button variant="outline" className="gap-2" onClick={handleCreateInvoice}>
+                    <Receipt className="h-4 w-4" />
+                    Create Invoice
+                  </Button>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Status Actions */}
           {(jobStatus || job.status) === "Scheduled" && (
             <div className="space-y-2">
@@ -262,6 +575,48 @@ const JobDetails = () => {
             // Navigate to feedback form or show feedback form modal
             toast.info("Fill feedback form functionality");
           }}
+        />
+      )}
+
+      {/* Preview Modals for Financial Documents */}
+      {previewEstimate && (
+        <PreviewEstimateModal
+          open={showEstimatePreview}
+          onOpenChange={setShowEstimatePreview}
+          data={previewEstimate}
+        />
+      )}
+
+      {previewInvoice && (
+        <PreviewInvoiceModal
+          open={showInvoicePreview}
+          onOpenChange={setShowInvoicePreview}
+          data={previewInvoice}
+        />
+      )}
+
+      {previewAgreement && (
+        <PreviewAgreementModal
+          open={showAgreementPreview}
+          onOpenChange={setShowAgreementPreview}
+          data={previewAgreement}
+        />
+      )}
+
+      {/* Job Payment Modal */}
+      {job && (
+        <JobPaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => setShowPaymentModal(false)}
+          job={{
+            id: job.id,
+            title: job.title,
+            customerName: job.customerName,
+            sourceType: jobSourceType,
+            sourceId: jobSourceId,
+            paymentStatus: currentPaymentStatus,
+          }}
+          onPaymentComplete={handlePaymentComplete}
         />
       )}
     </div>

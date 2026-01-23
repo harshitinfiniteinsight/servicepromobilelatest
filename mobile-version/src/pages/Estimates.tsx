@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import EstimateCard from "@/components/cards/EstimateCard";
@@ -15,6 +15,7 @@ import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import { mockEstimates, mockCustomers, mockEmployees, mockInvoices } from "@/data/mobileMockData";
+import { createJobLookupMap } from "@/utils/jobLookup";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -163,6 +164,9 @@ const Estimates = () => {
     setDateRange(range);
     setShowDateRangePicker(false);
   };
+
+  // Create job lookup map for estimates
+  const estimateJobLookup = useMemo(() => createJobLookupMap("estimate"), [allEstimates]);
 
   const filteredEstimates = allEstimates.map(est => {
     // Check if estimate has been converted
@@ -501,8 +505,9 @@ const Estimates = () => {
     }
 
     if (estimate.status === "Paid") {
-      // Check if estimate has already been converted to job
-      const isConverted = estimate.status === "Converted to Job" || convertedEstimates.has(estimate.id);
+      // Check if estimate has already been converted to job using lookup map
+      const hasAssociatedJob = estimateJobLookup.has(estimate.id);
+      const isConverted = hasAssociatedJob || estimate.status === "Converted to Job" || convertedEstimates.has(estimate.id);
 
       const items: KebabMenuItem[] = [
         {
@@ -567,8 +572,9 @@ const Estimates = () => {
     }
 
     if (estimate.status === "Unpaid") {
-      // Check if estimate has already been converted to job
-      const isConverted = estimate.status === "Converted to Job" || convertedEstimates.has(estimate.id);
+      // Check if estimate has already been converted to job using lookup map
+      const hasAssociatedJob = estimateJobLookup.has(estimate.id);
+      const isConverted = hasAssociatedJob || estimate.status === "Converted to Job" || convertedEstimates.has(estimate.id);
 
       const items: KebabMenuItem[] = [
         {
@@ -792,6 +798,7 @@ const Estimates = () => {
                             key={estimate.id}
                             estimate={estimate}
                             onClick={() => navigate(`/estimates/${estimate.id}`)}
+                            jobId={estimateJobLookup.get(estimate.id)}
                             payButton={
                               statusFilter === "activate" && estimate.status === "Unpaid" ? (
                                 <Button
@@ -871,6 +878,7 @@ const Estimates = () => {
                     key={estimate.id}
                     estimate={estimate}
                     onClick={() => navigate(`/estimates/${estimate.id}`)}
+                    jobId={estimateJobLookup.get(estimate.id)}
                     payButton={
                       estimate.status === "Unpaid" ? (
                         <Button

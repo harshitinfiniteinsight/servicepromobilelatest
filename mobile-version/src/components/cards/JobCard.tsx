@@ -1,9 +1,12 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Edit, Eye, Share2, FileText, MapPin, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
+import type { JobPaymentStatus, JobSourceType } from "@/data/mobileMockData";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
+import { getFinancialMenuItems } from "@/components/jobs/JobFinancialActions";
 import { toast } from "sonner";
 
 interface JobCardProps {
@@ -17,6 +20,9 @@ interface JobCardProps {
     time: string;
     status: string;
     location: string;
+    sourceType?: JobSourceType;
+    sourceId?: string;
+    paymentStatus?: JobPaymentStatus;
   };
   jobType?: "Agreement" | "Estimate" | "Invoice";
   paymentStatus?: "Paid" | "Open";
@@ -34,6 +40,21 @@ interface JobCardProps {
   onReschedule?: () => void;
   onAddPictures?: () => void;
   onViewPictures?: () => void;
+  // Financial action handlers
+  onCreateInvoice?: () => void;
+  onViewInvoice?: () => void;
+  onCreateEstimate?: () => void;
+  onViewEstimate?: () => void;
+  onViewAgreement?: () => void;
+  onPay?: () => void;
+  // Edit handlers (for unpaid jobs)
+  onEditInvoice?: () => void;
+  onEditEstimate?: () => void;
+  onEditAgreement?: () => void;
+  // Associate New handlers (for paid jobs)
+  onAssociateNewInvoice?: () => void;
+  onAssociateNewEstimate?: () => void;
+  onAssociateNewAgreement?: () => void;
 }
 
 const JobCard = ({ 
@@ -53,9 +74,29 @@ const JobCard = ({
   onPreview,
   onReschedule,
   onAddPictures,
-  onViewPictures
+  onViewPictures,
+  // Financial action handlers
+  onCreateInvoice,
+  onViewInvoice,
+  onCreateEstimate,
+  onViewEstimate,
+  onViewAgreement,
+  onPay,
+  // Edit handlers (for unpaid jobs)
+  onEditInvoice,
+  onEditEstimate,
+  onEditAgreement,
+  // Associate New handlers (for paid jobs)
+  onAssociateNewInvoice,
+  onAssociateNewEstimate,
+  onAssociateNewAgreement,
 }: JobCardProps) => {
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
+
+  // Derive source type and payment status from job data
+  const jobSourceType: JobSourceType = job.sourceType || "none";
+  const jobPaymentStatusValue: JobPaymentStatus = job.paymentStatus || 
+    (paymentStatus === "Paid" ? "paid" : "unpaid");
 
   // Derive document ID display format (INV-001, EST-001, AGR-001)
   const getDocumentIdDisplay = () => {
@@ -374,6 +415,37 @@ const JobCard = ({
       });
     }
     
+    // Add financial actions based on job source type (for all non-cancelled statuses)
+    if (jobStatus !== "Cancel" && jobStatus !== "Canceled") {
+      const financialItems = getFinancialMenuItems(
+        jobSourceType,
+        jobPaymentStatusValue,
+        {
+          onCreateInvoice,
+          onViewInvoice,
+          onCreateEstimate,
+          onViewEstimate,
+          onViewAgreement,
+          onPay,
+          // Edit handlers
+          onEditInvoice,
+          onEditEstimate,
+          onEditAgreement,
+          // Associate New handlers
+          onAssociateNewInvoice,
+          onAssociateNewEstimate,
+          onAssociateNewAgreement,
+        }
+      );
+      
+      // Add separator before financial actions if there are existing items
+      if (financialItems.length > 0 && items.length > 0) {
+        financialItems[0] = { ...financialItems[0], separator: true };
+      }
+      
+      items.push(...financialItems);
+    }
+    
     return items;
   };
 
@@ -437,21 +509,17 @@ const JobCard = ({
         </div>
       </div>
 
-      {/* Row 2: Customer Name + Payment Status + Job Type (right-aligned) */}
+      {/* Row 2: Customer Name + Payment Status + Job Type + Compact Pay Button (right-aligned) */}
       <div className="mb-2 cursor-pointer" onClick={onClick}>
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-semibold text-base flex-1 min-w-0">{job.customerName}</h3>
           <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end">
-            {paymentStatus && (
+            {/* Payment Status Badge - Only show "Paid" badge, Pay button indicates unpaid status */}
+            {(paymentStatus === "Paid" || job.paymentStatus === "paid") && (
               <Badge 
-                className={cn(
-                  "text-[10px] px-1.5 py-0 h-4 rounded-full whitespace-nowrap",
-                  paymentStatus === "Paid" 
-                    ? "bg-green-100 text-green-700 border-green-200" 
-                    : "bg-orange-100 text-orange-700 border-orange-200"
-                )}
+                className="text-[10px] px-1.5 py-0 h-4 rounded-full whitespace-nowrap bg-green-100 text-green-700 border-green-200"
               >
-                {paymentStatus}
+                Paid
               </Badge>
             )}
             {jobType && (
@@ -461,6 +529,20 @@ const JobCard = ({
               >
                 {jobType}
               </Badge>
+            )}
+            {/* Compact Pay Button - matches Invoice/Estimate style */}
+            {jobPaymentStatusValue !== "paid" && onPay && job.status !== "Cancel" && job.status !== "Canceled" && (
+              <Button
+                size="sm"
+                variant="default"
+                className="h-auto min-h-0 px-2 py-1 text-xs font-semibold whitespace-nowrap bg-primary hover:bg-primary/90 rounded-xl shadow-sm hover:shadow-md transition-all leading-tight"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onPay();
+                }}
+              >
+                Pay
+              </Button>
             )}
           </div>
         </div>

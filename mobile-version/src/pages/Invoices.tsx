@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import InvoiceCard from "@/components/cards/InvoiceCard";
@@ -14,6 +14,7 @@ import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import { mockCustomers, mockInvoices, mockEmployees } from "@/data/mobileMockData";
+import { createJobLookupMap } from "@/utils/jobLookup";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -234,6 +235,9 @@ const Invoices = () => {
   const handleDateRangeConfirm = (range: { from: Date | undefined; to: Date | undefined }) => {
     setDateRange(range);
   };
+
+  // Create job lookup map for invoices
+  const invoiceJobLookup = useMemo(() => createJobLookupMap("invoice"), [allInvoices]);
 
   const getFilteredInvoices = (type: InvoiceTab) => {
     return allInvoices
@@ -492,10 +496,11 @@ const Invoices = () => {
     }
 
     if (invoice.status === "Paid") {
-      // Check if invoice has already been converted to job
-      // The jobConversionService changes status to "Job Created" when converted
+      // Check if invoice has already been converted to job using lookup map
+      // This checks if any job has this invoice as its source document
+      const hasAssociatedJob = invoiceJobLookup.has(invoice.id);
       const invoiceStatus = (invoice as any).status || invoice.status;
-      const isConverted = invoiceStatus === "Job Created";
+      const isConverted = hasAssociatedJob || invoiceStatus === "Job Created";
 
       // Check if invoice is from sell_product (should not show Convert to Job)
       // source is optional, so undefined means it's not from sell_product
@@ -583,8 +588,9 @@ const Invoices = () => {
       const shouldRestrictActions = isEmployee && isUnpaidInvoice;
 
       // Check if invoice has been converted or is from sell_product
+      const hasAssociatedJob = invoiceJobLookup.has(invoice.id);
       const invoiceStatus = (invoice as any).status || invoice.status;
-      const isConverted = invoiceStatus === "Job Created";
+      const isConverted = hasAssociatedJob || invoiceStatus === "Job Created";
       const invoiceSource = (invoice as any).source;
       const isSellProduct = invoiceSource === "sell_product";
 
@@ -738,6 +744,7 @@ const Invoices = () => {
                 invoice={invoice}
                 onClick={() => navigate(`/invoices/${invoice.id}`)}
                 className={newInvoiceId === invoice.id ? "ring-2 ring-primary ring-offset-2 bg-primary/5 border-primary" : ""}
+                jobId={invoiceJobLookup.get(invoice.id)}
                 payButton={
                   invoice.status === "Open" ? (
                     <Button

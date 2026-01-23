@@ -23,6 +23,7 @@ import AddServicePicturesModal from "@/components/modals/AddServicePicturesModal
 import ViewServicePicturesModal from "@/components/modals/ViewServicePicturesModal";
 import CannotEditModal from "@/components/modals/CannotEditModal";
 import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
+import JobPaymentModal from "@/components/modals/JobPaymentModal";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -227,6 +228,10 @@ const Jobs = () => {
   // Note: Employee reassignment is now handled within this modal
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [selectedJobForReschedule, setSelectedJobForReschedule] = useState<typeof jobs[0] | null>(null);
+
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedJobForPayment, setSelectedJobForPayment] = useState<typeof jobs[0] | null>(null);
 
   // Metrics carousel state
   const [metricsGroupIndex, setMetricsGroupIndex] = useState(0);
@@ -916,6 +921,151 @@ const Jobs = () => {
     setSelectedJobForReschedule(null);
   };
 
+  // Financial action handlers for jobs
+  const handleCreateInvoice = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      navigate(`/invoices/new?jobId=${jobId}&customerId=${job.customerId}`);
+      toast.success("Creating new invoice...");
+    }
+  };
+
+  const handleViewJobInvoice = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    const sourceId = (job as any)?.sourceId;
+    if (sourceId) {
+      const invoice = mockInvoices.find(inv => inv.id === sourceId);
+      if (invoice) {
+        setPreviewInvoice(invoice);
+        setShowInvoicePreview(true);
+      } else {
+        toast.error("Invoice not found");
+      }
+    }
+  };
+
+  const handleCreateEstimate = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      navigate(`/estimates/new?jobId=${jobId}&customerId=${job.customerId}`);
+      toast.success("Creating new estimate...");
+    }
+  };
+
+  const handleViewJobEstimate = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    const sourceId = (job as any)?.sourceId;
+    if (sourceId) {
+      const estimate = mockEstimates.find(est => est.id === sourceId);
+      if (estimate) {
+        setPreviewEstimate(estimate);
+        setShowEstimatePreview(true);
+      } else {
+        toast.error("Estimate not found");
+      }
+    }
+  };
+
+  const handleViewJobAgreement = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    const sourceId = (job as any)?.sourceId;
+    if (sourceId) {
+      const agreement = mockAgreements.find(agr => agr.id === sourceId);
+      if (agreement) {
+        setPreviewAgreement(agreement);
+        setShowAgreementPreview(true);
+      } else {
+        toast.error("Agreement not found");
+      }
+    }
+  };
+
+  const handlePayJob = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      setSelectedJobForPayment(job);
+      setShowPaymentModal(true);
+    }
+  };
+
+  // Handle payment completion - update job list state
+  const handlePaymentComplete = (jobId: string, transactionId: string) => {
+    // Update local state to reflect payment
+    setJobs(prevJobs => 
+      prevJobs.map(job => 
+        job.id === jobId 
+          ? { ...job, paymentStatus: "paid" as const }
+          : job
+      )
+    );
+    
+    // Trigger refresh to ensure consistency
+    setJobListRefreshTrigger(prev => prev + 1);
+    
+    // Close the modal
+    setShowPaymentModal(false);
+    setSelectedJobForPayment(null);
+  };
+
+  // Edit handlers - for unpaid jobs to modify existing associated documents
+  const handleEditInvoice = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    const sourceId = (job as any)?.sourceId;
+    if (sourceId) {
+      navigate(`/invoices/edit/${sourceId}`);
+      toast.success("Editing invoice...");
+    } else {
+      toast.error("No invoice to edit");
+    }
+  };
+
+  const handleEditEstimate = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    const sourceId = (job as any)?.sourceId;
+    if (sourceId) {
+      navigate(`/estimates/edit/${sourceId}`);
+      toast.success("Editing estimate...");
+    } else {
+      toast.error("No estimate to edit");
+    }
+  };
+
+  const handleEditAgreement = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    const sourceId = (job as any)?.sourceId;
+    if (sourceId) {
+      navigate(`/agreements/edit/${sourceId}`);
+      toast.success("Editing agreement...");
+    } else {
+      toast.error("No agreement to edit");
+    }
+  };
+
+  // Associate New handlers - for paid jobs to create additional documents
+  const handleAssociateNewInvoice = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      navigate(`/invoices/new?jobId=${jobId}&customerId=${job.customerId}&associateNew=true`);
+      toast.success("Creating new associated invoice...");
+    }
+  };
+
+  const handleAssociateNewEstimate = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      navigate(`/estimates/new?jobId=${jobId}&customerId=${job.customerId}&associateNew=true`);
+      toast.success("Creating new associated estimate...");
+    }
+  };
+
+  const handleAssociateNewAgreement = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      navigate(`/agreements/new?jobId=${jobId}&customerId=${job.customerId}&associateNew=true`);
+      toast.success("Creating new associated agreement...");
+    }
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden bg-background">
       <MobileHeader
@@ -1166,6 +1316,9 @@ const Jobs = () => {
                   ...job,
                   title: (job.id.startsWith("AG") || job.id.includes("AGR")) ? job.id : job.title,
                   status: job.status as any,
+                  sourceType: (job as any).sourceType,
+                  sourceId: (job as any).sourceId,
+                  paymentStatus: (job as any).paymentStatus,
                 }}
                 onStatusChange={handleStatusChange}
                 index={index}
@@ -1183,6 +1336,21 @@ const Jobs = () => {
                 previewAgreement={() => handlePreview(job.id, "Agreement")}
                 onEdit={() => handleEditJob(job.id)}
                 onReschedule={() => handleRescheduleJob(job.id)}
+                // Financial action handlers
+                onCreateInvoice={() => handleCreateInvoice(job.id)}
+                onViewInvoice={() => handleViewJobInvoice(job.id)}
+                onCreateEstimate={() => handleCreateEstimate(job.id)}
+                onViewEstimate={() => handleViewJobEstimate(job.id)}
+                onViewAgreement={() => handleViewJobAgreement(job.id)}
+                onPay={() => handlePayJob(job.id)}
+                // Edit handlers (for unpaid jobs)
+                onEditInvoice={() => handleEditInvoice(job.id)}
+                onEditEstimate={() => handleEditEstimate(job.id)}
+                onEditAgreement={() => handleEditAgreement(job.id)}
+                // Associate New handlers (for paid jobs)
+                onAssociateNewInvoice={() => handleAssociateNewInvoice(job.id)}
+                onAssociateNewEstimate={() => handleAssociateNewEstimate(job.id)}
+                onAssociateNewAgreement={() => handleAssociateNewAgreement(job.id)}
               />
             ))
           )}
@@ -1339,6 +1507,26 @@ const Jobs = () => {
             date: selectedJobForReschedule.date,
             time: selectedJobForReschedule.time,
           }}
+        />
+      )}
+
+      {/* Job Payment Modal */}
+      {selectedJobForPayment && (
+        <JobPaymentModal
+          isOpen={showPaymentModal}
+          onClose={() => {
+            setShowPaymentModal(false);
+            setSelectedJobForPayment(null);
+          }}
+          job={{
+            id: selectedJobForPayment.id,
+            title: selectedJobForPayment.title,
+            customerName: selectedJobForPayment.customerName,
+            sourceType: (selectedJobForPayment as any).sourceType,
+            sourceId: (selectedJobForPayment as any).sourceId,
+            paymentStatus: (selectedJobForPayment as any).paymentStatus,
+          }}
+          onPaymentComplete={handlePaymentComplete}
         />
       )}
     </div>

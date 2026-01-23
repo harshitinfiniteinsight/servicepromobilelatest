@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import SendEmailModal from "@/components/modals/SendEmailModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import { mockAgreements, mockCustomers, mockEmployees } from "@/data/mobileMockData";
+import { createJobLookupMap } from "@/utils/jobLookup";
 import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
@@ -77,6 +78,9 @@ const Agreements = () => {
     setDateRange(range);
     setShowDateRangePicker(false);
   };
+
+  // Create job lookup map for agreements
+  const agreementJobLookup = useMemo(() => createJobLookupMap("agreement"), []);
 
   // Filter agreements
   const filteredAgreements = mockAgreements.filter(agreement => {
@@ -299,8 +303,10 @@ const Agreements = () => {
             // Check if agreement is paid (case-insensitive)
             const isPaid = agreement.status?.toLowerCase() === "paid";
 
-            // Check if agreement has already been converted to job
-            const isConverted = agreement.status?.toLowerCase() === "job created / converted" ||
+            // Check if agreement has already been converted to job using lookup map
+            const hasAssociatedJob = agreementJobLookup.has(agreement.id);
+            const isConverted = hasAssociatedJob ||
+              agreement.status?.toLowerCase() === "job created / converted" ||
               agreement.status?.toLowerCase() === "job created" ||
               agreement.status?.toLowerCase() === "converted";
 
@@ -346,11 +352,17 @@ const Agreements = () => {
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5">
+                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
                       <h3 className="font-semibold text-base truncate">{agreement.id}</h3>
                       <Badge className={cn("text-[10px] px-2 py-0.5 h-5 flex-shrink-0", statusColors[agreement.status])}>
                         {agreement.status}
                       </Badge>
+                      {agreementJobLookup.get(agreement.id) && (
+                        <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
+                          <Briefcase className="h-2.5 w-2.5 mr-0.5" />
+                          {agreementJobLookup.get(agreement.id)}
+                        </Badge>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mb-1.5 truncate">{agreement.customerName}</p>
                     <div className="flex items-center gap-1.5 text-xs text-muted-foreground">

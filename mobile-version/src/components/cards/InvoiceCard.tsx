@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "lucide-react";
+import { Calendar, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 
@@ -21,9 +21,10 @@ interface InvoiceCardProps {
   payButton?: ReactNode;
   actionButtons?: ReactNode;
   className?: string;
+  jobId?: string;
 }
 
-const InvoiceCard = ({ invoice, onClick, payButton, actionButtons, className }: InvoiceCardProps) => {
+const InvoiceCard = ({ invoice, onClick, payButton, actionButtons, className, jobId }: InvoiceCardProps) => {
   const statusLabel = invoice.status === "Open" ? "Unpaid" : invoice.status;
   const isOverdue = statusLabel === "Overdue";
   const isPaid = statusLabel === "Paid";
@@ -38,11 +39,17 @@ const InvoiceCard = ({ invoice, onClick, payButton, actionButtons, className }: 
     >
       <div className="flex items-start justify-between mb-2">
         <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5">
+          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
             <span className="font-semibold text-sm">{invoice.id}</span>
             <Badge className={cn("text-[10px] px-1.5 py-0.5", statusColors[invoice.status])}>
               {statusLabel}
             </Badge>
+            {jobId && (
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
+                <Briefcase className="h-2.5 w-2.5 mr-0.5" />
+                {jobId}
+              </Badge>
+            )}
           </div>
           <p className="text-xs text-muted-foreground truncate">{invoice.customerName}</p>
         </div>
