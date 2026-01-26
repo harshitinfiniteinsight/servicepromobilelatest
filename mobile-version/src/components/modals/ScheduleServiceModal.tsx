@@ -1,14 +1,18 @@
 import { useState, useMemo } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, User, Mail, Check } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { ArrowLeft, ChevronLeft, ChevronRight, ChevronDown, Clock, User, Check, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isBefore, startOfDay } from "date-fns";
+import AddressAutocomplete, { AddressData } from "@/components/common/AddressAutocomplete";
+import { mockEmployees } from "@/data/mobileMockData";
 
 interface ScheduleServiceModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (date: string, time: string) => void;
+  onConfirm: (date: string, time: string, employeeId: string, updatedAddress?: string, jobTitle?: string) => void;
   employee: {
     id: string;
     name: string;
@@ -16,6 +20,8 @@ interface ScheduleServiceModalProps {
   };
   sourceType: "invoice" | "estimate" | "agreement";
   sourceId: string;
+  jobAddress?: string;
+  defaultJobTitle?: string;
 }
 
 // Generate available time slots for a given date
@@ -62,12 +68,49 @@ const ScheduleServiceModal = ({
   onClose,
   onConfirm,
   employee,
+  jobAddress,
+  defaultJobTitle,
   // sourceType and sourceId are passed for potential future use (e.g., display in modal)
 }: ScheduleServiceModalProps) => {
+  // Get available technicians for employee selection
+  const availableTechnicians = useMemo(() => {
+    return mockEmployees.filter(emp => 
+      ["Senior Technician", "Technician", "Electrician", "Apprentice"].includes(emp.role)
+    );
+  }, []);
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedTime, setSelectedTime] = useState<string | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(employee.id);
+  // Job Title state - required field
+  const [jobTitle, setJobTitle] = useState(defaultJobTitle || "Service Job");
+  // Accordion state for Job Address - collapsed by default
+  const [isAddressExpanded, setIsAddressExpanded] = useState(false);
+  const [currentAddress, setCurrentAddress] = useState(jobAddress || "");
+  const [addressData, setAddressData] = useState<AddressData>(() => {
+    // Parse initial address into AddressData format
+    if (jobAddress) {
+      return {
+        streetAddress: jobAddress,
+        zipcode: "",
+        country: "United States",
+        fullAddress: jobAddress,
+      };
+    }
+    return {
+      streetAddress: "",
+      zipcode: "",
+      country: "",
+      fullAddress: "",
+    };
+  });
+
+  // Get selected employee details
+  const selectedEmployee = useMemo(() => {
+    return availableTechnicians.find(emp => emp.id === selectedEmployeeId) || availableTechnicians[0];
+  }, [selectedEmployeeId, availableTechnicians]);
 
   // Generate calendar days
   const calendarDays = useMemo(() => {
@@ -107,8 +150,8 @@ const ScheduleServiceModal = ({
   };
 
   const handleConfirm = async () => {
-    // Prevent duplicate submissions
-    if (!selectedDate || !selectedTime || isConfirming) return;
+    // Prevent duplicate submissions - also require jobTitle
+    if (!selectedDate || !selectedTime || !jobTitle.trim() || isConfirming) return;
     
     setIsConfirming(true);
     
@@ -120,7 +163,9 @@ const ScheduleServiceModal = ({
       await new Promise(resolve => setTimeout(resolve, 300));
       
       // Call onConfirm - this will handle job creation and navigation
-      onConfirm(formattedDate, selectedTime);
+      // Pass the updated address (use fullAddress if available, otherwise currentAddress)
+      const finalAddress = addressData.fullAddress || currentAddress;
+      onConfirm(formattedDate, selectedTime, selectedEmployeeId, finalAddress, jobTitle.trim());
     } catch (error) {
       console.error("Error creating job:", error);
       setIsConfirming(false);
@@ -133,12 +178,57 @@ const ScheduleServiceModal = ({
     setSelectedTime(null);
     setCurrentMonth(new Date());
     setIsConfirming(false);
+    setSelectedEmployeeId(employee.id);
+    // Reset job title to default
+    setJobTitle(defaultJobTitle || "Service Job");
+    // Reset accordion to collapsed
+    setIsAddressExpanded(false);
+    setCurrentAddress(jobAddress || "");
+    setAddressData({
+      streetAddress: jobAddress || "",
+      zipcode: "",
+      country: jobAddress ? "United States" : "",
+      fullAddress: jobAddress || "",
+    });
     onClose();
   };
 
+  const handleAddressChange = (data: AddressData) => {
+    setAddressData(data);
+    setCurrentAddress(data.fullAddress || data.streetAddress);
+  };
+
+  const handleAddressSave = () => {
+    // Auto-collapse accordion after saving valid address
+    if (isAddressValid) {
+      setIsAddressExpanded(false);
+    }
+  };
+
+  const handleAddressCancel = () => {
+    // Revert to original address and collapse
+    setCurrentAddress(jobAddress || "");
+    setAddressData({
+      streetAddress: jobAddress || "",
+      zipcode: "",
+      country: jobAddress ? "United States" : "",
+      fullAddress: jobAddress || "",
+    });
+    setIsAddressExpanded(false);
+  };
+
+  const displayAddress = addressData.fullAddress || currentAddress || jobAddress;
+
+  // Check if address is valid (has street address and either was selected or has zipcode)
+  const isAddressValid = !!(addressData.streetAddress && addressData.zipcode && addressData.country);
+  
+  // For existing addresses passed as prop, consider them valid
+  const hasValidAddress = isAddressValid || !!jobAddress;
+
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const canConfirm = selectedDate && selectedTime;
+  // Job cannot be created without a valid address, date, time, and job title
+  const canConfirm = selectedDate && selectedTime && hasValidAddress && jobTitle.trim();
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -161,24 +251,163 @@ const ScheduleServiceModal = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
-          {/* Employee Info */}
-          <div className="mx-4 mt-4 p-4 bg-gray-50 rounded-xl">
-            <div className="flex items-center gap-3">
-              <div className="h-11 w-11 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                <User className="h-5 w-5 text-orange-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-gray-900 truncate">{employee.name}</p>
-                <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
-                  <Mail className="h-3 w-3 flex-shrink-0" />
-                  <span className="truncate">{employee.email}</span>
-                </div>
-              </div>
-            </div>
+          {/* Job Title - Required field at the top */}
+          <div className="mx-4 mt-4">
+            <label className="text-sm font-medium text-gray-700 mb-2 block">
+              Job Title <span className="text-red-500">*</span>
+            </label>
+            <Input
+              type="text"
+              value={jobTitle}
+              onChange={(e) => setJobTitle(e.target.value)}
+              placeholder="Enter job title"
+              className="h-12 rounded-xl border-gray-200 bg-gray-50 text-sm"
+            />
+            {!jobTitle.trim() && (
+              <p className="text-xs text-red-500 mt-1">Job title is required</p>
+            )}
           </div>
 
-          {/* Calendar Section */}
-          <div className="px-5 py-5">
+          {/* Employee Selection - Matches RescheduleJobModal */}
+          <div className="mx-4 mt-4">
+            <label className="text-sm font-medium text-gray-700 mb-2 block">Assign Employee</label>
+            <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
+              <SelectTrigger className="w-full h-14 rounded-xl border-gray-200 bg-gray-50">
+                <SelectValue>
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <User className="h-4 w-4 text-orange-600" />
+                    </div>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium text-gray-900">{selectedEmployee?.name}</span>
+                      <span className="text-xs text-gray-500">{selectedEmployee?.email}</span>
+                    </div>
+                  </div>
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="rounded-xl">
+                {availableTechnicians.map((tech) => (
+                  <SelectItem key={tech.id} value={tech.id} className="py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-orange-600" />
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900">{tech.name}</span>
+                        <span className="text-xs text-gray-500">{tech.email}</span>
+                      </div>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Job Address Accordion */}
+          <div className="mx-4 mt-4">
+            {/* Accordion Header - Clickable */}
+            <button
+              type="button"
+              onClick={() => setIsAddressExpanded(!isAddressExpanded)}
+              className={cn(
+                "w-full p-4 rounded-xl border-2 transition-all",
+                !hasValidAddress
+                  ? "bg-orange-50 border-orange-300"
+                  : "bg-gray-50 border-gray-200 hover:border-gray-300"
+              )}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "h-10 w-10 rounded-full flex items-center justify-center flex-shrink-0",
+                    !hasValidAddress ? "bg-orange-100" : "bg-blue-100"
+                  )}>
+                    <MapPin className={cn(
+                      "h-5 w-5",
+                      !hasValidAddress ? "text-orange-600" : "text-blue-600"
+                    )} />
+                  </div>
+                  <div className="text-left">
+                    <div className="flex items-center gap-1.5">
+                      <h3 className="text-sm font-semibold text-gray-900">Job Address</h3>
+                      <span className="text-red-500 text-xs">*</span>
+                    </div>
+                    {hasValidAddress ? (
+                      <p className="text-xs text-gray-600 truncate max-w-[180px]">
+                        {displayAddress}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-orange-600 font-medium">Required to create a job</p>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  {hasValidAddress && (
+                    <Check className="h-5 w-5 text-green-500" />
+                  )}
+                  <ChevronDown className={cn(
+                    "h-5 w-5 text-gray-400 transition-transform",
+                    isAddressExpanded && "rotate-180"
+                  )} />
+                </div>
+              </div>
+            </button>
+
+            {/* Accordion Content - Expandable */}
+            {isAddressExpanded && (
+              <div className="mt-2 p-4 bg-white border-2 border-gray-200 rounded-xl">
+                <AddressAutocomplete
+                  value={addressData}
+                  onChange={handleAddressChange}
+                  showHeading={false}
+                  required={true}
+                  className="space-y-3"
+                />
+                
+                {/* Action buttons */}
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddressCancel}
+                    className="flex-1 h-9"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddressSave}
+                    disabled={!isAddressValid}
+                    className="flex-1 h-9 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    {hasValidAddress ? "Update Address" : "Confirm Address"}
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Calendar Section - with visual de-emphasis when address is missing */}
+          <div className={cn(
+            "px-5 py-5 transition-opacity",
+            !hasValidAddress && "opacity-60"
+          )}>
+            {/* Section Header */}
+            <div className="flex items-center gap-2 mb-4">
+              <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center">
+                <Clock className="h-4 w-4 text-orange-600" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-gray-900">Schedule Date & Time</h3>
+                {!hasValidAddress && (
+                  <p className="text-xs text-gray-400">Complete address first</p>
+                )}
+              </div>
+            </div>
+            
             {/* Month Navigation */}
             <div className="flex items-center justify-between mb-4">
               <button
@@ -297,6 +526,19 @@ const ScheduleServiceModal = ({
 
         {/* Footer Actions */}
         <div className="px-5 py-4 border-t bg-white sticky bottom-0 rounded-b-2xl">
+          {/* Validation message when CTA is disabled */}
+          {(!hasValidAddress || !selectedDate || !selectedTime) && (
+            <div className="mb-3 p-2.5 bg-gray-50 rounded-lg">
+              <p className="text-xs text-gray-500 text-center">
+                {!hasValidAddress 
+                  ? "Enter a valid job address to continue"
+                  : !selectedDate
+                    ? "Select a date to continue"
+                    : "Select a time slot to continue"
+                }
+              </p>
+            </div>
+          )}
           <div className="flex gap-3">
             <Button
               variant="outline"
@@ -306,7 +548,12 @@ const ScheduleServiceModal = ({
               Cancel
             </Button>
             <Button
-              className="flex-1 h-12 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium"
+              className={cn(
+                "flex-1 h-12 rounded-xl text-sm font-medium transition-all",
+                canConfirm && !isConfirming
+                  ? "bg-orange-500 hover:bg-orange-600 text-white"
+                  : "bg-gray-200 text-gray-400 cursor-not-allowed"
+              )}
               onClick={handleConfirm}
               disabled={!canConfirm || isConfirming}
             >

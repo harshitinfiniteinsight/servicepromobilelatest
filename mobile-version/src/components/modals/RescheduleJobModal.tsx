@@ -2,15 +2,16 @@ import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, User, Mail, RefreshCw } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock, User, RefreshCw, MapPin, Pencil, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isBefore, startOfDay } from "date-fns";
 import { mockEmployees } from "@/data/mobileMockData";
+import AddressAutocomplete, { AddressData } from "@/components/common/AddressAutocomplete";
 
 interface RescheduleJobModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConfirm: (date: string, time: string, employeeId: string) => void;
+  onConfirm: (date: string, time: string, employeeId: string, updatedAddress?: string) => void;
   job: {
     id: string;
     title: string;
@@ -19,6 +20,7 @@ interface RescheduleJobModalProps {
     technicianName: string;
     date: string;
     time: string;
+    jobAddress: string; // Required - existing jobs must have an address
   };
 }
 
@@ -107,6 +109,19 @@ const RescheduleJobModal = ({
   const [selectedTime, setSelectedTime] = useState<string | null>(job.time || null);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(job.technicianId || availableTechnicians[0]?.id || "1");
   const [isConfirming, setIsConfirming] = useState(false);
+  
+  // Address state - for existing jobs, address is pre-filled and read-only by default
+  const [showAddressEditor, setShowAddressEditor] = useState(false);
+  const [currentAddress, setCurrentAddress] = useState(job.jobAddress);
+  const [addressData, setAddressData] = useState<AddressData>(() => {
+    // Job address is always present for existing jobs
+    return {
+      streetAddress: job.jobAddress,
+      zipcode: "",
+      country: "United States",
+      fullAddress: job.jobAddress,
+    };
+  });
 
   // Reset state when job changes or modal opens
   useEffect(() => {
@@ -117,6 +132,15 @@ const RescheduleJobModal = ({
       setSelectedTime(job.time || null);
       setSelectedEmployeeId(job.technicianId || availableTechnicians[0]?.id || "1");
       setIsConfirming(false);
+      // Reset address state - address is always present for existing jobs
+      setShowAddressEditor(false);
+      setCurrentAddress(job.jobAddress);
+      setAddressData({
+        streetAddress: job.jobAddress,
+        zipcode: "",
+        country: "United States",
+        fullAddress: job.jobAddress,
+      });
     }
   }, [isOpen, job, availableTechnicians]);
 
@@ -179,8 +203,11 @@ const RescheduleJobModal = ({
       // Small delay for better UX feedback
       await new Promise(resolve => setTimeout(resolve, 300));
       
-      // Call onConfirm with the new date, time, and employee
-      onConfirm(formattedDate, selectedTime, selectedEmployeeId);
+      // Get final address (use fullAddress if available, otherwise currentAddress)
+      const finalAddress = addressData.fullAddress || currentAddress || job.jobAddress;
+      
+      // Call onConfirm with the new date, time, employee, and address
+      onConfirm(formattedDate, selectedTime, selectedEmployeeId, finalAddress);
     } catch (error) {
       console.error("Error rescheduling job:", error);
       setIsConfirming(false);
@@ -190,8 +217,41 @@ const RescheduleJobModal = ({
   const handleClose = () => {
     // Reset state when closing
     setIsConfirming(false);
+    setShowAddressEditor(false);
+    setCurrentAddress(job.jobAddress);
+    setAddressData({
+      streetAddress: job.jobAddress,
+      zipcode: "",
+      country: "United States",
+      fullAddress: job.jobAddress,
+    });
     onClose();
   };
+
+  // Address handlers
+  const handleAddressChange = (data: AddressData) => {
+    setAddressData(data);
+    setCurrentAddress(data.fullAddress || data.streetAddress);
+  };
+
+  const handleAddressSave = () => {
+    setShowAddressEditor(false);
+  };
+
+  const handleAddressCancel = () => {
+    // Revert to original job address
+    setCurrentAddress(job.jobAddress);
+    setAddressData({
+      streetAddress: job.jobAddress,
+      zipcode: "",
+      country: "United States",
+      fullAddress: job.jobAddress,
+    });
+    setShowAddressEditor(false);
+  };
+
+  const displayAddress = addressData.fullAddress || currentAddress || job.jobAddress;
+  const isAddressValid = !!(addressData.streetAddress && addressData.zipcode && addressData.country);
 
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -225,30 +285,41 @@ const RescheduleJobModal = ({
             <p className="text-xs text-gray-500 mt-0.5">Customer: {job.customerName}</p>
           </div>
 
+          {/* Job Title - Read-only display */}
+          <div className="mx-4 mt-4">
+            <label className="text-sm font-medium text-gray-700 mb-2 block">Job Title</label>
+            <div className="h-12 px-3 rounded-xl border border-gray-200 bg-gray-100 flex items-center">
+              <span className="text-sm text-gray-700">{job.title}</span>
+            </div>
+          </div>
+
           {/* Employee Selection */}
           <div className="mx-4 mt-4">
             <label className="text-sm font-medium text-gray-700 mb-2 block">Assign Employee</label>
             <Select value={selectedEmployeeId} onValueChange={setSelectedEmployeeId}>
-              <SelectTrigger className="w-full h-12 rounded-xl border-gray-200 bg-gray-50">
+              <SelectTrigger className="w-full h-14 rounded-xl border-gray-200 bg-gray-50">
                 <SelectValue>
-                  <div className="flex items-center gap-2">
-                    <div className="h-7 w-7 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                      <User className="h-3.5 w-3.5 text-orange-600" />
+                  <div className="flex items-center gap-3">
+                    <div className="h-9 w-9 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                      <User className="h-4 w-4 text-orange-600" />
                     </div>
-                    <span className="text-sm">{selectedEmployee?.name}</span>
+                    <div className="flex flex-col items-start">
+                      <span className="text-sm font-medium text-gray-900">{selectedEmployee?.name}</span>
+                      <span className="text-xs text-gray-500">{selectedEmployee?.email}</span>
+                    </div>
                   </div>
                 </SelectValue>
               </SelectTrigger>
               <SelectContent className="rounded-xl">
                 {availableTechnicians.map((tech) => (
-                  <SelectItem key={tech.id} value={tech.id} className="py-2">
-                    <div className="flex items-center gap-2">
-                      <div className="h-6 w-6 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                        <User className="h-3 w-3 text-orange-600" />
+                  <SelectItem key={tech.id} value={tech.id} className="py-3">
+                    <div className="flex items-center gap-3">
+                      <div className="h-8 w-8 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
+                        <User className="h-4 w-4 text-orange-600" />
                       </div>
-                      <div>
-                        <span className="text-sm font-medium">{tech.name}</span>
-                        <span className="text-xs text-gray-500 ml-2">{tech.role}</span>
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium text-gray-900">{tech.name}</span>
+                        <span className="text-xs text-gray-500">{tech.email}</span>
                       </div>
                     </div>
                   </SelectItem>
@@ -257,23 +328,78 @@ const RescheduleJobModal = ({
             </Select>
           </div>
 
-          {/* Employee Info Card */}
-          {selectedEmployee && (
-            <div className="mx-4 mt-3 p-4 bg-gray-50 rounded-xl">
-              <div className="flex items-center gap-3">
-                <div className="h-11 w-11 bg-orange-100 rounded-full flex items-center justify-center flex-shrink-0">
-                  <User className="h-5 w-5 text-orange-600" />
+          {/* Job Address Section */}
+          <div className="mx-4 mt-4">
+            {/* Section Header */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 bg-blue-100 rounded-full flex items-center justify-center">
+                  <MapPin className="h-4 w-4 text-blue-600" />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-gray-900 truncate">{selectedEmployee.name}</p>
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 mt-0.5">
-                    <Mail className="h-3 w-3 flex-shrink-0" />
-                    <span className="truncate">{selectedEmployee.email}</span>
+                <div>
+                  <h3 className="text-sm font-semibold text-gray-900">Job Address</h3>
+                </div>
+              </div>
+              {/* Edit button - always available since address is always present for existing jobs */}
+              {!showAddressEditor && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddressEditor(true)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit
+                </button>
+              )}
+            </div>
+
+            {/* Address Content */}
+            {!showAddressEditor ? (
+              /* Read-only Address Card - address is always present for existing jobs */
+              <div className="p-4 bg-green-50 border border-green-200 rounded-xl">
+                <div className="flex items-start gap-3">
+                  <Check className="h-5 w-5 text-green-600 mt-0.5 flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-gray-900 break-words leading-relaxed">
+                      {displayAddress}
+                    </p>
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              /* Address Editor */
+              <div className="p-4 bg-white border-2 border-gray-200 rounded-xl">
+                <AddressAutocomplete
+                  value={addressData}
+                  onChange={handleAddressChange}
+                  showHeading={false}
+                  required={true}
+                  className="space-y-3"
+                />
+                
+                <div className="mt-4 flex gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={handleAddressCancel}
+                    className="flex-1 h-9"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={handleAddressSave}
+                    disabled={showAddressEditor && !isAddressValid && !job.jobAddress}
+                    className="flex-1 h-9 bg-blue-500 hover:bg-blue-600 disabled:bg-gray-300"
+                  >
+                    Save Address
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
 
           {/* Calendar Section */}
           <div className="px-5 py-5">

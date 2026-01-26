@@ -14,13 +14,19 @@ export interface ConvertToJobResult {
  * @param sourceId - ID of the source document
  * @param scheduleDate - Optional scheduled date (YYYY-MM-DD format)
  * @param scheduleTime - Optional scheduled time (e.g., "09:00 AM")
+ * @param employeeId - Optional employee ID (overrides document employee)
+ * @param jobAddress - Optional job address (overrides document address)
+ * @param jobTitle - Optional job title (user-defined title for the job)
  * @returns Result object with success status and job ID
  */
 export function convertToJob(
   sourceType: DocumentSourceType,
   sourceId: string,
   scheduleDate?: string,
-  scheduleTime?: string
+  scheduleTime?: string,
+  employeeId?: string,
+  jobAddress?: string,
+  jobTitle?: string
 ): ConvertToJobResult {
   try {
     let jobData: any = null;
@@ -60,15 +66,16 @@ export function convertToJob(
 
       // Get customer and employee info
       const customer = mockCustomers.find((c) => c.id === document.customerId);
-      const employee = mockEmployees.find(
-        (e) => e.name === (document as any).employeeName
-      ) || mockEmployees[0]; // Default to first employee if not found
+      // Use provided employeeId if available, otherwise fall back to document employee
+      const employee = employeeId 
+        ? mockEmployees.find((e) => e.id === employeeId) || mockEmployees[0]
+        : mockEmployees.find((e) => e.name === (document as any).employeeName) || mockEmployees[0];
 
       // Create job from invoice
       const jobId = `JOB-${Date.now()}`;
       jobData = {
         id: jobId,
-        title: `Invoice ${document.id}`,
+        title: jobTitle || `Invoice ${document.id}`,
         customerId: document.customerId,
         customerName: document.customerName,
         technicianId: employee.id,
@@ -76,7 +83,7 @@ export function convertToJob(
         date: scheduleDate || document.issueDate || new Date().toISOString().split("T")[0],
         time: scheduleTime || "09:00 AM",
         status: "Scheduled",
-        location: (document as any).jobAddress || customer?.address || "",
+        location: jobAddress || (document as any).jobAddress || customer?.address || "",
         sourceType: "invoice",
         sourceId: document.id,
         amount: document.amount,
@@ -107,15 +114,16 @@ export function convertToJob(
 
       // Get customer and employee info
       const customer = mockCustomers.find((c) => c.id === document.customerId);
-      const employee = mockEmployees.find(
-        (e) => e.name === (document as any).employeeName
-      ) || mockEmployees[0];
+      // Use provided employeeId if available, otherwise fall back to document employee
+      const employee = employeeId 
+        ? mockEmployees.find((e) => e.id === employeeId) || mockEmployees[0]
+        : mockEmployees.find((e) => e.name === (document as any).employeeName) || mockEmployees[0];
 
       // Create job from estimate
       const jobId = `JOB-${Date.now()}`;
       jobData = {
         id: jobId,
-        title: `Estimate ${document.id}`,
+        title: jobTitle || `Estimate ${document.id}`,
         customerId: document.customerId,
         customerName: document.customerName,
         technicianId: employee.id,
@@ -123,7 +131,7 @@ export function convertToJob(
         date: scheduleDate || document.date || new Date().toISOString().split("T")[0],
         time: scheduleTime || "10:00 AM",
         status: "Scheduled",
-        location: (document as any).jobAddress || customer?.address || "",
+        location: jobAddress || (document as any).jobAddress || customer?.address || "",
         sourceType: "estimate",
         sourceId: document.id,
         amount: document.amount,
@@ -167,15 +175,16 @@ export function convertToJob(
 
       // Get customer and employee info
       const customer = mockCustomers.find((c) => c.id === document.customerId);
-      const employee = mockEmployees.find(
-        (e) => e.name === (document as any).employeeName
-      ) || mockEmployees[0];
+      // Use provided employeeId if available, otherwise fall back to document employee
+      const employee = employeeId 
+        ? mockEmployees.find((e) => e.id === employeeId) || mockEmployees[0]
+        : mockEmployees.find((e) => e.name === (document as any).employeeName) || mockEmployees[0];
 
       // Create job from agreement
       const jobId = `JOB-${Date.now()}`;
       jobData = {
         id: jobId,
-        title: document.type || "Agreement Service",
+        title: jobTitle || document.type || "Agreement Service",
         customerId: document.customerId,
         customerName: document.customerName,
         technicianId: employee.id,
@@ -183,7 +192,7 @@ export function convertToJob(
         date: scheduleDate || document.startDate || new Date().toISOString().split("T")[0],
         time: scheduleTime || "11:00 AM",
         status: "Scheduled",
-        location: (document as any).jobAddress || customer?.address || "",
+        location: jobAddress || (document as any).jobAddress || customer?.address || "",
         sourceType: "agreement",
         sourceId: document.id,
         amount: document.monthlyAmount,
@@ -200,7 +209,7 @@ export function convertToJob(
       const jobId = `JOB-${Date.now()}`;
       jobData = {
         id: jobId,
-        title: `Service Job`,
+        title: jobTitle || `Service Job`,
         customerId: mockCustomers[0]?.id || "1",
         customerName: mockCustomers[0]?.name || "Demo Customer",
         technicianId: mockEmployees[0]?.id || "1",
@@ -208,7 +217,7 @@ export function convertToJob(
         date: scheduleDate || new Date().toISOString().split("T")[0],
         time: scheduleTime || "09:00 AM",
         status: "Scheduled",
-        location: mockCustomers[0]?.address || "123 Demo Street, Chicago, IL",
+        location: jobAddress || mockCustomers[0]?.address || "123 Demo Street, Chicago, IL",
         sourceType: sourceType,
         sourceId: sourceId,
         amount: 200.00,

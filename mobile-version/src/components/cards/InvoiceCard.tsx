@@ -32,62 +32,56 @@ const InvoiceCard = ({ invoice, onClick, payButton, actionButtons, className, jo
   return (
     <div
       className={cn(
-        "p-3 rounded-lg border border-gray-200 bg-white active:scale-[0.98] transition-all duration-200 cursor-pointer hover:shadow-md hover:border-primary/30",
+        "px-3 py-2 rounded-lg border border-gray-200 bg-white active:scale-[0.98] transition-all duration-200 cursor-pointer hover:shadow-md hover:border-primary/30",
         className
       )}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-            <span className="font-semibold text-sm">{invoice.id}</span>
-            <Badge className={cn("text-[10px] px-1.5 py-0.5", statusColors[invoice.status])}>
-              {statusLabel}
-            </Badge>
-            {jobId && (
-              <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
-                <Briefcase className="h-2.5 w-2.5 mr-0.5" />
-                {jobId}
-              </Badge>
-            )}
-          </div>
-          <p className="text-xs text-muted-foreground truncate">{invoice.customerName}</p>
+      {/* Row 1: Invoice ID + Status | Amount + Pay */}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-1.5 min-w-0">
+          <span className="font-semibold text-sm">{invoice.id}</span>
+          <Badge className={cn("text-[10px] px-1.5 py-0 h-4 leading-4", statusColors[invoice.status])}>
+            {statusLabel}
+          </Badge>
         </div>
-        <div className="text-right flex items-center gap-1.5 flex-shrink-0 ml-2">
-          <div
+        <div className="flex items-center gap-1.5 flex-shrink-0">
+          <span
             className={cn(
-              "text-lg font-bold whitespace-nowrap",
+              "text-base font-bold whitespace-nowrap",
               isPaid && "text-success",
               isOverdue && "text-destructive"
             )}
           >
             ${invoice.amount.toLocaleString()}
-          </div>
+          </span>
           {payButton && (
-            <div
-              className="w-auto"
-              onClick={(e) => {
-                e.stopPropagation();
-              }}
-            >
+            <div onClick={(e) => e.stopPropagation()}>
               {payButton}
             </div>
           )}
         </div>
       </div>
-      
-      <div className="flex items-center justify-between text-xs">
-        <div className="flex items-center gap-1.5 text-muted-foreground">
+
+      {/* Row 2: Customer Name | Job ID */}
+      <div className="flex items-center justify-between gap-2 mt-1">
+        <p className="text-xs text-muted-foreground truncate flex-1">{invoice.customerName}</p>
+        {jobId && (
+          <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 leading-4 bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
+            <Briefcase className="h-2.5 w-2.5 mr-0.5" />
+            {jobId}
+          </Badge>
+        )}
+      </div>
+
+      {/* Row 3: Due Date | Menu */}
+      <div className="flex items-center justify-between mt-1.5">
+        <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
           <Calendar className="h-3 w-3 flex-shrink-0" />
-          <span className="truncate">Due: {new Date(invoice.dueDate).toLocaleDateString()}</span>
+          <span>Due: {new Date(invoice.dueDate).toLocaleDateString()}</span>
         </div>
         {actionButtons && (
-          <div
-            className="flex-shrink-0"
-            onClick={(e) => {
-              e.stopPropagation();
-            }}
-          >
+          <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0 -mr-1">
             {actionButtons}
           </div>
         )}

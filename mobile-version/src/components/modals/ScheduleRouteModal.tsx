@@ -1338,8 +1338,8 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
             setShowRescheduleModal(false);
             setJobToReschedule(null);
           }}
-          onConfirm={(date, time, employeeId) => {
-            // Update the job with new schedule
+          onConfirm={(date, time, employeeId, updatedAddress) => {
+            // Update the job with new schedule and optionally address
             const employee = mockEmployees.find(emp => emp.id === employeeId);
             toast.success(`Job rescheduled to ${date} at ${time}${employee ? ` with ${employee.name}` : ''}`);
             setShowRescheduleModal(false);
@@ -1353,6 +1353,7 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
             technicianName: selectedEmployee?.name || jobToReschedule.technicianName,
             date: formatDateForComparison(selectedDate),
             time: jobToReschedule.time,
+            jobAddress: (jobToReschedule as any).jobAddress || "Address not available",
           }}
         />
       )}

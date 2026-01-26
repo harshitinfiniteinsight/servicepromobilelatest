@@ -8,6 +8,7 @@ import type { JobPaymentStatus, JobSourceType } from "@/data/mobileMockData";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import { getFinancialMenuItems } from "@/components/jobs/JobFinancialActions";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface JobCardProps {
   job: {
@@ -91,6 +92,7 @@ const JobCard = ({
   onAssociateNewEstimate,
   onAssociateNewAgreement,
 }: JobCardProps) => {
+  const navigate = useNavigate();
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
 
   // Derive source type and payment status from job data
@@ -145,30 +147,10 @@ const JobCard = ({
     return statusColors[status] || "bg-gray-100 text-gray-700 border-gray-200";
   };
 
-  // Handle preview - open modal instead of navigating
+  // Handle preview - navigate to job details page
   const handlePreview = () => {
-    const docIdDisplay = getDocumentIdDisplay();
-    
-    // Determine job type from prop or document ID format
-    let determinedJobType: "Agreement" | "Estimate" | "Invoice" | undefined = jobType;
-    
-    if (!determinedJobType) {
-      if (docIdDisplay.startsWith("AGR-")) {
-        determinedJobType = "Agreement";
-      } else if (docIdDisplay.startsWith("EST-")) {
-        determinedJobType = "Estimate";
-      } else if (docIdDisplay.startsWith("INV-")) {
-        determinedJobType = "Invoice";
-      }
-    }
-    
-    // Call onPreview callback if available
-    if (onPreview && determinedJobType) {
-      onPreview(docIdDisplay, determinedJobType);
-    } else if (onQuickAction) {
-      // Fallback to onQuickAction if onPreview not available
-      onQuickAction("preview");
-    }
+    // Navigate directly to Job Details page with job data in state
+    navigate(`/jobs/${job.id}`, { state: { job } });
   };
 
   // Open Google Maps with job address

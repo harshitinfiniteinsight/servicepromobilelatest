@@ -17,7 +17,6 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccessToast } from "@/utils/toast";
-import AddressAutocomplete, { AddressData } from "@/components/common/AddressAutocomplete";
 
 const BASE_SERVICE_CATALOG = [
   { id: "svc-1", name: "Service Call Fee", price: 95 },
@@ -41,15 +40,6 @@ const AddAgreement = () => {
   const [customerOpen, setCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [jobAddress, setJobAddress] = useState("");
-  
-  // Structured job address fields with autocomplete
-  const [addressData, setAddressData] = useState<AddressData>({
-    streetAddress: "",
-    zipcode: "",
-    country: "",
-    fullAddress: "",
-  });
   
   const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
   const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
@@ -74,20 +64,6 @@ const AddAgreement = () => {
       }
     }
   }, [isEmployee, currentEmployeeId, selectedEmployee, isEditMode]);
-
-  // Clear job address when customer changes in NEW mode (don't auto-fill)
-  useEffect(() => {
-    if (selectedCustomer && !isEditMode) {
-      // In NEW mode, keep job address empty when customer changes
-      setJobAddress("");
-      setAddressData({
-        streetAddress: "",
-        zipcode: "",
-        country: "",
-        fullAddress: "",
-      });
-    }
-  }, [selectedCustomer, isEditMode]);
   const [agreementType, setAgreementType] = useState("One Time");
   const [serviceRequirement, setServiceRequirement] = useState<string[]>([]);
   const [startDate, setStartDate] = useState("");
@@ -112,11 +88,6 @@ const AddAgreement = () => {
           setSelectedCustomer(prefill.customerId);
         }
         
-        // Prefill job address
-        if (prefill.jobAddress) {
-          setJobAddress(prefill.jobAddress);
-        }
-        
         // Prefill employee (only if not employee mode, as employees are auto-filled)
         if (!isEmployee && prefill.employeeId) {
           setSelectedEmployee(prefill.employeeId);
@@ -131,14 +102,6 @@ const AddAgreement = () => {
       // Pre-fill customer
       if (agreement.customerId) {
         setSelectedCustomer(agreement.customerId);
-      }
-
-      // Pre-fill job address (use stored jobAddress or fall back to customer address)
-      const customer = mockCustomers.find(c => c.id === agreement.customerId);
-      if ((agreement as any).jobAddress) {
-        setJobAddress((agreement as any).jobAddress);
-      } else if (customer?.address) {
-        setJobAddress(customer.address);
       }
 
       // Pre-fill employee (if available in agreement, otherwise use current employee)
@@ -630,18 +593,6 @@ const AddAgreement = () => {
                 </PopoverContent>
               </Popover>
             </div>
-
-            {selectedCustomer && (
-              <AddressAutocomplete
-                value={addressData}
-                onChange={(data) => {
-                  setAddressData(data);
-                  setJobAddress(data.fullAddress);
-                }}
-                showHeading={true}
-                required={true}
-              />
-            )}
 
             <div>
               <Label>Assign Employee</Label>

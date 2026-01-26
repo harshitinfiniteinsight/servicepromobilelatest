@@ -16,7 +16,6 @@ import { addNotes } from "@/services/noteService";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
-import AddressAutocomplete, { AddressData } from "@/components/common/AddressAutocomplete";
 
 const AddEstimate = () => {
   const navigate = useNavigate();
@@ -27,15 +26,6 @@ const AddEstimate = () => {
   const [customerOpen, setCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [jobAddress, setJobAddress] = useState("");
-  
-  // Structured job address fields with autocomplete
-  const [addressData, setAddressData] = useState<AddressData>({
-    streetAddress: "",
-    zipcode: "",
-    country: "",
-    fullAddress: "",
-  });
   
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -96,11 +86,6 @@ const AddEstimate = () => {
           setSelectedCustomer(prefill.customerId);
         }
         
-        // Prefill job address
-        if (prefill.jobAddress) {
-          setJobAddress(prefill.jobAddress);
-        }
-        
         // Prefill employee (only if not employee mode, as employees are auto-filled)
         if (!isEmployee && prefill.employeeId) {
           setSelectedEmployee(prefill.employeeId);
@@ -116,14 +101,6 @@ const AddEstimate = () => {
       if (estimate) {
         // Prefill customer
         setSelectedCustomer(estimate.customerId);
-        
-        // Prefill job address (use stored jobAddress or fall back to customer address)
-        const customer = mockCustomers.find(c => c.id === estimate.customerId);
-        if (estimate.jobAddress) {
-          setJobAddress(estimate.jobAddress);
-        } else if (customer?.address) {
-          setJobAddress(customer.address);
-        }
         
         // Prefill employee (using first employee as default)
         if (mockEmployees.length > 0) {
@@ -156,20 +133,6 @@ const AddEstimate = () => {
       }
     }
   }, [isEditMode, id]);
-
-  // Clear job address when customer changes in NEW mode (don't auto-fill)
-  useEffect(() => {
-    if (selectedCustomer && !isEditMode) {
-      // In NEW mode, keep job address empty when customer changes
-      setJobAddress("");
-      setAddressData({
-        streetAddress: "",
-        zipcode: "",
-        country: "",
-        fullAddress: "",
-      });
-    }
-  }, [selectedCustomer, isEditMode]);
 
   // Handle return from Add Inventory page
   useEffect(() => {
@@ -650,18 +613,6 @@ const AddEstimate = () => {
                 </PopoverContent>
               </Popover>
             </div>
-
-            {selectedCustomer && (
-              <AddressAutocomplete
-                value={addressData}
-                onChange={(data) => {
-                  setAddressData(data);
-                  setJobAddress(data.fullAddress);
-                }}
-                showHeading={true}
-                required={true}
-              />
-            )}
 
             <div>
               <Label>Employee</Label>

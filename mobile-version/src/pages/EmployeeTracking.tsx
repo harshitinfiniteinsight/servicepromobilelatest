@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { mockJobs, mockEmployees, mockInvoices, mockEstimates, mockAgreements, mockCustomers } from "@/data/mobileMockData";
-import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon, XCircle, UserCog, Edit, MessageSquare, FileText, Eye } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, Circle, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon, XCircle, UserCog, Edit, MessageSquare, FileText, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
@@ -166,7 +166,6 @@ const MapUpdater = ({ coordinates }: { coordinates: [number, number][] }) => {
 
 const EmployeeTracking = () => {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState<"my-route" | "live-location">("my-route");
   const [selectedEmployeeFilter, setSelectedEmployeeFilter] = useState<string>("all");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   // Single date for employee Scheduled Route tab
@@ -267,15 +266,8 @@ const EmployeeTracking = () => {
   const employeeJobs = useMemo(() => {
     let filteredJobs: typeof mockJobs = [];
     
-    // Determine which date to use based on tab and user type
-    let dateToUse: Date;
-    if (isEmployee && activeTab === "my-route") {
-      // Employee Scheduled Route tab: Use employeeSelectedDate
-      dateToUse = employeeSelectedDate;
-    } else {
-      // Merchant or Employee Live Location tab: Use selectedDate
-      dateToUse = selectedDate;
-    }
+    // Determine which date to use based on user type
+    const dateToUse = isEmployee ? employeeSelectedDate : selectedDate;
     
     const dateStr = formatDateForComparison(dateToUse);
     filteredJobs = mockJobs.filter((job) => job.date === dateStr);
@@ -329,7 +321,7 @@ const EmployeeTracking = () => {
         status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed" | "Cancel",
       };
     });
-  }, [currentEmployeeId, jobStatuses, jobAssignments, isEmployee, selectedDate, employeeSelectedDate, activeTab]);
+  }, [currentEmployeeId, jobStatuses, jobAssignments, isEmployee, selectedDate, employeeSelectedDate]);
 
   // Helper function to convert time string to minutes for comparison
   const timeToMinutes = (timeStr: string): number => {
@@ -966,6 +958,26 @@ const EmployeeTracking = () => {
     return employeeRouteCoordinates.map(({ coordinates }) => coordinates);
   }, [employeeRouteCoordinates]);
 
+  // Helper function to get route coordinates for any employee (for merchant accordion maps)
+  const getEmployeeRouteCoordinates = (employeeId: string, employeeJobs: typeof mockJobs) => {
+    if (employeeJobs.length === 0) return [];
+    
+    const empLocation = employeeLocations[employeeId] || employeeCurrentLocation;
+    
+    return employeeJobs.map((job, index) => {
+      // Distribute jobs around employee's location
+      const angle = (index * (360 / Math.max(employeeJobs.length, 1))) * (Math.PI / 180);
+      const radius = 0.015; // ~1.5km radius
+      const lat = empLocation[0] + Math.cos(angle) * radius;
+      const lng = empLocation[1] + Math.sin(angle) * radius;
+      return {
+        job,
+        order: index + 1, // Route sequence number (1, 2, 3...)
+        coordinates: [lat, lng] as [number, number],
+      };
+    });
+  };
+
   // Create a key for polyline based on route order for efficient re-rendering
   const employeePolylineKey = useMemo(() => {
     return sortedJobs.map((job) => job.id).join('-');
@@ -979,63 +991,12 @@ const EmployeeTracking = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
       <MobileHeader 
-        title="Job Route" 
+        title="Scheduled Routes" 
         showBack={true}
       />
 
       <div className="flex-1 overflow-hidden flex flex-col pt-14">
-        {/* Tab Navigation - Show both tabs for both merchant and employee logins */}
-        <div className="flex items-center border-b border-gray-200 bg-white">
-          <button
-            onClick={() => setActiveTab("my-route")}
-            className={cn(
-              "flex-1 py-3 text-center text-sm font-medium transition-colors relative",
-              activeTab === "my-route"
-                ? "text-orange-600"
-                : "text-gray-600"
-            )}
-          >
-            <span className={cn(
-              "flex items-center justify-center gap-1.5",
-              activeTab === "my-route" && "font-semibold"
-            )}>
-              <Route className={cn(
-                "h-4 w-4 transition-colors",
-                activeTab === "my-route" ? "text-orange-600" : "text-gray-500"
-              )} />
-              {isEmployee ? "Scheduled Route" : "Schedule Route"}
-            </span>
-            {activeTab === "my-route" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />
-            )}
-          </button>
-          <button
-            onClick={() => setActiveTab("live-location")}
-            className={cn(
-              "flex-1 py-3 text-center text-sm font-medium transition-colors relative",
-              activeTab === "live-location"
-                ? "text-orange-600"
-                : "text-gray-600"
-            )}
-          >
-            <span className={cn(
-              "flex items-center justify-center gap-1.5",
-              activeTab === "live-location" && "font-semibold"
-            )}>
-              <Navigation className={cn(
-                "h-4 w-4 transition-colors",
-                activeTab === "live-location" ? "text-orange-600" : "text-gray-500"
-              )} />
-              Live Location
-            </span>
-            {activeTab === "live-location" && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-orange-500" />
-            )}
-          </button>
-        </div>
-
         {/* Schedule Route Tab - Show for both merchant and employee logins */}
-        {activeTab === "my-route" && (
           <div className="flex-1 overflow-hidden flex flex-col bg-[#FDF4EF]">
             <div className="flex-1 overflow-y-auto scrollable px-4 py-4">
               {sortedJobs.length === 0 ? (
@@ -1428,6 +1389,81 @@ const EmployeeTracking = () => {
                                   </div>
                                 ) : (
                                 <div className="space-y-2.5">
+                                  {/* Route Map - Shows when accordion is expanded */}
+                                  {expandedAccordion === employeeId && (() => {
+                                    const routeCoords = getEmployeeRouteCoordinates(employeeId, jobs);
+                                    const polylineCoords = routeCoords.map(({ coordinates }) => coordinates);
+                                    const empLocation = employeeLocations[employeeId] || employeeCurrentLocation;
+                                    
+                                    return (
+                                      <div className="mb-3 relative h-[220px] rounded-xl shadow-md overflow-hidden border border-gray-200 bg-white">
+                                        <MapContainer
+                                          center={empLocation}
+                                          zoom={13}
+                                          style={{ height: "100%", width: "100%", zIndex: 0 }}
+                                          scrollWheelZoom={false}
+                                          zoomControl={true}
+                                          className="rounded-xl"
+                                        >
+                                          <MapUpdater coordinates={polylineCoords} />
+                                          <TileLayer
+                                            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                          />
+
+                                          {/* Route Polyline - Connects markers in order */}
+                                          {polylineCoords.length > 1 && (
+                                            <Polyline
+                                              key={`merchant-polyline-${employeeId}-${jobs.map(j => j.id).join('-')}`}
+                                              positions={polylineCoords}
+                                              pathOptions={{
+                                                color: empColor,
+                                                weight: 4,
+                                                opacity: 0.9,
+                                              }}
+                                            />
+                                          )}
+
+                                          {/* Job Location Markers with Numbers */}
+                                          {routeCoords.map(({ job: routeJob, coordinates, order }) => {
+                                            const isCurrentStopMarker = order === (currentIdx + 1);
+                                            const isCompleted = routeJob.status === "Completed";
+
+                                            // Create icon with order number
+                                            const icon = createNumberedMarkerIcon(
+                                              order,
+                                              empColor,
+                                              isCompleted,
+                                              isCurrentStopMarker
+                                            );
+
+                                            return (
+                                              <Marker key={routeJob.id} position={coordinates} icon={icon}>
+                                                <Popup>
+                                                  <div className="min-w-[150px]">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                      <div
+                                                        className="w-3 h-3 rounded-full shrink-0"
+                                                        style={{ backgroundColor: empColor }}
+                                                      />
+                                                      <span className="text-xs font-medium">Stop {order}</span>
+                                                    </div>
+                                                    <p className="font-semibold text-gray-900 mb-1">{routeJob.customerName}</p>
+                                                    <p className="text-xs text-gray-600 mb-1">{formatServiceDisplay(routeJob)}</p>
+                                                    <p className="text-xs text-gray-500 mb-2">{routeJob.location}</p>
+                                                    <Badge className={cn("text-[10px] px-1.5 py-0.5", getStatusBadge(routeJob.status))}>
+                                                      {routeJob.status}
+                                                    </Badge>
+                                                  </div>
+                                                </Popup>
+                                              </Marker>
+                                            );
+                                          })}
+                                        </MapContainer>
+                                      </div>
+                                    );
+                                  })()}
+                                  
                                   {jobs.map((job, index) => {
                                     const isCurrentStop = index === currentIdx;
                                     const isNextStop = index === nextIdx && !isCurrentStop;
@@ -1552,32 +1588,8 @@ const EmployeeTracking = () => {
                                                         label: "View Job Details",
                                                         icon: Eye,
                                                         action: () => {
-                                                          // First check if job has sourceType and sourceId
-                                                          if (job.sourceType && job.sourceId) {
-                                                            if (job.sourceType === "invoice") {
-                                                              navigate(`/invoices/${job.sourceId}`);
-                                                            } else if (job.sourceType === "estimate") {
-                                                              navigate(`/estimates/${job.sourceId}`);
-                                                            } else if (job.sourceType === "agreement") {
-                                                              navigate(`/agreements/${job.sourceId}`);
-                                                            } else {
-                                                              // Fallback to estimate details for demo
-                                                              navigate(`/estimates/EST-001`);
-                                                            }
-                                                          } else {
-                                                            // Fallback to ID prefix-based detection
-                                                            const jobType = getJobType(job.id);
-                                                            if (jobType === "Invoice") {
-                                                              navigate(`/invoices/${job.id}`);
-                                                            } else if (jobType === "Estimate") {
-                                                              navigate(`/estimates/${job.id}`);
-                                                            } else if (jobType === "Agreement") {
-                                                              navigate(`/agreements/${job.id}`);
-                                                            } else {
-                                                              // For demo/generic jobs, redirect to estimate details
-                                                              navigate(`/estimates/EST-001`);
-                                                            }
-                                                          }
+                                                          // Navigate directly to the Job Details page, passing job data for demo jobs
+                                                          navigate(`/jobs/${job.id}`, { state: { job } });
                                                         },
                                                         separator: false,
                                                       },
@@ -1679,477 +1691,6 @@ const EmployeeTracking = () => {
               )}
             </div>
           </div>
-        )}
-
-        {/* Live Location Tab - Show for both merchant and employee logins */}
-        {activeTab === "live-location" && (
-          <div className="flex-1 overflow-hidden flex flex-col bg-[#FDF4EF]">
-            {/* Map Container - Fixed at top */}
-            <div className="px-4 pt-4 pb-3 flex-shrink-0">
-              <div className="relative h-[280px] rounded-2xl shadow-lg overflow-hidden border border-gray-200 bg-white">
-                {employeeJobs.length > 0 ? (
-                  <MapContainer
-                    center={mapCenter}
-                    zoom={isEmployee ? 13 : 12}
-                    style={{ height: "100%", width: "100%", zIndex: 0 }}
-                    scrollWheelZoom={false}
-                    zoomControl={true}
-                    className="rounded-2xl"
-                  >
-                    <MapCenter center={mapCenter} />
-                    <TileLayer
-                      attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                      url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                    />
-                    
-                    {/* Employee Location Markers (Merchant) or Single Employee (Employee Login) */}
-                    {isEmployee ? (
-                      <Marker position={employeeCurrentLocation} icon={createCustomIcon("#3b82f6", true)}>
-                        <Popup>
-                          <div className="text-center">
-                            <p className="font-semibold text-blue-600">You</p>
-                            <p className="text-xs text-gray-600">Current Location</p>
-                          </div>
-                        </Popup>
-                      </Marker>
-                    ) : (
-                      // Merchant: Show all employees with their colors
-                      employeesWithJobs.map((employee) => {
-                        const empLocation = employeeLocations[employee.id];
-                        if (!empLocation) return null;
-                        const empColor = employeeColors[employee.id] || "#3b82f6";
-                        return (
-                          <Marker key={employee.id} position={empLocation} icon={createCustomIcon(empColor, true)}>
-                            <Popup>
-                              <div className="text-center min-w-[120px]">
-                                <p className="font-semibold" style={{ color: empColor }}>{employee.name}</p>
-                                <p className="text-xs text-gray-600">Current Location</p>
-                              </div>
-                            </Popup>
-                          </Marker>
-                        );
-                      })
-                    )}
-
-                    {/* Job Location Markers */}
-                    {jobCoordinates.map(({ job, coordinates }) => {
-                      const isCurrentJob = job.id === currentJob?.id;
-                      const isCompleted = job.status === "Completed";
-                      const empColor = employeeColors[job.technicianId] || "#3b82f6";
-                      
-                      let icon;
-                      if (isCurrentJob) {
-                        icon = createCustomIcon(empColor, true); // Employee color pulsing for current job
-                      } else if (isCompleted) {
-                        icon = createCheckIcon(); // Green checkmark for completed
-                      } else {
-                        // Use employee color for pending jobs (merchant) or orange (employee)
-                        icon = createCustomIcon(isEmployee ? "#f97316" : empColor, false);
-                      }
-
-                      const employee = mockEmployees.find(emp => emp.id === job.technicianId);
-
-                      return (
-                        <Marker key={job.id} position={coordinates} icon={icon}>
-                          <Popup>
-                            <div className="min-w-[150px]">
-                              {!isEmployee && employee && (
-                                <p className="text-xs font-medium mb-1" style={{ color: empColor }}>
-                                  {employee.name}
-                                </p>
-                              )}
-                              <p className="font-semibold text-gray-900 mb-1">{job.customerName}</p>
-                              <p className="text-xs text-gray-600 mb-1">{formatServiceDisplay(job)}</p>
-                              <p className="text-xs text-gray-500 mb-2">{job.location}</p>
-                              <Badge className={cn("text-[10px] px-1.5 py-0.5", getStatusBadge(job.status))}>
-                                {job.status}
-                              </Badge>
-                            </div>
-                          </Popup>
-                        </Marker>
-                      );
-                    })}
-                  </MapContainer>
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center bg-gray-50">
-                    <div className="text-center">
-                      <Navigation className="h-10 w-10 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm text-gray-500">No jobs to display on map</p>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Job List Below Map - Scrollable */}
-            <div className="flex-1 overflow-y-auto scrollable px-4 pb-4 min-h-0">
-              {filteredJobsForDisplay.length === 0 ? (
-                <div className="text-center py-8">
-                  <MapPin className="h-10 w-10 text-gray-300 mx-auto mb-2" />
-                  <p className="text-gray-500 text-sm">No jobs scheduled for today</p>
-                </div>
-              ) : (
-                <div className="space-y-2.5">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-sm font-semibold text-gray-800">
-                      {formatDateForComparison(selectedDate) === formatDateForComparison(new Date()) 
-                        ? "Today's Stops" 
-                        : `${format(selectedDate, "MMM dd, yyyy")} Stops`}
-                    </h3>
-                    <span className="text-xs text-gray-500">
-                      {filteredJobsForDisplay.length} {filteredJobsForDisplay.length === 1 ? "stop" : "stops"}
-                    </span>
-                  </div>
-
-                  {/* Employee Filter + Date Picker (Merchant Only) - Below "Today's Stops" heading */}
-                  {!isEmployee && (
-                    <div className="mb-4 flex items-center gap-3">
-                      <Select value={selectedEmployeeFilter} onValueChange={setSelectedEmployeeFilter}>
-                        <SelectTrigger className="flex-1 bg-white border-gray-300 h-10">
-                          <SelectValue>
-                            {selectedEmployeeFilter === "all" 
-                              ? "All Employees" 
-                              : mockEmployees.find(emp => emp.id === selectedEmployeeFilter)?.name || "All Employees"}
-                          </SelectValue>
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All Employees</SelectItem>
-                          {employeesWithJobs.map((employee) => (
-                            <SelectItem key={employee.id} value={employee.id}>
-                              {employee.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Popover>
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            className="flex-1 bg-white border-gray-300 h-10 justify-start text-left font-normal hover:bg-gray-50"
-                          >
-                            <CalendarIcon className="mr-2 h-4 w-4 text-gray-500" />
-                            {selectedDate ? format(selectedDate, "MMM dd, yyyy") : "Pick a date"}
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-auto p-0" align="start">
-                          <Calendar
-                            mode="single"
-                            selected={selectedDate}
-                            onSelect={(date) => {
-                              if (date) {
-                                setSelectedDate(date);
-                              }
-                            }}
-                            initialFocus
-                          />
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                  )}
-
-                  {/* Group by Employee (Merchant) or Single List (Employee) */}
-                  {isEmployee ? (
-                    // Employee Login: Single list
-                    filteredJobsForDisplay.map((job, index) => {
-                      const employeeJobsList = jobsByEmployee[currentEmployeeId] || [];
-                      const currentIdx = getCurrentStopIndex(employeeJobsList);
-                      const nextIdx = getNextStopIndex(employeeJobsList, currentIdx);
-                      const isCurrentStop = index === currentIdx;
-                      const isNextStop = index === nextIdx && !isCurrentStop;
-                    
-                    return (
-                      <div
-                        key={job.id}
-                        className={cn(
-                          "bg-white p-3.5 rounded-xl border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden",
-                          isCurrentStop 
-                            ? "border-orange-300 bg-orange-50/30" 
-                            : "border-gray-200"
-                        )}
-                      >
-                        <div className="flex items-start gap-3">
-                          {/* Status Icon / Radio Marker */}
-                          <div className="flex-shrink-0 mt-0.5 relative">
-                            {isCurrentStop ? (
-                              <div className="relative">
-                                <div className="absolute inset-0 w-5 h-5 bg-orange-500 rounded-full opacity-20 animate-ping" />
-                                <div className="relative w-5 h-5 bg-orange-500 rounded-full border-2 border-white shadow-md flex items-center justify-center">
-                                  <Circle className="h-2.5 w-2.5 text-white fill-white" />
-                                </div>
-                              </div>
-                            ) : (
-                              <div className={cn(
-                                "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                                isNextStop 
-                                  ? "border-orange-300 bg-orange-50" 
-                                  : "border-gray-300 bg-white"
-                              )}>
-                                {getStatusIcon(job.status)}
-                              </div>
-                            )}
-                          </div>
-                          
-                          {/* Job Details */}
-                          <div className="flex-1 min-w-0 pr-2">
-                            <div className="flex items-start justify-between gap-2 mb-1.5">
-                              <div className="flex-1 min-w-0 flex items-center gap-2">
-                                <h4 className={cn(
-                                  "font-semibold text-sm truncate",
-                                  isCurrentStop ? "text-orange-700" : "text-gray-900"
-                                )}>
-                                  {job.customerName}
-                                </h4>
-                                {isCurrentStop && (
-                                  <Badge className="text-[9px] px-1.5 py-0.5 bg-orange-100 text-orange-700 border-orange-200 rounded-full shrink-0">
-                                    Current Stop
-                                  </Badge>
-                                )}
-                                {isNextStop && (
-                                  <Badge className="text-[9px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border-blue-200 rounded-full shrink-0">
-                                    Next Stop
-                                  </Badge>
-                                )}
-                              </div>
-                              {/* Status Dropdown - Only in Live Location tab for employees */}
-                              {isEmployee && activeTab === "live-location" && (
-                                <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                                <Select
-                                  value={job.status}
-                                  onValueChange={(value) => handleStatusChange(job.id, value)}
-                                >
-                                  <SelectTrigger
-                                    className={cn(
-                                      "h-auto py-0.5 px-2 text-[10px] font-medium border rounded-full shrink-0 w-auto min-w-[70px] max-w-[100px]",
-                                      "focus:ring-1 focus:ring-offset-0 focus:ring-orange-500",
-                                      getStatusBadge(job.status),
-                                      "hover:opacity-90 active:opacity-80 transition-opacity cursor-pointer"
-                                    )}
-                                  >
-                                    <SelectValue>
-                                        <span className="truncate">{job.status}</span>
-                                    </SelectValue>
-                                  </SelectTrigger>
-                                  <SelectContent 
-                                    className="z-[9999] min-w-[160px] rounded-lg shadow-lg" 
-                                    position="popper" 
-                                    sideOffset={4}
-                                    align="end"
-                                    side="bottom"
-                                  >
-                                    <SelectItem value="Scheduled" className="text-xs py-2 cursor-pointer">
-                                      <span className="flex items-center gap-2">
-                                        <Circle className="h-3 w-3 text-gray-400" />
-                                        Scheduled
-                                      </span>
-                                    </SelectItem>
-                                    <SelectItem value="In Progress" className="text-xs py-2 cursor-pointer">
-                                      <span className="flex items-center gap-2">
-                                        <Circle className="h-3 w-3 text-orange-600 fill-orange-600" />
-                                        In Progress
-                                      </span>
-                                    </SelectItem>
-                                    <SelectItem value="Completed" className="text-xs py-2 cursor-pointer">
-                                      <span className="flex items-center gap-2">
-                                        <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                        Completed
-                                      </span>
-                                    </SelectItem>
-                                      <SelectItem value="Cancel" className="text-xs py-2 cursor-pointer">
-                                        <span className="flex items-center gap-2">
-                                          <XCircle className="h-3 w-3 text-red-600" />
-                                          Cancel
-                                      </span>
-                                    </SelectItem>
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                              )}
-                              {/* Status Badge for Merchant */}
-                              {!isEmployee && (
-                                <Badge className={cn(
-                                  "text-[10px] px-2 py-0.5 shrink-0",
-                                  getStatusBadge(job.status)
-                                )}>
-                                  {job.status}
-                                </Badge>
-                              )}
-                            </div>
-                            
-                            <p className="text-sm text-gray-700 mb-1.5 font-medium">{formatServiceDisplay(job)}</p>
-                            
-                            <p className="text-xs text-gray-600 mb-2 line-clamp-1 flex items-start gap-1.5">
-                              <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
-                              <span className="flex-1 truncate">{job.location}</span>
-                            </p>
-                            
-                            <div className="flex items-center gap-2 text-xs text-gray-600">
-                              <Clock className="h-3.5 w-3.5 shrink-0" />
-                              <span className="font-medium">{job.time}</span>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })
-                  ) : (
-                    // Merchant Login: Group by employee
-                    Object.entries(jobsByEmployee).map(([employeeId, jobs]) => {
-                      const employee = mockEmployees.find(emp => emp.id === employeeId);
-                      if (!employee || jobs.length === 0) return null;
-                      
-                      const empColor = employeeColors[employeeId] || "#3b82f6";
-                      const currentIdx = getCurrentStopIndex(jobs);
-                      const nextIdx = getNextStopIndex(jobs, currentIdx);
-                      
-                      return (
-                        <div key={employeeId} className="space-y-2.5">
-                          {/* Employee Header */}
-                          <div className="flex items-center gap-2 mb-2 pt-2">
-                            <div 
-                              className="w-3 h-3 rounded-full shrink-0"
-                              style={{ backgroundColor: empColor }}
-                            />
-                            <h4 className="text-sm font-semibold text-gray-800">{employee.name}</h4>
-                            <span className="text-xs text-gray-500">({jobs.length} {jobs.length === 1 ? "stop" : "stops"})</span>
-                          </div>
-                          
-                          {/* Employee's Jobs */}
-                          {jobs.map((job, index) => {
-                            const isCurrentStop = index === currentIdx;
-                            const isNextStop = index === nextIdx && !isCurrentStop;
-                            
-                            return (
-                              <div
-                                key={job.id}
-                                className={cn(
-                                  "bg-white p-3.5 rounded-xl border shadow-sm hover:shadow-md transition-shadow relative overflow-hidden",
-                                  isCurrentStop 
-                                    ? "border-orange-300 bg-orange-50/30" 
-                                    : "border-gray-200"
-                                )}
-                              >
-                                <div className="flex items-start gap-3">
-                                  {/* Status Icon / Radio Marker */}
-                                  <div className="flex-shrink-0 mt-0.5 relative">
-                                    {isCurrentStop ? (
-                                      <div className="relative">
-                                        <div className="absolute inset-0 w-5 h-5 bg-orange-500 rounded-full opacity-20 animate-ping" />
-                                        <div className="relative w-5 h-5 bg-orange-500 rounded-full border-2 border-white shadow-md flex items-center justify-center">
-                                          <Circle className="h-2.5 w-2.5 text-white fill-white" />
-                                        </div>
-                                      </div>
-                                    ) : (
-                                      <div className={cn(
-                                        "w-5 h-5 rounded-full border-2 flex items-center justify-center",
-                                        isNextStop 
-                                          ? "border-orange-300 bg-orange-50" 
-                                          : "border-gray-300 bg-white"
-                                      )}>
-                                        {getStatusIcon(job.status)}
-                                      </div>
-                                    )}
-                                  </div>
-                                  
-                                  {/* Job Details */}
-                                  <div className="flex-1 min-w-0 pr-2">
-                                    <div className="flex items-start justify-between gap-2 mb-1.5">
-                                      <div className="flex-1 min-w-0 flex items-center gap-2 flex-wrap">
-                                        <h4 className={cn(
-                                          "font-semibold text-sm truncate",
-                                          isCurrentStop ? "text-orange-700" : "text-gray-900"
-                                        )}>
-                                          {job.customerName}
-                                        </h4>
-                                        {isCurrentStop && (
-                                          <Badge className="text-[9px] px-1.5 py-0.5 bg-orange-100 text-orange-700 border-orange-200 rounded-full shrink-0">
-                                            Current Stop
-                                          </Badge>
-                                        )}
-                                        {isNextStop && (
-                                          <Badge className="text-[9px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border-blue-200 rounded-full shrink-0">
-                                            Next Stop
-                                          </Badge>
-                                        )}
-                                      </div>
-                                      {/* Status Dropdown for Merchant */}
-                                      <div className="shrink-0" onClick={(e) => e.stopPropagation()}>
-                                        <Select
-                                          value={job.status}
-                                          onValueChange={(value) => handleStatusChange(job.id, value)}
-                                        >
-                                          <SelectTrigger
-                                            className={cn(
-                                              "h-auto py-0.5 px-2 text-[10px] font-medium border rounded-full shrink-0 w-auto min-w-[70px] max-w-[100px]",
-                                              "focus:ring-1 focus:ring-offset-0 focus:ring-orange-500",
-                                              getStatusBadge(job.status),
-                                              "hover:opacity-90 active:opacity-80 transition-opacity cursor-pointer"
-                                            )}
-                                          >
-                                            <SelectValue>
-                                                <span className="truncate">{job.status}</span>
-                                            </SelectValue>
-                                          </SelectTrigger>
-                                          <SelectContent 
-                                            className="z-[9999] min-w-[160px] rounded-lg shadow-lg" 
-                                            position="popper" 
-                                            sideOffset={4}
-                                            align="end"
-                                            side="bottom"
-                                          >
-                                            <SelectItem value="Scheduled" className="text-xs py-2 cursor-pointer">
-                                              <span className="flex items-center gap-2">
-                                                <Circle className="h-3 w-3 text-gray-400" />
-                                                Scheduled
-                                              </span>
-                                            </SelectItem>
-                                            <SelectItem value="In Progress" className="text-xs py-2 cursor-pointer">
-                                              <span className="flex items-center gap-2">
-                                                <Circle className="h-3 w-3 text-orange-600 fill-orange-600" />
-                                                In Progress
-                                              </span>
-                                            </SelectItem>
-                                            <SelectItem value="Completed" className="text-xs py-2 cursor-pointer">
-                                              <span className="flex items-center gap-2">
-                                                <CheckCircle2 className="h-3 w-3 text-green-600" />
-                                                Completed
-                                              </span>
-                                            </SelectItem>
-                                            <SelectItem value="Cancel" className="text-xs py-2 cursor-pointer">
-                                              <span className="flex items-center gap-2">
-                                                <XCircle className="h-3 w-3 text-red-600" />
-                                                Cancel
-                                              </span>
-                                            </SelectItem>
-                                          </SelectContent>
-                                        </Select>
-                                      </div>
-                                    </div>
-                                    
-                                    <p className="text-sm text-gray-700 mb-1.5 font-medium">{formatServiceDisplay(job)}</p>
-                                    
-                                    <p className="text-xs text-gray-600 mb-2 line-clamp-1 flex items-start gap-1.5">
-                                      <MapPin className="h-3 w-3 flex-shrink-0 mt-0.5" />
-                                      <span className="flex-1 truncate">{job.location}</span>
-                                    </p>
-                                    
-                                    <div className="flex items-center gap-2 text-xs text-gray-600">
-                                      <Clock className="h-3.5 w-3.5 shrink-0" />
-                                      <span className="font-medium">{job.time}</span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Schedule Route Modal */}

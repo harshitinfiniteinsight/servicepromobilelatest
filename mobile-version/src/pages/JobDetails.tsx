@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockJobs, mockCustomers, mockEmployees, mockInvoices, mockEstimates, mockAgreements } from "@/data/mobileMockData";
 import type { JobPaymentStatus, JobSourceType } from "@/data/mobileMockData";
-import { Calendar, Clock, MapPin, User, Phone, Mail, Navigation, CreditCard, Receipt, FileCheck, ScrollText, DollarSign, Edit, PlusCircle } from "lucide-react";
+import { Calendar, Clock, MapPin, User, Phone, Mail, Navigation, CreditCard, Receipt, FileCheck, ScrollText, DollarSign, Edit, PlusCircle, FileText, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
@@ -15,10 +15,12 @@ import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import PreviewAgreementModal from "@/components/modals/PreviewAgreementModal";
 import JobPaymentModal from "@/components/modals/JobPaymentModal";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const JobDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [jobStatus, setJobStatus] = useState<string>("");
   const [showFeedbackFormModal, setShowFeedbackFormModal] = useState(false);
   const [jobFeedbackStatus, setJobFeedbackStatus] = useState<Record<string, { exists: boolean; feedback?: { rating: number; comment: string; submittedAt: string } }>>(() => {
@@ -42,9 +44,15 @@ const JobDetails = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<JobPaymentStatus>("unpaid");
 
-  // Get job with extended data from localStorage or mockJobs
+  // Get job with extended data from location state, localStorage, or mockJobs
   const getJobWithPaymentStatus = () => {
-    // First check localStorage for jobs (manually created jobs)
+    // First check if job was passed via navigation state (for demo/generated jobs)
+    const stateJob = (location.state as any)?.job;
+    if (stateJob && stateJob.id === id) {
+      return stateJob;
+    }
+    
+    // Then check localStorage for jobs (manually created jobs)
     try {
       const storedJobs = JSON.parse(localStorage.getItem("mockJobs") || "[]");
       const storedJob = storedJobs.find((j: any) => j.id === id);
@@ -262,6 +270,183 @@ const JobDetails = () => {
   // Use currentPaymentStatus if it's been updated by payment completion, otherwise use original
   const isPaid = currentPaymentStatus === "paid" || jobPaymentStatus === "paid";
 
+  // Get invoices with items for accordion display
+  // For demo jobs, return sample invoices with items
+  const getInvoicesWithItems = () => {
+    // Demo invoices for jobs without associated documents
+    const demoInvoices = [
+      {
+        id: "INV-001",
+        items: [
+          {
+            name: "HVAC Filter - Standard",
+            quantity: 1,
+            price: 25.99,
+            discount: 2,
+            discountName: "custom",
+            discountType: "$",
+            taxRate: 5
+          }
+        ],
+        subtotal: 25.99,
+        discount: 2.00,
+        tax: 1.20,
+        total: 25.19
+      },
+      {
+        id: "INV-002",
+        items: [
+          {
+            name: "Thermostat - Programmable",
+            quantity: 1,
+            price: 89.99,
+            discount: 10,
+            discountName: "new",
+            discountType: "$",
+            taxRate: 2
+          }
+        ],
+        subtotal: 89.99,
+        discount: 10.00,
+        tax: 1.60,
+        total: 81.59
+      }
+    ];
+    
+    if (!jobSourceId) {
+      // Return demo invoices for jobs without associated documents
+      return demoInvoices;
+    }
+    
+    if (jobSourceType === "invoice") {
+      const invoice = mockInvoices.find(inv => inv.id === jobSourceId);
+      if (invoice) {
+        return [{
+          id: invoice.id,
+          items: invoice.items || [],
+          subtotal: invoice.subtotal || 0,
+          discount: invoice.discount || 0,
+          tax: invoice.tax || 0,
+          total: invoice.amount || 0
+        }];
+      }
+    } else if (jobSourceType === "estimate") {
+      const estimate = mockEstimates.find(est => est.id === jobSourceId);
+      if (estimate) {
+        // Create a pseudo-invoice from estimate for display
+        return [{
+          id: `EST-${estimate.id}`,
+          items: estimate.items || [],
+          subtotal: estimate.subtotal || 0,
+          discount: estimate.discount || 0,
+          tax: estimate.tax || 0,
+          total: estimate.amount || 0
+        }];
+      }
+    } else if (jobSourceType === "agreement") {
+      const agreement = mockAgreements.find(agr => agr.id === jobSourceId);
+      if (agreement) {
+        // Create a pseudo-invoice from agreement for display
+        return [{
+          id: `AGR-${agreement.id}`,
+          items: agreement.items || [],
+          subtotal: agreement.subtotal || 0,
+          discount: agreement.discount || 0,
+          tax: agreement.tax || 0,
+          total: agreement.amount || 0
+        }];
+      }
+    }
+    
+    // Fallback to demo invoices
+    return demoInvoices;
+  };
+
+  const invoicesWithItems = getInvoicesWithItems();
+
+  // Get items from associated document (invoice, estimate, or agreement)
+  // For demo jobs, return sample items
+  const getDocumentItems = () => {
+    // Demo items for jobs without associated documents
+    const demoItems = [
+      {
+        name: "HVAC Filter - Standard",
+        quantity: 1,
+        price: 25.99,
+        discount: 2,
+        discountName: "custom",
+        discountType: "$",
+        taxRate: 5
+      },
+      {
+        name: "Thermostat - Programmable",
+        quantity: 1,
+        price: 89.99,
+        discount: 10,
+        discountName: "new",
+        discountType: "$",
+        taxRate: 2
+      }
+    ];
+    
+    if (!jobSourceId) {
+      // Return demo items for jobs without associated documents
+      return { 
+        items: demoItems, 
+        subtotal: 104.38, 
+        discount: 11.60, 
+        tax: 10.44, 
+        total: 114.82 
+      };
+    }
+    
+    if (jobSourceType === "invoice") {
+      const invoice = mockInvoices.find(inv => inv.id === jobSourceId);
+      if (invoice) {
+        return {
+          items: invoice.items || [],
+          subtotal: invoice.subtotal || 0,
+          discount: invoice.discount || 0,
+          tax: invoice.tax || 0,
+          total: invoice.amount || 0
+        };
+      }
+    } else if (jobSourceType === "estimate") {
+      const estimate = mockEstimates.find(est => est.id === jobSourceId);
+      if (estimate) {
+        return {
+          items: estimate.items || [],
+          subtotal: estimate.subtotal || 0,
+          discount: estimate.discount || 0,
+          tax: estimate.tax || 0,
+          total: estimate.amount || 0
+        };
+      }
+    } else if (jobSourceType === "agreement") {
+      const agreement = mockAgreements.find(agr => agr.id === jobSourceId);
+      if (agreement) {
+        return {
+          items: agreement.items || [],
+          subtotal: agreement.subtotal || 0,
+          discount: agreement.discount || 0,
+          tax: agreement.tax || 0,
+          total: agreement.amount || 0
+        };
+      }
+    }
+    
+    // Fallback to demo items
+    return { 
+      items: demoItems, 
+      subtotal: 104.38, 
+      discount: 11.60, 
+      tax: 10.44, 
+      total: 114.82 
+    };
+  };
+
+  const { items: documentItems, subtotal, discount, tax, total } = getDocumentItems();
+
   // Initialize currentPaymentStatus from job data
   useEffect(() => {
     if (job) {
@@ -274,23 +459,31 @@ const JobDetails = () => {
       <MobileHeader 
         title="Job Details"
         showBack={true}
-        actions={
-          <Button size="sm" variant="outline">
-            <Navigation className="h-4 w-4" />
-          </Button>
-        }
       />
       
       <div className="flex-1 overflow-y-auto scrollable pt-14">
-        {/* Header */}
-        <div className="p-6 bg-gradient-to-br from-primary/10 to-accent/5">
-          <div className="flex items-start justify-between mb-4">
-            <div className="flex-1">
-              <h2 className="text-2xl font-bold mb-2">{job.title}</h2>
-              <Badge className={cn("text-sm", statusColors[jobStatus || job.status])}>
-                {jobStatus || job.status}
-              </Badge>
-            </div>
+        {/* Header - Compact Mobile Layout */}
+        <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/5">
+          {/* Title and Status Row */}
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <h2 className="text-xl font-bold flex-1">{job.title}</h2>
+            <Badge className={cn("text-xs shrink-0", statusColors[jobStatus || job.status])}>
+              {jobStatus || job.status}
+            </Badge>
+          </div>
+          
+          {/* Meta Row: Job ID + Date + Time */}
+          <div className="flex items-center flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
+            <span>ID: {job.id}</span>
+            <span className="text-muted-foreground/50">•</span>
+            <span className="flex items-center gap-1">
+              <Calendar className="h-3 w-3" />
+              {new Date(job.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+            </span>
+            <span className="flex items-center gap-1">
+              <Clock className="h-3 w-3" />
+              {job.time}
+            </span>
           </div>
         </div>
 
@@ -310,255 +503,368 @@ const JobDetails = () => {
         <div className="px-4 space-y-4 pb-6">
           <div className="p-4 rounded-xl border bg-card">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <Calendar className="h-4 w-4 text-primary" />
-              Schedule
-            </h3>
-            <div className="space-y-2 text-sm">
-              <div className="flex items-center gap-2">
-                <Calendar className="h-4 w-4 text-muted-foreground" />
-                <span>{new Date(job.date).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-muted-foreground" />
-                <span>{job.time}</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 rounded-xl border bg-card">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
               <User className="h-4 w-4 text-primary" />
-              Customer
+              Customer Information
             </h3>
-            <div className="space-y-2 text-sm">
-              <p className="font-medium">{job.customerName}</p>
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Name</span>
+                <span className="font-medium text-right">{job.customerName}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Job Address</span>
+                <span className="font-medium text-right max-w-[200px]">{job.location}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Assigned to</span>
+                <span className="font-medium text-right">{job.technicianName}</span>
+              </div>
               {customer && (
                 <>
-                  <p className="text-muted-foreground">{customer.email}</p>
-                  <p className="text-muted-foreground">{customer.phone}</p>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Email</span>
+                    <span className="font-medium text-right">{customer.email}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Phone</span>
+                    <span className="font-medium text-right">{customer.phone}</span>
+                  </div>
                 </>
               )}
             </div>
           </div>
 
+          {/* Items Section - Accordion by Invoice */}
           <div className="p-4 rounded-xl border bg-card">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-primary" />
-              Location
+              <FileText className="h-4 w-4 text-primary" />
+              Items
             </h3>
-            <p className="text-sm">{job.location}</p>
-            <Button variant="outline" size="sm" className="mt-3 w-full">
-              <Navigation className="h-4 w-4 mr-2" />
-              Open in Maps
-            </Button>
+
+            {invoicesWithItems.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No items added yet</p>
+            ) : (
+              <Accordion type="single" collapsible className="w-full">
+                {invoicesWithItems.map((invoice: any) => (
+                  <AccordionItem key={invoice.id} value={invoice.id} className="border-b last:border-0">
+                    <AccordionTrigger className="hover:no-underline py-3">
+                      <div className="flex items-center gap-2">
+                        <Receipt className="h-4 w-4 text-primary" />
+                        <span className="font-medium text-primary">{invoice.id}</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent>
+                      {invoice.items.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">No items added</p>
+                      ) : (
+                        <div className="space-y-4 pt-2">
+                          {/* Items List */}
+                          <div className="space-y-4">
+                            {invoice.items.map((item: any, idx: number) => {
+                              // Helper to calculate item subtotal with all discounts and taxes
+                              const calculateItemSubtotal = () => {
+                                let total = item.price * item.quantity;
+                                
+                                // Apply default discounts
+                                if (item.defaultDiscounts && Array.isArray(item.defaultDiscounts)) {
+                                  item.defaultDiscounts.forEach((discount: any) => {
+                                    const amount = discount.type === "%" 
+                                      ? total * (discount.value / 100)
+                                      : discount.value;
+                                    total -= amount;
+                                  });
+                                }
+                                
+                                // Apply single discount field for backwards compatibility
+                                if (item.discount && item.discount > 0) {
+                                  const amount = item.discountType === "%" 
+                                    ? total * (item.discount / 100)
+                                    : item.discount;
+                                  total -= amount;
+                                }
+                                
+                                // Apply default taxes
+                                if (item.defaultTaxes && Array.isArray(item.defaultTaxes)) {
+                                  item.defaultTaxes.forEach((tax: any) => {
+                                    const amount = total * (tax.value / 100);
+                                    total += amount;
+                                  });
+                                }
+                                
+                                // Apply single tax field for backwards compatibility
+                                if (item.taxRate && item.taxRate > 0) {
+                                  const amount = total * (item.taxRate / 100);
+                                  total += amount;
+                                }
+                                
+                                return total;
+                              };
+
+                              return (
+                                <div key={idx} className="pb-4 border-b last:border-0 last:pb-0">
+                                  {/* Item Header - Item Name and Base Amount */}
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div className="flex-1">
+                                      <p className="font-semibold">{item.name}</p>
+                                    </div>
+                                    <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                                  </div>
+                                  
+                                  <p className="text-sm text-muted-foreground mb-3">
+                                    {item.quantity} × ${item.price.toFixed(2)}
+                                  </p>
+                                  
+                                  {/* Inventory-Level Discounts (Item-Level) */}
+                                  {item.defaultDiscounts && item.defaultDiscounts.length > 0 && (
+                                    <div className="space-y-1 mb-2">
+                                      {item.defaultDiscounts.map((discount: any, didx: number) => {
+                                        const baseAmount = item.price * item.quantity;
+                                        const discountAmount = discount.type === "%" 
+                                          ? baseAmount * (discount.value / 100)
+                                          : discount.value;
+                                        return (
+                                          <div key={didx} className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground">
+                                              {discount.name} ({discount.type === "%" ? `${discount.value}%` : `$${discount.value}`})
+                                            </span>
+                                            <span className="font-medium text-green-600">-${discountAmount.toFixed(2)}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Custom/Manual Discounts - single discount field */}
+                                  {item.discount && item.discount > 0 && (
+                                    <div className="flex items-center justify-between text-sm mb-2">
+                                      <span className="text-muted-foreground">
+                                        {item.discountName || "Discount"} ({item.discountType === "%" ? `${item.discount}%` : `$${item.discount}`})
+                                      </span>
+                                      <span className="font-medium text-green-600">-${item.discount.toFixed(2)}</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Inventory-Level Taxes (Item-Level) */}
+                                  {item.defaultTaxes && item.defaultTaxes.length > 0 && (
+                                    <div className="space-y-1 mb-2">
+                                      {item.defaultTaxes.map((tax: any, tidx: number) => {
+                                        const baseAmount = item.price * item.quantity;
+                                        let afterDiscounts = baseAmount;
+                                        
+                                        // Calculate after inventory discounts
+                                        if (item.defaultDiscounts) {
+                                          item.defaultDiscounts.forEach((disc: any) => {
+                                            const dAmount = disc.type === "%" 
+                                              ? afterDiscounts * (disc.value / 100)
+                                              : disc.value;
+                                            afterDiscounts -= dAmount;
+                                          });
+                                        }
+                                        
+                                        const taxAmount = afterDiscounts * (tax.value / 100);
+                                        return (
+                                          <div key={tidx} className="flex items-center justify-between text-sm">
+                                            <span className="text-muted-foreground">
+                                              {tax.name} ({tax.value}%)
+                                            </span>
+                                            <span className="font-medium text-blue-600">+${taxAmount.toFixed(2)}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  )}
+                                  
+                                  {/* Custom Tax */}
+                                  {item.taxRate && item.taxRate > 0 && (
+                                    <div className="flex items-center justify-between text-sm mb-2">
+                                      <span className="text-muted-foreground">
+                                        Item Tax ({item.taxRate}%)
+                                      </span>
+                                      <span className="font-medium text-blue-600">+${((item.price * item.quantity - (item.discount || 0)) * (item.taxRate / 100)).toFixed(2)}</span>
+                                    </div>
+                                  )}
+                                  
+                                  {/* Item Subtotal */}
+                                  <div className="flex items-center justify-between text-sm font-semibold pt-2 border-t border-gray-200">
+                                    <span>Item Subtotal:</span>
+                                    <span>${calculateItemSubtotal().toFixed(2)}</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {/* Invoice Pricing Breakdown */}
+                          <div className="pt-4 border-t space-y-2">
+                            {/* Subtotal */}
+                            <div className="flex justify-between text-sm">
+                              <span className="font-medium text-muted-foreground">Subtotal:</span>
+                              <span className="font-semibold">${invoice.subtotal.toFixed(2)}</span>
+                            </div>
+                            
+                            {/* Discount - only show if applicable */}
+                            {invoice.discount > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="font-medium text-muted-foreground">Discount:</span>
+                                <span className="font-semibold text-green-600">-${invoice.discount.toFixed(2)}</span>
+                              </div>
+                            )}
+                            
+                            {/* Tax - only show if applicable */}
+                            {invoice.tax > 0 && (
+                              <div className="flex justify-between text-sm">
+                                <span className="font-medium text-muted-foreground">Tax:</span>
+                                <span className="font-semibold">${invoice.tax.toFixed(2)}</span>
+                              </div>
+                            )}
+                            
+                            {/* Total Amount - emphasized */}
+                            <div className="flex justify-between pt-2 border-t mt-2">
+                              <span className="font-bold text-base">Total Amount:</span>
+                              <span className="font-bold text-lg text-primary">${invoice.total.toFixed(2)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            )}
           </div>
 
-          <div className="p-4 rounded-xl border bg-card">
-            <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <User className="h-4 w-4 text-primary" />
-              Assigned Technician
-            </h3>
-            <div className="flex items-center gap-3">
-              <div className="flex-shrink-0 w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
-                <span className="text-lg font-bold text-primary">{techInitials}</span>
-              </div>
-              <div className="flex-1">
-                <p className="font-medium">{job.technicianName}</p>
-                {technician && (
-                  <>
-                    <p className="text-sm text-muted-foreground">{technician.role}</p>
-                    <p className="text-sm text-muted-foreground">{technician.phone}</p>
-                  </>
+          {/* Associated Documents */}
+          {jobSourceType !== "none" && jobSourceId && (
+            <div className="p-4 rounded-xl border bg-card">
+              <h3 className="font-semibold mb-3 flex items-center gap-2">
+                <ScrollText className="h-4 w-4 text-primary" />
+                Associated Documents
+              </h3>
+              <div className="space-y-2">
+                {jobSourceType === "invoice" && (
+                  <button
+                    onClick={handleViewInvoice}
+                    className="flex items-center gap-2 text-sm text-primary hover:underline w-full text-left p-2 rounded-lg hover:bg-primary/5 transition-colors"
+                  >
+                    <Receipt className="h-4 w-4" />
+                    <span className="font-medium">Invoice:</span>
+                    <span>{jobSourceId}</span>
+                  </button>
+                )}
+                {jobSourceType === "estimate" && (
+                  <button
+                    onClick={handleViewEstimate}
+                    className="flex items-center gap-2 text-sm text-primary hover:underline w-full text-left p-2 rounded-lg hover:bg-primary/5 transition-colors"
+                  >
+                    <FileCheck className="h-4 w-4" />
+                    <span className="font-medium">Estimate:</span>
+                    <span>{jobSourceId}</span>
+                  </button>
+                )}
+                {jobSourceType === "agreement" && (
+                  <button
+                    onClick={handleViewAgreement}
+                    className="flex items-center gap-2 text-sm text-primary hover:underline w-full text-left p-2 rounded-lg hover:bg-primary/5 transition-colors"
+                  >
+                    <ScrollText className="h-4 w-4" />
+                    <span className="font-medium">Agreement:</span>
+                    <span>{jobSourceId}</span>
+                  </button>
                 )}
               </div>
-              <Button variant="outline" size="sm">
-                <Phone className="h-4 w-4" />
-              </Button>
             </div>
-          </div>
+          )}
 
-          {/* Financial Actions Card */}
+          {/* Payment Section */}
           <div className="p-4 rounded-xl border bg-card">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
-              <DollarSign className="h-4 w-4 text-primary" />
-              Financial Actions
+              <CreditCard className="h-4 w-4 text-primary" />
+              Payment
             </h3>
             
-            {/* Payment Status */}
-            <div className="flex items-center justify-between mb-4 pb-3 border-b">
-              <span className="text-sm text-muted-foreground">Payment Status</span>
-              <Badge 
-                className={cn(
-                  "text-xs",
-                  currentPaymentStatus === "paid" 
-                    ? "bg-green-100 text-green-700 border-green-200" 
-                    : currentPaymentStatus === "partial"
-                    ? "bg-yellow-100 text-yellow-700 border-yellow-200"
-                    : "bg-orange-100 text-orange-700 border-orange-200"
-                )}
-              >
-                {currentPaymentStatus === "paid" ? "Paid" : currentPaymentStatus === "partial" ? "Partially Paid" : "Unpaid"}
-              </Badge>
-            </div>
-
-            {/* Source Document Info */}
-            {jobSourceType !== "none" && (
-              <div className="flex items-center justify-between mb-4 pb-3 border-b">
-                <span className="text-sm text-muted-foreground">Source</span>
-                <div className="flex items-center gap-2">
-                  {jobSourceType === "invoice" && <Receipt className="h-4 w-4 text-muted-foreground" />}
-                  {jobSourceType === "estimate" && <FileCheck className="h-4 w-4 text-muted-foreground" />}
-                  {jobSourceType === "agreement" && <ScrollText className="h-4 w-4 text-muted-foreground" />}
-                  <span className="text-sm font-medium">
-                    {jobSourceType === "invoice" ? "Invoice" : jobSourceType === "estimate" ? "Estimate" : "Agreement"}
-                    {jobSourceId && ` (${jobSourceId})`}
-                  </span>
-                </div>
-              </div>
-            )}
-
-            {/* Action Buttons */}
-            <div className="space-y-2">
-              {/* Pay Button - Prominent for unpaid/partial */}
-              {!isPaid && jobStatus !== "Cancel" && (
-                <Button 
-                  className="w-full gap-2" 
-                  size="lg"
-                  onClick={handlePay}
-                >
-                  <CreditCard className="h-4 w-4" />
-                  {currentPaymentStatus === "partial" ? "Complete Payment" : "Pay Now"}
-                </Button>
-              )}
-
-              {/* Source-based actions with Edit vs Associate New logic */}
-              {jobSourceType === "estimate" && (
+            {/* Invoice Payment Info */}
+            <div className="space-y-3">
+              {jobSourceType === "invoice" && jobSourceId ? (
+                (() => {
+                  const invoice = mockInvoices.find(inv => inv.id === jobSourceId);
+                  const isPaidInvoice = invoice?.status === "Paid";
+                  return (
+                    <div className="flex items-center justify-between text-sm py-2 border-b last:border-0">
+                      <button
+                        onClick={handleViewInvoice}
+                        className="font-medium text-primary hover:underline"
+                      >
+                        {jobSourceId}
+                      </button>
+                      <div className="flex items-center gap-4">
+                        <Badge 
+                          className={cn(
+                            "text-xs",
+                            isPaidInvoice
+                              ? "bg-green-100 text-green-700 border-green-200" 
+                              : "bg-orange-100 text-orange-700 border-orange-200"
+                          )}
+                        >
+                          {isPaidInvoice ? "Paid" : "Unpaid"}
+                        </Badge>
+                        <span className="text-muted-foreground min-w-[60px] text-right">
+                          {isPaidInvoice ? (invoice?.paymentMethod || "Card") : "-"}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                /* Demo payment info for jobs without invoices */
                 <>
-                  {/* View Estimate */}
-                  <Button variant="outline" className="w-full gap-2" onClick={handleViewEstimate}>
-                    <FileCheck className="h-4 w-4" />
-                    View Estimate
-                  </Button>
-                  {/* Edit for unpaid, Associate New for paid */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {!isPaid ? (
-                      <Button variant="outline" className="gap-2" onClick={handleEditEstimate}>
-                        <Edit className="h-4 w-4" />
-                        Edit Estimate
-                      </Button>
-                    ) : (
-                      <Button variant="outline" className="gap-2" onClick={handleAssociateNewEstimate}>
-                        <PlusCircle className="h-4 w-4" />
-                        New Estimate
-                      </Button>
-                    )}
-                    {!isPaid ? (
-                      <Button variant="outline" className="gap-2" onClick={handleCreateInvoice}>
-                        <Receipt className="h-4 w-4" />
-                        Create Invoice
-                      </Button>
-                    ) : (
-                      <Button variant="outline" className="gap-2" onClick={handleAssociateNewInvoice}>
-                        <PlusCircle className="h-4 w-4" />
-                        New Invoice
-                      </Button>
-                    )}
+                  <div className="flex items-center justify-between text-sm py-2 border-b">
+                    <button
+                      onClick={() => {
+                        const invoice = mockInvoices.find(inv => inv.id === "INV-001");
+                        if (invoice) {
+                          setPreviewInvoice(invoice);
+                          setShowInvoicePreview(true);
+                        } else {
+                          toast.error("Invoice not found");
+                        }
+                      }}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      INV-001
+                    </button>
+                    <div className="flex items-center gap-4">
+                      <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
+                        Paid
+                      </Badge>
+                      <span className="text-muted-foreground min-w-[60px] text-right">Card</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between text-sm py-2">
+                    <button
+                      onClick={() => {
+                        const invoice = mockInvoices.find(inv => inv.id === "INV-002");
+                        if (invoice) {
+                          setPreviewInvoice(invoice);
+                          setShowInvoicePreview(true);
+                        } else {
+                          toast.error("Invoice not found");
+                        }
+                      }}
+                      className="font-medium text-primary hover:underline"
+                    >
+                      INV-002
+                    </button>
+                    <div className="flex items-center gap-4">
+                      <Badge className="text-xs bg-orange-100 text-orange-700 border-orange-200">
+                        Unpaid
+                      </Badge>
+                      <span className="text-muted-foreground min-w-[60px] text-right">-</span>
+                    </div>
                   </div>
                 </>
-              )}
-
-              {jobSourceType === "invoice" && (
-                <>
-                  <Button variant="outline" className="w-full gap-2" onClick={handleViewInvoice}>
-                    <Receipt className="h-4 w-4" />
-                    View Invoice
-                  </Button>
-                  {/* Edit for unpaid, Associate New for paid */}
-                  {!isPaid ? (
-                    <Button variant="outline" className="w-full gap-2" onClick={handleEditInvoice}>
-                      <Edit className="h-4 w-4" />
-                      Edit Invoice
-                    </Button>
-                  ) : (
-                    <Button variant="outline" className="w-full gap-2" onClick={handleAssociateNewInvoice}>
-                      <PlusCircle className="h-4 w-4" />
-                      Associate New Invoice
-                    </Button>
-                  )}
-                </>
-              )}
-
-              {jobSourceType === "agreement" && (
-                <>
-                  <Button variant="outline" className="w-full gap-2" onClick={handleViewAgreement}>
-                    <ScrollText className="h-4 w-4" />
-                    View Agreement
-                  </Button>
-                  {/* Edit for unpaid, Associate New for paid */}
-                  <div className="grid grid-cols-2 gap-2">
-                    {!isPaid ? (
-                      <Button variant="outline" className="gap-2" onClick={handleEditAgreement}>
-                        <Edit className="h-4 w-4" />
-                        Edit Agreement
-                      </Button>
-                    ) : (
-                      <Button variant="outline" className="gap-2" onClick={handleAssociateNewAgreement}>
-                        <PlusCircle className="h-4 w-4" />
-                        New Agreement
-                      </Button>
-                    )}
-                    {!isPaid ? (
-                      <Button variant="outline" className="gap-2" onClick={handleCreateInvoice}>
-                        <Receipt className="h-4 w-4" />
-                        Create Invoice
-                      </Button>
-                    ) : (
-                      <Button variant="outline" className="gap-2" onClick={handleAssociateNewInvoice}>
-                        <PlusCircle className="h-4 w-4" />
-                        New Invoice
-                      </Button>
-                    )}
-                  </div>
-                </>
-              )}
-
-              {jobSourceType === "none" && (
-                <div className="grid grid-cols-2 gap-2">
-                  <Button variant="outline" className="gap-2" onClick={handleCreateEstimate}>
-                    <FileCheck className="h-4 w-4" />
-                    Create Estimate
-                  </Button>
-                  <Button variant="outline" className="gap-2" onClick={handleCreateInvoice}>
-                    <Receipt className="h-4 w-4" />
-                    Create Invoice
-                  </Button>
-                </div>
               )}
             </div>
           </div>
-
-          {/* Status Actions */}
-          {(jobStatus || job.status) === "Scheduled" && (
-            <div className="space-y-2">
-              <Button className="w-full" size="lg" onClick={() => handleStatusChange("In Progress")}>
-                Start Job
-              </Button>
-              <Button variant="outline" className="w-full">
-                Reschedule
-              </Button>
-            </div>
-          )}
-
-          {(jobStatus || job.status) === "In Progress" && (
-            <div className="space-y-2">
-              <Button className="w-full" size="lg" onClick={() => handleStatusChange("Completed")}>
-                Complete Job
-              </Button>
-              <Button variant="outline" className="w-full">
-                Add Notes
-              </Button>
-            </div>
-          )}
         </div>
       </div>
 
@@ -589,9 +895,12 @@ const JobDetails = () => {
 
       {previewInvoice && (
         <PreviewInvoiceModal
-          open={showInvoicePreview}
-          onOpenChange={setShowInvoicePreview}
-          data={previewInvoice}
+          isOpen={showInvoicePreview}
+          onClose={() => {
+            setShowInvoicePreview(false);
+            setPreviewInvoice(null);
+          }}
+          invoice={previewInvoice}
         />
       )}
 

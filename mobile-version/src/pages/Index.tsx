@@ -351,7 +351,7 @@ const Index = () => {
     { label: "New Estimate", path: "/estimates/new", icon: FileText },
     { label: "New Invoice", path: "/invoices/new", icon: DollarSign },
     { label: "New Agreement", path: "/agreements/new", icon: ClipboardList },
-    { label: "Job Route", path: "/employees/tracking", icon: Route },
+    { label: "Scheduled Routes", path: "/employees/tracking", icon: Route },
   ];
 
   // Format date range for display

@@ -600,16 +600,6 @@ const Invoices = () => {
           icon: Eye,
           action: () => handleMenuAction(invoice, "preview"),
         },
-        {
-          label: "Pay Now",
-          icon: CreditCard,
-          action: () => handleMenuAction(invoice, "pay-now"),
-        },
-        {
-          label: "Pay Cash",
-          icon: DollarSign,
-          action: () => handleMenuAction(invoice, "pay-cash"),
-        },
         // Add "Convert to Job" for unpaid invoices (same as paid)
         ...(!isSellProduct && !isConverted ? [{
           label: "Convert to Job",
@@ -956,9 +946,9 @@ const Invoices = () => {
             setShowScheduleModal(false);
             setInvoiceToConvert(null);
           }}
-          onConfirm={(date, time) => {
+          onConfirm={(date, time, employeeId, updatedAddress, jobTitle) => {
             try {
-              const result = convertToJob("invoice", invoiceToConvert.id, date, time);
+              const result = convertToJob("invoice", invoiceToConvert.id, date, time, employeeId, updatedAddress, jobTitle);
               if (result.success) {
                 toast.success("Job scheduled successfully");
                 setShowScheduleModal(false);
@@ -983,6 +973,8 @@ const Invoices = () => {
           }}
           sourceType="invoice"
           sourceId={invoiceToConvert.id}
+          jobAddress={undefined}
+          defaultJobTitle={(invoiceToConvert as any).title || (invoiceToConvert as any).serviceName || `Invoice ${invoiceToConvert.id} Service`}
         />
       )}
     </div>

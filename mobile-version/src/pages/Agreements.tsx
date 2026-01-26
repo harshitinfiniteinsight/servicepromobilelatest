@@ -15,7 +15,7 @@ import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import { mockAgreements, mockCustomers, mockEmployees } from "@/data/mobileMockData";
 import { createJobLookupMap } from "@/utils/jobLookup";
-import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Calendar, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, Calendar as CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
@@ -340,7 +340,7 @@ const Agreements = () => {
             return (
               <div
                 key={agreement.id}
-                className="p-2.5 rounded-lg border bg-card active:scale-[0.98] transition-transform cursor-pointer"
+                className="px-3 py-2 rounded-lg border bg-card active:scale-[0.98] transition-transform cursor-pointer"
                 onClick={(e) => {
                   // Don't navigate if clicking on kebab menu, pay button, or its dropdown
                   const target = e.target as HTMLElement;
@@ -350,51 +350,54 @@ const Agreements = () => {
                   navigate(`/agreements/${agreement.id}`);
                 }}
               >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5 mb-0.5 flex-wrap">
-                      <h3 className="font-semibold text-base truncate">{agreement.id}</h3>
-                      <Badge className={cn("text-[10px] px-2 py-0.5 h-5 flex-shrink-0", statusColors[agreement.status])}>
-                        {agreement.status}
-                      </Badge>
-                      {agreementJobLookup.get(agreement.id) && (
-                        <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 bg-blue-50 text-blue-700 border-blue-200">
-                          <Briefcase className="h-2.5 w-2.5 mr-0.5" />
-                          {agreementJobLookup.get(agreement.id)}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground mb-1.5 truncate">{agreement.customerName}</p>
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <Calendar className="h-3 w-3 flex-shrink-0" />
-                      <span className="truncate">
-                        {new Date(agreement.startDate).toLocaleDateString()} - {new Date(agreement.endDate).toLocaleDateString()}
-                      </span>
-                    </div>
+                {/* Row 1: Agreement ID + Status | Amount + Pay */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className="font-semibold text-sm">{agreement.id}</span>
+                    <Badge className={cn("text-[10px] px-1.5 py-0 h-4 leading-4", statusColors[agreement.status])}>
+                      {agreement.status}
+                    </Badge>
                   </div>
-                  <div className="text-right flex flex-col items-end gap-1.5 flex-shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
-                    <div className="flex items-baseline gap-1">
-                      <DollarSign className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                      <span className="text-lg font-bold whitespace-nowrap">${agreement.monthlyAmount.toFixed(2)}</span>
-                    </div>
-                    <p className="text-[10px] text-muted-foreground text-right whitespace-nowrap">per month</p>
-                    <div className="flex items-center gap-2">
-                      {/* Pay button for unpaid agreements */}
-                      {!isPaid && (
-                        <Button
-                          size="sm"
-                          variant="default"
-                          className="h-auto min-h-0 px-2 py-1 text-xs font-semibold whitespace-nowrap bg-primary hover:bg-primary/90 rounded-xl shadow-sm hover:shadow-md transition-all leading-tight"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePayNow(agreement.id);
-                          }}
-                        >
-                          Pay
-                        </Button>
-                      )}
-                      <KebabMenu items={kebabMenuItems} menuWidth="w-44" />
-                    </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <span className="text-base font-bold whitespace-nowrap">${agreement.monthlyAmount.toFixed(2)}</span>
+                    <span className="text-[10px] text-muted-foreground">/mo</span>
+                    {!isPaid && (
+                      <Button
+                        size="sm"
+                        variant="default"
+                        className="h-6 min-h-0 px-2 py-0 text-xs font-semibold whitespace-nowrap bg-primary hover:bg-primary/90 rounded-xl"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handlePayNow(agreement.id);
+                        }}
+                      >
+                        Pay
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Row 2: Customer Name | Job ID */}
+                <div className="flex items-center justify-between gap-2 mt-1">
+                  <p className="text-xs text-muted-foreground truncate flex-1">{agreement.customerName}</p>
+                  {agreementJobLookup.get(agreement.id) && (
+                    <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 leading-4 bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
+                      <Briefcase className="h-2.5 w-2.5 mr-0.5" />
+                      {agreementJobLookup.get(agreement.id)}
+                    </Badge>
+                  )}
+                </div>
+
+                {/* Row 3: Date Range | Menu */}
+                <div className="flex items-center justify-between mt-1.5">
+                  <div className="flex items-center gap-1 text-[11px] text-muted-foreground">
+                    <Calendar className="h-3 w-3 flex-shrink-0" />
+                    <span>
+                      {new Date(agreement.startDate).toLocaleDateString()} - {new Date(agreement.endDate).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0 -mr-1">
+                    <KebabMenu items={kebabMenuItems} menuWidth="w-44" />
                   </div>
                 </div>
               </div>
@@ -484,9 +487,9 @@ const Agreements = () => {
             setShowScheduleModal(false);
             setAgreementToConvert(null);
           }}
-          onConfirm={(date, time) => {
+          onConfirm={(date, time, employeeId, updatedAddress, jobTitle) => {
             try {
-              const result = convertToJob("agreement", agreementToConvert.id, date, time);
+              const result = convertToJob("agreement", agreementToConvert.id, date, time, employeeId, updatedAddress, jobTitle);
               if (result.success) {
                 toast.success("Job scheduled successfully");
                 setShowScheduleModal(false);
@@ -511,6 +514,8 @@ const Agreements = () => {
           }}
           sourceType="agreement"
           sourceId={agreementToConvert.id}
+          jobAddress={undefined}
+          defaultJobTitle={(agreementToConvert as any).type || (agreementToConvert as any).title || `Agreement ${agreementToConvert.id} Service`}
         />
       )}
     </div>

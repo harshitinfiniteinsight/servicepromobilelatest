@@ -877,12 +877,12 @@ const Jobs = () => {
    * - Add validation for employee availability
    * - Add notification to affected parties
    */
-  const handleRescheduleConfirm = (newDate: string, newTime: string, newEmployeeId: string) => {
+  const handleRescheduleConfirm = (newDate: string, newTime: string, newEmployeeId: string, updatedAddress?: string) => {
     if (!selectedJobForReschedule) return;
 
     const newEmployee = mockEmployees.find(emp => emp.id === newEmployeeId);
     
-    // Update the job with new schedule and employee
+    // Update the job with new schedule, employee, and optionally address
     setJobs(prevJobs =>
       prevJobs.map(job =>
         job.id === selectedJobForReschedule.id
@@ -892,6 +892,7 @@ const Jobs = () => {
               time: newTime,
               technicianId: newEmployeeId,
               technicianName: newEmployee?.name || job.technicianName,
+              ...(updatedAddress && { jobAddress: updatedAddress }),
             }
           : job
       )
@@ -908,6 +909,7 @@ const Jobs = () => {
               time: newTime,
               technicianId: newEmployeeId,
               technicianName: newEmployee?.name || job.technicianName,
+              ...(updatedAddress && { jobAddress: updatedAddress }),
             }
           : job
       );
@@ -1506,6 +1508,7 @@ const Jobs = () => {
             technicianName: selectedJobForReschedule.technicianName,
             date: selectedJobForReschedule.date,
             time: selectedJobForReschedule.time,
+            jobAddress: (selectedJobForReschedule as any).jobAddress || "Address not available",
           }}
         />
       )}

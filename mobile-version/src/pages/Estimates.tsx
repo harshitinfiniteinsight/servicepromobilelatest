@@ -582,16 +582,6 @@ const Estimates = () => {
           icon: Eye,
           action: () => handleMenuAction("preview", estimate.id),
         },
-        {
-          label: "Pay Now",
-          icon: CreditCard,
-          action: () => handleMenuAction("pay-now", estimate.id),
-        },
-        {
-          label: "Pay Cash",
-          icon: DollarSign,
-          action: () => handleMenuAction("pay-cash", estimate.id),
-        },
         // Add "Convert to Job" for unpaid estimates (same as paid)
         ...(!isConverted ? [{
           label: "Convert to Job",
@@ -1068,9 +1058,9 @@ const Estimates = () => {
             setShowScheduleModal(false);
             setEstimateToConvert(null);
           }}
-          onConfirm={(date, time) => {
+          onConfirm={(date, time, employeeId, updatedAddress, jobTitle) => {
             try {
-              const result = convertToJob("estimate", estimateToConvert.id, date, time);
+              const result = convertToJob("estimate", estimateToConvert.id, date, time, employeeId, updatedAddress, jobTitle);
               if (result.success) {
                 toast.success("Job scheduled successfully");
                 setShowScheduleModal(false);
@@ -1095,6 +1085,8 @@ const Estimates = () => {
           }}
           sourceType="estimate"
           sourceId={estimateToConvert.id}
+          jobAddress={undefined}
+          defaultJobTitle={(estimateToConvert as any).title || (estimateToConvert as any).serviceName || `Estimate ${estimateToConvert.id} Service`}
         />
       )}
     </div>
