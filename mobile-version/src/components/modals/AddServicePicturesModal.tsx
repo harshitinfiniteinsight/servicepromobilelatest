@@ -2,18 +2,24 @@ import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Camera, Upload, X } from "lucide-react";
+import { Camera, X, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+
+// Maximum number of images allowed per section (configurable)
+const MAX_IMAGES_PER_SECTION = 10;
 
 interface AddServicePicturesModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   jobId: string;
   jobStatus: string;
+  // Support both single image (legacy) and multiple images (new)
   beforeImage?: string | null;
   afterImage?: string | null;
-  onSave: (jobId: string, beforeImage: string | null, afterImage: string | null) => void;
+  beforeImages?: string[];
+  afterImages?: string[];
+  onSave: (jobId: string, beforeImages: string[], afterImages: string[]) => void;
 }
 
 const AddServicePicturesModal = ({
@@ -23,70 +29,110 @@ const AddServicePicturesModal = ({
   jobStatus,
   beforeImage,
   afterImage,
+  beforeImages,
+  afterImages,
   onSave,
 }: AddServicePicturesModalProps) => {
-  const [localBeforeImage, setLocalBeforeImage] = useState<string | null>(beforeImage || null);
-  const [localAfterImage, setLocalAfterImage] = useState<string | null>(afterImage || null);
-  const [showUploadSheet, setShowUploadSheet] = useState<"before" | "after" | null>(null);
+  // Initialize state from props - support both legacy single image and new array format
+  const getInitialBeforeImages = (): string[] => {
+    if (beforeImages && beforeImages.length > 0) return beforeImages;
+    if (beforeImage) return [beforeImage];
+    return [];
+  };
+
+  const getInitialAfterImages = (): string[] => {
+    if (afterImages && afterImages.length > 0) return afterImages;
+    if (afterImage) return [afterImage];
+    return [];
+  };
+
+  const [localBeforeImages, setLocalBeforeImages] = useState<string[]>(getInitialBeforeImages);
+  const [localAfterImages, setLocalAfterImages] = useState<string[]>(getInitialAfterImages);
   const [dragOverBefore, setDragOverBefore] = useState(false);
   const [dragOverAfter, setDragOverAfter] = useState(false);
   const fileInputBeforeRef = useRef<HTMLInputElement>(null);
   const fileInputAfterRef = useRef<HTMLInputElement>(null);
 
-  const handleImageUpload = (type: "before" | "after", source: "camera" | "gallery") => {
-    if (source === "gallery") {
-      // Open file picker
-      if (type === "before" && fileInputBeforeRef.current) {
-        fileInputBeforeRef.current.click();
-      } else if (type === "after" && fileInputAfterRef.current) {
-        fileInputAfterRef.current.click();
+  /**
+   * Process and validate a single file, then return its data URL
+   */
+  const processFile = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        reject(new Error("Please select an image file"));
+        return;
       }
-      setShowUploadSheet(null);
-    } else {
-      // Simulate camera capture - in a real app, this would use actual camera API
-      const mockImageUrl = `https://picsum.photos/400/300?random=${Date.now()}`;
-      
-      if (type === "before") {
-        setLocalBeforeImage(mockImageUrl);
-      } else {
-        setLocalAfterImage(mockImageUrl);
+
+      // Validate file size (max 10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        reject(new Error("Image size must be less than 10MB"));
+        return;
       }
-      
-      setShowUploadSheet(null);
-      toast.success("Image captured successfully");
-    }
+
+      // Convert file to data URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageUrl = e.target?.result as string;
+        resolve(imageUrl);
+      };
+      reader.onerror = () => {
+        reject(new Error("Failed to read image file"));
+      };
+      reader.readAsDataURL(file);
+    });
   };
 
-  const handleFileSelect = (type: "before" | "after", file: File) => {
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      toast.error("Please select an image file");
+  /**
+   * Handle multiple file selection from file input
+   * Adds new images to existing array without replacing
+   */
+  const handleFileSelect = async (type: "before" | "after", files: FileList) => {
+    const currentImages = type === "before" ? localBeforeImages : localAfterImages;
+    const remainingSlots = MAX_IMAGES_PER_SECTION - currentImages.length;
+
+    if (remainingSlots <= 0) {
+      toast.error(`Maximum ${MAX_IMAGES_PER_SECTION} images allowed per section`);
       return;
     }
 
-    // Validate file size (max 10MB)
-    if (file.size > 10 * 1024 * 1024) {
-      toast.error("Image size must be less than 10MB");
-      return;
+    // Limit files to remaining slots
+    const filesToProcess = Array.from(files).slice(0, remainingSlots);
+    
+    if (files.length > remainingSlots) {
+      toast.warning(`Only ${remainingSlots} more image(s) can be added. Extra files ignored.`);
     }
 
-    // Convert file to data URL
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const imageUrl = e.target?.result as string;
-      if (type === "before") {
-        setLocalBeforeImage(imageUrl);
-      } else {
-        setLocalAfterImage(imageUrl);
+    const newImages: string[] = [];
+    let errorCount = 0;
+
+    for (const file of filesToProcess) {
+      try {
+        const imageUrl = await processFile(file);
+        newImages.push(imageUrl);
+      } catch (error) {
+        errorCount++;
+        console.error("Error processing file:", error);
       }
-      toast.success("Image uploaded successfully");
-    };
-    reader.onerror = () => {
-      toast.error("Failed to read image file");
-    };
-    reader.readAsDataURL(file);
+    }
+
+    if (newImages.length > 0) {
+      if (type === "before") {
+        setLocalBeforeImages(prev => [...prev, ...newImages]);
+      } else {
+        setLocalAfterImages(prev => [...prev, ...newImages]);
+      }
+      toast.success(`${newImages.length} image(s) uploaded successfully`);
+    }
+
+    if (errorCount > 0) {
+      toast.error(`${errorCount} file(s) could not be uploaded`);
+    }
   };
 
+  /**
+   * Handle drag and drop - supports multiple files
+   */
   const handleDrop = (type: "before" | "after", e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.stopPropagation();
@@ -97,9 +143,9 @@ const AddServicePicturesModal = ({
       setDragOverAfter(false);
     }
 
-    const files = Array.from(e.dataTransfer.files);
+    const files = e.dataTransfer.files;
     if (files.length > 0) {
-      handleFileSelect(type, files[0]);
+      handleFileSelect(type, files);
     }
   };
 
@@ -136,32 +182,107 @@ const AddServicePicturesModal = ({
   // Reset local state when modal opens/closes
   useEffect(() => {
     if (open) {
-      setLocalBeforeImage(beforeImage || null);
-      setLocalAfterImage(afterImage || null);
+      setLocalBeforeImages(getInitialBeforeImages());
+      setLocalAfterImages(getInitialAfterImages());
     }
-  }, [open, beforeImage, afterImage]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, beforeImage, afterImage, beforeImages, afterImages]);
 
-  const handleRemoveImage = (type: "before" | "after") => {
+  /**
+   * Remove a specific image from the array by index
+   */
+  const handleRemoveImage = (type: "before" | "after", index: number) => {
     if (type === "before") {
-      setLocalBeforeImage(null);
+      setLocalBeforeImages(prev => prev.filter((_, i) => i !== index));
     } else {
-      setLocalAfterImage(null);
+      setLocalAfterImages(prev => prev.filter((_, i) => i !== index));
     }
     toast.success("Image removed");
   };
 
   const handleSave = () => {
-    onSave(jobId, localBeforeImage, localAfterImage);
+    onSave(jobId, localBeforeImages, localAfterImages);
     onOpenChange(false);
     toast.success("Pictures saved successfully");
   };
 
   const handleCancel = () => {
     // Reset to original values
-    setLocalBeforeImage(beforeImage || null);
-    setLocalAfterImage(afterImage || null);
-    setShowUploadSheet(null);
+    setLocalBeforeImages(getInitialBeforeImages());
+    setLocalAfterImages(getInitialAfterImages());
     onOpenChange(false);
+  };
+
+  /**
+   * Render a responsive grid of image thumbnails with remove buttons
+   */
+  const renderImageGrid = (images: string[], type: "before" | "after") => {
+    const canAddMore = images.length < MAX_IMAGES_PER_SECTION;
+    const isDragOver = type === "before" ? dragOverBefore : dragOverAfter;
+
+    return (
+      <div className="space-y-2">
+        {/* Image grid - responsive: 2 columns on mobile, 3 on larger screens */}
+        {images.length > 0 && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {images.map((image, index) => (
+              <div key={`${type}-${index}`} className="relative aspect-square">
+                <img
+                  src={image}
+                  alt={`${type === "before" ? "Before" : "After"} service ${index + 1}`}
+                  className="w-full h-full object-cover rounded-lg"
+                />
+                <button
+                  onClick={() => handleRemoveImage(type, index)}
+                  className="absolute top-1 right-1 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-md"
+                  aria-label={`Remove image ${index + 1}`}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Dropzone for adding more images - always visible if under limit */}
+        {canAddMore && (
+          <div
+            onClick={() => handleDropzoneClick(type)}
+            onDrop={(e) => handleDrop(type, e)}
+            onDragOver={(e) => handleDragOver(type, e)}
+            onDragLeave={(e) => handleDragLeave(type, e)}
+            className={cn(
+              "flex flex-col items-center justify-center bg-white rounded-lg border-2 border-dashed transition-colors cursor-pointer",
+              images.length === 0 ? "h-40" : "h-24",
+              isDragOver
+                ? "border-primary bg-primary/5"
+                : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
+            )}
+          >
+            {images.length === 0 ? (
+              <>
+                <Camera className={cn("h-10 w-10 mb-2 transition-colors", isDragOver ? "text-primary" : "text-gray-400")} />
+                <span className={cn("text-sm transition-colors", isDragOver ? "text-primary font-medium" : "text-gray-500")}>
+                  {isDragOver ? "Drop images here" : "Tap to add or drag images"}
+                </span>
+              </>
+            ) : (
+              <>
+                <Plus className={cn("h-6 w-6 transition-colors", isDragOver ? "text-primary" : "text-gray-400")} />
+                <span className={cn("text-xs transition-colors mt-1", isDragOver ? "text-primary font-medium" : "text-gray-500")}>
+                  {isDragOver ? "Drop images here" : "Add more"}
+                </span>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Image count indicator */}
+        <div className="text-xs text-gray-500 text-center">
+          {images.length} / {MAX_IMAGES_PER_SECTION} images
+        </div>
+      </div>
+    );
   };
 
   return (
@@ -185,18 +306,19 @@ const AddServicePicturesModal = ({
           </DialogHeader>
 
           <div className="space-y-4 mt-3">
-            {/* Hidden file inputs */}
+            {/* Hidden file inputs - multiple selection enabled */}
             <input
               type="file"
               ref={fileInputBeforeRef}
               accept="image/*"
+              multiple
               className="hidden"
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  handleFileSelect("before", file);
+                const files = e.target.files;
+                if (files && files.length > 0) {
+                  handleFileSelect("before", files);
                 }
-                // Reset input so same file can be selected again
+                // Reset input so same files can be selected again
                 e.target.value = "";
               }}
             />
@@ -204,13 +326,14 @@ const AddServicePicturesModal = ({
               type="file"
               ref={fileInputAfterRef}
               accept="image/*"
+              multiple
               className="hidden"
               onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  handleFileSelect("after", file);
+                const files = e.target.files;
+                if (files && files.length > 0) {
+                  handleFileSelect("after", files);
                 }
-                // Reset input so same file can be selected again
+                // Reset input so same files can be selected again
                 e.target.value = "";
               }}
             />
@@ -218,104 +341,16 @@ const AddServicePicturesModal = ({
             {/* Before Service Section */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-gray-700">Before Service</Label>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
-                {localBeforeImage ? (
-                  <div className="relative">
-                    <img
-                      src={localBeforeImage}
-                      alt="Before service"
-                      className="w-full h-40 object-cover rounded-lg"
-                    />
-                    <button
-                      onClick={() => handleRemoveImage("before")}
-                      className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
-                      aria-label="Remove image"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => handleDropzoneClick("before")}
-                    onDrop={(e) => handleDrop("before", e)}
-                    onDragOver={(e) => handleDragOver("before", e)}
-                    onDragLeave={(e) => handleDragLeave("before", e)}
-                    className={cn(
-                      "flex flex-col items-center justify-center h-40 bg-white rounded-lg border-2 border-dashed transition-colors cursor-pointer",
-                      dragOverBefore
-                        ? "border-primary bg-primary/5 border-primary"
-                        : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                    )}
-                  >
-                    <Camera className={cn("h-10 w-10 mb-2 transition-colors", dragOverBefore ? "text-primary" : "text-gray-400")} />
-                    <span className={cn("text-sm transition-colors", dragOverBefore ? "text-primary font-medium" : "text-gray-500")}>
-                      {dragOverBefore ? "Drop image here" : "Dropzone"}
-                    </span>
-                  </div>
-                )}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setShowUploadSheet("before")}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {localBeforeImage ? "Replace Image" : "Upload"}
-                </Button>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                {renderImageGrid(localBeforeImages, "before")}
               </div>
             </div>
 
             {/* After Service Section */}
             <div className="space-y-2">
               <Label className="text-sm font-semibold text-gray-700">After Service</Label>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 space-y-2">
-                {localAfterImage ? (
-                  <div className="relative">
-                    <img
-                      src={localAfterImage}
-                      alt="After service"
-                      className="w-full h-40 object-cover rounded-lg"
-                    />
-                    <button
-                      onClick={() => handleRemoveImage("after")}
-                      className="absolute top-2 right-2 p-1.5 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors"
-                      aria-label="Remove image"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </div>
-                ) : (
-                  <div
-                    onClick={() => handleDropzoneClick("after")}
-                    onDrop={(e) => handleDrop("after", e)}
-                    onDragOver={(e) => handleDragOver("after", e)}
-                    onDragLeave={(e) => handleDragLeave("after", e)}
-                    className={cn(
-                      "flex flex-col items-center justify-center h-40 bg-white rounded-lg border-2 border-dashed transition-colors cursor-pointer",
-                      dragOverAfter
-                        ? "border-primary bg-primary/5 border-primary"
-                        : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
-                    )}
-                  >
-                    <Camera className={cn(
-                      "h-10 w-10 mb-2 transition-colors",
-                      dragOverAfter ? "text-primary" : "text-gray-400"
-                    )} />
-                    <span className={cn(
-                      "text-sm transition-colors",
-                      dragOverAfter ? "text-primary font-medium" : "text-gray-500"
-                    )}>
-                      {dragOverAfter ? "Drop image here" : "Dropzone"}
-                    </span>
-                  </div>
-                )}
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={() => setShowUploadSheet("after")}
-                >
-                  <Upload className="h-4 w-4 mr-2" />
-                  {localAfterImage ? "Replace Image" : "Upload"}
-                </Button>
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+                {renderImageGrid(localAfterImages, "after")}
               </div>
             </div>
           </div>
@@ -338,44 +373,6 @@ const AddServicePicturesModal = ({
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Bottom Sheet for Upload Options */}
-      {showUploadSheet && (
-        <div
-          className="fixed inset-0 bg-black/50 z-50 flex items-end"
-          onClick={() => setShowUploadSheet(null)}
-        >
-          <div
-            className="w-full bg-white rounded-t-2xl p-4 space-y-2 animate-in slide-in-from-bottom"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="h-1 w-12 bg-gray-300 rounded-full mx-auto mb-4" />
-            <Button
-              variant="ghost"
-              className="w-full justify-start h-12 text-base"
-              onClick={() => handleImageUpload(showUploadSheet, "camera")}
-            >
-              <Camera className="h-5 w-5 mr-3" />
-              Take Photo
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start h-12 text-base"
-              onClick={() => handleImageUpload(showUploadSheet, "gallery")}
-            >
-              <Upload className="h-5 w-5 mr-3" />
-              Choose from Gallery
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start h-12 text-base text-red-600"
-              onClick={() => setShowUploadSheet(null)}
-            >
-              Cancel
-            </Button>
-          </div>
-        </div>
-      )}
     </>
   );
 };

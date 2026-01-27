@@ -37,13 +37,16 @@ type JobFeedbackStatus = {
   };
 };
 
-// Track job pictures
+// Track job pictures - now stores arrays of images for multi-photo support
 type JobPictures = {
   [jobId: string]: {
-    beforeImage: string | null;
-    afterImage: string | null;
+    beforeImages: string[];
+    afterImages: string[];
   };
 };
+
+// Maximum number of images allowed per section
+const MAX_IMAGES_PER_SECTION = 10;
 
 const Jobs = () => {
   const navigate = useNavigate();
@@ -700,7 +703,11 @@ const Jobs = () => {
   // Check if job has any pictures
   const hasPictures = (jobId: string): boolean => {
     const pictures = jobPictures[jobId];
-    return !!(pictures?.beforeImage || pictures?.afterImage);
+    // Check for either new array format or legacy single image format
+    if (!pictures) return false;
+    const hasBeforeImages = pictures.beforeImages && pictures.beforeImages.length > 0;
+    const hasAfterImages = pictures.afterImages && pictures.afterImages.length > 0;
+    return hasBeforeImages || hasAfterImages;
   };
 
   // Handle add pictures
@@ -721,42 +728,55 @@ const Jobs = () => {
     }
   };
 
-  // Handle save pictures
-  const handleSavePictures = (jobId: string, beforeImage: string | null, afterImage: string | null) => {
+  // Handle save pictures - now accepts arrays of images
+  const handleSavePictures = (jobId: string, beforeImages: string[], afterImages: string[]) => {
     setJobPictures(prev => ({
       ...prev,
       [jobId]: {
-        beforeImage,
-        afterImage,
+        beforeImages,
+        afterImages,
       },
     }));
   };
 
-  // Handle delete picture
-  const handleDeletePicture = (jobId: string, type: "before" | "after") => {
+  // Handle delete picture - removes a specific image by index, or all images if index is -1
+  const handleDeletePicture = (jobId: string, type: "before" | "after", index?: number) => {
     setJobPictures(prev => {
-      const current = prev[jobId] || { beforeImage: null, afterImage: null };
+      const current = prev[jobId] || { beforeImages: [], afterImages: [] };
+      const key = type === "before" ? "beforeImages" : "afterImages";
+      const images = current[key] || [];
+      
+      // If index is provided, remove specific image; otherwise clear all
+      const newImages = index !== undefined && index >= 0
+        ? images.filter((_, i) => i !== index)
+        : [];
+      
       return {
         ...prev,
         [jobId]: {
           ...current,
-          [type === "before" ? "beforeImage" : "afterImage"]: null,
+          [key]: newImages,
         },
       };
     });
   };
 
-  // Handle replace picture
-  const handleReplacePicture = (jobId: string, type: "before" | "after") => {
-    // Simulate file upload - in a real app, this would use actual file picker/camera API
-    const mockImageUrl = `https://picsum.photos/400/300?random=${Date.now()}`;
+  // Handle adding multiple images to a section - appends to existing images
+  const handleAddImages = (jobId: string, type: "before" | "after", newImages: string[]) => {
     setJobPictures(prev => {
-      const current = prev[jobId] || { beforeImage: null, afterImage: null };
+      const current = prev[jobId] || { beforeImages: [], afterImages: [] };
+      const key = type === "before" ? "beforeImages" : "afterImages";
+      const existingImages = current[key] || [];
+      
+      // Enforce max limit
+      const availableSlots = MAX_IMAGES_PER_SECTION - existingImages.length;
+      const imagesToAdd = newImages.slice(0, availableSlots);
+      
       return {
         ...prev,
         [jobId]: {
           ...current,
-          [type === "before" ? "beforeImage" : "afterImage"]: mockImageUrl,
+          [key]: [...existingImages, ...imagesToAdd],
         },
       };
     });
@@ -1434,8 +1454,8 @@ const Jobs = () => {
         }}
         jobId={selectedJobForPictures?.id || ""}
         jobStatus={selectedJobForPictures?.status || ""}
-        beforeImage={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.beforeImage || null) : null}
-        afterImage={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.afterImage || null) : null}
+        beforeImages={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.beforeImages || []) : []}
+        afterImages={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.afterImages || []) : []}
         onSave={handleSavePictures}
       />
 
@@ -1449,10 +1469,10 @@ const Jobs = () => {
           }
         }}
         jobId={selectedJobForPictures?.id || ""}
-        beforeImage={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.beforeImage || null) : null}
-        afterImage={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.afterImage || null) : null}
+        beforeImages={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.beforeImages || []) : []}
+        afterImages={selectedJobForPictures ? (jobPictures[selectedJobForPictures.id]?.afterImages || []) : []}
         onDelete={handleDeletePicture}
-        onReplace={handleReplacePicture}
+        onAddImages={handleAddImages}
       />
 
       {/* Cannot Edit Modal */}

@@ -73,9 +73,11 @@ export function convertToJob(
 
       // Create job from invoice
       const jobId = `JOB-${Date.now()}`;
+      // Use provided job title, or derive from invoice services, or use a generic fallback
+      const derivedTitle = jobTitle || (document as any).serviceName || (document as any).services?.[0] || "Service Job";
       jobData = {
         id: jobId,
-        title: jobTitle || `Invoice ${document.id}`,
+        title: derivedTitle,
         customerId: document.customerId,
         customerName: document.customerName,
         technicianId: employee.id,

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockJobs, mockCustomers, mockEmployees, mockInvoices, mockEstimates, mockAgreements } from "@/data/mobileMockData";
 import type { JobPaymentStatus, JobSourceType } from "@/data/mobileMockData";
-import { Calendar, Clock, MapPin, User, Phone, Mail, Navigation, CreditCard, Receipt, FileCheck, ScrollText, DollarSign, Edit, PlusCircle, FileText, ChevronDown } from "lucide-react";
+import { Calendar, Clock, MapPin, User, Mail, MessageSquare, Navigation, CreditCard, Receipt, FileCheck, ScrollText, DollarSign, Edit, PlusCircle, FileText, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
@@ -65,6 +65,42 @@ const JobDetails = () => {
   };
 
   const job = getJobWithPaymentStatus();
+
+  // Derive meaningful title from associated document if current title is generic
+  const getDerivedJobTitle = (job: any) => {
+    if (!job) return "Service Job";
+    
+    const currentTitle = job.title || "";
+    
+    // If title already looks meaningful (not a document ID pattern), use it
+    if (!currentTitle.match(/^(Invoice|Estimate|Agreement)\s+[A-Z0-9\-]+$/)) {
+      return currentTitle;
+    }
+    
+    // Try to get service name from associated document
+    const sourceId = (job as any).sourceId;
+    const sourceType = (job as any).sourceType;
+    
+    if (sourceId && sourceType) {
+      if (sourceType === "invoice") {
+        const invoice = mockInvoices.find(inv => inv.id === sourceId);
+        if (invoice?.serviceName) return invoice.serviceName;
+        // Fallback to "Plumbing Work" for invoices without serviceName
+        return "Plumbing Work";
+      } else if (sourceType === "estimate") {
+        const estimate = mockEstimates.find(est => est.id === sourceId);
+        if (estimate?.serviceName) return estimate.serviceName;
+        return "Plumbing Work";
+      } else if (sourceType === "agreement") {
+        const agreement = mockAgreements.find(agr => agr.id === sourceId);
+        if (agreement?.serviceName) return agreement.serviceName;
+        return "Plumbing Work";
+      }
+    }
+    
+    // Fallback for document ID pattern - return "Plumbing Work"
+    return "Plumbing Work";
+  };
   
   useEffect(() => {
     if (job) {
@@ -466,7 +502,7 @@ const JobDetails = () => {
         <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/5">
           {/* Title and Status Row */}
           <div className="flex items-start justify-between gap-2 mb-2">
-            <h2 className="text-xl font-bold flex-1">{job.title}</h2>
+            <h2 className="text-xl font-bold flex-1">{getDerivedJobTitle(job)}</h2>
             <Badge className={cn("text-xs shrink-0", statusColors[jobStatus || job.status])}>
               {jobStatus || job.status}
             </Badge>
@@ -489,13 +525,33 @@ const JobDetails = () => {
 
         {/* Quick Actions */}
         <div className="grid grid-cols-2 gap-3 px-4 py-4">
-          <Button variant="outline" className="gap-2" onClick={() => window.location.href = `tel:${customer?.phone}`}>
-            <Phone className="h-4 w-4" />
-            Call Customer
+          <Button 
+            variant="outline" 
+            className="gap-2" 
+            disabled={!customer?.email}
+            onClick={() => {
+              if (customer?.email) {
+                const subject = encodeURIComponent(`Job ${job.id}`);
+                window.location.href = `mailto:${customer.email}?subject=${subject}`;
+              }
+            }}
+          >
+            <Mail className="h-4 w-4" />
+            Send Email
           </Button>
-          <Button variant="outline" className="gap-2" onClick={() => window.location.href = `tel:${technician?.phone}`}>
-            <Phone className="h-4 w-4" />
-            Call Tech
+          <Button 
+            variant="outline" 
+            className="gap-2"
+            disabled={!customer?.phone}
+            onClick={() => {
+              if (customer?.phone) {
+                // Use sms: scheme for cross-platform SMS support
+                window.location.href = `sms:${customer.phone}`;
+              }
+            }}
+          >
+            <MessageSquare className="h-4 w-4" />
+            Send SMS
           </Button>
         </div>
 

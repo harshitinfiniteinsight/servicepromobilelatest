@@ -345,7 +345,7 @@ const EmployeeDetails = () => {
     // Transform invoices to jobs
     const invoiceJobs = mockInvoices.map((invoice, index) => ({
       id: invoice.id,
-      title: `Invoice ${invoice.id}`,
+      title: (invoice as any).serviceName || (invoice as any).services?.[0] || "Service Job",
       customerId: invoice.customerId,
       customerName: invoice.customerName,
       technicianId: "1",
@@ -363,7 +363,7 @@ const EmployeeDetails = () => {
       .filter(estimate => !convertedEstimatesSet.has(estimate.id))
       .map((estimate, index) => ({
         id: estimate.id,
-        title: `Estimate ${estimate.id}`,
+        title: (estimate as any).serviceName || (estimate as any).services?.[0] || "Service Job",
         customerId: estimate.customerId,
         customerName: estimate.customerName,
         technicianId: "1",
