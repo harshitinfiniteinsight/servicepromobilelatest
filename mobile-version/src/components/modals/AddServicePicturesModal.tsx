@@ -221,10 +221,10 @@ const AddServicePicturesModal = ({
     const isDragOver = type === "before" ? dragOverBefore : dragOverAfter;
 
     return (
-      <div className="space-y-2">
+      <div className="space-y-1.5">
         {/* Image grid - responsive: 2 columns on mobile, 3 on larger screens */}
         {images.length > 0 && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
             {images.map((image, index) => (
               <div key={`${type}-${index}`} className="relative aspect-square">
                 <img
@@ -234,7 +234,7 @@ const AddServicePicturesModal = ({
                 />
                 <button
                   onClick={() => handleRemoveImage(type, index)}
-                  className="absolute top-1 right-1 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-md"
+                  className="absolute top-0.5 right-0.5 p-1 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors shadow-md"
                   aria-label={`Remove image ${index + 1}`}
                 >
                   <X className="h-3 w-3" />
@@ -253,7 +253,7 @@ const AddServicePicturesModal = ({
             onDragLeave={(e) => handleDragLeave(type, e)}
             className={cn(
               "flex flex-col items-center justify-center bg-white rounded-lg border-2 border-dashed transition-colors cursor-pointer",
-              images.length === 0 ? "h-40" : "h-24",
+              images.length === 0 ? "h-36" : "h-20",
               isDragOver
                 ? "border-primary bg-primary/5"
                 : "border-gray-300 hover:border-gray-400 hover:bg-gray-50"
@@ -261,15 +261,15 @@ const AddServicePicturesModal = ({
           >
             {images.length === 0 ? (
               <>
-                <Camera className={cn("h-10 w-10 mb-2 transition-colors", isDragOver ? "text-primary" : "text-gray-400")} />
-                <span className={cn("text-sm transition-colors", isDragOver ? "text-primary font-medium" : "text-gray-500")}>
+                <Camera className={cn("h-10 w-10 mb-1.5 transition-colors", isDragOver ? "text-primary" : "text-gray-400")} />
+                <span className={cn("text-xs transition-colors", isDragOver ? "text-primary font-medium" : "text-gray-500")}>
                   {isDragOver ? "Drop images here" : "Tap to add or drag images"}
                 </span>
               </>
             ) : (
               <>
-                <Plus className={cn("h-6 w-6 transition-colors", isDragOver ? "text-primary" : "text-gray-400")} />
-                <span className={cn("text-xs transition-colors mt-1", isDragOver ? "text-primary font-medium" : "text-gray-500")}>
+                <Plus className={cn("h-5 w-5 transition-colors", isDragOver ? "text-primary" : "text-gray-400")} />
+                <span className={cn("text-xs transition-colors", isDragOver ? "text-primary font-medium" : "text-gray-500")}>
                   {isDragOver ? "Drop images here" : "Add more"}
                 </span>
               </>
@@ -288,13 +288,13 @@ const AddServicePicturesModal = ({
   return (
     <>
       <Dialog open={open} onOpenChange={handleCancel}>
-        <DialogContent className="w-[90%] max-w-sm mx-auto p-5 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[85vh] overflow-y-auto" onInteractOutside={handleCancel}>
+        <DialogContent className="w-[90%] max-w-sm mx-auto p-4 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[85vh] overflow-y-auto" onInteractOutside={handleCancel}>
           <DialogDescription className="sr-only">
             Upload before and after service pictures for this job
           </DialogDescription>
           {/* Header */}
-          <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b border-gray-100">
-            <DialogTitle className="text-lg font-semibold text-gray-800">Add Service Pictures</DialogTitle>
+          <DialogHeader className="flex flex-row items-center justify-between pb-1.5 border-b border-gray-100">
+            <DialogTitle className="text-lg font-semibold text-gray-800">Upload Service Pictures</DialogTitle>
             <Button
               variant="ghost"
               size="icon"
@@ -305,7 +305,7 @@ const AddServicePicturesModal = ({
             </Button>
           </DialogHeader>
 
-          <div className="space-y-4 mt-3">
+          <div className="space-y-2.5 mt-2">
             {/* Hidden file inputs - multiple selection enabled */}
             <input
               type="file"
@@ -339,24 +339,24 @@ const AddServicePicturesModal = ({
             />
 
             {/* Before Service Section */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label className="text-sm font-semibold text-gray-700">Before Service</Label>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-2">
                 {renderImageGrid(localBeforeImages, "before")}
               </div>
             </div>
 
             {/* After Service Section */}
-            <div className="space-y-2">
+            <div className="space-y-1">
               <Label className="text-sm font-semibold text-gray-700">After Service</Label>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-2">
                 {renderImageGrid(localAfterImages, "after")}
               </div>
             </div>
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex gap-2 pt-2 border-t border-gray-100">
+          <div className="flex gap-2 pt-1.5 border-t border-gray-100">
             <Button
               variant="outline"
               onClick={handleCancel}

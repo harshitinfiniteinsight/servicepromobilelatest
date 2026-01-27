@@ -240,7 +240,7 @@ const JobCard = ({
       // Add Pictures
       if (onAddPictures) {
         items.push({
-          label: "Add Pictures",
+          label: "Upload Pictures",
           icon: ImageIcon,
           action: () => onAddPictures(),
           separator: false,
@@ -299,7 +299,7 @@ const JobCard = ({
       // Add Pictures
       if (onAddPictures) {
         items.push({
-          label: "Add Pictures",
+          label: "Upload Pictures",
           icon: ImageIcon,
           action: () => onAddPictures(),
           separator: false,
@@ -348,7 +348,7 @@ const JobCard = ({
       // Add Pictures
       if (onAddPictures) {
         items.push({
-          label: "Add Pictures",
+          label: "Upload Pictures",
           icon: ImageIcon,
           action: () => onAddPictures(),
           separator: false,
