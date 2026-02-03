@@ -1144,6 +1144,30 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
               Update the job route by selecting new times for each customer. This will reschedule your job route.
             </AlertDialogDescription>
           </AlertDialogHeader>
+
+          {/* Route Summary Header */}
+          <div className="px-4 py-3 bg-gray-50 border-b border-gray-100 flex-shrink-0">
+            <div className="grid grid-cols-3 gap-3 text-center">
+              <div>
+                <p className="text-[11px] text-gray-500 uppercase tracking-wide font-medium">Employee</p>
+                <p className="text-sm font-semibold text-gray-900 mt-1 truncate">
+                  {mockEmployees.find(emp => emp.id === selectedEmployeeId)?.name || "—"}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-500 uppercase tracking-wide font-medium">Date</p>
+                <p className="text-sm font-semibold text-gray-900 mt-1">
+                  {format(selectedDate, "MMM d")}
+                </p>
+              </div>
+              <div>
+                <p className="text-[11px] text-gray-500 uppercase tracking-wide font-medium">Stops</p>
+                <p className="text-sm font-semibold text-gray-900 mt-1">
+                  {sortedPendingRouteOrder?.length || 0}
+                </p>
+              </div>
+            </div>
+          </div>
           
           {/* Customer-Grouped Job List with Time Pickers - Compact Mobile Layout */}
           <div className="px-4 py-2 overflow-y-auto flex-1 min-h-0">
