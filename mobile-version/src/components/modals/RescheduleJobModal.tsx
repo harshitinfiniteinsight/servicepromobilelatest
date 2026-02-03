@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, ChevronLeft, ChevronRight, Clock, User, RefreshCw, MapPin, Pencil, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isBefore, startOfDay } from "date-fns";
-import { mockEmployees } from "@/data/mobileMockData";
+import { mockEmployees, mockJobs } from "@/data/mobileMockData";
 import AddressAutocomplete, { AddressData } from "@/components/common/AddressAutocomplete";
 
 interface RescheduleJobModalProps {
@@ -47,6 +47,23 @@ const generateTimeSlots = (date: Date): string[] => {
     "04:00 PM",
     "05:00 PM",
   ];
+};
+
+/**
+ * Get disabled time slots for an employee on a specific date
+ * Returns array of time strings that are already booked
+ */
+const getDisabledTimeSlots = (date: Date, employeeId: string): string[] => {
+  const dateString = format(date, "yyyy-MM-dd");
+  
+  // Find all jobs for this employee on this date
+  const employeeJobsOnDate = mockJobs.filter(job => 
+    job.technicianId === employeeId && 
+    job.date === dateString
+  );
+  
+  // Extract booked time slots
+  return employeeJobsOnDate.map(job => job.time);
 };
 
 // Check if a date is available (mock implementation)
@@ -162,11 +179,18 @@ const RescheduleJobModal = ({
     return [...paddingDays, ...days];
   }, [currentMonth]);
 
-  // Get time slots for selected date
-  const timeSlots = useMemo(() => {
-    if (!selectedDate) return [];
-    return generateTimeSlots(selectedDate);
-  }, [selectedDate]);
+  // Get time slots for selected date and disabled slots for selected employee
+  const { timeSlots, disabledSlots } = useMemo(() => {
+    if (!selectedDate) return { timeSlots: [], disabledSlots: [] };
+    
+    const slots = generateTimeSlots(selectedDate);
+    const disabledTimes = getDisabledTimeSlots(selectedDate, selectedEmployeeId);
+    
+    return {
+      timeSlots: slots,
+      disabledSlots: disabledTimes,
+    };
+  }, [selectedDate, selectedEmployeeId]);
 
   const handlePrevMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1));
@@ -187,7 +211,10 @@ const RescheduleJobModal = ({
   };
 
   const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
+    // Only allow selection of available time slots
+    if (!disabledSlots.includes(time)) {
+      setSelectedTime(time);
+    }
   };
 
   const handleConfirm = async () => {
@@ -278,6 +305,13 @@ const RescheduleJobModal = ({
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto">
+          {/* Informational Banner */}
+          <div className="mx-4 mt-4 p-3 bg-amber-50 rounded-xl border border-amber-200">
+            <p className="text-xs text-amber-900">
+              You can only change the date of this job from here. To change the time, click Edit Route and update the job schedule.
+            </p>
+          </div>
+
           {/* Job Info */}
           <div className="mx-4 mt-4 p-3 bg-blue-50 rounded-xl border border-blue-100">
             <p className="text-xs text-blue-600 font-medium mb-1">Rescheduling</p>
@@ -484,20 +518,31 @@ const RescheduleJobModal = ({
               <div className="grid grid-cols-2 gap-2">
                 {timeSlots.map((time) => {
                   const isSelected = selectedTime === time;
+                  const isDisabled = disabledSlots.includes(time);
                   
                   return (
-                    <button
-                      key={time}
-                      onClick={() => handleTimeSelect(time)}
-                      className={cn(
-                        "py-3 px-4 rounded-xl text-sm font-medium transition-all",
-                        isSelected
-                          ? "bg-orange-500 text-white"
-                          : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    <div key={time} className="relative group">
+                      <button
+                        onClick={() => handleTimeSelect(time)}
+                        disabled={isDisabled}
+                        className={cn(
+                          "w-full py-3 px-4 rounded-xl text-sm font-medium transition-all",
+                          isDisabled
+                            ? "bg-gray-200 text-gray-400 cursor-not-allowed opacity-60"
+                            : isSelected
+                            ? "bg-orange-500 text-white"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        )}
+                        title={isDisabled ? "This time slot is already booked" : ""}
+                      >
+                        {time}
+                      </button>
+                      {isDisabled && (
+                        <div className="absolute top-full mt-1 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                          Already booked
+                        </div>
                       )}
-                    >
-                      {time}
-                    </button>
+                    </div>
                   );
                 })}
               </div>

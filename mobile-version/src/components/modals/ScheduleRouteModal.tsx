@@ -6,7 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { X, MapPin, Clock, GripVertical, Calendar as CalendarIcon, Circle, XCircle, ChevronDown, UserCog, RefreshCw, Eye } from "lucide-react";
+import { X, MapPin, Clock, GripVertical, Calendar as CalendarIcon, Circle, XCircle, ChevronDown, UserCog, Eye } from "lucide-react";
 import { format } from "date-fns";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
@@ -162,11 +162,10 @@ interface RouteStopCardProps {
   predictedTime?: string; // New: predicted time based on route order
   onStatusChange: (jobId: string, newStatus: string) => void;
   onReassignEmployee: (job: typeof mockJobs[0]) => void;
-  onRescheduleJob: (job: typeof mockJobs[0]) => void;
   onViewDetails: (job: typeof mockJobs[0]) => void;
 }
 
-const RouteStopCard = ({ job, index, empColor, status, predictedTime, onStatusChange, onReassignEmployee, onRescheduleJob, onViewDetails }: RouteStopCardProps) => {
+const RouteStopCard = ({ job, index, empColor, status, predictedTime, onStatusChange, onReassignEmployee, onViewDetails }: RouteStopCardProps) => {
   const {
     attributes,
     listeners,
@@ -196,12 +195,6 @@ const RouteStopCard = ({ job, index, empColor, status, predictedTime, onStatusCh
       label: "Reassign Employee",
       icon: UserCog,
       action: () => onReassignEmployee(job),
-      separator: false,
-    },
-    {
-      label: "Reschedule Job",
-      icon: RefreshCw,
-      action: () => onRescheduleJob(job),
       separator: false,
     },
   ];
@@ -1067,7 +1060,6 @@ const ScheduleRouteModal = ({ isOpen, onClose, onSave, initialEmployeeId, mode =
                           predictedTime={predictedTime}
                           onStatusChange={handleJobStatusChange}
                           onReassignEmployee={handleReassignEmployee}
-                          onRescheduleJob={handleRescheduleJob}
                           onViewDetails={handleViewDetails}
                         />
                       );
