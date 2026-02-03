@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockJobs, mockCustomers, mockEmployees, mockInvoices, mockEstimates, mockAgreements } from "@/data/mobileMockData";
 import type { JobPaymentStatus, JobSourceType } from "@/data/mobileMockData";
-import { Calendar, Clock, MapPin, User, Mail, MessageSquare, Navigation, CreditCard, Receipt, FileCheck, ScrollText, DollarSign, Edit, PlusCircle, FileText, ChevronDown } from "lucide-react";
+import { Calendar, Clock, MapPin, User, Navigation, CreditCard, Receipt, FileCheck, ScrollText, DollarSign, Edit, PlusCircle, FileText, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
@@ -523,40 +523,8 @@ const JobDetails = () => {
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-3 px-4 py-4">
-          <Button 
-            variant="outline" 
-            className="gap-2" 
-            disabled={!customer?.email}
-            onClick={() => {
-              if (customer?.email) {
-                const subject = encodeURIComponent(`Job ${job.id}`);
-                window.location.href = `mailto:${customer.email}?subject=${subject}`;
-              }
-            }}
-          >
-            <Mail className="h-4 w-4" />
-            Send Email
-          </Button>
-          <Button 
-            variant="outline" 
-            className="gap-2"
-            disabled={!customer?.phone}
-            onClick={() => {
-              if (customer?.phone) {
-                // Use sms: scheme for cross-platform SMS support
-                window.location.href = `sms:${customer.phone}`;
-              }
-            }}
-          >
-            <MessageSquare className="h-4 w-4" />
-            Send SMS
-          </Button>
-        </div>
-
         {/* Details */}
-        <div className="px-4 space-y-4 pb-6">
+        <div className="px-4 mt-4 space-y-4 pb-6">
           <div className="p-4 rounded-xl border bg-card">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
               <User className="h-4 w-4 text-primary" />
