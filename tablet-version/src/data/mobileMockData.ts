@@ -274,47 +274,159 @@ export const mockInvoices = [
   { id: "INV-028", customerId: "8", customerName: "Lisa Anderson", issueDate: "2024-01-15", dueDate: "2024-01-30", amount: 510, status: "Deactivated", paymentMethod: "Cash", type: "deactivated" },
   { id: "INV-029", customerId: "17", customerName: "Steven Lewis", issueDate: "2024-01-26", dueDate: "2024-02-11", amount: 2650, status: "Deactivated", paymentMethod: "ACH", type: "deactivated" },
   { id: "INV-030", customerId: "19", customerName: "Thomas Young", issueDate: "2024-01-20", dueDate: "2024-02-05", amount: 845, status: "Deactivated", paymentMethod: "Credit Card", type: "deactivated" },
+  {
+    id: "INV-033",
+    customerId: "16",
+    customerName: "Nancy Clark",
+    customerEmail: "nancy.c@email.com",
+    customerPhone: "(555) 666-7777",
+    issueDate: "2024-01-16",
+    dueDate: "2026-01-15",
+    amount: 25.99,
+    status: "Open",
+    paymentMethod: "Credit Card",
+    type: "single",
+    invoiceVariant: "standard",
+    items: [
+      {
+        name: "HVAC Filter - Standard",
+        quantity: 1,
+        price: 25.99,
+        total: 25.99,
+        discount: 2.60,
+        discountName: "Percent Discount",
+        discountType: "$"
+      }
+    ],
+    subtotal: 19.49,
+    discount: 6.50,
+    tax: 1.95
+  },
+  {
+    id: "INV-034",
+    customerId: "1",
+    customerName: "John Smith",
+    customerEmail: "john.smith@email.com",
+    customerPhone: "(555) 123-4567",
+    issueDate: "2024-01-30",
+    dueDate: "2024-03-01",
+    amount: 315.50,
+    status: "Open",
+    paymentMethod: "Credit Card",
+    type: "single",
+    invoiceVariant: "itemLevel",
+    items: [
+      {
+        id: "item-1",
+        name: "Air Filter Replacement",
+        quantity: 2,
+        price: 45.00,
+        amount: 90.00,
+        defaultDiscounts: [
+          { name: "Bulk Discount", type: "%", value: 10 }
+        ],
+        defaultTaxes: [
+          { name: "State Tax", value: 8.5 }
+        ]
+      },
+      {
+        id: "item-2",
+        name: "HVAC System Inspection",
+        quantity: 1,
+        price: 120.00,
+        amount: 120.00,
+        defaultDiscounts: [
+          { name: "Service Discount", type: "$", value: 15 }
+        ],
+        defaultTaxes: [
+          { name: "State Tax", value: 8.5 }
+        ]
+      },
+      {
+        id: "item-3",
+        name: "Thermostat Calibration",
+        quantity: 1,
+        price: 75.00,
+        amount: 75.00,
+        defaultTaxes: [
+          { name: "State Tax", value: 8.5 }
+        ]
+      }
+    ],
+    subtotal: 285.00,
+    discount: 0,
+    tax: 30.50,
+    total: 315.50
+  },
 ];
 
 export const mockEstimates = [
-  { id: "EST-001", customerId: "1", customerName: "John Smith", date: "2024-01-28", amount: 1200, status: "Paid", probability: 75 },
-  { id: "EST-002", customerId: "3", customerName: "Michael Chen", date: "2024-01-27", amount: 850, status: "Paid", probability: 100 },
+  { id: "EST-001", customerId: "1", customerName: "John Smith", date: "2024-01-28", amount: 1200, status: "Converted to Invoice", probability: 75 },
+  { id: "EST-002", customerId: "3", customerName: "Michael Chen", date: "2024-01-27", amount: 850, status: "Converted to Invoice", probability: 100 },
   { id: "EST-003", customerId: "6", customerName: "Jennifer Wilson", date: "2024-01-26", amount: 2100, status: "Unpaid", probability: 0 },
-  { id: "EST-004", customerId: "11", customerName: "Christopher Garcia", date: "2024-01-25", amount: 950, status: "Paid", probability: 60 },
+  { id: "EST-004", customerId: "11", customerName: "Christopher Garcia", date: "2024-01-25", amount: 950, status: "Converted to Invoice", probability: 60 },
   { id: "EST-005", customerId: "12", customerName: "Amanda Rodriguez", date: "2024-01-24", amount: 675, status: "Unpaid", probability: 0 },
-  { id: "EST-006", customerId: "14", customerName: "Michelle White", date: "2024-01-23", amount: 1450, status: "Paid", probability: 100 },
-  { id: "EST-007", customerId: "16", customerName: "Nancy Clark", date: "2024-01-22", amount: 780, status: "Paid", probability: 80 },
+  { id: "EST-006", customerId: "14", customerName: "Michelle White", date: "2024-01-23", amount: 1450, status: "Converted to Invoice", probability: 100 },
+  { id: "EST-007", customerId: "16", customerName: "Nancy Clark", date: "2024-01-22", amount: 780, status: "Converted to Invoice", probability: 80 },
   { id: "EST-008", customerId: "2", customerName: "Sarah Johnson", date: "2024-01-21", amount: 3200, status: "Unpaid", probability: 0 },
-  { id: "EST-009", customerId: "4", customerName: "Emma Davis", date: "2024-01-20", amount: 1550, status: "Paid", probability: 100 },
-  { id: "EST-010", customerId: "5", customerName: "Robert Miller", date: "2024-01-19", amount: 890, status: "Paid", probability: 70 },
-  { id: "EST-011", customerId: "7", customerName: "David Brown", date: "2024-01-18", amount: 1100, status: "Paid", probability: 65 },
-  { id: "EST-012", customerId: "8", customerName: "Lisa Anderson", date: "2024-01-17", amount: 625, status: "Paid", probability: 100 },
+  { id: "EST-009", customerId: "4", customerName: "Emma Davis", date: "2024-01-20", amount: 1550, status: "Converted to Invoice", probability: 100 },
+  { id: "EST-010", customerId: "5", customerName: "Robert Miller", date: "2024-01-19", amount: 890, status: "Converted to Invoice", probability: 70 },
+  { id: "EST-011", customerId: "7", customerName: "David Brown", date: "2024-01-18", amount: 1100, status: "Converted to Invoice", probability: 65 },
+  { id: "EST-012", customerId: "8", customerName: "Lisa Anderson", date: "2024-01-17", amount: 625, status: "Converted to Invoice", probability: 100 },
   { id: "EST-013", customerId: "9", customerName: "William Taylor", date: "2024-01-16", amount: 4500, status: "Unpaid", probability: 0 },
   { id: "EST-014", customerId: "10", customerName: "Jessica Martinez", date: "2024-01-15", amount: 950, status: "Unpaid", probability: 0 },
-  { id: "EST-015", customerId: "13", customerName: "Daniel Lee", date: "2024-01-14", amount: 2800, status: "Paid", probability: 100 },
-  { id: "EST-016", customerId: "15", customerName: "Kevin Harris", date: "2024-01-13", amount: 1250, status: "Paid", probability: 85 },
-  { id: "EST-017", customerId: "17", customerName: "Steven Lewis", date: "2024-01-12", amount: 3650, status: "Paid", probability: 75 },
+  { id: "EST-015", customerId: "13", customerName: "Daniel Lee", date: "2024-01-14", amount: 2800, status: "Converted to Invoice", probability: 100 },
+  { id: "EST-016", customerId: "15", customerName: "Kevin Harris", date: "2024-01-13", amount: 1250, status: "Converted to Invoice", probability: 85 },
+  { id: "EST-017", customerId: "17", customerName: "Steven Lewis", date: "2024-01-12", amount: 3650, status: "Converted to Invoice", probability: 75 },
   { id: "EST-018", customerId: "18", customerName: "Karen Walker", date: "2024-01-11", amount: 725, status: "Unpaid", probability: 0 },
-  { id: "EST-019", customerId: "19", customerName: "Thomas Young", date: "2024-01-10", amount: 1890, status: "Paid", probability: 100 },
-  { id: "EST-020", customerId: "20", customerName: "Patricia King", date: "2024-01-09", amount: 1050, status: "Paid", probability: 70 },
+  { id: "EST-019", customerId: "19", customerName: "Thomas Young", date: "2024-01-10", amount: 1890, status: "Converted to Invoice", probability: 100 },
+  { id: "EST-020", customerId: "20", customerName: "Patricia King", date: "2024-01-09", amount: 1050, status: "Converted to Invoice", probability: 70 },
+  { 
+    id: "EST-023", 
+    customerId: "16", 
+    customerName: "Nancy Clark", 
+    date: "2024-01-05", 
+    amount: 21.44, 
+    status: "Unpaid", 
+    probability: 0,
+    items: [
+      { 
+        name: "HVAC Filter - Standard", 
+        quantity: 1, 
+        price: 25.99, 
+        total: 25.99,
+        discount: 25,
+        discountName: "Inventory Discount",
+        discountLabel: "Inventory Discount"
+      }
+    ],
+    subtotal: 25.99,
+    discount: 6.50,
+    tax: 1.95
+  },
 ];
 
+// Job payment status types
+export type JobPaymentStatus = "paid" | "unpaid" | "partial";
+export type JobSourceType = "estimate" | "invoice" | "agreement" | "none";
+
 export const mockJobs = [
-  { id: "JOB-001", title: "HVAC Installation", customerId: "1", customerName: "John Smith", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-01", time: "09:00 AM", status: "Scheduled", location: "123 Main St, Springfield, IL" },
-  { id: "JOB-002", title: "Plumbing Repair", customerId: "2", customerName: "Sarah Johnson", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-30", time: "02:00 PM", status: "In Progress", location: "456 Oak Ave, Chicago, IL" },
-  { id: "JOB-003", title: "Electrical Service", customerId: "4", customerName: "Emma Davis", technicianId: "3", technicianName: "Chris Davis", date: "2024-01-29", time: "10:30 AM", status: "Completed", location: "321 Elm St, Aurora, IL" },
-  { id: "JOB-004", title: "AC Maintenance", customerId: "5", customerName: "Robert Miller", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-02", time: "01:00 PM", status: "Scheduled", location: "654 Maple Dr, Joliet, IL" },
-  { id: "JOB-005", title: "Water Heater Replacement", customerId: "7", customerName: "David Brown", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-31", time: "11:00 AM", status: "In Progress", location: "246 Birch St, Peoria, IL" },
-  { id: "JOB-006", title: "Furnace Inspection", customerId: "8", customerName: "Lisa Anderson", technicianId: "4", technicianName: "Sarah Martinez", date: "2024-01-28", time: "03:00 PM", status: "Completed", location: "135 Spruce Ave, Decatur, IL" },
-  { id: "JOB-007", title: "Kitchen Plumbing", customerId: "9", customerName: "William Taylor", technicianId: "2", technicianName: "Tom Wilson", date: "2024-02-03", time: "09:30 AM", status: "Scheduled", location: "864 Willow Ct, Champaign, IL" },
-  { id: "JOB-008", title: "Panel Upgrade", customerId: "10", customerName: "Jessica Martinez", technicianId: "3", technicianName: "Chris Davis", date: "2024-02-01", time: "02:30 PM", status: "Scheduled", location: "753 Ash Blvd, Springfield, IL" },
-  { id: "JOB-009", title: "Drain Cleaning", customerId: "13", customerName: "Daniel Lee", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-30", time: "04:00 PM", status: "In Progress", location: "159 Walnut Ave, Evanston, IL" },
-  { id: "JOB-010", title: "AC Installation", customerId: "15", customerName: "Kevin Harris", technicianId: "1", technicianName: "Mike Johnson", date: "2024-01-27", time: "08:00 AM", status: "Completed", location: "792 Sycamore Rd, Bolingbrook, IL" },
-  { id: "JOB-011", title: "Outlet Installation", customerId: "17", customerName: "Steven Lewis", technicianId: "3", technicianName: "Chris Davis", date: "2024-02-04", time: "10:00 AM", status: "Scheduled", location: "348 Dogwood Ln, Des Plaines, IL" },
-  { id: "JOB-012", title: "Leak Repair", customerId: "18", customerName: "Karen Walker", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-29", time: "01:30 PM", status: "Completed", location: "875 Redwood Ct, Mount Prospect, IL" },
-  { id: "JOB-013", title: "Duct Cleaning", customerId: "19", customerName: "Thomas Young", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-05", time: "11:30 AM", status: "Scheduled", location: "521 Fir Ave, Wheaton, IL" },
-  { id: "JOB-014", title: "Bathroom Remodel", customerId: "20", customerName: "Patricia King", technicianId: "2", technicianName: "Tom Wilson", date: "2024-02-02", time: "09:00 AM", status: "Scheduled", location: "267 Beech St, Glen Ellyn, IL" },
-  { id: "JOB-015", title: "Thermostat Install", customerId: "6", customerName: "Jennifer Wilson", technicianId: "4", technicianName: "Sarah Martinez", date: "2024-01-26", time: "02:00 PM", status: "Completed", location: "987 Cedar Ln, Rockford, IL" },
+  { id: "JOB-001", title: "HVAC Installation", services: ["HVAC Installation", "Duct Inspection", "Filter Replacement"], customerId: "1", customerName: "John Smith", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-01", time: "09:00 AM", status: "Scheduled", location: "123 Main St, Springfield, IL", sourceType: "invoice" as const, sourceId: "INV-001", paymentStatus: "unpaid" as JobPaymentStatus },
+  { id: "JOB-002", title: "Plumbing Repair", services: ["Plumbing Repair", "Pipe Inspection"], customerId: "2", customerName: "Sarah Johnson", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-30", time: "02:00 PM", status: "In Progress", location: "456 Oak Ave, Chicago, IL", sourceType: "estimate" as const, sourceId: "EST-001", paymentStatus: "unpaid" as JobPaymentStatus },
+  { id: "JOB-003", title: "Electrical Service", services: ["Electrical Service"], customerId: "4", customerName: "Emma Davis", technicianId: "3", technicianName: "Chris Davis", date: "2024-01-29", time: "10:30 AM", status: "Completed", location: "321 Elm St, Aurora, IL", sourceType: "agreement" as const, sourceId: "AGR-001", paymentStatus: "paid" as JobPaymentStatus },
+  { id: "JOB-004", title: "AC Maintenance", services: ["AC Maintenance", "Refrigerant Check", "Coil Cleaning", "Thermostat Calibration"], customerId: "5", customerName: "Robert Miller", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-02", time: "01:00 PM", status: "Scheduled", location: "654 Maple Dr, Joliet, IL", sourceType: "invoice" as const, sourceId: "INV-004", paymentStatus: "partial" as JobPaymentStatus },
+  { id: "JOB-005", title: "Water Heater Replacement", services: ["Water Heater Replacement"], customerId: "7", customerName: "David Brown", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-31", time: "11:00 AM", status: "In Progress", location: "246 Birch St, Peoria, IL", sourceType: "estimate" as const, sourceId: "EST-002", paymentStatus: "unpaid" as JobPaymentStatus },
+  { id: "JOB-006", title: "Furnace Inspection", services: ["Furnace Inspection", "Safety Check"], customerId: "8", customerName: "Lisa Anderson", technicianId: "4", technicianName: "Sarah Martinez", date: "2024-01-28", time: "03:00 PM", status: "Completed", location: "135 Spruce Ave, Decatur, IL", sourceType: "invoice" as const, sourceId: "INV-006", paymentStatus: "paid" as JobPaymentStatus },
+  { id: "JOB-007", title: "Kitchen Plumbing", services: ["Kitchen Plumbing", "Faucet Installation", "Garbage Disposal Repair"], customerId: "9", customerName: "William Taylor", technicianId: "2", technicianName: "Tom Wilson", date: "2024-02-03", time: "09:30 AM", status: "Scheduled", location: "864 Willow Ct, Champaign, IL", sourceType: "agreement" as const, sourceId: "AGR-002", paymentStatus: "unpaid" as JobPaymentStatus },
+  { id: "JOB-008", title: "Panel Upgrade", services: ["Panel Upgrade"], customerId: "10", customerName: "Jessica Martinez", technicianId: "3", technicianName: "Chris Davis", date: "2024-02-01", time: "02:30 PM", status: "Scheduled", location: "753 Ash Blvd, Springfield, IL", sourceType: "estimate" as const, sourceId: "EST-003", paymentStatus: "unpaid" as JobPaymentStatus },
+  { id: "JOB-009", title: "Drain Cleaning", services: ["Drain Cleaning", "Camera Inspection"], customerId: "13", customerName: "Daniel Lee", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-30", time: "04:00 PM", status: "In Progress", location: "159 Walnut Ave, Evanston, IL", sourceType: "invoice" as const, sourceId: "INV-009", paymentStatus: "partial" as JobPaymentStatus },
+  { id: "JOB-010", title: "AC Installation", services: ["AC Installation", "Ductwork", "Electrical Connection"], customerId: "15", customerName: "Kevin Harris", technicianId: "1", technicianName: "Mike Johnson", date: "2024-01-27", time: "08:00 AM", status: "Completed", location: "792 Sycamore Rd, Bolingbrook, IL", sourceType: "invoice" as const, sourceId: "INV-011", paymentStatus: "paid" as JobPaymentStatus },
+  { id: "JOB-011", title: "Outlet Installation", services: ["Outlet Installation"], customerId: "17", customerName: "Steven Lewis", technicianId: "3", technicianName: "Chris Davis", date: "2024-02-04", time: "10:00 AM", status: "Scheduled", location: "348 Dogwood Ln, Des Plaines, IL", sourceType: "estimate" as const, sourceId: "EST-004", paymentStatus: "unpaid" as JobPaymentStatus },
+  { id: "JOB-012", title: "Leak Repair", services: ["Leak Repair", "Pipe Replacement"], customerId: "18", customerName: "Karen Walker", technicianId: "2", technicianName: "Tom Wilson", date: "2024-01-29", time: "01:30 PM", status: "Completed", location: "875 Redwood Ct, Mount Prospect, IL", sourceType: "invoice" as const, sourceId: "INV-013", paymentStatus: "paid" as JobPaymentStatus },
+  { id: "JOB-013", title: "Duct Cleaning", services: ["Duct Cleaning", "Air Quality Test", "Filter Replacement"], customerId: "19", customerName: "Thomas Young", technicianId: "1", technicianName: "Mike Johnson", date: "2024-02-05", time: "11:30 AM", status: "Scheduled", location: "521 Fir Ave, Wheaton, IL", sourceType: "agreement" as const, sourceId: "AGR-003", paymentStatus: "unpaid" as JobPaymentStatus },
+  { id: "JOB-014", title: "Bathroom Remodel", services: ["Bathroom Remodel", "Plumbing Rough-In", "Fixture Installation", "Tile Work"], customerId: "20", customerName: "Patricia King", technicianId: "2", technicianName: "Tom Wilson", date: "2024-02-02", time: "09:00 AM", status: "Scheduled", location: "267 Beech St, Glen Ellyn, IL", sourceType: "estimate" as const, sourceId: "EST-005", paymentStatus: "unpaid" as JobPaymentStatus },
+  { id: "JOB-015", title: "Thermostat Install", services: ["Thermostat Install"], customerId: "6", customerName: "Jennifer Wilson", technicianId: "4", technicianName: "Sarah Martinez", date: "2024-01-26", time: "02:00 PM", status: "Completed", location: "987 Cedar Ln, Rockford, IL", sourceType: "invoice" as const, sourceId: "INV-017", paymentStatus: "paid" as JobPaymentStatus },
+  { id: "JOB-016", title: "Emergency Pipe Repair", services: ["Emergency Pipe Repair"], customerId: "3", customerName: "Michael Chen", technicianId: "2", technicianName: "Tom Wilson", date: "2024-02-06", time: "08:30 AM", status: "Scheduled", location: "789 Pine Rd, Naperville, IL", sourceType: "none" as const, sourceId: undefined, paymentStatus: "unpaid" as JobPaymentStatus },
 ];
 
 // Helper function to get current month dates
@@ -370,16 +482,16 @@ export const mockEmployees = [
 ];
 
 export const mockInventory = [
-  { id: "INV-ITEM-001", name: "HVAC Filter - Standard", sku: "HVAC-FILT-001", category: "HVAC", stock: 150, lowStockThreshold: 50, unitPrice: 25.99, lastUpdated: "2024-01-28", supplier: "AirTech Supply", type: "F" },
-  { id: "INV-ITEM-002", name: "Copper Pipe - 1/2 inch", sku: "PLUMB-PIPE-002", category: "Plumbing", stock: 85, lowStockThreshold: 30, unitPrice: 8.50, lastUpdated: "2024-01-27", supplier: "PlumbPro Inc", type: "V" },
+  { id: "INV-ITEM-001", name: "HVAC Filter - Standard", sku: "HVAC-FILT-001", category: "HVAC", stock: 150, lowStockThreshold: 50, unitPrice: 25.99, lastUpdated: "2024-01-28", supplier: "AirTech Supply", type: "F", defaultDiscounts: [ { name: "Seasonal Discount", type: "%", value: 10 }, { name: "Loyalty Discount", type: "$", value: 5 } ], defaultTaxes: [ { name: "State Tax", type: "%", value: 8 } ] },
+  { id: "INV-ITEM-002", name: "Copper Pipe - 1/2 inch", sku: "PLUMB-PIPE-002", category: "Plumbing", stock: 85, lowStockThreshold: 30, unitPrice: 8.50, lastUpdated: "2024-01-27", supplier: "PlumbPro Inc", type: "V", defaultDiscounts: [ { name: "Bulk Discount", type: "%", value: 5 } ], defaultTaxes: [ { name: "Sales Tax", type: "%", value: 7.5 } ] },
   { id: "INV-ITEM-003", name: "Electrical Wire - 12 AWG", sku: "ELEC-WIRE-003", category: "Electrical", stock: 200, lowStockThreshold: 100, unitPrice: 1.25, lastUpdated: "2024-01-26", supplier: "Electric Depot", type: "U" },
-  { id: "INV-ITEM-004", name: "Thermostat - Programmable", sku: "HVAC-THER-004", category: "HVAC", stock: 35, lowStockThreshold: 15, unitPrice: 89.99, lastUpdated: "2024-01-25", supplier: "AirTech Supply", type: "F" },
-  { id: "INV-ITEM-005", name: "PVC Pipe - 3 inch", sku: "PLUMB-PIPE-005", category: "Plumbing", stock: 60, lowStockThreshold: 25, unitPrice: 12.75, lastUpdated: "2024-01-24", supplier: "PlumbPro Inc", type: "V" },
+  { id: "INV-ITEM-004", name: "Thermostat - Programmable", sku: "HVAC-THER-004", category: "HVAC", stock: 35, lowStockThreshold: 15, unitPrice: 89.99, lastUpdated: "2024-01-25", supplier: "AirTech Supply", type: "F", defaultDiscounts: [ { name: "Professional Discount", type: "%", value: 15 } ], defaultTaxes: [ { name: "State Tax", type: "%", value: 8 }, { name: "City Tax", type: "%", value: 2 } ] },
+  { id: "INV-ITEM-005", name: "PVC Pipe - 3 inch", sku: "PLUMB-PIPE-005", category: "Plumbing", stock: 60, lowStockThreshold: 25, unitPrice: 12.75, lastUpdated: "2024-01-24", supplier: "PlumbPro Inc", type: "V", defaultTaxes: [ { name: "Sales Tax", type: "%", value: 7.5 } ] },
   { id: "INV-ITEM-006", name: "Circuit Breaker - 20A", sku: "ELEC-BRKR-006", category: "Electrical", stock: 12, lowStockThreshold: 20, unitPrice: 15.50, lastUpdated: "2024-01-23", supplier: "Electric Depot", type: "F" },
-  { id: "INV-ITEM-007", name: "Refrigerant - R-410A", sku: "HVAC-REFR-007", category: "HVAC", stock: 28, lowStockThreshold: 10, unitPrice: 125.00, lastUpdated: "2024-01-22", supplier: "AirTech Supply", type: "U" },
-  { id: "INV-ITEM-008", name: "Water Heater - 50 Gal", sku: "PLUMB-WHT-008", category: "Plumbing", stock: 8, lowStockThreshold: 5, unitPrice: 450.00, lastUpdated: "2024-01-21", supplier: "PlumbPro Inc", type: "F" },
+  { id: "INV-ITEM-007", name: "Refrigerant - R-410A", sku: "HVAC-REFR-007", category: "HVAC", stock: 28, lowStockThreshold: 10, unitPrice: 125.00, lastUpdated: "2024-01-22", supplier: "AirTech Supply", type: "U", defaultTaxes: [ { name: "State Tax", type: "%", value: 8 } ] },
+  { id: "INV-ITEM-008", name: "Water Heater - 50 Gal", sku: "PLUMB-WHT-008", category: "Plumbing", stock: 8, lowStockThreshold: 5, unitPrice: 450.00, lastUpdated: "2024-01-21", supplier: "PlumbPro Inc", type: "F", defaultDiscounts: [ { name: "Volume Discount", type: "$", value: 50 } ], defaultTaxes: [ { name: "Sales Tax", type: "%", value: 7.5 } ] },
   { id: "INV-ITEM-009", name: "Light Switch - Dimmer", sku: "ELEC-SWCH-009", category: "Electrical", stock: 45, lowStockThreshold: 20, unitPrice: 18.99, lastUpdated: "2024-01-20", supplier: "Electric Depot", type: "F" },
-  { id: "INV-ITEM-010", name: "Air Filter - MERV 13", sku: "HVAC-FILT-010", category: "HVAC", stock: 95, lowStockThreshold: 40, unitPrice: 32.50, lastUpdated: "2024-01-19", supplier: "AirTech Supply", type: "F" },
+  { id: "INV-ITEM-010", name: "Air Filter - MERV 13", sku: "HVAC-FILT-010", category: "HVAC", stock: 95, lowStockThreshold: 40, unitPrice: 32.50, lastUpdated: "2024-01-19", supplier: "AirTech Supply", type: "F", defaultDiscounts: [ { name: "Seasonal Discount", type: "%", value: 10 } ], defaultTaxes: [ { name: "State Tax", type: "%", value: 8 } ] },
   { id: "INV-ITEM-011", name: "Drain Snake - 25 ft", sku: "PLUMB-TOOL-011", category: "Tools", stock: 18, lowStockThreshold: 10, unitPrice: 45.00, lastUpdated: "2024-01-18", supplier: "Tool Mart" },
   { id: "INV-ITEM-012", name: "Outlet - GFCI", sku: "ELEC-OUTL-012", category: "Electrical", stock: 72, lowStockThreshold: 30, unitPrice: 12.25, lastUpdated: "2024-01-17", supplier: "Electric Depot" },
   { id: "INV-ITEM-013", name: "Duct Tape - Heavy Duty", sku: "HVAC-TAPE-013", category: "HVAC", stock: 120, lowStockThreshold: 50, unitPrice: 8.99, lastUpdated: "2024-01-16", supplier: "AirTech Supply" },
@@ -423,11 +535,11 @@ export const mockInventory = [
 ];
 
 export const mockAgreements = [
-  { id: "AGR-001", customerId: "1", customerName: "John Smith", type: "Annual Maintenance", startDate: "2024-01-01", endDate: "2024-12-31", monthlyAmount: 49.99, status: "Paid", renewalStatus: "Auto-renew", createdAt: "2024-01-01T08:00:00.000Z" },
-  { id: "AGR-002", customerId: "4", customerName: "Emma Davis", type: "Quarterly Service", startDate: "2023-10-01", endDate: "2024-09-30", monthlyAmount: 129.99, status: "Paid", renewalStatus: "Manual", createdAt: "2023-10-01T09:30:00.000Z" },
-  { id: "AGR-003", customerId: "9", customerName: "William Taylor", type: "Premium Plan", startDate: "2024-01-15", endDate: "2025-01-14", monthlyAmount: 199.99, status: "Paid", renewalStatus: "Auto-renew", createdAt: "2024-01-15T10:15:00.000Z" },
-  { id: "AGR-004", customerId: "13", customerName: "Daniel Lee", type: "Basic Coverage", startDate: "2023-07-01", endDate: "2024-06-30", monthlyAmount: 79.99, status: "Open", renewalStatus: "Pending", createdAt: "2023-07-01T11:00:00.000Z" },
-  { id: "AGR-005", customerId: "17", customerName: "Steven Lewis", type: "Commercial Plan", startDate: "2024-02-01", endDate: "2025-01-31", monthlyAmount: 399.99, status: "Open", renewalStatus: "Auto-renew", createdAt: "2024-02-01T14:20:00.000Z" },
+  { id: "AGR-001", customerId: "1", customerName: "John Smith", type: "Annual Maintenance", startDate: "2024-01-01", endDate: "2024-12-31", monthlyAmount: 49.99, status: "Paid", renewalStatus: "Auto-renew" },
+  { id: "AGR-002", customerId: "4", customerName: "Emma Davis", type: "Quarterly Service", startDate: "2023-10-01", endDate: "2024-09-30", monthlyAmount: 129.99, status: "Paid", renewalStatus: "Manual" },
+  { id: "AGR-003", customerId: "9", customerName: "William Taylor", type: "Premium Plan", startDate: "2024-01-15", endDate: "2025-01-14", monthlyAmount: 199.99, status: "Paid", renewalStatus: "Auto-renew" },
+  { id: "AGR-004", customerId: "13", customerName: "Daniel Lee", type: "Basic Coverage", startDate: "2023-07-01", endDate: "2024-06-30", monthlyAmount: 79.99, status: "Open", renewalStatus: "Pending" },
+  { id: "AGR-005", customerId: "17", customerName: "Steven Lewis", type: "Commercial Plan", startDate: "2024-02-01", endDate: "2025-01-31", monthlyAmount: 399.99, status: "Open", renewalStatus: "Auto-renew" },
 ];
 
 export const mockDiscounts = [
@@ -482,7 +594,7 @@ export const paymentMethods = ["Cash", "Credit Card", "ACH", "Check"];
 export const statusColors: Record<string, string> = {
   Active: "bg-success/10 text-success border-success/20",
   Inactive: "bg-muted text-muted-foreground border-muted",
-  Paid: "bg-success/10 text-success border-success/20",
+  Paid: "bg-success/10 text-success border-success/20",  // For invoices only
   Unpaid: "bg-warning/10 text-warning border-warning/20",
   Open: "bg-warning/10 text-warning border-warning/20",
   Overdue: "bg-destructive/10 text-destructive border-destructive/20",

@@ -761,7 +761,7 @@ const EmployeeTracking = () => {
     if (id.startsWith("EST")) {
       const estimate = mockEstimates.find(est => est.id === job.id);
       if (estimate) {
-        return estimate.status === "Paid" ? "Paid" : "Open";
+        return (estimate.status === "Converted to Invoice" || estimate.status === "Paid") ? "Paid" : "Open";
       }
     }
     

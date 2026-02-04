@@ -258,7 +258,7 @@ const EstimateDetails = () => {
               <div className="space-y-2 text-sm">
                 <p>
                   <span className="text-muted-foreground">Method:</span>{" "}
-                  {estimate.status === "Paid" ? (estimate as any).paymentMethod : "-"}
+                  {(estimate.status === "Converted to Invoice" || estimate.status === "Paid") ? (estimate as any).paymentMethod : "-"}
                 </p>
                 <p>
                   <span className="text-muted-foreground">Status:</span> {estimate.status}

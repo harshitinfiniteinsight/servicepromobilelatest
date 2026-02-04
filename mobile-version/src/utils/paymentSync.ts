@@ -104,8 +104,9 @@ export function updateSourceDocumentPaymentStatus(
         
         const estimateIndex = estimates.findIndex((est: any) => est.id === sourceId);
         if (estimateIndex !== -1) {
-          // Estimates use "Paid" / "Unpaid" status
-          estimates[estimateIndex].status = paymentStatus === "Paid" ? "Paid" : "Unpaid";
+          // Estimates use "Converted to Invoice" / "Unpaid" status (never "Paid")
+          // Payment completion triggers conversion to invoice in estimateToInvoiceService
+          estimates[estimateIndex].status = paymentStatus === "Paid" ? "Converted to Invoice" : "Unpaid";
           if (paymentMethod) {
             estimates[estimateIndex].paymentMethod = paymentMethod;
           }
@@ -290,7 +291,9 @@ export function getSourceDocumentPaymentStatus(
         const storedEstimates = localStorage.getItem("mockEstimates");
         const estimates = storedEstimates ? JSON.parse(storedEstimates) : mockEstimates;
         const estimate = estimates.find((est: any) => est.id === sourceId);
-        return estimate?.status === "Paid" ? "Paid" : "Open";
+        // Map estimate statuses: 'Converted to Invoice' = Paid, 'Unpaid' = Open
+        // Handle legacy 'Paid' status by treating as converted
+        return (estimate?.status === "Converted to Invoice" || estimate?.status === "Paid") ? "Paid" : "Open";
       }
       
       case "agreement": {

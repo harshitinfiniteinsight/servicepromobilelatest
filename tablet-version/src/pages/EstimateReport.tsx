@@ -25,7 +25,7 @@ interface Estimate {
 const getEstimateDisplayStatus = (
   status: string
 ): "Paid" | "Open" | "Converted to Invoice" => {
-  if (status === "Paid") return "Paid";
+  if (status === "Paid" || status === "Converted to Invoice") return "Converted to Invoice";
   if (status === "Converted to Invoice") return "Converted to Invoice";
   return "Open";
 };

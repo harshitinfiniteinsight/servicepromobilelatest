@@ -370,7 +370,7 @@ const EmployeeDetails = () => {
         technicianName: assignTechnician(estimate.customerId, index),
         date: estimate.date,
         time: "10:00 AM",
-        status: estimate.status === "Paid" ? "Completed" : "Scheduled",
+        status: (estimate.status === "Converted to Invoice" || estimate.status === "Paid") ? "Completed" : "Scheduled",
         location: getCustomerAddress(estimate.customerId),
       }));
 

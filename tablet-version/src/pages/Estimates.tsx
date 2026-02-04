@@ -543,7 +543,7 @@ const Estimates = () => {
       return <KebabMenu items={items} menuWidth="w-44" />;
     }
 
-    if (estimate.status === "Paid") {
+    if (estimate.status === "Converted to Invoice") {
       // Check if estimate has already been converted to job
       const convertedEstimates = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
       const isConverted = estimate.status === "Converted to Job" || convertedEstimates.includes(estimate.id);
@@ -972,8 +972,8 @@ const Estimates = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All Statuses</SelectItem>
-                              <SelectItem value="Paid">Paid</SelectItem>
                               <SelectItem value="Unpaid">Unpaid</SelectItem>
+                              <SelectItem value="Converted to Invoice">Converted to Invoice</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

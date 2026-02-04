@@ -354,7 +354,7 @@ const Jobs = () => {
       else if (id.startsWith("EST")) {
         const estimate = mockEstimates.find(est => est.id === job.id);
         if (estimate) {
-          paymentStatus = estimate.status === "Paid" ? "Paid" : "Open";
+          paymentStatus = (estimate.status === "Converted to Invoice" || estimate.status === "Paid") ? "Paid" : "Open";
         }
       }
       // Check agreement status
@@ -820,7 +820,7 @@ const Jobs = () => {
       if (id.startsWith("EST")) {
         const estimate = mockEstimates.find(est => est.id === job.id);
         if (estimate) {
-          return estimate.status === "Paid" ? "Paid" : "Open";
+          return (estimate.status === "Converted to Invoice" || estimate.status === "Paid") ? "Paid" : "Open";
         }
       }
 

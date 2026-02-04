@@ -328,7 +328,7 @@ const Index = () => {
   // Stats based on selected date
   const todaysAppointments = filteredAppointments;
   const openInvoices = filteredInvoices.filter(inv => inv.status === "Open");
-  const sentEstimates = filteredEstimates.filter(est => est.status === "Paid");
+  const sentEstimates = filteredEstimates.filter(est => est.status === "Converted to Invoice" || est.status === "Paid");
   const activeJobs = filteredJobs.filter(job => job.status === "In Progress" || job.status === "Scheduled");
 
   const stats = [
@@ -751,7 +751,7 @@ const Index = () => {
                         </div>
                         <div className="flex-1">
                           <p className="font-medium">
-                            {isDeactivated ? "Estimate Deactivated" : `Estimate ${activity.data.status === "Paid" ? "Paid" : "Sent"}`}
+                            {isDeactivated ? "Estimate Deactivated" : `Estimate ${(activity.data.status === "Converted to Invoice" || activity.data.status === "Paid") ? "Converted" : "Sent"}`}
                           </p>
                           <p className="text-sm text-muted-foreground">{activity.data.customerName || (activity.data as any).customName} • ${activity.data.amount.toFixed(2)}</p>
                         </div>

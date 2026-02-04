@@ -523,7 +523,7 @@ const Estimates = () => {
       return <KebabMenu items={items} menuWidth="w-44" />;
     }
 
-    if (estimate.status === "Paid") {
+    if (estimate.status === "Converted to Invoice") {
       // Check if estimate has already been converted to job using lookup map
       const hasAssociatedJob = estimateJobLookup.has(estimate.id);
       const isConverted = hasAssociatedJob || estimate.status === "Converted to Job" || convertedEstimates.has(estimate.id);
@@ -792,8 +792,8 @@ const Estimates = () => {
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">All Statuses</SelectItem>
-                              <SelectItem value="Paid">Paid</SelectItem>
                               <SelectItem value="Unpaid">Unpaid</SelectItem>
+                              <SelectItem value="Converted to Invoice">Converted to Invoice</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
