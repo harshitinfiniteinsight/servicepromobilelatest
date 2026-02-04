@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="600" viewBox="0 0 800 600" role="img" aria-label="Step 5 screenshot placeholder">
+  <rect width="800" height="600" fill="#FFE0B2"/>
+  <rect x="80" y="80" width="640" height="440" rx="24" fill="#FFFFFF" stroke="#D1D5DB"/>
+  <text x="400" y="280" text-anchor="middle" font-size="40" font-family="Arial, Helvetica, sans-serif" fill="#F97316">Step 5</text>
+  <text x="400" y="340" text-anchor="middle" font-size="22" font-family="Arial, Helvetica, sans-serif" fill="#6B7280">ACH Enabled</text>
+</svg>

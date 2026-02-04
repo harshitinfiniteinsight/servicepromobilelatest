@@ -1,12 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign } from "lucide-react";
+import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import ACHSetupSliderModal from "./ACHSetupSliderModal";
 import EnterCardDetailsModal from "./EnterCardDetailsModal";
 import EnterACHPaymentDetailsModal from "./EnterACHPaymentDetailsModal";
 import CashPaymentModal from "./CashPaymentModal";
 import TapToPayModal from "./TapToPayModal";
+import { useACHConfiguration } from "@/hooks/useACHConfiguration";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -24,11 +26,13 @@ interface PaymentModalProps {
 
 const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityType, agreement }: PaymentModalProps) => {
   const navigate = useNavigate();
+  const { achConfigured } = useACHConfiguration();
   const [showCardDetailsModal, setShowCardDetailsModal] = useState(false);
   const [showACHPaymentDetailsModal, setShowACHPaymentDetailsModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showTapToPayModal, setShowTapToPayModal] = useState(false);
   const [showNoReaderModal, setShowNoReaderModal] = useState(false);
+  const [showACHSetupModal, setShowACHSetupModal] = useState(false);
 
   // Calculate minimum amount payable for agreements
   const minimumAmountPayable = (() => {
@@ -102,8 +106,15 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
       // Show card details modal instead of closing
       setShowCardDetailsModal(true);
     } else if (methodId === "ach") {
-      // Show ACH payment details modal instead of closing
-      setShowACHPaymentDetailsModal(true);
+      // Flow A: ACH is configured - show payment flow
+      // Flow B: ACH is NOT configured - navigate to setup
+      if (achConfigured) {
+        // ACH is set up - open payment details modal
+        setShowACHPaymentDetailsModal(true);
+      } else {
+        // ACH not set up - show setup slider modal
+        setShowACHSetupModal(true);
+      }
     } else if (methodId === "cash") {
       // Show cash payment modal instead of closing
       setShowCashPaymentModal(true);
@@ -192,7 +203,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
 
   return (
     <>
-      <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal && !showNoReaderModal} onOpenChange={onClose}>
+      <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal && !showNoReaderModal && !showACHSetupModal} onOpenChange={onClose}>
         <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden [&>div]:p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">
             Service Pro911 - Payment
@@ -245,15 +256,34 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
                 <div className="grid grid-cols-2 gap-4 sm:gap-5 w-full box-border">
                   {paymentOptions.map((option) => {
                     const Icon = option.icon;
+                    const isACHAndNotConfigured = option.id === "ach" && !achConfigured;
+                    
                     return (
-                      <button
+                      <div
                         key={option.id}
-                        onClick={() => handlePaymentMethodClick(option.id)}
-                        className="flex flex-col items-center justify-center p-4 sm:p-6 bg-white border-2 border-gray-200 rounded-xl hover:border-orange-500 hover:bg-orange-50 transition-all active:scale-95 touch-target min-h-[100px] sm:min-h-[120px]"
+                        className={`flex flex-col items-center justify-center p-4 sm:p-6 bg-white border-2 border-gray-200 rounded-xl transition-all touch-target min-h-[100px] sm:min-h-[120px] ${
+                          isACHAndNotConfigured
+                            ? ""
+                            : "hover:border-orange-500 hover:bg-orange-50 active:scale-95 cursor-pointer"
+                        }`}
+                        onClick={() => !isACHAndNotConfigured && handlePaymentMethodClick(option.id)}
                       >
-                        <Icon className="h-6 w-6 sm:h-8 sm:w-8 text-orange-500 mb-2 sm:mb-3" />
-                        <span className="text-xs sm:text-sm font-medium text-gray-900 text-center leading-tight">{option.label}</span>
-                      </button>
+                        <Icon className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 sm:mb-3 ${isACHAndNotConfigured ? "text-gray-400" : "text-orange-500"}`} />
+                        <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${isACHAndNotConfigured ? "text-gray-500" : "text-gray-900"}`}>{option.label}</span>
+                        
+                        {/* Helper text for ACH when not configured - clickable link */}
+                        {isACHAndNotConfigured && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setShowACHSetupModal(true);
+                            }}
+                            className="mt-1 text-xs text-orange-500 underline font-medium hover:text-orange-600 active:scale-95"
+                          >
+                            Setup ACH first
+                          </button>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -262,6 +292,13 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* ACH Setup Slider Modal */}
+      <ACHSetupSliderModal
+        isOpen={showACHSetupModal}
+        onClose={handleACHSetupClose}
+        onBack={handleACHSetupBack}
+      />
 
       {/* Enter Card Details Modal */}
       <EnterCardDetailsModal
