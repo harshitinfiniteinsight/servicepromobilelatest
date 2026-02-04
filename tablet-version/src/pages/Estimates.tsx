@@ -14,6 +14,7 @@ import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import ShareAddressModal from "@/components/modals/ShareAddressModal";
 import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
+import EstimateToInvoiceInfoModal from "@/components/modals/EstimateToInvoiceInfoModal";
 import { mockEstimates, mockCustomers, mockEmployees, mockInvoices } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -26,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import { createPaymentNotification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
+import { convertEstimateToInvoice } from "@/services/estimateToInvoiceService";
 import { format } from "date-fns";
 
 const Estimates = () => {
@@ -54,6 +56,7 @@ const Estimates = () => {
     to: undefined,
   });
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const [showEstimateToInvoiceInfoModal, setShowEstimateToInvoiceInfoModal] = useState(false);
 
   // State for managing all estimates
   const [allEstimates, setAllEstimates] = useState<typeof mockEstimates>([]);
@@ -227,8 +230,15 @@ const Estimates = () => {
     const estimate = mockEstimates.find(est => est.id === estimateId);
     if (estimate) {
       setSelectedEstimate({ id: estimateId, amount: estimate.amount });
-      setShowPaymentModal(true);
+      // Show info modal before proceeding to payment
+      setShowEstimateToInvoiceInfoModal(true);
     }
+  };
+
+  const handleContinueToPayment = () => {
+    // Close info modal and show payment modal
+    setShowEstimateToInvoiceInfoModal(false);
+    setShowPaymentModal(true);
   };
 
   const handlePaymentMethodSelect = (method: string) => {
@@ -256,10 +266,18 @@ const Estimates = () => {
     if (selectedEstimate) {
       // Create payment notification
       createPaymentNotification("estimate", selectedEstimate.id);
+      
+      // Convert estimate to invoice after successful payment
+      const conversionResult = convertEstimateToInvoice(selectedEstimate.id);
+      if (conversionResult.success) {
+        toast.success("Payment completed. Estimate converted to Invoice.");
+      } else {
+        toast.success("Payment completed");
+        console.error("Failed to convert estimate to invoice:", conversionResult.error);
+      }
     }
     setShowCashPaymentModal(false);
     setSelectedEstimate(null);
-    toast.success("Payment completed");
   };
 
   const handleCashPaymentClose = () => {
@@ -487,7 +505,8 @@ const Estimates = () => {
         const payNowEstimate = mockEstimates.find(est => est.id === estimateId);
         if (payNowEstimate) {
           setSelectedEstimate({ id: estimateId, amount: payNowEstimate.amount });
-          setShowPaymentModal(true);
+          // Show info modal before proceeding to payment
+          setShowEstimateToInvoiceInfoModal(true);
         }
         break;
       case "pay-cash":
@@ -1868,6 +1887,16 @@ const Estimates = () => {
         </DialogContent>
       </Dialog>
 
+      {/* Estimate to Invoice Info Modal */}
+      <EstimateToInvoiceInfoModal
+        isOpen={showEstimateToInvoiceInfoModal}
+        onClose={() => {
+          setShowEstimateToInvoiceInfoModal(false);
+          setSelectedEstimate(null);
+        }}
+        onContinue={handleContinueToPayment}
+      />
+
       {/* Payment Modal */}
       {selectedEstimate && (
         <>
@@ -1903,7 +1932,8 @@ const Estimates = () => {
             if (action === "pay-now") {
               setShowPreviewModal(false);
               setSelectedEstimate({ id: previewEstimate.id, amount: previewEstimate.amount });
-              setShowPaymentModal(true);
+              // Show info modal before proceeding to payment
+              setShowEstimateToInvoiceInfoModal(true);
             } else if (action === "edit") {
               navigate(`/estimates/${previewEstimate.id}/edit`);
               setShowPreviewModal(false);
