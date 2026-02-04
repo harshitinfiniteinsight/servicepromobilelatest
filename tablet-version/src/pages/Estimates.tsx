@@ -543,71 +543,22 @@ const Estimates = () => {
       return <KebabMenu items={items} menuWidth="w-44" />;
     }
 
+    // Handle "Converted to Invoice" status - only show Preview Estimate and View Invoice
     if (estimate.status === "Converted to Invoice") {
-      // Check if estimate has already been converted to job
-      const convertedEstimates = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
-      const isConverted = estimate.status === "Converted to Job" || convertedEstimates.includes(estimate.id);
-
       const items: KebabMenuItem[] = [
         {
-          label: "Preview",
+          label: "Preview Estimate",
           icon: Eye,
           action: () => handleMenuAction("preview", estimate.id),
         },
-        // Only show "Convert to Job" if not already converted
-        ...(!isConverted ? [{
-          label: "Convert to Job",
-          icon: Briefcase,
-          action: () => handleMenuAction("convert-to-job", estimate.id),
-        }] : []),
         {
-          label: "Send Email",
-          icon: Mail,
-          action: () => handleMenuAction("send-email", estimate.id),
-        },
-        {
-          label: "Send SMS",
-          icon: MessageSquare,
-          action: () => handleMenuAction("send-sms", estimate.id),
+          label: "View Invoice",
+          icon: Receipt,
+          action: () => handleMenuAction("view-invoice", estimate.id),
         },
       ];
 
-      // Employees should NOT see sensitive admin actions on paid estimates
-      if (!isEmployee) {
-        items.push(
-          {
-            label: "Customer History",
-            icon: History,
-            action: () => handleMenuAction("doc-history", estimate.id),
-          },
-          {
-            label: "Add Note",
-            icon: StickyNote,
-            action: () => handleMenuAction("add-note", estimate.id),
-          },
-          {
-            label: "Reassign Employee",
-            icon: UserCog,
-            action: () => handleMenuAction("reassign", estimate.id),
-          },
-          {
-            label: "Refund",
-            icon: RotateCcw,
-            action: () => handleMenuAction("refund", estimate.id),
-            separator: true,
-          }
-        );
-      }
-
-      // Add "Create New Estimate" option for paid estimates
-      items.push({
-        label: "Create New Estimate",
-        icon: FilePlus,
-        action: () => handleMenuAction("create-new-estimate", estimate.id),
-        separator: true,
-      });
-
-      return <KebabMenu items={items} menuWidth="w-48" />;
+      return <KebabMenu items={items} menuWidth="w-56" />;
     }
 
     if (estimate.status === "Unpaid") {
