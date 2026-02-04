@@ -1,20 +1,86 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Switch } from "@/components/ui/switch";
 import { CreditCard, Landmark, Waves, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { showSuccessToast } from "@/utils/toast";
+import ACHSetupSliderModal from "@/components/modals/ACHSetupSliderModal";
 
 const PaymentMethods = () => {
+  // Check ACH setup status from localStorage
+  const getACHSetupStatus = () => {
+    try {
+      const achConfig = localStorage.getItem("achConfig");
+      if (achConfig) {
+        const config = JSON.parse(achConfig);
+        return config.isSetupComplete === true && config.achEnabled === true;
+      }
+    } catch (error) {
+      console.error("Error reading ACH config:", error);
+    }
+    return false;
+  };
+
   const [paymentMethods, setPaymentMethods] = useState({
     creditDebit: true,
-    bankACH: false,
+    bankACH: getACHSetupStatus(),
     tapToPay: true,
     manualCardEntry: true,
     otherPaymentMethods: false,
   });
+  
+  const [showACHSetupModal, setShowACHSetupModal] = useState(false);
+
+  // Listen for ACH setup completion
+  useEffect(() => {
+    const handleACHSetupComplete = () => {
+      const isConfigured = getACHSetupStatus();
+      if (isConfigured) {
+        setPaymentMethods(prev => ({ ...prev, bankACH: true }));
+        showSuccessToast("ACH payment method enabled successfully.");
+      }
+    };
+
+    // Listen for storage changes (ACH setup completion)
+    window.addEventListener("storage", handleACHSetupComplete);
+    
+    // Also check periodically in case storage event doesn't fire
+    const interval = setInterval(() => {
+      const isConfigured = getACHSetupStatus();
+      if (isConfigured && !paymentMethods.bankACH) {
+        setPaymentMethods(prev => ({ ...prev, bankACH: true }));
+      }
+    }, 1000);
+
+    return () => {
+      window.removeEventListener("storage", handleACHSetupComplete);
+      clearInterval(interval);
+    };
+  }, [paymentMethods.bankACH]);
 
   const handleToggle = (key: keyof typeof paymentMethods) => {
+    // Special handling for ACH toggle
+    if (key === "bankACH") {
+      const isACHConfigured = getACHSetupStatus();
+      
+      // If trying to enable ACH but it's not set up, show setup modal
+      if (!paymentMethods.bankACH && !isACHConfigured) {
+        setShowACHSetupModal(true);
+        return;
+      }
+      
+      // If ACH is configured, allow normal toggle
+      if (isACHConfigured) {
+        setPaymentMethods(prev => ({ ...prev, [key]: !prev[key] }));
+        showSuccessToast("Payment settings updated successfully.");
+        return;
+      }
+      
+      // Don't allow enabling if not configured
+      return;
+    }
+    
+    // Normal toggle for other payment methods
     setPaymentMethods(prev => ({ ...prev, [key]: !prev[key] }));
     
     // Auto-save on toggle change
@@ -201,6 +267,13 @@ const PaymentMethods = () => {
           </div>
         </div>
       </div>
+
+      {/* ACH Setup Guide Modal */}
+      <ACHSetupSliderModal
+        isOpen={showACHSetupModal}
+        onClose={() => setShowACHSetupModal(false)}
+        onBack={() => setShowACHSetupModal(false)}
+      />
     </div>
   );
 };
