@@ -81,7 +81,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     },
     {
       id: "ach",
-      label: "ACH Payment",
+      label: "ACH Bank Transfer",
       icon: Building2,
     },
     {
