@@ -2,16 +2,17 @@ import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, ChevronLeft, ChevronRight, Clock, User, RefreshCw, MapPin, Pencil, Check } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, Clock, User, RefreshCw, MapPin, Pencil, Check, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, isToday, isBefore, startOfDay } from "date-fns";
-import { mockEmployees, mockJobs } from "@/data/mobileMockData";
+import { mockEmployees } from "@/data/mobileMockData";
 import AddressAutocomplete, { AddressData } from "@/components/common/AddressAutocomplete";
 
 interface RescheduleJobModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (date: string, time: string, employeeId: string, updatedAddress?: string) => void;
+  onEditRoute?: () => void;
   job: {
     id: string;
     title: string;
@@ -49,35 +50,11 @@ const generateTimeSlots = (date: Date): string[] => {
   ];
 };
 
-/**
- * Get disabled time slots for an employee on a specific date
- * Returns array of time strings that are already booked
- */
-const getDisabledTimeSlots = (date: Date, employeeId: string): string[] => {
-  const dateString = format(date, "yyyy-MM-dd");
-  
-  // Find all jobs for this employee on this date
-  const employeeJobsOnDate = mockJobs.filter(job => 
-    job.technicianId === employeeId && 
-    job.date === dateString
-  );
-  
-  // Extract booked time slots
-  return employeeJobsOnDate.map(job => job.time);
-};
-
-// Check if a date is available (mock implementation)
+// Check if a date is available - only block past dates
 const isDateAvailable = (date: Date): boolean => {
   const today = startOfDay(new Date());
-  // Past dates are not available
-  if (isBefore(date, today)) return false;
-  
-  // For demo: make some random days unavailable
-  const dayOfMonth = date.getDate();
-  // Days 5, 12, 19, 26 are unavailable
-  if (dayOfMonth % 7 === 5) return false;
-  
-  return true;
+  // Only past dates are not available - all future dates can be selected
+  return !isBefore(date, today);
 };
 
 /**
@@ -99,6 +76,7 @@ const RescheduleJobModal = ({
   isOpen,
   onClose,
   onConfirm,
+  onEditRoute,
   job,
 }: RescheduleJobModalProps) => {
   // Get available technicians for reassignment
@@ -123,7 +101,8 @@ const RescheduleJobModal = ({
     return startOfMonth(jobDate);
   });
   const [selectedDate, setSelectedDate] = useState<Date | null>(() => parseJobDate(job.date));
-  const [selectedTime, setSelectedTime] = useState<string | null>(job.time || null);
+  // Time is read-only - derived from job.time, not selectable by user
+  const currentJobTime = job.time || null;
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(job.technicianId || availableTechnicians[0]?.id || "1");
   const [isConfirming, setIsConfirming] = useState(false);
   
@@ -146,7 +125,7 @@ const RescheduleJobModal = ({
       const jobDate = parseJobDate(job.date);
       setCurrentMonth(startOfMonth(jobDate));
       setSelectedDate(jobDate);
-      setSelectedTime(job.time || null);
+      // Time is read-only from job.time - no state to reset
       setSelectedEmployeeId(job.technicianId || availableTechnicians[0]?.id || "1");
       setIsConfirming(false);
       // Reset address state - address is always present for existing jobs
@@ -179,18 +158,11 @@ const RescheduleJobModal = ({
     return [...paddingDays, ...days];
   }, [currentMonth]);
 
-  // Get time slots for selected date and disabled slots for selected employee
-  const { timeSlots, disabledSlots } = useMemo(() => {
-    if (!selectedDate) return { timeSlots: [], disabledSlots: [] };
-    
-    const slots = generateTimeSlots(selectedDate);
-    const disabledTimes = getDisabledTimeSlots(selectedDate, selectedEmployeeId);
-    
-    return {
-      timeSlots: slots,
-      disabledSlots: disabledTimes,
-    };
-  }, [selectedDate, selectedEmployeeId]);
+  // Get time slots for selected date (display only, not selectable)
+  const timeSlots = useMemo(() => {
+    if (!selectedDate) return [];
+    return generateTimeSlots(selectedDate);
+  }, [selectedDate]);
 
   const handlePrevMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1));
@@ -203,23 +175,14 @@ const RescheduleJobModal = ({
   const handleDateSelect = (date: Date) => {
     if (!isDateAvailable(date)) return;
     setSelectedDate(date);
-    // Only reset time if the new date doesn't have the current time slot
-    const slots = generateTimeSlots(date);
-    if (selectedTime && !slots.includes(selectedTime)) {
-      setSelectedTime(null);
-    }
+    // Time is read-only - no need to reset
   };
 
-  const handleTimeSelect = (time: string) => {
-    // Only allow selection of available time slots
-    if (!disabledSlots.includes(time)) {
-      setSelectedTime(time);
-    }
-  };
+  // Time selection is disabled - time is read-only from job.time
 
   const handleConfirm = async () => {
-    // Prevent duplicate submissions
-    if (!selectedDate || !selectedTime || isConfirming) return;
+    // Prevent duplicate submissions - only date is required (time is read-only from job)
+    if (!selectedDate || isConfirming) return;
     
     setIsConfirming(true);
     
@@ -233,8 +196,8 @@ const RescheduleJobModal = ({
       // Get final address (use fullAddress if available, otherwise currentAddress)
       const finalAddress = addressData.fullAddress || currentAddress || job.jobAddress;
       
-      // Call onConfirm with the new date, time, employee, and address
-      onConfirm(formattedDate, selectedTime, selectedEmployeeId, finalAddress);
+      // Call onConfirm with the new date, original time (read-only), employee, and address
+      onConfirm(formattedDate, job.time, selectedEmployeeId, finalAddress);
     } catch (error) {
       console.error("Error rescheduling job:", error);
       setIsConfirming(false);
@@ -282,25 +245,34 @@ const RescheduleJobModal = ({
 
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const canConfirm = selectedDate && selectedTime;
+  // Only date selection is required - time is read-only from job
+  const canConfirm = selectedDate !== null;
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="w-[calc(100%-40px)] max-w-[380px] mx-auto p-0 gap-0 max-h-[85vh] overflow-hidden flex flex-col bg-white rounded-2xl shadow-xl border-0">
         <DialogTitle className="sr-only">Reschedule Job</DialogTitle>
         <DialogDescription className="sr-only">
-          Select a new date, time, and employee to reschedule the job
+          Select a new date to reschedule the job. Time cannot be changed here.
         </DialogDescription>
         
         {/* Header */}
-        <div className="flex items-center gap-3 px-5 py-4 border-b bg-white sticky top-0 z-10 rounded-t-2xl">
+        <div className="flex items-center justify-between px-5 py-4 border-b bg-white sticky top-0 z-10 rounded-t-2xl">
           <button
             onClick={handleClose}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors -ml-1"
+            aria-label="Go back"
           >
             <ArrowLeft className="h-5 w-5 text-gray-600" />
           </button>
           <h2 className="text-lg font-semibold text-gray-900">Reschedule Job</h2>
+          <button
+            onClick={handleClose}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors -mr-1"
+            aria-label="Close"
+          >
+            <X className="h-5 w-5 text-gray-600" />
+          </button>
         </div>
 
         {/* Scrollable Content */}
@@ -308,7 +280,24 @@ const RescheduleJobModal = ({
           {/* Informational Banner */}
           <div className="mx-4 mt-4 p-3 bg-amber-50 rounded-xl border border-amber-200">
             <p className="text-xs text-amber-900">
-              You can only change the date of this job from here. To change the time, click Edit Route and update the job schedule.
+              You can only change the date of this job from here.{" "}
+              If you wish to change the time for the same date, go to{" "}
+              {onEditRoute ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    onClose();
+                    onEditRoute();
+                  }}
+                  className="font-semibold text-primary underline hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-1 rounded"
+                  aria-label="Navigate to Edit Route screen"
+                >
+                  Edit Route
+                </button>
+              ) : (
+                <span className="font-semibold">Edit Route</span>
+              )}
+              .
             </p>
           </div>
 
@@ -508,44 +497,60 @@ const RescheduleJobModal = ({
           {/* Time Slots Section */}
           {selectedDate && (
             <div className="px-5 pb-5">
-              <div className="flex items-center gap-2 mb-4">
+              <div className="flex items-center gap-2 mb-3">
                 <Clock className="h-4 w-4 text-gray-500" />
                 <h4 className="text-sm font-semibold text-gray-900">
-                  Available Times for {format(selectedDate, "MMM d, yyyy")}
+                  Scheduled Time
                 </h4>
               </div>
+              <p className="text-xs text-gray-500 mb-4">
+                Time cannot be changed here. Use Edit Route to modify the scheduled time.
+              </p>
               
+              {/* Time slots are read-only - display for context only */}
               <div className="grid grid-cols-2 gap-2">
                 {timeSlots.map((time) => {
-                  const isSelected = selectedTime === time;
-                  const isDisabled = disabledSlots.includes(time);
+                  // Only highlight the current job time
+                  const isCurrentTime = currentJobTime === time;
                   
                   return (
-                    <div key={time} className="relative group">
-                      <button
-                        onClick={() => handleTimeSelect(time)}
-                        disabled={isDisabled}
+                    <div key={time} className="flex flex-col items-center">
+                      {/* All time slots are disabled - not selectable */}
+                      <div
                         className={cn(
-                          "w-full py-3 px-4 rounded-xl text-sm font-medium transition-all",
-                          isDisabled
-                            ? "bg-gray-200 text-gray-400 cursor-not-allowed opacity-60"
-                            : isSelected
+                          "w-full h-14 rounded-xl text-sm font-medium select-none flex items-center justify-center",
+                          isCurrentTime
                             ? "bg-orange-500 text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            : "bg-gray-100 text-gray-400 opacity-60"
                         )}
-                        title={isDisabled ? "This time slot is already booked" : ""}
                       >
                         {time}
-                      </button>
-                      {isDisabled && (
-                        <div className="absolute top-full mt-1 left-1/2 transform -translate-x-1/2 whitespace-nowrap bg-gray-900 text-white text-xs py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-                          Already booked
-                        </div>
-                      )}
+                      </div>
                     </div>
                   );
                 })}
               </div>
+              
+              {/* Show message if current job time is not in available slots */}
+              {currentJobTime && !timeSlots.includes(currentJobTime) && (
+                <div className="mt-3 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <p className="text-sm text-orange-800 font-medium">
+                    Current time: {currentJobTime}
+                  </p>
+                  <p className="text-xs text-orange-600 mt-1">
+                    This time will be kept when rescheduling.
+                  </p>
+                </div>
+              )}
+              
+              {/* Show message if job has no assigned time */}
+              {!currentJobTime && (
+                <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <p className="text-sm text-gray-600">
+                    No time assigned to this job.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>

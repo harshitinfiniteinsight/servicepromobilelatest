@@ -15,13 +15,14 @@ import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import EstimateToInvoiceInfoModal from "@/components/modals/EstimateToInvoiceInfoModal";
+import AssignToJobModal from "@/components/modals/AssignToJobModal";
 import { mockEstimates, mockCustomers, mockEmployees, mockInvoices } from "@/data/mobileMockData";
 import { createJobLookupMap } from "@/utils/jobLookup";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt, FilePlus, CreditCard, DollarSign, Briefcase, StickyNote, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt, FilePlus, CreditCard, DollarSign, Briefcase, StickyNote, Calendar as CalendarIcon, Link } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
@@ -59,6 +60,9 @@ const Estimates = () => {
   const [allEstimates, setAllEstimates] = useState<any[]>([]);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [estimateToConvert, setEstimateToConvert] = useState<any>(null);
+  const [showAssignToJobModal, setShowAssignToJobModal] = useState(false);
+  const [estimateForAssignJob, setEstimateForAssignJob] = useState<any>(null);
+  const [jobLookupRefreshKey, setJobLookupRefreshKey] = useState(0);
 
   // Get user role from localStorage
   const userRole = localStorage.getItem("userType") || "merchant";
@@ -168,8 +172,8 @@ const Estimates = () => {
     setShowDateRangePicker(false);
   };
 
-  // Create job lookup map for estimates
-  const estimateJobLookup = useMemo(() => createJobLookupMap("estimate"), [allEstimates]);
+  // Create job lookup map for estimates (refreshes when allEstimates changes or after job assignment)
+  const estimateJobLookup = useMemo(() => createJobLookupMap("estimate"), [allEstimates, jobLookupRefreshKey]);
 
   const filteredEstimates = allEstimates.map(est => {
     // Check if estimate has been converted
@@ -501,6 +505,13 @@ const Estimates = () => {
           setShowScheduleModal(true);
         }
         break;
+      case "assign-to-job":
+        const estimateForAssign = allEstimates.find(est => est.id === estimateId);
+        if (estimateForAssign) {
+          setEstimateForAssignJob(estimateForAssign);
+          setShowAssignToJobModal(true);
+        }
+        break;
       default:
         break;
     }
@@ -558,6 +569,12 @@ const Estimates = () => {
           icon: Briefcase,
           action: () => handleMenuAction("convert-to-job", estimate.id),
         }] : []),
+        // Add "Assign to Job" - only show if not already associated with a job
+        ...(!hasAssociatedJob ? [{
+          label: "Assign to Job",
+          icon: Link,
+          action: () => handleMenuAction("assign-to-job", estimate.id),
+        }] : []),
         {
           label: "Send Email",
           icon: Mail,
@@ -595,16 +612,6 @@ const Estimates = () => {
             action: () => handleMenuAction("reassign", estimate.id),
           }
         );
-
-        // Only show "Convert to Invoice" for Unpaid estimates (not already converted)
-        if (estimate.status === "Unpaid") {
-          items.push({
-            label: "Convert to Invoice",
-            icon: Receipt,
-            action: () => handleMenuAction("convert-to-invoice", estimate.id),
-            separator: true,
-          });
-        }
 
         items.push({
           label: "Deactivate",
@@ -1068,6 +1075,24 @@ const Estimates = () => {
           sourceId={estimateToConvert.id}
           jobAddress={undefined}
           defaultJobTitle={(estimateToConvert as any).title || (estimateToConvert as any).serviceName || `Estimate ${estimateToConvert.id} Service`}
+        />
+      )}
+
+      {/* Assign to Job Modal */}
+      {estimateForAssignJob && (
+        <AssignToJobModal
+          isOpen={showAssignToJobModal}
+          onClose={() => {
+            setShowAssignToJobModal(false);
+            setEstimateForAssignJob(null);
+          }}
+          documentType="estimate"
+          documentId={estimateForAssignJob.id}
+          customerId={estimateForAssignJob.customerId}
+          onAssigned={(jobId) => {
+            // Refresh the job lookup map to show the Job ID badge
+            setJobLookupRefreshKey(prev => prev + 1);
+          }}
         />
       )}
     </div>

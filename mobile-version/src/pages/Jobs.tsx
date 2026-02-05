@@ -24,6 +24,7 @@ import ViewServicePicturesModal from "@/components/modals/ViewServicePicturesMod
 import CannotEditModal from "@/components/modals/CannotEditModal";
 import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
 import JobPaymentModal from "@/components/modals/JobPaymentModal";
+import AssociateDocumentsModal from "@/components/modals/AssociateDocumentsModal";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -235,6 +236,11 @@ const Jobs = () => {
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedJobForPayment, setSelectedJobForPayment] = useState<typeof jobs[0] | null>(null);
+
+  // Associate Documents modal state
+  const [showAssociateDocumentsModal, setShowAssociateDocumentsModal] = useState(false);
+  const [selectedJobForAssociation, setSelectedJobForAssociation] = useState<typeof jobs[0] | null>(null);
+  const [associateDocumentsInitialTab, setAssociateDocumentsInitialTab] = useState<"invoice" | "estimate" | "agreement" | undefined>(undefined);
 
   // Metrics carousel state
   const [metricsGroupIndex, setMetricsGroupIndex] = useState(0);
@@ -1029,6 +1035,31 @@ const Jobs = () => {
     setSelectedJobForPayment(null);
   };
 
+  // Handle Associate Document action - opens modal to associate existing documents to job
+  const handleAssociateDocument = (jobId: string, sourceType?: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      setSelectedJobForAssociation(job);
+      // Set initial tab based on job source type
+      if (sourceType === "invoice") {
+        setAssociateDocumentsInitialTab("invoice");
+      } else if (sourceType === "estimate") {
+        setAssociateDocumentsInitialTab("estimate");
+      } else if (sourceType === "agreement") {
+        setAssociateDocumentsInitialTab("agreement");
+      } else {
+        setAssociateDocumentsInitialTab(undefined);
+      }
+      setShowAssociateDocumentsModal(true);
+    }
+  };
+
+  // Handle successful document association
+  const handleDocumentAssociated = () => {
+    // Trigger refresh to show updated associations
+    setJobListRefreshTrigger(prev => prev + 1);
+  };
+
   // Edit handlers - for unpaid jobs to modify existing associated documents
   const handleEditInvoice = (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
@@ -1373,6 +1404,8 @@ const Jobs = () => {
                 onAssociateNewInvoice={() => handleAssociateNewInvoice(job.id)}
                 onAssociateNewEstimate={() => handleAssociateNewEstimate(job.id)}
                 onAssociateNewAgreement={() => handleAssociateNewAgreement(job.id)}
+                // Associate existing documents to job
+                onAssociateDocument={(sourceType) => handleAssociateDocument(job.id, sourceType)}
               />
             ))
           )}
@@ -1550,6 +1583,23 @@ const Jobs = () => {
             paymentStatus: (selectedJobForPayment as any).paymentStatus,
           }}
           onPaymentComplete={handlePaymentComplete}
+        />
+      )}
+
+      {/* Associate Documents Modal */}
+      {selectedJobForAssociation && (
+        <AssociateDocumentsModal
+          isOpen={showAssociateDocumentsModal}
+          onClose={() => {
+            setShowAssociateDocumentsModal(false);
+            setSelectedJobForAssociation(null);
+            setAssociateDocumentsInitialTab(undefined);
+          }}
+          jobId={selectedJobForAssociation.id}
+          customerId={(selectedJobForAssociation as any).customerId}
+          onDocumentAssociated={handleDocumentAssociated}
+          initialTab={associateDocumentsInitialTab}
+          jobSourceType={(selectedJobForAssociation as any).sourceType}
         />
       )}
     </div>

@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Edit, Eye, Share2, FileText, MapPin, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { Calendar, Edit, Eye, Share2, FileText, MapPin, Image as ImageIcon, RefreshCw, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import type { JobPaymentStatus, JobSourceType } from "@/data/mobileMockData";
@@ -56,6 +56,8 @@ interface JobCardProps {
   onAssociateNewInvoice?: () => void;
   onAssociateNewEstimate?: () => void;
   onAssociateNewAgreement?: () => void;
+  // Associate existing documents to job
+  onAssociateDocument?: (sourceType?: string) => void;
 }
 
 const JobCard = ({ 
@@ -91,6 +93,8 @@ const JobCard = ({
   onAssociateNewInvoice,
   onAssociateNewEstimate,
   onAssociateNewAgreement,
+  // Associate existing documents to job
+  onAssociateDocument,
 }: JobCardProps) => {
   const navigate = useNavigate();
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
@@ -170,6 +174,20 @@ const JobCard = ({
     } catch (error) {
       console.error("Failed to open Google Maps:", error);
       toast.error("Failed to open map");
+    }
+  };
+
+  // Get context-aware label for associate document action based on job source type
+  const getAssociateDocumentLabel = () => {
+    switch (jobSourceType) {
+      case "invoice":
+        return "Associate Invoice";
+      case "estimate":
+        return "Associate Estimate";
+      case "agreement":
+        return "Associate Agreement";
+      default:
+        return "Associate Document";
     }
   };
 
@@ -426,6 +444,16 @@ const JobCard = ({
       }
       
       items.push(...financialItems);
+      
+      // Add Associate Document action (for linking existing invoices/estimates/agreements)
+      if (onAssociateDocument) {
+        items.push({
+          label: getAssociateDocumentLabel(),
+          icon: Link,
+          action: () => onAssociateDocument(jobSourceType),
+          separator: items.length > 0,
+        });
+      }
     }
     
     return items;

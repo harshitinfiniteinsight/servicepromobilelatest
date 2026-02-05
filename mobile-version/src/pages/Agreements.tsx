@@ -13,9 +13,10 @@ import SendSMSModal from "@/components/modals/SendSMSModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
+import AssignToJobModal from "@/components/modals/AssignToJobModal";
 import { mockAgreements, mockCustomers, mockEmployees } from "@/data/mobileMockData";
 import { createJobLookupMap } from "@/utils/jobLookup";
-import { Plus, Calendar, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Calendar, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, Calendar as CalendarIcon, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
@@ -44,6 +45,9 @@ const Agreements = () => {
   const [selectedAgreementForEmail, setSelectedAgreementForEmail] = useState<{ id: string; customerId: string; customerEmail?: string; customerName?: string } | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [agreementToConvert, setAgreementToConvert] = useState<typeof mockAgreements[0] | null>(null);
+  const [showAssignToJobModal, setShowAssignToJobModal] = useState(false);
+  const [agreementForAssignJob, setAgreementForAssignJob] = useState<typeof mockAgreements[0] | null>(null);
+  const [jobLookupRefreshKey, setJobLookupRefreshKey] = useState(0);
 
   // Get user role
   const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
@@ -79,8 +83,8 @@ const Agreements = () => {
     setShowDateRangePicker(false);
   };
 
-  // Create job lookup map for agreements
-  const agreementJobLookup = useMemo(() => createJobLookupMap("agreement"), []);
+  // Create job lookup map for agreements (refreshes after job assignment)
+  const agreementJobLookup = useMemo(() => createJobLookupMap("agreement"), [jobLookupRefreshKey]);
 
   // Filter agreements
   const filteredAgreements = mockAgreements.filter(agreement => {
@@ -218,6 +222,13 @@ const Agreements = () => {
           setShowScheduleModal(true);
         }
         break;
+      case "assign-to-job":
+        const agreementForAssign = mockAgreements.find(a => a.id === agreementId);
+        if (agreementForAssign) {
+          setAgreementForAssignJob(agreementForAssign);
+          setShowAssignToJobModal(true);
+        }
+        break;
       default:
         break;
     }
@@ -313,17 +324,21 @@ const Agreements = () => {
             // Build menu items based on payment status and user role
             const kebabMenuItems: KebabMenuItem[] = isPaid
               ? [
-                // Paid agreements: Preview, Convert to Job (if not converted), and Create New Agreement
+                // Paid agreements: Preview, Convert to Job (if not converted), Assign to Job, and Create New Agreement
                 { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
                 // Only show "Convert to Job" if not already converted
                 ...(!isConverted ? [{ label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") }] : []),
+                // Only show "Assign to Job" if not already associated with a job
+                ...(!hasAssociatedJob ? [{ label: "Assign to Job", icon: Link, action: () => handleMenuAction(agreement.id, "assign-to-job") }] : []),
                 { label: "Create New Agreement", icon: FilePlus, action: () => handleMenuAction(agreement.id, "create-new-agreement"), separator: true },
               ]
               : [
-                // Unpaid agreements: Preview, Convert to Job (if not converted), Send Email, Send SMS, Edit Agreement
+                // Unpaid agreements: Preview, Convert to Job (if not converted), Assign to Job, Send Email, Send SMS, Edit Agreement
                 { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
                 // Add "Convert to Job" for unpaid agreements (same as paid)
                 ...(!isConverted ? [{ label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") }] : []),
+                // Only show "Assign to Job" if not already associated with a job
+                ...(!hasAssociatedJob ? [{ label: "Assign to Job", icon: Link, action: () => handleMenuAction(agreement.id, "assign-to-job") }] : []),
                 { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
                 { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
                 // Edit Agreement: Only for merchants, not employees
@@ -516,6 +531,24 @@ const Agreements = () => {
           sourceId={agreementToConvert.id}
           jobAddress={undefined}
           defaultJobTitle={(agreementToConvert as any).type || (agreementToConvert as any).title || `Agreement ${agreementToConvert.id} Service`}
+        />
+      )}
+
+      {/* Assign to Job Modal */}
+      {agreementForAssignJob && (
+        <AssignToJobModal
+          isOpen={showAssignToJobModal}
+          onClose={() => {
+            setShowAssignToJobModal(false);
+            setAgreementForAssignJob(null);
+          }}
+          documentType="agreement"
+          documentId={agreementForAssignJob.id}
+          customerId={agreementForAssignJob.customerId}
+          onAssigned={(jobId) => {
+            // Refresh the job lookup map to show the Job ID badge
+            setJobLookupRefreshKey(prev => prev + 1);
+          }}
         />
       )}
     </div>

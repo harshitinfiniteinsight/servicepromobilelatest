@@ -13,6 +13,7 @@ import InvoiceDueAlertModal from "@/components/modals/InvoiceDueAlertModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
+import AssignToJobModal from "@/components/modals/AssignToJobModal";
 import { mockCustomers, mockInvoices, mockEmployees } from "@/data/mobileMockData";
 import { createJobLookupMap } from "@/utils/jobLookup";
 import { Input } from "@/components/ui/input";
@@ -39,6 +40,7 @@ import {
   DollarSign,
   Briefcase,
   StickyNote,
+  Link,
 } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
@@ -78,6 +80,9 @@ const Invoices = () => {
   const [newInvoiceId, setNewInvoiceId] = useState<string | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [invoiceToConvert, setInvoiceToConvert] = useState<Invoice | null>(null);
+  const [showAssignToJobModal, setShowAssignToJobModal] = useState(false);
+  const [invoiceForAssignJob, setInvoiceForAssignJob] = useState<Invoice | null>(null);
+  const [jobLookupRefreshKey, setJobLookupRefreshKey] = useState(0);
 
   // Get user role from localStorage
   const userRole = localStorage.getItem("userType") || "merchant";
@@ -237,7 +242,8 @@ const Invoices = () => {
   };
 
   // Create job lookup map for invoices
-  const invoiceJobLookup = useMemo(() => createJobLookupMap("invoice"), [allInvoices]);
+  // Create job lookup map (refreshes when allInvoices changes or after job assignment)
+  const invoiceJobLookup = useMemo(() => createJobLookupMap("invoice"), [allInvoices, jobLookupRefreshKey]);
 
   const getFilteredInvoices = (type: InvoiceTab) => {
     return allInvoices
@@ -451,6 +457,10 @@ const Invoices = () => {
         setInvoiceToConvert(invoice);
         setShowScheduleModal(true);
         break;
+      case "assign-to-job":
+        setInvoiceForAssignJob(invoice);
+        setShowAssignToJobModal(true);
+        break;
       default:
         break;
     }
@@ -530,6 +540,15 @@ const Invoices = () => {
         });
       }
 
+      // Add "Assign to Job" - only show if not already associated with a job and not sell_product
+      if (!hasAssociatedJob && !isSellProduct) {
+        items.push({
+          label: "Assign to Job",
+          icon: Link,
+          action: () => handleMenuAction(invoice, "assign-to-job"),
+        });
+      }
+
       // Add remaining menu items
       items.push(
         {
@@ -605,6 +624,12 @@ const Invoices = () => {
           label: "Convert to Job",
           icon: Briefcase,
           action: () => handleMenuAction(invoice, "convert-to-job"),
+        }] : []),
+        // Add "Assign to Job" - only show if not already associated with a job and not sell_product
+        ...(!hasAssociatedJob && !isSellProduct ? [{
+          label: "Assign to Job",
+          icon: Link,
+          action: () => handleMenuAction(invoice, "assign-to-job"),
         }] : []),
         {
           label: "Send Email",
@@ -975,6 +1000,24 @@ const Invoices = () => {
           sourceId={invoiceToConvert.id}
           jobAddress={undefined}
           defaultJobTitle={(invoiceToConvert as any).title || (invoiceToConvert as any).serviceName || `Invoice ${invoiceToConvert.id} Service`}
+        />
+      )}
+
+      {/* Assign to Job Modal */}
+      {invoiceForAssignJob && (
+        <AssignToJobModal
+          isOpen={showAssignToJobModal}
+          onClose={() => {
+            setShowAssignToJobModal(false);
+            setInvoiceForAssignJob(null);
+          }}
+          documentType="invoice"
+          documentId={invoiceForAssignJob.id}
+          customerId={invoiceForAssignJob.customerId}
+          onAssigned={(jobId) => {
+            // Refresh the job lookup map to show the Job ID badge
+            setJobLookupRefreshKey(prev => prev + 1);
+          }}
         />
       )}
     </div>

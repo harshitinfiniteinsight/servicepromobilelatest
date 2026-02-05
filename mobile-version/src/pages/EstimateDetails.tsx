@@ -124,15 +124,6 @@ const EstimateDetails = () => {
           </Button>
         </div>
 
-        {/* Actions - Convert to Invoice */}
-        {estimate.status === "Approved" && (
-          <div className="px-4 pb-4">
-            <Button className="w-full" size="lg" onClick={handleConvertToInvoice}>
-              Convert to Invoice
-            </Button>
-          </div>
-        )}
-
         {/* Details Wrapper */}
         <div className="space-y-4 px-4 pb-6">
           {/* Customer Information */}

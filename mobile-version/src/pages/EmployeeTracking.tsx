@@ -1835,6 +1835,14 @@ const EmployeeTracking = () => {
             jobAddress: selectedJobForReschedule.location,
           }}
           onConfirm={handleRescheduleConfirm}
+          onEditRoute={() => {
+            // Close reschedule modal and open Edit Route modal
+            setShowRescheduleModal(false);
+            setSelectedJobForReschedule(null);
+            // Open Edit Route modal with the employee context
+            setEditingEmployeeId(selectedJobForReschedule.technicianId);
+            setShowScheduleRouteModal(true);
+          }}
         />
       )}
 

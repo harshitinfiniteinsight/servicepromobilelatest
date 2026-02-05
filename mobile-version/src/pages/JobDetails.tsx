@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockJobs, mockCustomers, mockEmployees, mockInvoices, mockEstimates, mockAgreements } from "@/data/mobileMockData";
 import type { JobPaymentStatus, JobSourceType } from "@/data/mobileMockData";
-import { Calendar, Clock, MapPin, User, Mail, MessageSquare, Navigation, CreditCard, Receipt, FileCheck, ScrollText, DollarSign, Edit, PlusCircle, FileText, ChevronDown } from "lucide-react";
+import { getLinkedDocuments, type LinkedDocument } from "@/services/jobAssignmentService";
+import { Calendar, Clock, MapPin, User, Mail, MessageSquare, Navigation, CreditCard, Receipt, FileCheck, ScrollText, DollarSign, Edit, PlusCircle, FileText, ChevronDown, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
@@ -43,6 +44,24 @@ const JobDetails = () => {
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [currentPaymentStatus, setCurrentPaymentStatus] = useState<JobPaymentStatus>("unpaid");
+
+  // Refresh key for linked documents - incremented when documents are associated/unassociated
+  const [linkedDocumentsRefreshKey, setLinkedDocumentsRefreshKey] = useState(0);
+
+  // Listen for document assignment events to refresh linked documents
+  useEffect(() => {
+    const handleDocumentAssigned = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      if (customEvent.detail?.jobId === id) {
+        setLinkedDocumentsRefreshKey(prev => prev + 1);
+      }
+    };
+
+    window.addEventListener("documentAssignedToJob", handleDocumentAssigned);
+    return () => {
+      window.removeEventListener("documentAssignedToJob", handleDocumentAssigned);
+    };
+  }, [id]);
 
   // Get job with extended data from location state, localStorage, or mockJobs
   const getJobWithPaymentStatus = () => {
@@ -197,6 +216,10 @@ const JobDetails = () => {
   const jobSourceId: string | undefined = (job as any).sourceId;
   const jobPaymentStatus: JobPaymentStatus = (job as any).paymentStatus || "unpaid";
 
+  // Get linked documents for this job (refreshes when linkedDocumentsRefreshKey changes)
+  const linkedDocuments: LinkedDocument[] = useMemo(() => {
+    return id ? getLinkedDocuments(id) : [];
+  }, [id, linkedDocumentsRefreshKey]);
   // Financial action handlers
   const handleCreateInvoice = () => {
     // Navigate to create invoice with pre-filled job data
@@ -306,99 +329,98 @@ const JobDetails = () => {
   // Use currentPaymentStatus if it's been updated by payment completion, otherwise use original
   const isPaid = currentPaymentStatus === "paid" || jobPaymentStatus === "paid";
 
-  // Get invoices with items for accordion display
-  // For demo jobs, return sample invoices with items
-  const getInvoicesWithItems = () => {
-    // Demo invoices for jobs without associated documents
-    const demoInvoices = [
-      {
-        id: "INV-001",
-        items: [
-          {
-            name: "HVAC Filter - Standard",
-            quantity: 1,
-            price: 25.99,
-            discount: 2,
-            discountName: "custom",
-            discountType: "$",
-            taxRate: 5
-          }
-        ],
-        subtotal: 25.99,
-        discount: 2.00,
-        tax: 1.20,
-        total: 25.19
-      },
-      {
-        id: "INV-002",
-        items: [
-          {
-            name: "Thermostat - Programmable",
-            quantity: 1,
-            price: 89.99,
-            discount: 10,
-            discountName: "new",
-            discountType: "$",
-            taxRate: 2
-          }
-        ],
-        subtotal: 89.99,
-        discount: 10.00,
-        tax: 1.60,
-        total: 81.59
-      }
-    ];
+  // Get all invoices associated with this job (source + linked)
+  const getAllAssociatedInvoices = () => {
+    const invoices: any[] = [];
     
-    if (!jobSourceId) {
-      // Return demo invoices for jobs without associated documents
-      return demoInvoices;
+    // Add source invoice if job was created from an invoice
+    if (jobSourceType === "invoice" && jobSourceId) {
+      const sourceInvoice = mockInvoices.find(inv => inv.id === jobSourceId);
+      if (sourceInvoice) {
+        invoices.push({
+          id: sourceInvoice.id,
+          items: sourceInvoice.items || [],
+          subtotal: sourceInvoice.subtotal || 0,
+          discount: sourceInvoice.discount || 0,
+          tax: sourceInvoice.tax || 0,
+          total: sourceInvoice.amount || 0,
+          status: sourceInvoice.status,
+          paymentMethod: sourceInvoice.paymentMethod
+        });
+      }
     }
     
-    if (jobSourceType === "invoice") {
-      const invoice = mockInvoices.find(inv => inv.id === jobSourceId);
+    // Add all linked invoices
+    const linked = linkedDocuments.filter(doc => doc.type === "invoice");
+    linked.forEach(doc => {
+      // Avoid duplicates - don't add source invoice again
+      if (doc.id === jobSourceId) return;
+      
+      const invoice = mockInvoices.find(inv => inv.id === doc.id);
       if (invoice) {
-        return [{
+        invoices.push({
           id: invoice.id,
           items: invoice.items || [],
           subtotal: invoice.subtotal || 0,
           discount: invoice.discount || 0,
           tax: invoice.tax || 0,
-          total: invoice.amount || 0
-        }];
+          total: invoice.amount || 0,
+          status: invoice.status,
+          paymentMethod: invoice.paymentMethod
+        });
       }
-    } else if (jobSourceType === "estimate") {
-      const estimate = mockEstimates.find(est => est.id === jobSourceId);
-      if (estimate) {
-        // Create a pseudo-invoice from estimate for display
-        return [{
-          id: `EST-${estimate.id}`,
-          items: estimate.items || [],
-          subtotal: estimate.subtotal || 0,
-          discount: estimate.discount || 0,
-          tax: estimate.tax || 0,
-          total: estimate.amount || 0
-        }];
-      }
-    } else if (jobSourceType === "agreement") {
-      const agreement = mockAgreements.find(agr => agr.id === jobSourceId);
-      if (agreement) {
-        // Create a pseudo-invoice from agreement for display
-        return [{
-          id: `AGR-${agreement.id}`,
-          items: agreement.items || [],
-          subtotal: agreement.subtotal || 0,
-          discount: agreement.discount || 0,
-          tax: agreement.tax || 0,
-          total: agreement.amount || 0
-        }];
-      }
+    });
+    
+    // If no invoices found, return demo invoices for display
+    if (invoices.length === 0) {
+      return [
+        {
+          id: "INV-001",
+          items: [
+            {
+              name: "HVAC Filter - Standard",
+              quantity: 1,
+              price: 25.99,
+              discount: 2,
+              discountName: "custom",
+              discountType: "$",
+              taxRate: 5
+            }
+          ],
+          subtotal: 25.99,
+          discount: 2.00,
+          tax: 1.20,
+          total: 25.19,
+          status: "Paid",
+          paymentMethod: "Card"
+        },
+        {
+          id: "INV-002",
+          items: [
+            {
+              name: "Thermostat - Programmable",
+              quantity: 1,
+              price: 89.99,
+              discount: 10,
+              discountName: "new",
+              discountType: "$",
+              taxRate: 2
+            }
+          ],
+          subtotal: 89.99,
+          discount: 10.00,
+          tax: 1.60,
+          total: 81.59,
+          status: "Unpaid",
+          paymentMethod: null
+        }
+      ];
     }
     
-    // Fallback to demo invoices
-    return demoInvoices;
+    return invoices;
   };
 
-  const invoicesWithItems = getInvoicesWithItems();
+  const invoicesWithItems = getAllAssociatedInvoices();
 
   // Get items from associated document (invoice, estimate, or agreement)
   // For demo jobs, return sample items
@@ -788,48 +810,6 @@ const JobDetails = () => {
             )}
           </div>
 
-          {/* Associated Documents */}
-          {jobSourceType !== "none" && jobSourceId && (
-            <div className="p-4 rounded-xl border bg-card">
-              <h3 className="font-semibold mb-3 flex items-center gap-2">
-                <ScrollText className="h-4 w-4 text-primary" />
-                Associated Documents
-              </h3>
-              <div className="space-y-2">
-                {jobSourceType === "invoice" && (
-                  <button
-                    onClick={handleViewInvoice}
-                    className="flex items-center gap-2 text-sm text-primary hover:underline w-full text-left p-2 rounded-lg hover:bg-primary/5 transition-colors"
-                  >
-                    <Receipt className="h-4 w-4" />
-                    <span className="font-medium">Invoice:</span>
-                    <span>{jobSourceId}</span>
-                  </button>
-                )}
-                {jobSourceType === "estimate" && (
-                  <button
-                    onClick={handleViewEstimate}
-                    className="flex items-center gap-2 text-sm text-primary hover:underline w-full text-left p-2 rounded-lg hover:bg-primary/5 transition-colors"
-                  >
-                    <FileCheck className="h-4 w-4" />
-                    <span className="font-medium">Estimate:</span>
-                    <span>{jobSourceId}</span>
-                  </button>
-                )}
-                {jobSourceType === "agreement" && (
-                  <button
-                    onClick={handleViewAgreement}
-                    className="flex items-center gap-2 text-sm text-primary hover:underline w-full text-left p-2 rounded-lg hover:bg-primary/5 transition-colors"
-                  >
-                    <ScrollText className="h-4 w-4" />
-                    <span className="font-medium">Agreement:</span>
-                    <span>{jobSourceId}</span>
-                  </button>
-                )}
-              </div>
-            </div>
-          )}
-
           {/* Payment Section */}
           <div className="p-4 rounded-xl border bg-card">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
@@ -837,86 +817,57 @@ const JobDetails = () => {
               Payment
             </h3>
             
-            {/* Invoice Payment Info */}
+            {/* All Associated Invoice Payment Info */}
             <div className="space-y-3">
-              {jobSourceType === "invoice" && jobSourceId ? (
-                (() => {
-                  const invoice = mockInvoices.find(inv => inv.id === jobSourceId);
-                  const isPaidInvoice = invoice?.status === "Paid";
+              {invoicesWithItems.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">No payments available</p>
+              ) : (
+                invoicesWithItems.map((invoice: any, index: number) => {
+                  const isPaidInvoice = invoice.status === "Paid";
+                  const isOverdue = invoice.status === "Overdue";
+                  
                   return (
-                    <div className="flex items-center justify-between text-sm py-2 border-b last:border-0">
+                    <div 
+                      key={invoice.id} 
+                      className={cn(
+                        "flex items-center justify-between text-sm py-2",
+                        index < invoicesWithItems.length - 1 && "border-b"
+                      )}
+                    >
                       <button
-                        onClick={handleViewInvoice}
+                        onClick={() => {
+                          const foundInvoice = mockInvoices.find(inv => inv.id === invoice.id);
+                          if (foundInvoice) {
+                            setPreviewInvoice(foundInvoice);
+                            setShowInvoicePreview(true);
+                          } else {
+                            toast.error("Invoice not found");
+                          }
+                        }}
                         className="font-medium text-primary hover:underline"
                       >
-                        {jobSourceId}
+                        {invoice.id}
                       </button>
                       <div className="flex items-center gap-4">
                         <Badge 
                           className={cn(
                             "text-xs",
                             isPaidInvoice
-                              ? "bg-green-100 text-green-700 border-green-200" 
+                              ? "bg-green-100 text-green-700 border-green-200"
+                              : isOverdue
+                              ? "bg-red-100 text-red-700 border-red-200"
                               : "bg-orange-100 text-orange-700 border-orange-200"
                           )}
                         >
-                          {isPaidInvoice ? "Paid" : "Unpaid"}
+                          {invoice.status || (isPaidInvoice ? "Paid" : "Unpaid")}
                         </Badge>
                         <span className="text-muted-foreground min-w-[60px] text-right">
-                          {isPaidInvoice ? (invoice?.paymentMethod || "Card") : "-"}
+                          {isPaidInvoice ? (invoice.paymentMethod || "Card") : "-"}
                         </span>
                       </div>
                     </div>
                   );
-                })()
-              ) : (
-                /* Demo payment info for jobs without invoices */
-                <>
-                  <div className="flex items-center justify-between text-sm py-2 border-b">
-                    <button
-                      onClick={() => {
-                        const invoice = mockInvoices.find(inv => inv.id === "INV-001");
-                        if (invoice) {
-                          setPreviewInvoice(invoice);
-                          setShowInvoicePreview(true);
-                        } else {
-                          toast.error("Invoice not found");
-                        }
-                      }}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      INV-001
-                    </button>
-                    <div className="flex items-center gap-4">
-                      <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
-                        Paid
-                      </Badge>
-                      <span className="text-muted-foreground min-w-[60px] text-right">Card</span>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between text-sm py-2">
-                    <button
-                      onClick={() => {
-                        const invoice = mockInvoices.find(inv => inv.id === "INV-002");
-                        if (invoice) {
-                          setPreviewInvoice(invoice);
-                          setShowInvoicePreview(true);
-                        } else {
-                          toast.error("Invoice not found");
-                        }
-                      }}
-                      className="font-medium text-primary hover:underline"
-                    >
-                      INV-002
-                    </button>
-                    <div className="flex items-center gap-4">
-                      <Badge className="text-xs bg-orange-100 text-orange-700 border-orange-200">
-                        Unpaid
-                      </Badge>
-                      <span className="text-muted-foreground min-w-[60px] text-right">-</span>
-                    </div>
-                  </div>
-                </>
+                })
               )}
             </div>
           </div>
