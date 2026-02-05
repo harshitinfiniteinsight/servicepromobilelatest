@@ -1,13 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Camera, X, Plus } from "lucide-react";
+import { Camera, X, Plus, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
 // Maximum number of images allowed per section (configurable)
-const MAX_IMAGES_PER_SECTION = 10;
+const MAX_IMAGES_PER_SECTION = 20;
+const RECOMMENDED_FILE_SIZE_MB = 2;
+const RECOMMENDED_FILE_SIZE_BYTES = RECOMMENDED_FILE_SIZE_MB * 1024 * 1024;
 
 interface AddServicePicturesModalProps {
   open: boolean;
@@ -48,6 +49,7 @@ const AddServicePicturesModal = ({
 
   const [localBeforeImages, setLocalBeforeImages] = useState<string[]>(getInitialBeforeImages);
   const [localAfterImages, setLocalAfterImages] = useState<string[]>(getInitialAfterImages);
+  const [activeTab, setActiveTab] = useState<"before" | "after">("before");
   const [dragOverBefore, setDragOverBefore] = useState(false);
   const [dragOverAfter, setDragOverAfter] = useState(false);
   const fileInputBeforeRef = useRef<HTMLInputElement>(null);
@@ -68,6 +70,14 @@ const AddServicePicturesModal = ({
       if (file.size > 10 * 1024 * 1024) {
         reject(new Error("Image size must be less than 10MB"));
         return;
+      }
+
+      // Show warning for files larger than recommended size (non-blocking)
+      if (file.size > RECOMMENDED_FILE_SIZE_BYTES) {
+        toast.warning(
+          `This image exceeds the recommended size of ${RECOMMENDED_FILE_SIZE_MB} MB and may take longer to upload.`,
+          { duration: 4000 }
+        );
       }
 
       // Convert file to data URL
@@ -288,12 +298,13 @@ const AddServicePicturesModal = ({
   return (
     <>
       <Dialog open={open} onOpenChange={handleCancel}>
-        <DialogContent className="w-[90%] max-w-sm mx-auto p-4 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[85vh] overflow-y-auto" onInteractOutside={handleCancel}>
+        <DialogContent className="w-[90%] max-w-sm mx-auto p-0 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[85vh] flex flex-col overflow-hidden" onInteractOutside={handleCancel}>
           <DialogDescription className="sr-only">
             Upload before and after service pictures for this job
           </DialogDescription>
+          
           {/* Header */}
-          <DialogHeader className="flex flex-row items-center justify-between pb-1.5 border-b border-gray-100">
+          <DialogHeader className="flex flex-row items-center justify-between px-4 py-2.5 border-b border-gray-100 flex-shrink-0">
             <DialogTitle className="text-lg font-semibold text-gray-800">Upload Service Pictures</DialogTitle>
             <Button
               variant="ghost"
@@ -305,58 +316,103 @@ const AddServicePicturesModal = ({
             </Button>
           </DialogHeader>
 
-          <div className="space-y-2.5 mt-2">
-            {/* Hidden file inputs - multiple selection enabled */}
-            <input
-              type="file"
-              ref={fileInputBeforeRef}
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                const files = e.target.files;
-                if (files && files.length > 0) {
-                  handleFileSelect("before", files);
-                }
-                // Reset input so same files can be selected again
-                e.target.value = "";
-              }}
-            />
-            <input
-              type="file"
-              ref={fileInputAfterRef}
-              accept="image/*"
-              multiple
-              className="hidden"
-              onChange={(e) => {
-                const files = e.target.files;
-                if (files && files.length > 0) {
-                  handleFileSelect("after", files);
-                }
-                // Reset input so same files can be selected again
-                e.target.value = "";
-              }}
-            />
+          {/* Tab Navigation */}
+          <div className="flex border-b border-gray-200 bg-gray-50 flex-shrink-0">
+            <button
+              onClick={() => setActiveTab("before")}
+              className={cn(
+                "flex-1 py-2.5 text-sm font-medium transition-colors border-b-2",
+                activeTab === "before"
+                  ? "border-orange-500 text-orange-600 bg-white"
+                  : "border-transparent text-gray-600 hover:text-gray-800"
+              )}
+            >
+              Before Service
+              {localBeforeImages.length > 0 && (
+                <span className="ml-1.5 text-xs">({localBeforeImages.length})</span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("after")}
+              className={cn(
+                "flex-1 py-2.5 text-sm font-medium transition-colors border-b-2",
+                activeTab === "after"
+                  ? "border-orange-500 text-orange-600 bg-white"
+                  : "border-transparent text-gray-600 hover:text-gray-800"
+              )}
+            >
+              After Service
+              {localAfterImages.length > 0 && (
+                <span className="ml-1.5 text-xs">({localAfterImages.length})</span>
+              )}
+            </button>
+          </div>
 
-            {/* Before Service Section */}
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700">Before Service</Label>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-2">
-                {renderImageGrid(localBeforeImages, "before")}
-              </div>
-            </div>
+          {/* Hidden file inputs */}
+          <input
+            type="file"
+            ref={fileInputBeforeRef}
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = e.target.files;
+              if (files && files.length > 0) {
+                handleFileSelect("before", files);
+              }
+              e.target.value = "";
+            }}
+          />
+          <input
+            type="file"
+            ref={fileInputAfterRef}
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              const files = e.target.files;
+              if (files && files.length > 0) {
+                handleFileSelect("after", files);
+              }
+              e.target.value = "";
+            }}
+          />
 
-            {/* After Service Section */}
-            <div className="space-y-1">
-              <Label className="text-sm font-semibold text-gray-700">After Service</Label>
-              <div className="rounded-xl border border-gray-200 bg-gray-50 p-2">
-                {renderImageGrid(localAfterImages, "after")}
+          {/* Tab Content */}
+          <div className="flex-1 overflow-y-auto p-4">
+            {activeTab === "before" ? (
+              <div className="space-y-2">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-2">
+                  {renderImageGrid(localBeforeImages, "before")}
+                </div>
+                
+                {/* File Size Disclaimer */}
+                <div className="flex items-start gap-1.5 text-xs text-gray-600 bg-blue-50 border border-blue-100 rounded-lg p-2">
+                  <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-blue-600" />
+                  <p>
+                    For best performance, upload images up to <strong>{RECOMMENDED_FILE_SIZE_MB} MB</strong> each.
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : (
+              <div className="space-y-2">
+                <div className="rounded-xl border border-gray-200 bg-gray-50 p-2">
+                  {renderImageGrid(localAfterImages, "after")}
+                </div>
+                
+                {/* File Size Disclaimer */}
+                <div className="flex items-start gap-1.5 text-xs text-gray-600 bg-blue-50 border border-blue-100 rounded-lg p-2">
+                  <Info className="h-3.5 w-3.5 mt-0.5 flex-shrink-0 text-blue-600" />
+                  <p>
+                    For best performance, upload images up to <strong>{RECOMMENDED_FILE_SIZE_MB} MB</strong> each.
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Footer Buttons */}
-          <div className="flex gap-2 pt-1.5 border-t border-gray-100">
+          <div className="flex gap-2 p-4 pt-2 border-t border-gray-100 flex-shrink-0">
             <Button
               variant="outline"
               onClick={handleCancel}
