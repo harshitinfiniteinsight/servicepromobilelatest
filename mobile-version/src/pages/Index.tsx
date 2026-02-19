@@ -99,7 +99,7 @@ const Index = () => {
     const userType = localStorage.getItem("userType");
 
     if (!isAuthenticated) {
-      navigate("/signin");
+      navigate("/onboarding");
     } else if (showWalkthrough === "true") {
       navigate("/walkthrough");
     } else if (userType === "employee") {

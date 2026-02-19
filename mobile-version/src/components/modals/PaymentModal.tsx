@@ -215,7 +215,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
       <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal && !showNoReaderModal && !showACHSetupModal} onOpenChange={onClose}>
         <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden [&>div]:p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">
-            Service Pro911 - Payment
+            Service Pro 911 - Payment
           </DialogTitle>
           <DialogDescription className="sr-only">
             Payment modal for amount ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
@@ -229,7 +229,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
             >
               <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </button>
-            <h2 className="text-base sm:text-lg font-semibold text-white px-2 text-center flex-1">Service Pro911 - Payment</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-white px-2 text-center flex-1">Service Pro 911 - Payment</h2>
             <button
               onClick={onClose}
               className="p-1.5 -mr-1.5 rounded-full hover:bg-orange-600 transition-colors touch-target"

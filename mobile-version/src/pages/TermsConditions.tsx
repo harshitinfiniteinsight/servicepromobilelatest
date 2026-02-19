@@ -9,10 +9,10 @@ TERMS AND CONDITIONS
 Last updated: January 2024
 
 1. ACCEPTANCE OF TERMS
-By accessing and using ServicePro, you accept and agree to be bound by the terms and provision of this agreement.
+By accessing and using Service Pro 911, you accept and agree to be bound by the terms and provision of this agreement.
 
 2. USE LICENSE
-Permission is granted to temporarily use ServicePro for personal, non-commercial transitory viewing only.
+Permission is granted to temporarily use Service Pro 911 for personal, non-commercial transitory viewing only.
 
 3. USER ACCOUNT
 You are responsible for maintaining the confidentiality of your account and password. You agree to accept responsibility for all activities that occur under your account.
@@ -27,7 +27,7 @@ Service agreements are binding contracts. Cancellation policies apply as specifi
 We respect your privacy and handle your data according to our Privacy Policy. Your information is secure and will not be shared without consent.
 
 7. LIMITATION OF LIABILITY
-ServicePro shall not be liable for any indirect, incidental, special, consequential, or punitive damages.
+Service Pro 911 shall not be liable for any indirect, incidental, special, consequential, or punitive damages.
 
 8. MODIFICATIONS
 We reserve the right to modify these terms at any time. Continued use after changes constitutes acceptance.

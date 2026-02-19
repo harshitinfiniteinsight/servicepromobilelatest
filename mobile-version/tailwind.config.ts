@@ -66,10 +66,48 @@ export default {
           from: { height: 'var(--radix-accordion-content-height)' },
           to: { height: '0' },
         },
+        'pop-in': {
+          from: { opacity: '0', transform: 'scale(0.95) translateY(8px)' },
+          to: { opacity: '1', transform: 'scale(1) translateY(0)' },
+        },
+        'float': {
+          '0%, 100%': { transform: 'translateY(0)' },
+          '50%': { transform: 'translateY(-6px)' },
+        },
+        'slide-up-fade': {
+          from: { opacity: '0', transform: 'translateY(16px)' },
+          to: { opacity: '1', transform: 'translateY(0)' },
+        },
+        'shimmer': {
+          '0%': { backgroundPosition: '-1000px 0' },
+          '100%': { backgroundPosition: '1000px 0' },
+        },
+        'pulse-ring': {
+          '0%': { opacity: '1', transform: 'scale(1)' },
+          '100%': { opacity: '0', transform: 'scale(1.5)' },
+        },
+        'drift': {
+          '0%, 100%': { transform: 'translateX(0) translateY(0)' },
+          '25%': { transform: 'translateX(40px) translateY(-30px)' },
+          '50%': { transform: 'translateX(20px) translateY(40px)' },
+          '75%': { transform: 'translateX(-40px) translateY(20px)' },
+        },
+        'gradient-shift': {
+          '0%': { backgroundPosition: '0% 50%' },
+          '50%': { backgroundPosition: '100% 50%' },
+          '100%': { backgroundPosition: '0% 50%' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
         'accordion-up': 'accordion-up 0.2s ease-out',
+        'pop-in': 'pop-in 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'float': 'float 3s ease-in-out infinite',
+        'slide-up-fade': 'slide-up-fade 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+        'shimmer': 'shimmer 2s infinite',
+        'pulse-ring': 'pulse-ring 2s infinite',
+        'drift': 'drift 20s ease-in-out infinite',
+        'gradient-shift': 'gradient-shift 8s ease infinite',
       },
       spacing: {
         'safe-top': 'env(safe-area-inset-top)',

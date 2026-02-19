@@ -50,15 +50,26 @@ const Inventory = () => {
 
       <main className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-fade-in">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          // This file is intentionally left blank to prevent Vite HMR errors.
-          // The tablet version is loaded from tablet-version/src/pages/Inventory.tsx
-          export default function Inventory() {
-            return null;
-          }
-                </Button>
-              </div>
-            </div>
+          <div className="flex items-center gap-2">
+            <Button variant={viewMode === "list" ? "default" : "outline"} size="sm" onClick={() => setViewMode("list")}>
+              <List className="h-4 w-4 mr-1" />
+              List
+            </Button>
+            <Button variant={viewMode === "grid" ? "default" : "outline"} size="sm" onClick={() => setViewMode("grid")}>
+              <LayoutGrid className="h-4 w-4 mr-1" />
+              Grid
+            </Button>
+          </div>
+        </div>
 
+        <Tabs defaultValue="inventory" className="space-y-4">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="inventory">Inventory</TabsTrigger>
+            <TabsTrigger value="agreement-inventory">Agreement</TabsTrigger>
+            <TabsTrigger value="equipment">Equipment</TabsTrigger>
+            <TabsTrigger value="discounts">Discounts</TabsTrigger>
+          </TabsList>
+          <TabsContent value="inventory" className="space-y-4 mt-6">
             {/* List View */}
             {viewMode === "list" && (
               <div className="grid gap-4">

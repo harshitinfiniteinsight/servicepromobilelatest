@@ -23,7 +23,7 @@ const ForgotPassword = () => {
     <div className="h-full w-full flex flex-col bg-gradient-to-br from-primary/10 via-accent/5 to-background p-6">
       <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2">ServicePro</h1>
+          <h1 className="text-4xl font-bold mb-2">Service Pro 911</h1>
           <p className="text-muted-foreground">Mobile</p>
         </div>
 

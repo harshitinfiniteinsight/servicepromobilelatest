@@ -72,7 +72,7 @@ const EmployeeDashboard = () => {
     const showWalkthrough = localStorage.getItem("showWalkthrough");
     
     if (!isAuthenticated) {
-      navigate("/signin");
+      navigate("/onboarding");
     } else if (showWalkthrough === "true") {
       navigate("/walkthrough");
     }

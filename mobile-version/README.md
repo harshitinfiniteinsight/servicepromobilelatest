@@ -1,6 +1,6 @@
-# ServicePro Mobile
+# Service Pro 911 Mobile
 
-Mobile-optimized version of ServicePro built with React + Capacitor for Android deployment.
+Mobile-optimized version of Service Pro 911 built with React + Capacitor for Android deployment.
 
 ## Features
 

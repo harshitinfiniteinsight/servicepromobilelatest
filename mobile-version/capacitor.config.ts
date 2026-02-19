@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.servicepro.mobile',
-  appName: 'ServicePro',
+  appName: 'Service Pro 911',
   webDir: 'dist',
   server: {
     androidScheme: 'https',

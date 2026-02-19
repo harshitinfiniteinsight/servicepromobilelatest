@@ -29,7 +29,7 @@ const Profile = () => {
 
   // Merchant profile data
   const [merchantFormData, setMerchantFormData] = useState({
-    businessName: "ServicePro Solutions",
+    businessName: "Service Pro 911 Solutions",
     ownerFirstName: "John",
     ownerLastName: "Doe",
     merchantEmployeeId: "6817175129155",
