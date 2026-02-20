@@ -22,6 +22,16 @@ const BeforeAfterFeedbackPreview = ({ feedback, className }: BeforeAfterFeedback
 
   return (
     <div className={cn("space-y-2.5", className)}>
+      {/* 5 Star callout */}
+      <div className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-xl bg-amber-500/15 border border-amber-500/30">
+        <div className="flex items-center gap-0.5">
+          {[1, 2, 3, 4, 5].map((s) => (
+            <Star key={s} className="w-4 h-4 fill-amber-400 text-amber-400" />
+          ))}
+        </div>
+        <span className="text-[11px] font-bold text-amber-700 dark:text-amber-400">5 Star Review</span>
+      </div>
+
       {/* Job + Photos section */}
       <div>
         <div className="flex items-center justify-between mb-1.5">
@@ -48,7 +58,7 @@ const BeforeAfterFeedbackPreview = ({ feedback, className }: BeforeAfterFeedback
       {/* Send feedback CTA */}
       <button className="w-full py-1.5 px-2 rounded-lg bg-primary/15 border border-primary/30 flex items-center justify-center gap-1.5 hover:bg-primary/20 transition-colors">
         <Send className="w-3 h-3 text-primary" />
-        <span className="text-[10px] font-semibold text-primary">Send feedback request</span>
+        <span className="text-[10px] font-semibold text-primary">Request 5-star review</span>
       </button>
 
       {/* Customer reviews */}

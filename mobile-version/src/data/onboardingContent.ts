@@ -54,6 +54,7 @@ export type SlideVariant =
   | "feedback"
   | "store"
   | "storePayments"
+  | "payments"
   | "beforeAfterFeedback"
   | "crm"
   | "composite";
@@ -150,7 +151,7 @@ function allInOneSlide(headline: string, subline: string, tags: FloatingTag[]): 
   return { variant: "jobs", headline, subline, badge: "All-in-one app", tags };
 }
 
-// 7-step journey slide factories
+// 8-step journey slide factories
 function journey1EstimateSlide(headline: string, subline: string, tags: FloatingTag[]): OnboardingSlide {
   return { variant: "estimates", headline, subline, badge: "Step 1", tags };
 }
@@ -166,19 +167,22 @@ function journey4RouteSlide(headline: string, subline: string, tags: FloatingTag
 function journey5JobStatusSlide(headline: string, subline: string, tags: FloatingTag[]): OnboardingSlide {
   return { variant: "jobs-status", headline, subline, badge: "Step 5", tags };
 }
-function journey6BeforeAfterFeedbackSlide(headline: string, subline: string, tags: FloatingTag[]): OnboardingSlide {
-  return { variant: "beforeAfterFeedback", headline, subline, badge: "Step 6", tags };
+function journey6VisualSellingSlide(headline: string, subline: string, tags: FloatingTag[]): OnboardingSlide {
+  return { variant: "store", headline, subline, badge: "Step 6", tags };
 }
-function journey7StorePaymentsSlide(headline: string, subline: string, tags: FloatingTag[]): OnboardingSlide {
-  return { variant: "storePayments", headline, subline, badge: "Step 7", tags };
+function journey7FeedbackSlide(headline: string, subline: string, tags: FloatingTag[]): OnboardingSlide {
+  return { variant: "beforeAfterFeedback", headline, subline, badge: "Step 7", tags };
+}
+function journey8PaymentsSlide(headline: string, subline: string, tags: FloatingTag[]): OnboardingSlide {
+  return { variant: "payments", headline, subline, badge: "Step 8", tags };
 }
 
 // ---------------------------------------------------------------------------
-// PLUMBER — 7-step journey
+// PLUMBER — 8-step journey
 // ---------------------------------------------------------------------------
 const plumberSlides: OnboardingSlide[] = [
   journey1EstimateSlide(
-    "Create estimate and send to customer for approval",
+    "Create estimates, invoices or agreements and send to customer for approval.",
     "Quote plumbing jobs on-site with line items, labor, and parts. Send by text or email. Customer approves before you leave.",
     [
       { icon: FileText,      label: "On-Site Estimate",  subtitle: "Create in under 2 min", ...TAG.green,  position: "top-right" },
@@ -187,8 +191,8 @@ const plumberSlides: OnboardingSlide[] = [
     ]
   ),
   journey2JobScheduleSlide(
-    "Create the job and assign it to your employee",
-    "Turn approved estimates into jobs. Map each job to an employee's calendar. One tap to assign, drag to reschedule.",
+    "Assign job to employees with ease.",
+    "Turn approved estimates into jobs. One tap to assign to the right tech. Map to their calendar, drag to reschedule.",
     [
       { icon: UserCheck,   label: "Assign by Skill",    subtitle: "Right tech, right job",  ...TAG.green,  position: "top-right" },
       { icon: Route,       label: "Set employee route", subtitle: "Optimize daily stops",   ...TAG.blue,   position: "mid-left" },
@@ -196,8 +200,8 @@ const plumberSlides: OnboardingSlide[] = [
     ]
   ),
   journey3AgreementSlide(
-    "Create agreements. Get signed approval. Reduce chargebacks.",
-    "Set visit frequency, capture customer signatures on-site, and protect your business with fewer disputes.",
+    "Reduce Charge Backs and disputes with professional agreement maker built in.",
+    "Set visit frequency, capture customer signatures on-site. Protect your business with fewer disputes, more protection.",
     [
       { icon: Calendar,   label: "Recurring Schedule", subtitle: "Set visit frequency",   ...TAG.purple, position: "top-right" },
       { icon: PenLine,     label: "Get customer signature", subtitle: "Sign on-site",       ...TAG.cyan,   position: "mid-left" },
@@ -205,7 +209,7 @@ const plumberSlides: OnboardingSlide[] = [
     ]
   ),
   journey4RouteSlide(
-    "Manage schedules and routes. Save hours every day.",
+    "Save hours daily with our easy Employee scheduling and routing dashboard.",
     "Build optimized routes with job stops in the best order. Drag to reorder. Assign by area. Minimize drive time.",
     [
       { icon: Route,       label: "Create Route",       subtitle: "Drag & reorder stops",   ...TAG.blue,   position: "top-right" },
@@ -222,32 +226,41 @@ const plumberSlides: OnboardingSlide[] = [
       { icon: CheckCheck,   label: "Completed",        subtitle: "Paid & closed",          ...TAG.green,  position: "bottom-right" },
     ]
   ),
-  journey6BeforeAfterFeedbackSlide(
-    "Document the job. Get the review.",
-    "Capture before and after photos. Attach to the job. Share with customers. Send a feedback request — build your 5-star reputation.",
-    [
-      { icon: Camera,     label: "Before/After Photos", subtitle: "Proof of quality",      ...TAG.pink,   position: "top-right" },
-      { icon: Star,       label: "Post-Job Feedback",   subtitle: "5-star reviews",       ...TAG.amber,  position: "mid-left" },
-      { icon: Users,      label: "Build Reputation",    subtitle: "More referrals",       ...TAG.green,  position: "bottom-right" },
-    ]
-  ),
-  journey7StorePaymentsSlide(
-    "Sell on the go. Get paid your way.",
-    "Techs browse your parts catalog, check stock, and sell directly to customers. Card, ACH, NFC Tap to Pay, cash — all options, one app.",
+  journey6VisualSellingSlide(
+    "Use the built in Visual Selling tools to upsell customers on the spot.",
+    "Techs browse your parts catalog, check stock, and sell directly to customers. Shopping cart in your pocket.",
     [
       { icon: ShoppingCart, label: "Sell from Phone",   subtitle: "Catalog in your pocket", ...TAG.teal,   position: "top-right" },
-      { icon: CreditCard,   label: "Tap to Pay",       subtitle: "NFC, no reader needed",  ...TAG.orange, position: "mid-left" },
-      { icon: Wallet,       label: "5 Payment Options", subtitle: "Card, ACH, cash, more",  ...TAG.blue,   position: "bottom-right" },
+      { icon: Package,      label: "Stock Check",       subtitle: "Live inventory count",   ...TAG.green,  position: "mid-left" },
+      { icon: TrendingUp,   label: "Upsell on the Spot", subtitle: "Increase ticket size", ...TAG.orange, position: "bottom-right" },
+    ]
+  ),
+  journey7FeedbackSlide(
+    "Get 5 Star Review with ease.",
+    "Capture before and after photos. Send a feedback request. Build your reputation with 5-star reviews.",
+    [
+      { icon: Camera,     label: "Before/After Photos", subtitle: "Proof of quality",      ...TAG.pink,   position: "top-right" },
+      { icon: Star,       label: "5 Star Reviews",      subtitle: "Build reputation",      ...TAG.amber,  position: "mid-left" },
+      { icon: Users,      label: "More Referrals",      subtitle: "Happy customers share", ...TAG.green,  position: "bottom-right" },
+    ]
+  ),
+  journey8PaymentsSlide(
+    "Get paid your way. Card, ACH, Tap, Cash.",
+    "Accept any payment method on the job site. All options in one app. Same-day payout.",
+    [
+      { icon: CreditCard,   label: "Tap to Pay",       subtitle: "NFC, no reader needed",  ...TAG.orange, position: "top-right" },
+      { icon: Wallet,       label: "Cards + ACH",       subtitle: "All major methods",     ...TAG.blue,   position: "mid-left" },
+      { icon: DollarSign,   label: "Same-Day Payout",  subtitle: "Get paid every day",     ...TAG.green,  position: "bottom-right" },
     ]
   ),
 ];
 
 // ---------------------------------------------------------------------------
-// ELECTRICIAN — 7-step journey
+// ELECTRICIAN — 8-step journey
 // ---------------------------------------------------------------------------
 const electricianSlides: OnboardingSlide[] = [
   journey1EstimateSlide(
-    "Create estimate and send to customer for approval",
+    "Create estimates, invoices or agreements and send to customer for approval.",
     "Quote panel upgrades and installs with labor, materials, and permit fees. Send for approval — customer signs on your phone.",
     [
       { icon: FileText,      label: "Itemized Estimates", subtitle: "Labor + materials",      ...TAG.green,  position: "top-right" },
@@ -256,8 +269,8 @@ const electricianSlides: OnboardingSlide[] = [
     ]
   ),
   journey2JobScheduleSlide(
-    "Create the job and assign it to your employee",
-    "Assign panel upgrades, outlet installs, emergency calls to the right tech. One tap to map to their calendar.",
+    "Assign job to employees with ease.",
+    "Assign panel upgrades, outlet installs, emergency calls to the right tech. One tap to map to their calendar, drag to reschedule.",
     [
       { icon: UserCheck,   label: "Skill Matching",     subtitle: "Right tech, right permit", ...TAG.blue,   position: "top-right" },
       { icon: Route,       label: "Set employee route", subtitle: "Optimize daily stops",   ...TAG.orange, position: "mid-left" },
@@ -265,8 +278,8 @@ const electricianSlides: OnboardingSlide[] = [
     ]
   ),
   journey3AgreementSlide(
-    "Create agreements. Get signed approval. Reduce chargebacks.",
-    "Set visit frequency, capture customer signatures on-site, and protect your business with fewer disputes.",
+    "Reduce Charge Backs and disputes with professional agreement maker built in.",
+    "Set visit frequency, capture customer signatures on-site. Protect your business with fewer disputes, more protection.",
     [
       { icon: Calendar,   label: "Recurring Schedule", subtitle: "Set visit frequency",   ...TAG.purple, position: "top-right" },
       { icon: PenLine,     label: "Get customer signature", subtitle: "Sign on-site",       ...TAG.cyan,   position: "mid-left" },
@@ -274,7 +287,7 @@ const electricianSlides: OnboardingSlide[] = [
     ]
   ),
   journey4RouteSlide(
-    "Route your crew across job sites efficiently.",
+    "Save hours daily with our easy Employee scheduling and routing dashboard.",
     "Build optimized daily routes for each electrician. Drag stops to reorder, assign by neighborhood.",
     [
       { icon: Route,       label: "Route Creation",     subtitle: "Build in seconds",      ...TAG.blue,   position: "top-right" },
@@ -291,32 +304,41 @@ const electricianSlides: OnboardingSlide[] = [
       { icon: CheckCheck,   label: "Completed",        subtitle: "Paid & closed",          ...TAG.green,  position: "bottom-right" },
     ]
   ),
-  journey6BeforeAfterFeedbackSlide(
-    "Document the job. Get the review.",
-    "Before and after photos attached to every job. Share with customers. Send feedback request — build your 5-star reputation.",
-    [
-      { icon: Camera,     label: "Before/After Photos", subtitle: "Proof of quality",     ...TAG.pink,   position: "top-right" },
-      { icon: Star,       label: "Post-Job Feedback",   subtitle: "5-star reviews",       ...TAG.amber,  position: "mid-left" },
-      { icon: Users,      label: "Build Reputation",    subtitle: "More referrals",        ...TAG.green,  position: "bottom-right" },
-    ]
-  ),
-  journey7StorePaymentsSlide(
-    "Sell on the go. Get paid your way.",
-    "Browse GFCI outlets, breakers, wire — sell from the truck. Card, ACH, Tap to Pay, cash — all options in one app.",
+  journey6VisualSellingSlide(
+    "Use the built in Visual Selling tools to upsell customers on the spot.",
+    "Techs browse GFCI outlets, breakers, wire — check stock and sell directly to customers. Shopping cart in your pocket.",
     [
       { icon: ShoppingCart, label: "Parts Catalog",   subtitle: "Search by keyword",       ...TAG.teal,   position: "top-right" },
-      { icon: CreditCard,   label: "Tap to Pay",      subtitle: "Phone is the reader",     ...TAG.orange, position: "mid-left" },
-      { icon: Wallet,       label: "5 Payment Options", subtitle: "All methods accepted", ...TAG.blue,   position: "bottom-right" },
+      { icon: Package,      label: "Live Stock",       subtitle: "Real-time counts",       ...TAG.green,  position: "mid-left" },
+      { icon: TrendingUp,   label: "Upsell on the Spot", subtitle: "Increase ticket size", ...TAG.orange, position: "bottom-right" },
+    ]
+  ),
+  journey7FeedbackSlide(
+    "Get 5 Star Review with ease.",
+    "Before and after photos attached to every job. Send feedback request. Build your reputation with 5-star reviews.",
+    [
+      { icon: Camera,     label: "Before/After Photos", subtitle: "Proof of quality",     ...TAG.pink,   position: "top-right" },
+      { icon: Star,       label: "5 Star Reviews",      subtitle: "Build reputation",     ...TAG.amber,  position: "mid-left" },
+      { icon: Users,      label: "More Referrals",      subtitle: "Happy customers share", ...TAG.green,  position: "bottom-right" },
+    ]
+  ),
+  journey8PaymentsSlide(
+    "Get paid your way. Card, ACH, Tap, Cash.",
+    "Accept any payment method on the job site. All options in one app. Same-day payout.",
+    [
+      { icon: CreditCard,   label: "Tap to Pay",       subtitle: "Phone is the reader",    ...TAG.orange, position: "top-right" },
+      { icon: Wallet,       label: "Cards + ACH",       subtitle: "All methods accepted",  ...TAG.blue,   position: "mid-left" },
+      { icon: DollarSign,   label: "Same-Day Payout",  subtitle: "Get paid every day",     ...TAG.green,  position: "bottom-right" },
     ]
   ),
 ];
 
 // ---------------------------------------------------------------------------
-// HVAC — 7-step journey
+// HVAC — 8-step journey
 // ---------------------------------------------------------------------------
 const hvacSlides: OnboardingSlide[] = [
   journey1EstimateSlide(
-    "Create estimate and send to customer for approval",
+    "Create estimates, invoices or agreements and send to customer for approval.",
     "Quote equipment replacements, tune-ups, and repairs with refrigerant, labor, and warranty. Customer approves on your phone.",
     [
       { icon: FileText,      label: "Equipment Quote",   subtitle: "Parts + labor + warranty", ...TAG.green, position: "top-right" },
@@ -325,8 +347,8 @@ const hvacSlides: OnboardingSlide[] = [
     ]
   ),
   journey2JobScheduleSlide(
-    "Create the job and assign it to your employee",
-    "Assign installs, tune-ups, emergency calls to certified techs. One tap to map to their calendar.",
+    "Assign job to employees with ease.",
+    "Assign installs, tune-ups, emergency calls to certified techs. One tap to map to their calendar, drag to reschedule.",
     [
       { icon: UserCheck,   label: "Certified Techs",   subtitle: "Match by certification",   ...TAG.blue,   position: "top-right" },
       { icon: Route,       label: "Set employee route", subtitle: "Optimize daily stops",   ...TAG.cyan,   position: "mid-left" },
@@ -334,8 +356,8 @@ const hvacSlides: OnboardingSlide[] = [
     ]
   ),
   journey3AgreementSlide(
-    "Create agreements. Get signed approval. Reduce chargebacks.",
-    "Set visit frequency, capture customer signatures on-site, and protect your business with fewer disputes.",
+    "Reduce Charge Backs and disputes with professional agreement maker built in.",
+    "Set visit frequency, capture customer signatures on-site. Protect your business with fewer disputes, more protection.",
     [
       { icon: Calendar,   label: "Recurring Schedule", subtitle: "Set visit frequency",    ...TAG.purple, position: "top-right" },
       { icon: PenLine,     label: "Get customer signature", subtitle: "Sign on-site",      ...TAG.cyan,   position: "mid-left" },
@@ -343,7 +365,7 @@ const hvacSlides: OnboardingSlide[] = [
     ]
   ),
   journey4RouteSlide(
-    "Manage schedules and routes. Plan seasonal efficiency.",
+    "Save hours daily with our easy Employee scheduling and routing dashboard.",
     "Create routes for spring/fall tune-up season. Drag stops to reorder. Assign techs by zone. Minimize drive time.",
     [
       { icon: Route,       label: "Seasonal Routes",   subtitle: "Spring & fall planned",   ...TAG.cyan,   position: "top-right" },
@@ -360,32 +382,41 @@ const hvacSlides: OnboardingSlide[] = [
       { icon: CheckCheck,   label: "Completed",        subtitle: "Paid & closed",           ...TAG.green,  position: "bottom-right" },
     ]
   ),
-  journey6BeforeAfterFeedbackSlide(
-    "Document the job. Get the review.",
-    "Before and after photos at every unit. Share with customers. Send feedback request — build your 5-star reputation.",
-    [
-      { icon: Camera,     label: "Before/After Photos", subtitle: "Proof of quality",     ...TAG.pink,   position: "top-right" },
-      { icon: Star,       label: "Post-Job Feedback",   subtitle: "5-star reviews",      ...TAG.amber,  position: "mid-left" },
-      { icon: Users,      label: "Build Reputation",    subtitle: "More referrals",       ...TAG.green,  position: "bottom-right" },
-    ]
-  ),
-  journey7StorePaymentsSlide(
-    "Sell on the go. Get paid your way.",
-    "Techs sell filters and refrigerant from the truck. Card, ACH, Tap to Pay, cash — all options in one app.",
+  journey6VisualSellingSlide(
+    "Use the built in Visual Selling tools to upsell customers on the spot.",
+    "Techs browse filters, refrigerant, parts — check stock and sell directly to customers. Shopping cart in your pocket.",
     [
       { icon: ShoppingCart, label: "Filter Catalog",   subtitle: "Find by model number",   ...TAG.teal,   position: "top-right" },
-      { icon: CreditCard,   label: "Tap to Pay",       subtitle: "NFC at the unit",        ...TAG.cyan,   position: "mid-left" },
-      { icon: Wallet,       label: "5 Payment Options", subtitle: "All methods accepted", ...TAG.blue,   position: "bottom-right" },
+      { icon: Package,      label: "Refrigerant Stock", subtitle: "Live tank inventory",   ...TAG.green,  position: "mid-left" },
+      { icon: TrendingUp,   label: "Upsell on the Spot", subtitle: "Increase ticket size", ...TAG.cyan,   position: "bottom-right" },
+    ]
+  ),
+  journey7FeedbackSlide(
+    "Get 5 Star Review with ease.",
+    "Before and after photos at every unit. Send feedback request. Build your reputation with 5-star reviews.",
+    [
+      { icon: Camera,     label: "Before/After Photos", subtitle: "Proof of quality",     ...TAG.pink,   position: "top-right" },
+      { icon: Star,       label: "5 Star Reviews",      subtitle: "Build reputation",     ...TAG.amber,  position: "mid-left" },
+      { icon: Users,      label: "More Referrals",      subtitle: "Happy customers share", ...TAG.green,  position: "bottom-right" },
+    ]
+  ),
+  journey8PaymentsSlide(
+    "Get paid your way. Card, ACH, Tap, Cash.",
+    "Accept any payment method on the job site. All options in one app. Same-day payout.",
+    [
+      { icon: CreditCard,   label: "Tap to Pay",       subtitle: "NFC at the unit",        ...TAG.cyan,   position: "top-right" },
+      { icon: Wallet,       label: "Cards + ACH",       subtitle: "All methods accepted",  ...TAG.blue,   position: "mid-left" },
+      { icon: DollarSign,   label: "Same-Day Payout",  subtitle: "Get paid every day",     ...TAG.green,  position: "bottom-right" },
     ]
   ),
 ];
 
 // ---------------------------------------------------------------------------
-// CARPENTER — 7-step journey
+// CARPENTER — 8-step journey
 // ---------------------------------------------------------------------------
 const carpenterSlides: OnboardingSlide[] = [
   journey1EstimateSlide(
-    "Create estimate and send to customer for approval",
+    "Create estimates, invoices or agreements and send to customer for approval.",
     "Quote cabinet installs, deck builds, renovations with materials, labor, and margin. Send for approval — customer signs on your phone.",
     [
       { icon: FileText,      label: "Material + Labor",  subtitle: "Detailed line items",     ...TAG.green,  position: "top-right" },
@@ -394,8 +425,8 @@ const carpenterSlides: OnboardingSlide[] = [
     ]
   ),
   journey2JobScheduleSlide(
-    "Create the job and assign it to your employee",
-    "Assign cabinet installs, deck builds, renovations to the right crew. One tap to map to their calendar.",
+    "Assign job to employees with ease.",
+    "Assign cabinet installs, deck builds, renovations to the right crew. One tap to map to their calendar, drag to reschedule.",
     [
       { icon: UserCheck,   label: "Assign by Skill",    subtitle: "Right carpenter, right job", ...TAG.blue,  position: "top-right" },
       { icon: Route,       label: "Set employee route", subtitle: "Optimize daily stops",   ...TAG.amber, position: "mid-left" },
@@ -403,8 +434,8 @@ const carpenterSlides: OnboardingSlide[] = [
     ]
   ),
   journey3AgreementSlide(
-    "Create agreements. Get signed approval. Reduce chargebacks.",
-    "Set visit frequency, capture customer signatures on-site, and protect your business with fewer disputes.",
+    "Reduce Charge Backs and disputes with professional agreement maker built in.",
+    "Set visit frequency, capture customer signatures on-site. Protect your business with fewer disputes, more protection.",
     [
       { icon: Calendar,   label: "Recurring Schedule", subtitle: "Set visit frequency",       ...TAG.purple, position: "top-right" },
       { icon: PenLine,     label: "Get customer signature", subtitle: "Sign on-site",            ...TAG.amber,  position: "mid-left" },
@@ -412,7 +443,7 @@ const carpenterSlides: OnboardingSlide[] = [
     ]
   ),
   journey4RouteSlide(
-    "Manage schedules and routes. Save hours every day.",
+    "Save hours daily with our easy Employee scheduling and routing dashboard.",
     "Build routes across project sites. Drag stops to reorder. Assign crew by zone. Minimize drive time between jobs.",
     [
       { icon: Route,       label: "Site Routes",        subtitle: "Multiple project stops", ...TAG.amber,  position: "top-right" },
@@ -429,32 +460,41 @@ const carpenterSlides: OnboardingSlide[] = [
       { icon: CheckCheck,   label: "Completed",        subtitle: "Paid & closed",          ...TAG.green,  position: "bottom-right" },
     ]
   ),
-  journey6BeforeAfterFeedbackSlide(
-    "Document the job. Get the review.",
-    "Before and after photos at every project. Share with customers. Send feedback request — build your 5-star reputation.",
-    [
-      { icon: Camera,     label: "Before/After Photos", subtitle: "Build your portfolio",   ...TAG.pink,   position: "top-right" },
-      { icon: Star,       label: "Post-Job Feedback",   subtitle: "5-star reviews",       ...TAG.amber,  position: "mid-left" },
-      { icon: Users,      label: "Build Reputation",    subtitle: "More referrals",        ...TAG.green,  position: "bottom-right" },
-    ]
-  ),
-  journey7StorePaymentsSlide(
-    "Sell on the go. Get paid your way.",
-    "Browse lumber, hardware, finish supplies — sell from the truck. Card, ACH, Tap to Pay, cash — all options in one app.",
+  journey6VisualSellingSlide(
+    "Use the built in Visual Selling tools to upsell customers on the spot.",
+    "Techs browse lumber, hardware, finish supplies — check stock and sell directly to customers. Shopping cart in your pocket.",
     [
       { icon: ShoppingCart, label: "Supplies Catalog",  subtitle: "Lumber to hardware",    ...TAG.teal,   position: "top-right" },
-      { icon: CreditCard,   label: "Tap to Pay",       subtitle: "NFC at project site",    ...TAG.amber,  position: "mid-left" },
-      { icon: Wallet,       label: "5 Payment Options", subtitle: "Deposit to final pay",  ...TAG.blue,   position: "bottom-right" },
+      { icon: Package,      label: "Stock on Hand",     subtitle: "Know what's in the van", ...TAG.green,  position: "mid-left" },
+      { icon: TrendingUp,   label: "Upsell on the Spot", subtitle: "Increase ticket size", ...TAG.amber,  position: "bottom-right" },
+    ]
+  ),
+  journey7FeedbackSlide(
+    "Get 5 Star Review with ease.",
+    "Before and after photos at every project. Send feedback request. Build your reputation with 5-star reviews.",
+    [
+      { icon: Camera,     label: "Before/After Photos", subtitle: "Build your portfolio",   ...TAG.pink,   position: "top-right" },
+      { icon: Star,       label: "5 Star Reviews",      subtitle: "Build reputation",      ...TAG.amber,  position: "mid-left" },
+      { icon: Users,      label: "More Referrals",      subtitle: "Happy customers share", ...TAG.green,  position: "bottom-right" },
+    ]
+  ),
+  journey8PaymentsSlide(
+    "Get paid your way. Card, ACH, Tap, Cash.",
+    "Accept any payment method on the job site. All options in one app. Same-day payout.",
+    [
+      { icon: CreditCard,   label: "Tap to Pay",       subtitle: "NFC at project site",    ...TAG.amber,  position: "top-right" },
+      { icon: Wallet,       label: "Cards + ACH",       subtitle: "Deposit to final pay",  ...TAG.blue,   position: "mid-left" },
+      { icon: DollarSign,   label: "Same-Day Payout",  subtitle: "Get paid every day",     ...TAG.green,  position: "bottom-right" },
     ]
   ),
 ];
 
 // ---------------------------------------------------------------------------
-// GENERAL — 7-step journey
+// GENERAL — 8-step journey
 // ---------------------------------------------------------------------------
 const generalSlides: OnboardingSlide[] = [
   journey1EstimateSlide(
-    "Create estimate and send to customer for approval",
+    "Create estimates, invoices or agreements and send to customer for approval.",
     "Quote any service — plumbing, electrical, HVAC, carpentry — with line items and labor. Send for approval. Customer signs on your phone.",
     [
       { icon: FileText,      label: "Any Trade Quote",   subtitle: "One estimate, all work",    ...TAG.green,  position: "top-right" },
@@ -463,8 +503,8 @@ const generalSlides: OnboardingSlide[] = [
     ]
   ),
   journey2JobScheduleSlide(
-    "Create the job and assign it to your employee",
-    "Assign any trade to the right tech. One tap to map to their calendar. Plumbing, electrical, HVAC — all in one view.",
+    "Assign job to employees with ease.",
+    "Assign any trade to the right tech. One tap to map to their calendar, drag to reschedule. Plumbing, electrical, HVAC — all in one view.",
     [
       { icon: UserCheck,   label: "Assign by Trade",    subtitle: "Right tech, right job",   ...TAG.blue,   position: "top-right" },
       { icon: Route,       label: "Set employee route", subtitle: "Optimize daily stops",   ...TAG.purple, position: "mid-left" },
@@ -472,8 +512,8 @@ const generalSlides: OnboardingSlide[] = [
     ]
   ),
   journey3AgreementSlide(
-    "Create agreements. Get signed approval. Reduce chargebacks.",
-    "Set visit frequency, capture customer signatures on-site, and protect your business with fewer disputes.",
+    "Reduce Charge Backs and disputes with professional agreement maker built in.",
+    "Set visit frequency, capture customer signatures on-site. Protect your business with fewer disputes, more protection.",
     [
       { icon: Calendar,   label: "Recurring Schedule", subtitle: "Set visit frequency",       ...TAG.purple, position: "top-right" },
       { icon: PenLine,     label: "Get customer signature", subtitle: "Sign on-site",       ...TAG.cyan,   position: "mid-left" },
@@ -481,7 +521,7 @@ const generalSlides: OnboardingSlide[] = [
     ]
   ),
   journey4RouteSlide(
-    "Manage schedules and routes. Optimize across all trades.",
+    "Save hours daily with our easy Employee scheduling and routing dashboard.",
     "Build daily routes for plumbers, electricians, HVAC techs. Drag to reorder. Assign by zone. Minimize drive time.",
     [
       { icon: Route,       label: "Cross-Trade Routes", subtitle: "All teams, one view",   ...TAG.purple, position: "top-right" },
@@ -498,22 +538,31 @@ const generalSlides: OnboardingSlide[] = [
       { icon: CheckCheck,   label: "Completed",        subtitle: "Paid & closed",          ...TAG.green,  position: "bottom-right" },
     ]
   ),
-  journey6BeforeAfterFeedbackSlide(
-    "Document the job. Get the review.",
-    "Before and after photos for every job. Share with customers. Send feedback request — build your 5-star reputation.",
-    [
-      { icon: Camera,     label: "Before/After Photos", subtitle: "Proof of quality",     ...TAG.pink,   position: "top-right" },
-      { icon: Star,       label: "Post-Job Feedback",   subtitle: "5-star reviews",       ...TAG.amber,  position: "mid-left" },
-      { icon: Users,      label: "Build Reputation",    subtitle: "More referrals",       ...TAG.green,  position: "bottom-right" },
-    ]
-  ),
-  journey7StorePaymentsSlide(
-    "Sell on the go. Get paid your way.",
-    "Techs sell parts for any trade from the truck. Card, ACH, Tap to Pay, cash — all options in one app.",
+  journey6VisualSellingSlide(
+    "Use the built in Visual Selling tools to upsell customers on the spot.",
+    "Techs browse parts for any trade — check stock and sell directly to customers. Shopping cart in your pocket.",
     [
       { icon: ShoppingCart, label: "Multi-Trade Store", subtitle: "Parts for every job",   ...TAG.teal,   position: "top-right" },
-      { icon: CreditCard,   label: "Tap to Pay",        subtitle: "Phone is the terminal", ...TAG.purple, position: "mid-left" },
-      { icon: Wallet,       label: "5 Payment Options", subtitle: "All methods tracked",  ...TAG.blue,   position: "bottom-right" },
+      { icon: Package,      label: "Live Stock Count",   subtitle: "Know before you sell",  ...TAG.green,  position: "mid-left" },
+      { icon: TrendingUp,   label: "Upsell on the Spot", subtitle: "Increase ticket size", ...TAG.purple, position: "bottom-right" },
+    ]
+  ),
+  journey7FeedbackSlide(
+    "Get 5 Star Review with ease.",
+    "Before and after photos for every job. Send feedback request. Build your reputation with 5-star reviews.",
+    [
+      { icon: Camera,     label: "Before/After Photos", subtitle: "Proof of quality",     ...TAG.pink,   position: "top-right" },
+      { icon: Star,       label: "5 Star Reviews",      subtitle: "Build reputation",     ...TAG.amber,  position: "mid-left" },
+      { icon: Users,      label: "More Referrals",      subtitle: "Happy customers share", ...TAG.green,  position: "bottom-right" },
+    ]
+  ),
+  journey8PaymentsSlide(
+    "Get paid your way. Card, ACH, Tap, Cash.",
+    "Accept any payment method on the job site. All options in one app. Same-day payout.",
+    [
+      { icon: CreditCard,   label: "Tap to Pay",        subtitle: "Phone is the terminal", ...TAG.purple, position: "top-right" },
+      { icon: Wallet,       label: "Cards + ACH",        subtitle: "All methods tracked",  ...TAG.blue,   position: "mid-left" },
+      { icon: DollarSign,   label: "Same-Day Payout",  subtitle: "Get paid every day",     ...TAG.green,  position: "bottom-right" },
     ]
   ),
 ];

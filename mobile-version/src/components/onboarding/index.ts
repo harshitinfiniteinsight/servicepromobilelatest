@@ -18,4 +18,5 @@ export { default as StorePreview } from "./StorePreview";
 export { default as CrmPreview } from "./CrmPreview";
 export { default as BeforeAfterFeedbackPreview } from "./BeforeAfterFeedbackPreview";
 export { default as StorePaymentsPreview } from "./StorePaymentsPreview";
+export { default as PaymentsPreview } from "./PaymentsPreview";
 export type { FloatingTag } from "./PhoneWithTags";

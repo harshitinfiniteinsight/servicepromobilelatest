@@ -36,6 +36,7 @@ import {
   StorePreview,
   StorePaymentsPreview,
   BeforeAfterFeedbackPreview,
+  PaymentsPreview,
   CrmPreview,
 } from "@/components/onboarding";
 import { ArrowRight, Sparkles, CheckCircle, Calendar, CreditCard, FileText, MapPin, Package, CheckCheck } from "lucide-react";
@@ -58,6 +59,7 @@ const VARIANT_TO_MODULE: Record<SlideVariant, string> = {
   feedback: "Feedback",
   store: "Store",
   storePayments: "Payments",
+  payments: "Payments",
   beforeAfterFeedback: "Feedback",
   crm: "Customers",
   composite: "Jobs",
@@ -261,6 +263,8 @@ const Onboarding = () => {
             invoices={getOnboardingInvoices(selectedBusiness)}
           />
         );
+      case "payments":
+        return <PaymentsPreview />;
       case "beforeAfterFeedback":
         return <BeforeAfterFeedbackPreview feedback={getOnboardingFeedback(selectedBusiness)} />;
       case "crm":
