@@ -23,6 +23,7 @@ import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import AddServicePicturesModal from "@/components/modals/AddServicePicturesModal";
 import ViewServicePicturesModal from "@/components/modals/ViewServicePicturesModal";
 import CannotEditModal from "@/components/modals/CannotEditModal";
+import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -200,6 +201,9 @@ const Jobs = () => {
   // Reassign employee modal state
   const [showReassignEmployeeModal, setShowReassignEmployeeModal] = useState(false);
   const [selectedJobForReassign, setSelectedJobForReassign] = useState<typeof jobs[0] | null>(null);
+  // Reschedule job modal state
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [selectedJobForReschedule, setSelectedJobForReschedule] = useState<typeof jobs[0] | null>(null);
 
   // Metrics carousel state
   const [metricsGroupIndex, setMetricsGroupIndex] = useState(0);
@@ -830,6 +834,69 @@ const Jobs = () => {
     setShowCannotEditModal(false);
     setSelectedJobForCannotEdit(null);
   };
+  // Handle reschedule job
+  const handleRescheduleJob = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      setSelectedJobForReschedule(job);
+      setShowRescheduleModal(true);
+    }
+  };
+
+  /**
+   * Handle reschedule confirmation
+   * PROTOTYPE: Updates job locally without backend call
+   * TODO for production:
+   * - Add real API call to update job schedule
+   * - Add validation for employee availability
+   * - Add notification to affected parties
+   */
+  const handleRescheduleConfirm = (newDate: string, newTime: string, newEmployeeId: string, updatedAddress?: string) => {
+    if (!selectedJobForReschedule) return;
+
+    const newEmployee = mockEmployees.find(emp => emp.id === newEmployeeId);
+    
+    // Update the job with new schedule, employee, and optionally address
+    setJobs(prevJobs =>
+      prevJobs.map(job =>
+        job.id === selectedJobForReschedule.id
+          ? {
+              ...job,
+              date: newDate,
+              time: newTime,
+              technicianId: newEmployeeId,
+              technicianName: newEmployee?.name || job.technicianName,
+              ...(updatedAddress && { location: updatedAddress }),
+            }
+          : job
+      )
+    );
+
+    // PROTOTYPE: Also update localStorage if job exists there
+    try {
+      const storedJobs = JSON.parse(localStorage.getItem("mockJobs") || "[]");
+      const updatedStoredJobs = storedJobs.map((job: any) =>
+        job.id === selectedJobForReschedule.id
+          ? {
+              ...job,
+              date: newDate,
+              time: newTime,
+              technicianId: newEmployeeId,
+              technicianName: newEmployee?.name || job.technicianName,
+              ...(updatedAddress && { location: updatedAddress }),
+            }
+          : job
+      );
+      localStorage.setItem("mockJobs", JSON.stringify(updatedStoredJobs));
+    } catch (e) {
+      console.warn("Could not update localStorage jobs");
+    }
+
+    toast.success("Job rescheduled successfully");
+    setShowRescheduleModal(false);
+    setSelectedJobForReschedule(null);
+  };
+  };
 
   // Handle reassign employee
   const handleReassignEmployee = (jobId: string) => {
@@ -1323,6 +1390,7 @@ const Jobs = () => {
                   previewInvoice={() => handlePreview(job.id, "Invoice")}
                   previewAgreement={() => handlePreview(job.id, "Agreement")}
                   onEdit={() => handleEditJob(job.id)}
+                                  onReschedule={() => handleRescheduleJob(job.id)}
                   onReassign={() => handleReassignEmployee(job.id)}
                 />
               ))
@@ -1440,6 +1508,27 @@ const Jobs = () => {
           open={showAgreementPreview}
           onOpenChange={setShowAgreementPreview}
           data={previewAgreement}
+        />
+      )}
+      {/* Reschedule Job Modal - also handles employee reassignment */}
+      {selectedJobForReschedule && (
+        <RescheduleJobModal
+          isOpen={showRescheduleModal}
+          onClose={() => {
+            setShowRescheduleModal(false);
+            setSelectedJobForReschedule(null);
+          }}
+          onConfirm={handleRescheduleConfirm}
+          job={{
+            id: selectedJobForReschedule.id,
+            title: selectedJobForReschedule.title,
+            customerName: selectedJobForReschedule.customerName,
+            technicianId: (selectedJobForReschedule as any).technicianId || "1",
+            technicianName: selectedJobForReschedule.technicianName,
+            date: selectedJobForReschedule.date,
+            time: selectedJobForReschedule.time,
+            jobAddress: (selectedJobForReschedule as any).jobAddress || selectedJobForReschedule.location || "Address not available",
+          }}
         />
       )}
 

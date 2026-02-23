@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Edit, Eye, Share2, FileText, MessageSquare, UserCog, MapPin, Image as ImageIcon } from "lucide-react";
+import { Calendar, Edit, Eye, Share2, FileText, MessageSquare, UserCog, MapPin, Image as ImageIcon, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
@@ -31,6 +31,7 @@ interface JobCardProps {
   onQuickAction?: (action: string) => void;
   onPreview?: (documentId: string, jobType: "Agreement" | "Estimate" | "Invoice") => void;
   onReassignEmployee?: () => void;
+  onReschedule?: () => void;
   onAddPictures?: () => void;
   onViewPictures?: () => void;
 }
@@ -51,6 +52,7 @@ const JobCard = ({
   onQuickAction,
   onPreview,
   onReassignEmployee,
+  onReschedule,
   onAddPictures,
   onViewPictures
 }: JobCardProps) => {
@@ -184,6 +186,16 @@ const JobCard = ({
         });
       }
       
+      // Reschedule Job - for merchants and employees
+      if (onReschedule) {
+        items.push({
+          label: "Reschedule Job",
+          icon: RefreshCw,
+          action: () => onReschedule(),
+          separator: false,
+        });
+      }
+
       // Reassign Employee - only for merchant
       if (!isEmployee && onReassignEmployee) {
         items.push({
@@ -243,6 +255,16 @@ const JobCard = ({
         separator: false,
       });
       
+      // Reschedule Job - for merchants and employees
+      if (onReschedule) {
+        items.push({
+          label: "Reschedule Job",
+          icon: RefreshCw,
+          action: () => onReschedule(),
+          separator: false,
+        });
+      }
+
       // Share
       if (onQuickAction) {
         items.push({

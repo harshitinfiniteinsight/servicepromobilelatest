@@ -54,7 +54,6 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
 import PermissionSettings from "./pages/PermissionSettings";
-import FeedbackSettings from "./pages/settings/FeedbackSettings";
 import ChangeLanguage from "./pages/ChangeLanguage";
 import Help from "./pages/Help";
 import AppBenefits from "./pages/AppBenefits";
@@ -72,6 +71,7 @@ import CheckoutSummary from "./pages/CheckoutSummary";
 import CheckoutPayment from "./pages/CheckoutPayment";
 import OrderConfirmation from "./pages/OrderConfirmation";
 import SellProduct from "./pages/SellProduct";
+import Health from "./pages/Health";
 
 const queryClient = new QueryClient();
 
@@ -122,6 +122,7 @@ const AppContent = () => {
             <Route path="/checkout/payment" element={<CheckoutPayment />} />
             <Route path="/checkout/confirmation" element={<OrderConfirmation />} />
             <Route path="/sales/sell-product" element={<SellProduct />} />
+            <Route path="/health" element={<Health />} />
             <Route path="/employees" element={<Employees />} />
             <Route path="/employees/new" element={<AddEmployee />} />
             <Route path="/employees/:id" element={<EmployeeDetails />} />
@@ -133,7 +134,7 @@ const AppContent = () => {
             <Route path="/inventory/:id/edit" element={<EditInventoryItem />} />
             <Route path="/inventory/:id" element={<InventoryItemDetails />} />
             <Route path="/inventory/alert-settings" element={<LowInventoryAlertSettings />} />
-            <Route path="/inventory/stock" element={<InventoryStockInOut />} />
+            <Route path="/inventory/stock-in-out" element={<InventoryStockInOut />} />
             <Route path="/inventory/refunds" element={<InventoryRefund />} />
             <Route path="/inventory/discounts" element={<Discounts />} />
             <Route path="/inventory/discounts/new" element={<AddDiscount />} />
@@ -145,7 +146,6 @@ const AppContent = () => {
             <Route path="/settings/profile" element={<Profile />} />
             <Route path="/settings/change-password" element={<ChangePassword />} />
             <Route path="/settings/permissions" element={<PermissionSettings />} />
-            <Route path="/settings/feedback" element={<FeedbackSettings />} />
             <Route path="/settings/terms" element={<TermsConditions />} />
             <Route path="/settings/return-policy" element={<ReturnPolicy />} />
             <Route path="/settings/business-policies" element={<BusinessPolicies />} />

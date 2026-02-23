@@ -66,7 +66,6 @@ const Estimates = () => {
   
   // Step 1: Customer & Job Details
   const [newEstimateCustomer, setNewEstimateCustomer] = useState("");
-  const [newEstimateJobAddress, setNewEstimateJobAddress] = useState("");
   const [newEstimateEmployee, setNewEstimateEmployee] = useState("");
   
   // Step 2: Select Service
@@ -721,7 +720,7 @@ const Estimates = () => {
 
   // Step validation functions
   const isStep1Valid = () => {
-    return !!(newEstimateCustomer && newEstimateJobAddress && newEstimateEmployee);
+    return !!(newEstimateCustomer && newEstimateEmployee);
   };
 
   const isStep2Valid = () => {
@@ -840,7 +839,6 @@ const Estimates = () => {
       id: `EST-${Date.now()}`,
       customerId: newEstimateCustomer,
       customerName: mockCustomers.find(c => c.id === newEstimateCustomer)?.name || "Unknown Customer",
-      jobAddress: newEstimateJobAddress,
       employeeId: newEstimateEmployee,
       employeeName: mockEmployees.find(e => e.id === newEstimateEmployee)?.name || "Unassigned",
       amount: calculateTotal(),
@@ -858,7 +856,6 @@ const Estimates = () => {
     // Reset form
     setCurrentStep(1);
     setNewEstimateCustomer("");
-    setNewEstimateJobAddress("");
     setNewEstimateEmployee("");
     setSelectedServices([]);
     setDiscount("");
@@ -1104,16 +1101,6 @@ const Estimates = () => {
                         ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Job Address *</label>
-                  <Input
-                    placeholder="Enter job address"
-                    value={newEstimateJobAddress}
-                    onChange={(e) => setNewEstimateJobAddress(e.target.value)}
-                    className="h-9 text-sm"
-                  />
                 </div>
 
                 <div className="space-y-1.5">

@@ -115,10 +115,13 @@ const ACHSetupSliderModal = ({ isOpen, onClose, onBack }: ACHSetupSliderModalPro
       // Simulate API call
       await new Promise(resolve => setTimeout(resolve, 1500));
       
+      // Close the modal first
+      onClose();
+      
+      // Show success message after modal closes
       toast.success("Instructions sent to your email!");
     } catch (error) {
       toast.error("Failed to send instructions. Please try again.");
-    } finally {
       setIsSendingEmail(false);
     }
   };

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { mockJobs, mockEmployees, mockInvoices, mockEstimates, mockAgreements, mockCustomers } from "@/data/mobileMockData";
-import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon, XCircle, UserCog, Edit, MessageSquare, FileText } from "lucide-react";
+import { MapPin, Clock, CheckCircle2, Circle, Navigation, Route, ChevronDown, Plus, Pencil, Calendar as CalendarIcon, XCircle, UserCog, Edit, MessageSquare, FileText, RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MapContainer, TileLayer, Marker, Popup, useMap, Polyline } from "react-leaflet";
 import L from "leaflet";
@@ -17,6 +17,7 @@ import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
 import SendFeedbackFormModal from "@/components/modals/SendFeedbackFormModal";
 import ViewFeedbackModal from "@/components/modals/ViewFeedbackModal";
 import FeedbackFormModal from "@/components/modals/FeedbackFormModal";
+import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -176,6 +177,8 @@ const EmployeeTracking = () => {
   const [editingEmployeeId, setEditingEmployeeId] = useState<string | undefined>(undefined);
   const [showReassignModal, setShowReassignModal] = useState(false);
   const [selectedJobForReassign, setSelectedJobForReassign] = useState<typeof mockJobs[0] | null>(null);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [selectedJobForReschedule, setSelectedJobForReschedule] = useState<typeof mockJobs[0] | null>(null);
 
   // Get current employee ID from localStorage
   const currentEmployeeId = localStorage.getItem("currentEmployeeId") || "1";
@@ -211,6 +214,7 @@ const EmployeeTracking = () => {
 
   // State to manage job assignments (technicianId updates)
   const [jobAssignments, setJobAssignments] = useState<Record<string, { technicianId: string; technicianName: string }>>({});
+  const [jobScheduleOverrides, setJobScheduleOverrides] = useState<Record<string, { date: string; time: string; technicianId: string; technicianName: string; location?: string }>>({});
 
   // Format date for comparison (YYYY-MM-DD)
   const formatDateForComparison = (date: Date): string => {
@@ -218,6 +222,20 @@ const EmployeeTracking = () => {
     const month = String(date.getMonth() + 1).padStart(2, "0");
     const day = String(date.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
+  };
+
+  // Get job time overrides for a specific employee and date
+  const getJobTimeOverrides = (employeeId: string, dateStr: string): Record<string, string> => {
+    const timeOverridesKey = `job_time_overrides_${employeeId}_${dateStr}`;
+    const stored = localStorage.getItem(timeOverridesKey);
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return {};
+      }
+    }
+    return {};
   };
 
   // Generate demo jobs for an employee if no real jobs exist
@@ -263,7 +281,20 @@ const EmployeeTracking = () => {
     }
     
     const dateStr = formatDateForComparison(dateToUse);
-    filteredJobs = mockJobs.filter((job) => job.date === dateStr);
+    const jobsWithOverrides = mockJobs.map((job) => {
+      const override = jobScheduleOverrides[job.id];
+      if (!override) return job;
+      return {
+        ...job,
+        date: override.date,
+        time: override.time,
+        technicianId: override.technicianId,
+        technicianName: override.technicianName,
+        location: override.location ?? job.location,
+      };
+    });
+
+    filteredJobs = jobsWithOverrides.filter((job) => job.date === dateStr);
     
     // Apply job assignments (reassignments) to jobs
     filteredJobs = filteredJobs.map((job) => {
@@ -302,11 +333,18 @@ const EmployeeTracking = () => {
       }
     }
     
-    return filteredJobs.map((job) => ({
-      ...job,
-      status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed" | "Cancel",
-    }));
-  }, [currentEmployeeId, jobStatuses, jobAssignments, isEmployee, selectedDate, employeeSelectedDate, activeTab]);
+    // Apply job time overrides (from route scheduling) and status overrides
+    return filteredJobs.map((job) => {
+      const timeOverrides = getJobTimeOverrides(job.technicianId, dateStr);
+      const overriddenTime = timeOverrides[job.id] || job.time;
+
+      return {
+        ...job,
+        time: overriddenTime,
+        status: (jobStatuses[job.id] || job.status) as "Scheduled" | "In Progress" | "Completed" | "Cancel",
+      };
+    });
+  }, [currentEmployeeId, jobStatuses, jobAssignments, jobScheduleOverrides, isEmployee, selectedDate, employeeSelectedDate, activeTab]);
 
   // Helper function to convert time string to minutes for comparison
   const timeToMinutes = (timeStr: string): number => {
@@ -793,6 +831,33 @@ const EmployeeTracking = () => {
     setShowReassignModal(true);
   };
 
+  // Handle reschedule job
+  const handleRescheduleJob = (job: typeof mockJobs[0]) => {
+    setSelectedJobForReschedule(job);
+    setShowRescheduleModal(true);
+  };
+
+  const handleRescheduleConfirm = (newDate: string, newTime: string, newEmployeeId: string, updatedAddress?: string) => {
+    if (!selectedJobForReschedule) return;
+
+    const newEmployee = mockEmployees.find((emp) => emp.id === newEmployeeId);
+
+    setJobScheduleOverrides((prev) => ({
+      ...prev,
+      [selectedJobForReschedule.id]: {
+        date: newDate,
+        time: newTime,
+        technicianId: newEmployeeId,
+        technicianName: newEmployee?.name || selectedJobForReschedule.technicianName,
+        location: updatedAddress ?? selectedJobForReschedule.location,
+      },
+    }));
+
+    toast.success("Job rescheduled successfully");
+    setShowRescheduleModal(false);
+    setSelectedJobForReschedule(null);
+  };
+
   // Handle edit navigation
   const handleEditJob = (job: typeof mockJobs[0]) => {
     const jobType = getJobType(job.id);
@@ -927,7 +992,7 @@ const EmployeeTracking = () => {
   return (
     <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
       <MobileHeader 
-        title="Job Route" 
+        title="Scheduled Route" 
         showBack={true}
         actions={
           !isEmployee && (
@@ -1529,6 +1594,15 @@ const EmployeeTracking = () => {
                                                         separator: false,
                                                       },
                                                     ];
+
+                                                    if (job.status === "Scheduled") {
+                                                      menuItems.push({
+                                                        label: "Reschedule Job",
+                                                        icon: RefreshCw,
+                                                        action: () => handleRescheduleJob(job),
+                                                        separator: false,
+                                                      });
+                                                    }
                                                     
                                                     // Add Edit option only if payment status is Open
                                                     if (paymentStatus === "Open") {
@@ -2160,6 +2234,34 @@ const EmployeeTracking = () => {
                 }, 100);
               }
             }
+          }}
+        />
+      )}
+
+      {/* Reschedule Job Modal */}
+      {selectedJobForReschedule && (
+        <RescheduleJobModal
+          isOpen={showRescheduleModal}
+          onClose={() => {
+            setShowRescheduleModal(false);
+            setSelectedJobForReschedule(null);
+          }}
+          job={{
+            id: selectedJobForReschedule.id,
+            title: selectedJobForReschedule.title,
+            customerName: selectedJobForReschedule.customerName,
+            technicianId: selectedJobForReschedule.technicianId,
+            technicianName: selectedJobForReschedule.technicianName,
+            date: selectedJobForReschedule.date,
+            time: selectedJobForReschedule.time,
+            jobAddress: selectedJobForReschedule.location,
+          }}
+          onConfirm={handleRescheduleConfirm}
+          onEditRoute={() => {
+            setShowRescheduleModal(false);
+            setSelectedJobForReschedule(null);
+            setEditingEmployeeId(selectedJobForReschedule.technicianId);
+            setShowScheduleRouteModal(true);
           }}
         />
       )}

@@ -201,6 +201,15 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     navigate("/settings/configure-card-reader");
   };
 
+  const handleACHSetupBack = () => {
+    setShowACHSetupModal(false);
+  };
+
+  const handleACHSetupClose = () => {
+    setShowACHSetupModal(false);
+    onClose();
+  };
+
   return (
     <>
       <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal && !showNoReaderModal && !showACHSetupModal} onOpenChange={onClose}>

@@ -38,7 +38,6 @@ const Agreements = () => {
   
   // Step 1: Customer & Employee
   const [newAgreementCustomer, setNewAgreementCustomer] = useState("");
-  const [newAgreementJobAddress, setNewAgreementJobAddress] = useState("");
   const [newAgreementEmployee, setNewAgreementEmployee] = useState("");
   
   // Step 2: Job Details
@@ -98,7 +97,7 @@ const Agreements = () => {
 
   // Step validation functions
   const isStep1Valid = () => {
-    return newAgreementCustomer && newAgreementJobAddress && newAgreementEmployee;
+    return newAgreementCustomer && newAgreementEmployee;
   };
 
   const isStep2Valid = () => {
@@ -187,7 +186,6 @@ const Agreements = () => {
     // Reset form
     setCurrentStep(1);
     setNewAgreementCustomer("");
-    setNewAgreementJobAddress("");
     setNewAgreementEmployee("");
     setAgreementType("one-time");
     setServiceRequirement([]);
@@ -539,16 +537,6 @@ const Agreements = () => {
                         ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Job Address *</label>
-                  <Input
-                    placeholder="Enter job address"
-                    value={newAgreementJobAddress}
-                    onChange={(e) => setNewAgreementJobAddress(e.target.value)}
-                    className="h-9 text-sm"
-                  />
                 </div>
 
                 <div className="space-y-2">

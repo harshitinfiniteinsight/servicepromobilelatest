@@ -41,7 +41,6 @@ const AddAgreement = () => {
   const [customerOpen, setCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [jobAddress, setJobAddress] = useState("");
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
@@ -61,14 +60,6 @@ const AddAgreement = () => {
       }
     }
   }, [isEmployee, currentEmployeeId, selectedEmployee, isEditMode]);
-
-  // Clear job address when customer changes in NEW mode (don't auto-fill)
-  useEffect(() => {
-    if (selectedCustomer && !isEditMode) {
-      // In NEW mode, keep job address empty when customer changes
-      setJobAddress("");
-    }
-  }, [selectedCustomer, isEditMode]);
 
   // Load customers from shared store and merge with mock seed
   useEffect(() => {
@@ -105,11 +96,6 @@ const AddAgreement = () => {
           setSelectedCustomer(prefill.customerId);
         }
         
-        // Prefill job address
-        if (prefill.jobAddress) {
-          setJobAddress(prefill.jobAddress);
-        }
-        
         // Prefill employee (only if not employee mode, as employees are auto-filled)
         if (!isEmployee && prefill.employeeId) {
           setSelectedEmployee(prefill.employeeId);
@@ -124,14 +110,6 @@ const AddAgreement = () => {
       // Pre-fill customer
       if (agreement.customerId) {
         setSelectedCustomer(agreement.customerId);
-      }
-
-      // Pre-fill job address (use stored jobAddress or fall back to customer address)
-      const customer = mockCustomers.find(c => c.id === agreement.customerId);
-      if ((agreement as any).jobAddress) {
-        setJobAddress((agreement as any).jobAddress);
-      } else if (customer?.address) {
-        setJobAddress(customer.address);
       }
 
       // Pre-fill employee (if available in agreement, otherwise use current employee)
@@ -522,19 +500,6 @@ const AddAgreement = () => {
                 </PopoverContent>
               </Popover>
             </div>
-
-            {selectedCustomer && (
-              <div>
-                <Label>Job Address</Label>
-                <Input
-                  type="text"
-                  value={jobAddress}
-                  onChange={(e) => setJobAddress(e.target.value)}
-                  placeholder="Enter job address"
-                  className="mt-2 h-11"
-                />
-              </div>
-            )}
 
             <div>
               <Label>Assign Employee</Label>

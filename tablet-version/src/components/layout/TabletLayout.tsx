@@ -73,7 +73,7 @@ const merchantNavItems: NavItem[] = [
     children: [
       { title: "Employee List", path: "/employees", icon: Users },
       { title: "Schedule", path: "/employees/schedule", icon: Calendar },
-      { title: "Job Route", path: "/employees/job-route", icon: Briefcase },
+      { title: "Scheduled Route", path: "/employees/job-route", icon: Briefcase },
     ]
   },
   {

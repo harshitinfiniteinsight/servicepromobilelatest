@@ -90,7 +90,6 @@ const Invoices = () => {
   
   // Step 1: Customer & Job Details
   const [newInvoiceCustomer, setNewInvoiceCustomer] = useState("");
-  const [newInvoiceJobAddress, setNewInvoiceJobAddress] = useState("");
   const [newInvoiceEmployee, setNewInvoiceEmployee] = useState("");
   const [newInvoiceType, setNewInvoiceType] = useState<"single" | "recurring">("single");
   
@@ -319,7 +318,7 @@ const Invoices = () => {
 
   // Step validation
   const isStep1Valid = () => {
-    const baseValid = newInvoiceCustomer && newInvoiceJobAddress && newInvoiceEmployee && newInvoiceType;
+    const baseValid = newInvoiceCustomer && newInvoiceEmployee && newInvoiceType;
     
     // Additional validation for recurring invoices
     if (newInvoiceType === "recurring" && recurringEnabled) {
@@ -382,7 +381,6 @@ const Invoices = () => {
       const invoiceData = {
         customerId: newInvoiceCustomer,
         customerName: mockCustomers.find(c => c.id === newInvoiceCustomer)?.name || "Unknown Customer",
-        jobAddress: newInvoiceJobAddress,
         employeeId: newInvoiceEmployee,
         employeeName: mockEmployees.find(e => e.id === newInvoiceEmployee)?.name || "Unassigned",
         amount: calculateTotal(),
@@ -405,7 +403,6 @@ const Invoices = () => {
       // Reset form
       setCurrentStep(1);
       setNewInvoiceCustomer("");
-      setNewInvoiceJobAddress("");
       setNewInvoiceEmployee("");
       setNewInvoiceType("single");
       setRecurringEnabled(false);
@@ -1215,16 +1212,6 @@ const Invoices = () => {
                         ))}
                     </SelectContent>
                   </Select>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Job Address *</label>
-                  <Input
-                    placeholder="Enter job address"
-                    value={newInvoiceJobAddress}
-                    onChange={(e) => setNewInvoiceJobAddress(e.target.value)}
-                    className="h-9 text-sm"
-                  />
                 </div>
 
                 <div className="space-y-1.5">

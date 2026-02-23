@@ -144,7 +144,7 @@ const EmployeeDashboard = () => {
     { label: "New Estimate", path: "/estimates/new", icon: FileText },
     { label: "New Invoice", path: "/invoices/new", icon: DollarSign },
     { label: "New Agreement", path: "/agreements/new", icon: ClipboardList },
-    { label: "Job Route", path: "/employees/tracking", icon: Route },
+    { label: "Scheduled Route", path: "/employees/tracking", icon: Route },
   ];
 
   const operationalModules = [

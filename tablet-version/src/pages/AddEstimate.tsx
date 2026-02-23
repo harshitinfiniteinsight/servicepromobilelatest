@@ -26,7 +26,6 @@ const AddEstimate = () => {
   const [customerOpen, setCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [jobAddress, setJobAddress] = useState("");
   const [employeeOpen, setEmployeeOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
   const [employeeSearch, setEmployeeSearch] = useState("");
@@ -93,11 +92,6 @@ const AddEstimate = () => {
           setSelectedCustomer(prefill.customerId);
         }
         
-        // Prefill job address
-        if (prefill.jobAddress) {
-          setJobAddress(prefill.jobAddress);
-        }
-        
         // Prefill employee (only if not employee mode, as employees are auto-filled)
         if (!isEmployee && prefill.employeeId) {
           setSelectedEmployee(prefill.employeeId);
@@ -113,14 +107,6 @@ const AddEstimate = () => {
       if (estimate) {
         // Prefill customer
         setSelectedCustomer(estimate.customerId);
-        
-        // Prefill job address (use stored jobAddress or fall back to customer address)
-        const customer = mockCustomers.find(c => c.id === estimate.customerId);
-        if (estimate.jobAddress) {
-          setJobAddress(estimate.jobAddress);
-        } else if (customer?.address) {
-          setJobAddress(customer.address);
-        }
         
         // Prefill employee (using first employee as default)
         if (mockEmployees.length > 0) {
@@ -152,14 +138,6 @@ const AddEstimate = () => {
       }
     }
   }, [isEditMode, id]);
-
-  // Clear job address when customer changes in NEW mode (don't auto-fill)
-  useEffect(() => {
-    if (selectedCustomer && !isEditMode) {
-      // In NEW mode, keep job address empty when customer changes
-      setJobAddress("");
-    }
-  }, [selectedCustomer, isEditMode]);
 
   // Handle return from Add Inventory page
   useEffect(() => {
@@ -527,19 +505,6 @@ const AddEstimate = () => {
                 </PopoverContent>
               </Popover>
             </div>
-
-            {selectedCustomer && (
-              <div>
-                <Label>Job Address</Label>
-                <Input
-                  type="text"
-                  value={jobAddress}
-                  onChange={(e) => setJobAddress(e.target.value)}
-                  placeholder="Enter job address"
-                  className="mt-2 h-11"
-                />
-              </div>
-            )}
 
             <div>
               <Label>Employee</Label>
