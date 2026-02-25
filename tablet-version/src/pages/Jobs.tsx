@@ -896,7 +896,6 @@ const Jobs = () => {
     setShowRescheduleModal(false);
     setSelectedJobForReschedule(null);
   };
-  };
 
   // Handle reassign employee
   const handleReassignEmployee = (jobId: string) => {
