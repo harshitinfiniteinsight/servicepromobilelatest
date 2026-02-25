@@ -1,6 +1,21 @@
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { ShoppingCart, Package, CreditCard, Wallet, Smartphone, FileText, Calendar } from "lucide-react";
+import {
+  ShoppingCart,
+  Package,
+  CreditCard,
+  Wallet,
+  Smartphone,
+  FileText,
+  Calendar,
+  Droplet,
+  Zap,
+  ThermometerSnowflake,
+  Hammer,
+  Bug,
+  TreeDeciduous,
+  type LucideIcon,
+} from "lucide-react";
 
 interface StoreItem {
   id: string;
@@ -24,25 +39,61 @@ interface StorePaymentsPreviewProps {
   className?: string;
 }
 
+const categoryIcons: Record<string, LucideIcon> = {
+  fittings: Droplet,
+  drain: Droplet,
+  seals: Droplet,
+  outlets: Zap,
+  connectors: Zap,
+  breakers: Zap,
+  filters: ThermometerSnowflake,
+  refrigerant: ThermometerSnowflake,
+  controls: ThermometerSnowflake,
+  lumber: Hammer,
+  fasteners: Hammer,
+  finish: Hammer,
+  hvac: ThermometerSnowflake,
+  electrical: Zap,
+  plumbing: Droplet,
+  "pest": Bug,
+  treatment: Bug,
+  rodents: Bug,
+  mulch: TreeDeciduous,
+  fertilizer: TreeDeciduous,
+  equipment: TreeDeciduous,
+};
+
+function getCategoryIcon(category: string): LucideIcon {
+  const key = category.toLowerCase().split(/\s+/)[0];
+  return categoryIcons[key] ?? Package;
+}
+
 const StorePaymentsPreview = ({ items, invoices = [], className }: StorePaymentsPreviewProps) => {
   const item = items[0];
   const invoice = invoices[0];
 
   return (
-    <div className={cn("space-y-2", className)}>
-      {/* Store product card */}
+    <div className={cn("space-y-3", className)}>
+      {/* Store product card - fixed layout, non-responsive */}
       {item && (
-        <div className="p-2.5 rounded-lg border-l-[3px] border-l-teal-500 border border-border/50 bg-white/95 dark:bg-zinc-900/95 shadow-sm">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
-              <Package className="w-4 h-4 text-teal-600 dark:text-teal-400" />
+        <div className="p-3 rounded-xl border-l-[4px] border-l-teal-500 border border-border/50 bg-white/95 dark:bg-zinc-900/95 shadow-sm w-full min-w-0">
+          <div className="grid grid-cols-[36px_1fr] gap-2">
+            <div className="w-9 h-9 rounded-lg bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center flex-shrink-0">
+              {(() => {
+                const Icon = getCategoryIcon(item.category);
+                return <Icon className="w-4 h-4 text-teal-600 dark:text-teal-400" />;
+              })()}
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-[12px] truncate">{item.name}</p>
-              <p className="text-[10px] text-muted-foreground">{item.category} · {item.stock} in stock</p>
+            <div className="min-w-0">
+              <p className="font-semibold text-xs leading-snug break-words">{item.name}</p>
+              <p className="text-[10px] text-muted-foreground whitespace-nowrap">
+                {item.category} · {item.stock} in stock
+              </p>
             </div>
-            <button className="flex items-center gap-1 px-2 py-1 rounded-lg bg-teal-500 text-white text-[9px] font-semibold flex-shrink-0">
-              <ShoppingCart className="w-2.5 h-2.5" />
+          </div>
+          <div className="flex items-center justify-end mt-2">
+            <button className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-teal-500 text-white text-[10px] font-semibold flex-shrink-0 whitespace-nowrap">
+              <ShoppingCart className="w-3 h-3" />
               Sell
             </button>
           </div>

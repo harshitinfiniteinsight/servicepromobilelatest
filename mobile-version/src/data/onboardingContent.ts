@@ -5,6 +5,8 @@ import {
   CheckCheck,
   Wind,
   Briefcase,
+  Bug,
+  TreePine,
   Calendar,
   FileText,
   Users,
@@ -39,7 +41,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 
-export type BusinessId = "plumber" | "carpenter" | "electrician" | "hvac" | "general";
+export type BusinessId = "plumber" | "carpenter" | "electrician" | "hvac" | "general" | "exterminator" | "landscaper";
 
 export type SlideVariant =
   | "jobs"
@@ -568,45 +570,9 @@ const generalSlides: OnboardingSlide[] = [
 ];
 
 // ---------------------------------------------------------------------------
-// BUSINESS TYPES
+// BUSINESS TYPES (order: General, AC, Plumbing, Electric, Carpentry, Exterminators, Landscapers)
 // ---------------------------------------------------------------------------
 export const businessTypes: BusinessConfig[] = [
-  {
-    id: "plumber",
-    name: "Pro Plumbing Services",
-    icon: Wrench,
-    color: "from-blue-500 to-blue-600",
-    description: "Residential & Commercial Plumbing",
-    tagline: "Stop chasing paperwork. Start growing your business.",
-    slides: plumberSlides,
-  },
-  {
-    id: "carpenter",
-    name: "Master Carpentry Co.",
-    icon: Hammer,
-    color: "from-amber-600 to-amber-700",
-    description: "Custom Woodwork & Renovation",
-    tagline: "Accurate estimates. On-time delivery. Happy customers.",
-    slides: carpenterSlides,
-  },
-  {
-    id: "electrician",
-    name: "Elite Electric Solutions",
-    icon: Zap,
-    color: "from-yellow-500 to-orange-500",
-    description: "Electrical Installation & Repair",
-    tagline: "Organized. Compliant. Profitable.",
-    slides: electricianSlides,
-  },
-  {
-    id: "hvac",
-    name: "Cool Comfort HVAC",
-    icon: Wind,
-    color: "from-cyan-500 to-blue-600",
-    description: "Heating, Cooling & Air Quality",
-    tagline: "Recurring revenue. Less admin. More service.",
-    slides: hvacSlides,
-  },
   {
     id: "general",
     name: "General Service",
@@ -614,6 +580,60 @@ export const businessTypes: BusinessConfig[] = [
     color: "from-purple-500 to-indigo-600",
     description: "Multi-Service & General Contractor",
     tagline: "One app for your entire operation.",
+    slides: generalSlides,
+  },
+  {
+    id: "hvac",
+    name: "AC / HVAC",
+    icon: Wind,
+    color: "from-cyan-500 to-blue-600",
+    description: "Heating, Cooling & Air Quality",
+    tagline: "Recurring revenue. Less admin. More service.",
+    slides: hvacSlides,
+  },
+  {
+    id: "plumber",
+    name: "Plumbing",
+    icon: Wrench,
+    color: "from-blue-500 to-blue-600",
+    description: "Residential & Commercial Plumbing",
+    tagline: "Stop chasing paperwork. Start growing your business.",
+    slides: plumberSlides,
+  },
+  {
+    id: "electrician",
+    name: "Electric",
+    icon: Zap,
+    color: "from-yellow-500 to-orange-500",
+    description: "Electrical Installation & Repair",
+    tagline: "Organized. Compliant. Profitable.",
+    slides: electricianSlides,
+  },
+  {
+    id: "carpenter",
+    name: "Carpentry",
+    icon: Hammer,
+    color: "from-amber-600 to-amber-700",
+    description: "Custom Woodwork & Renovation",
+    tagline: "Accurate estimates. On-time delivery. Happy customers.",
+    slides: carpenterSlides,
+  },
+  {
+    id: "exterminator",
+    name: "Exterminators",
+    icon: Bug,
+    color: "from-rose-500 to-rose-600",
+    description: "Pest Control & Extermination",
+    tagline: "Schedule treatments. Track service history. Recurring revenue.",
+    slides: generalSlides,
+  },
+  {
+    id: "landscaper",
+    name: "Landscapers",
+    icon: TreePine,
+    color: "from-green-500 to-emerald-600",
+    description: "Landscaping & Lawn Care",
+    tagline: "Seasonal scheduling. Route optimization. One app.",
     slides: generalSlides,
   },
 ];

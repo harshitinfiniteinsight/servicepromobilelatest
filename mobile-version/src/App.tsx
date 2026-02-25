@@ -65,6 +65,7 @@ import ScanForDevices from "./pages/ScanForDevices";
 import MyCardReaders from "./pages/MyCardReaders";
 import Walkthrough from "./pages/Walkthrough";
 import Onboarding from "./pages/Onboarding";
+import OnboardingGallery from "./pages/OnboardingGallery";
 import NotFound from "./pages/NotFound";
 import CustomerSelection from "./pages/CustomerSelection";
 import CheckoutSummary from "./pages/CheckoutSummary";
@@ -77,13 +78,14 @@ const queryClient = new QueryClient();
 
 const AppContent = () => {
   const location = useLocation();
-  const isAuthPage = ['/signin', '/signup', '/walkthrough', '/forgot-password', '/onboarding'].includes(location.pathname);
+  const isAuthPage = ['/signin', '/signup', '/walkthrough', '/forgot-password', '/onboarding', '/onboarding-gallery'].includes(location.pathname);
 
   return (
     <div className="h-full w-full overflow-hidden">
       {isAuthPage ? (
         <Routes>
           <Route path="/onboarding" element={<Onboarding />} />
+          <Route path="/onboarding-gallery" element={<OnboardingGallery />} />
           <Route path="/signin" element={<SignIn />} />
           <Route path="/signup" element={<SignUp />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 interface GradientOrbsProps {
-  businessColor?: "blue" | "amber" | "orange" | "cyan" | "purple" | "primary";
+  businessColor?: "blue" | "amber" | "orange" | "cyan" | "purple" | "primary" | "rose" | "green";
   className?: string;
 }
 
@@ -12,6 +12,8 @@ const orbColors: Record<string, string> = {
   cyan: "from-cyan-400 to-cyan-600",
   purple: "from-purple-400 to-purple-600",
   primary: "from-orange-400 to-orange-600",
+  rose: "from-rose-400 to-rose-600",
+  green: "from-green-400 to-emerald-600",
 };
 
 const GradientOrbs = ({ businessColor = "primary", className }: GradientOrbsProps) => {

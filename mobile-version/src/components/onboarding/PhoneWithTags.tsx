@@ -15,7 +15,7 @@ export interface FloatingTag {
 interface PhoneWithTagsProps {
   children: React.ReactNode;
   tags: FloatingTag[];
-  accentColor?: "blue" | "amber" | "orange" | "cyan" | "purple" | "primary";
+  accentColor?: "blue" | "amber" | "orange" | "cyan" | "purple" | "primary" | "rose" | "green";
   className?: string;
   /** "floating" = tags around phone (default), "inline" = tags in a row below the phone */
   tagLayout?: "floating" | "inline";

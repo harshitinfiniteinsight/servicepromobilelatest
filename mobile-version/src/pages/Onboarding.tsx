@@ -276,20 +276,24 @@ const Onboarding = () => {
     }
   };
 
-  const phoneAccentMap: Record<BusinessId, "blue" | "amber" | "orange" | "cyan" | "purple" | "primary"> = {
+  const phoneAccentMap: Record<BusinessId, "blue" | "amber" | "orange" | "cyan" | "purple" | "primary" | "rose" | "green"> = {
     plumber: "blue",
     carpenter: "amber",
     electrician: "orange",
     hvac: "cyan",
     general: "purple",
+    exterminator: "rose",
+    landscaper: "green",
   };
 
-  const orbColorMap: Record<BusinessId, "blue" | "amber" | "orange" | "cyan" | "purple" | "primary"> = {
+  const orbColorMap: Record<BusinessId, "blue" | "amber" | "orange" | "cyan" | "purple" | "primary" | "rose" | "green"> = {
     plumber: "blue",
     carpenter: "amber",
     electrician: "orange",
     hvac: "cyan",
     general: "purple",
+    exterminator: "rose",
+    landscaper: "green",
   };
 
   const showBackButton = step === "slides";
@@ -409,11 +413,13 @@ const Onboarding = () => {
                         "hover:shadow-[0_20px_40px_-12px_rgba(0,0,0,0.15)] hover:scale-[1.02]",
                         "active:scale-[0.97]",
                         "transition-all duration-200 touch-target text-left animate-pop-in",
-                        business.id === "plumber"     && "border-l-blue-500",
-                        business.id === "carpenter"   && "border-l-amber-500",
-                        business.id === "electrician" && "border-l-orange-500",
-                        business.id === "hvac"        && "border-l-cyan-500",
-                        business.id === "general"     && "border-l-purple-500",
+                        business.id === "plumber"       && "border-l-blue-500",
+                        business.id === "carpenter"     && "border-l-amber-500",
+                        business.id === "electrician"   && "border-l-orange-500",
+                        business.id === "hvac"          && "border-l-cyan-500",
+                        business.id === "general"       && "border-l-purple-500",
+                        business.id === "exterminator"  && "border-l-rose-500",
+                        business.id === "landscaper"    && "border-l-green-500",
                       )}
                       style={{ animationDelay: `${75 + index * 75}ms` } as React.CSSProperties}
                     >

@@ -199,6 +199,8 @@ export function getOnboardingAgreements(businessId: BusinessId) {
     case "carpenter":
     case "electrician":
     case "general":
+    case "exterminator":
+    case "landscaper":
       return mockAgreements.slice(0, 3);
     default:
       return mockAgreements.slice(0, 3);
@@ -240,11 +242,13 @@ export function getOnboardingInventory(businessId: BusinessId) {
 
 export function getOnboardingEmployees(businessId: BusinessId) {
   const roleByBusiness: Record<BusinessId, string[]> = {
-    plumber:     ["Lead Plumber", "Plumber", "Apprentice"],
-    electrician: ["Master Electrician", "Journeyman", "Apprentice"],
-    hvac:        ["HVAC Technician", "HVAC Technician", "Apprentice"],
-    carpenter:   ["Lead Carpenter", "Carpenter", "Apprentice"],
-    general:     ["Field Technician", "Technician", "Apprentice"],
+    plumber:       ["Lead Plumber", "Plumber", "Apprentice"],
+    electrician:   ["Master Electrician", "Journeyman", "Apprentice"],
+    hvac:          ["HVAC Technician", "HVAC Technician", "Apprentice"],
+    carpenter:     ["Lead Carpenter", "Carpenter", "Apprentice"],
+    general:       ["Field Technician", "Technician", "Apprentice"],
+    exterminator:  ["Lead Technician", "Pest Control Tech", "Apprentice"],
+    landscaper:    ["Lead Landscaper", "Lawn Care Tech", "Apprentice"],
   };
   const roles = roleByBusiness[businessId] ?? roleByBusiness.general;
   return mockEmployees.slice(0, 3).map((e, i) => ({
@@ -295,6 +299,16 @@ export function getOnboardingStoreItems(businessId: BusinessId) {
       { id: "s2", name: "GFCI Outlet 20A", category: "Electrical", price: 18.99, stock: 55 },
       { id: "s3", name: "Ball Valve 3/4\"", category: "Plumbing", price: 14.99, stock: 48 },
     ],
+    exterminator: [
+      { id: "s1", name: "Termite Bait Station", category: "Pest Control", price: 45.99, stock: 24 },
+      { id: "s2", name: "Spray Concentrate 1gal", category: "Treatment", price: 32.50, stock: 18 },
+      { id: "s3", name: "Rodent Bait Pack", category: "Rodents", price: 19.99, stock: 60 },
+    ],
+    landscaper: [
+      { id: "s1", name: "Mulch Blend 2cu ft", category: "Mulch", price: 12.99, stock: 80 },
+      { id: "s2", name: "Fertilizer 20lb", category: "Fertilizer", price: 28.50, stock: 45 },
+      { id: "s3", name: "Edge Trimmer Blade", category: "Equipment", price: 24.99, stock: 30 },
+    ],
   };
   return storeData[businessId] ?? storeData.general;
 }
@@ -325,6 +339,16 @@ export function getOnboardingFeedback(businessId: BusinessId) {
       { id: "f1", customerName: "Patricia Hall", rating: 5, comment: "One call handled plumbing, electrical, and HVAC. Incredible service!", jobRef: "JOB-072 · Full Home Service", daysAgo: 2 },
       { id: "f2", customerName: "James Williams", rating: 5, comment: "Assigned the right tech for every job. Really organized company.", jobRef: "JOB-068 · Multi-Trade Service", daysAgo: 5 },
       { id: "f3", customerName: "Nancy Turner", rating: 5, comment: "Everything was tracked in one app — estimates, invoices, everything.", jobRef: "JOB-065 · HVAC + Electrical", daysAgo: 11 },
+    ],
+    exterminator: [
+      { id: "f1", customerName: "Carol Martinez", rating: 5, comment: "Termite treatment was thorough. No issues since!", jobRef: "JOB-081 · Termite Treatment", daysAgo: 3 },
+      { id: "f2", customerName: "Brian Lee", rating: 5, comment: "Ant problem gone in one visit. Professional and prompt.", jobRef: "JOB-078 · Ant Extermination", daysAgo: 7 },
+      { id: "f3", customerName: "Diane Moore", rating: 5, comment: "Quarterly pest control keeps our home pest-free. Highly recommend.", jobRef: "AGR-015 · Quarterly Plan", daysAgo: 14 },
+    ],
+    landscaper: [
+      { id: "f1", customerName: "Kevin Brown", rating: 5, comment: "Lawn looks amazing. They handle mowing and edging perfectly.", jobRef: "JOB-091 · Lawn Care", daysAgo: 2 },
+      { id: "f2", customerName: "Rachel Davis", rating: 5, comment: "Garden design and planting exceeded expectations. Beautiful work!", jobRef: "JOB-088 · Landscape Design", daysAgo: 6 },
+      { id: "f3", customerName: "Tony Garcia", rating: 5, comment: "Seasonal cleanup crew is fast and thorough. Great value.", jobRef: "JOB-085 · Fall Cleanup", daysAgo: 12 },
     ],
   };
   return feedbackByBusiness[businessId] ?? feedbackByBusiness.general;

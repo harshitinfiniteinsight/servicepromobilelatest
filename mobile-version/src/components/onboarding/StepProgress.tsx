@@ -5,7 +5,7 @@ interface StepProgressProps {
   currentSlide?: number;
   totalSlides?: number;
   businessSelected?: boolean;
-  accentColor?: "blue" | "amber" | "orange" | "cyan" | "purple" | "primary";
+  accentColor?: "blue" | "amber" | "orange" | "cyan" | "purple" | "primary" | "rose" | "green";
 }
 
 const StepProgress = ({
@@ -33,6 +33,8 @@ const StepProgress = ({
     cyan: "bg-cyan-500",
     purple: "bg-purple-500",
     primary: "bg-orange-500",
+    rose: "bg-rose-500",
+    green: "bg-green-500",
   };
 
   const barColor = businessSelected ? accentColorMap[accentColor] || accentColorMap.primary : "bg-muted";
