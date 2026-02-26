@@ -1,429 +1,446 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { X, Printer, Mail, MessageSquare, UserCog, FileText, Image as ImageIcon, Paperclip } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Printer, X, Mail, MessageSquare, UserCog, Edit } from "lucide-react";
-import { SendEmailModal } from "./SendEmailModal";
-import { SendSMSModal } from "./SendSMSModal";
-import { mockEmployees, mockCustomers } from "@/data/mockData";
-import { useToast } from "@/hooks/use-toast";
+import { mockCustomers } from "@/data/mobileMockData";
+import { format } from "date-fns";
 
-interface PreviewEstimateModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  estimate: any;
-  onEdit?: (estimate: any) => void;
-  onPayNow?: (estimate: any) => void;
+interface EstimateItem {
+  serviceDate: string;
+  productService: string;
+  sku: string;
+  description: string;
+  qty: number;
+  rate: number;
+  discount: number;
+  subTotal: number;
+  tax: number;
 }
 
-export const PreviewEstimateModal = ({ open, onOpenChange, estimate, onEdit, onPayNow }: PreviewEstimateModalProps) => {
-  const { toast } = useToast();
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showSMSModal, setShowSMSModal] = useState(false);
-  const [showReassignModal, setShowReassignModal] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState(estimate?.employeeId || "");
+interface PreviewEstimateModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  estimate: {
+    id: string;
+    customerId: string;
+    customerName: string;
+    date: string;
+    amount: number;
+    status: string;
+    terms?: string;
+    validUntil?: string;
+    items?: EstimateItem[];
+    billToAddress?: string;
+    shipToAddress?: string;
+    messageOnStatement?: string;
+    messageOnEstimate?: string;
+    termsAndConditions?: string;
+    cancellationPolicy?: string;
+    notesText?: string;
+    attachments?: { fileName: string; fileUrl: string; fileType: string; }[];
+  };
+  onAction?: (action: string) => void;
+}
 
-  if (!estimate) return null;
-
-  // Find customer details
+const PreviewEstimateModal = ({ isOpen, onClose, estimate, onAction }: PreviewEstimateModalProps) => {
   const customer = mockCustomers.find(c => c.id === estimate.customerId);
-  
-  // Calculate estimate totals
-  const items = estimate.items || [];
-  const itemTotal = items.reduce((sum: number, item: any) => {
-    const itemSubtotal = (item.rate || 0) * (item.quantity || 0);
-    const discountAmount = item.discount ? (itemSubtotal * (item.discount / 100)) : 0;
-    return sum + (itemSubtotal - discountAmount);
-  }, 0);
 
-  const discountTotal = items.reduce((sum: number, item: any) => {
-    const itemSubtotal = (item.rate || 0) * (item.quantity || 0);
-    return sum + (itemSubtotal * ((item.discount || 0) / 100));
-  }, 0);
+  // Default data if not provided
+  const estimateDate = estimate.date ? format(new Date(estimate.date), "MM/dd/yyyy") : "10/20/2024";
+  const validUntil = estimate.validUntil ? format(new Date(estimate.validUntil), "MM/dd/yyyy") : "11/15/2024";
+  const terms = estimate.terms || "Due On Receipt";
 
-  const subtotalAfterDiscount = itemTotal;
-  const taxTotal = items.reduce((sum: number, item: any) => {
-    const itemSubtotal = (item.rate || 0) * (item.quantity || 0);
-    const discountAmount = item.discount ? (itemSubtotal * (item.discount / 100)) : 0;
-    const afterDiscount = itemSubtotal - discountAmount;
-    return sum + ((item.tax || 0) / 100) * afterDiscount;
-  }, 0);
+  // Default items if not provided
+  const items: EstimateItem[] = estimate.items || [
+    {
+      serviceDate: "10/20/2024",
+      productService: "Cabinet installation",
+      sku: "N/A",
+      description: "Cabinet installation",
+      qty: 1,
+      rate: 4000.00,
+      discount: 0.00,
+      subTotal: 4000.00,
+      tax: 0.00,
+    },
+    {
+      serviceDate: "10/20/2024",
+      productService: "Countertop installation",
+      sku: "N/A",
+      description: "Countertop installation",
+      qty: 1,
+      rate: 3000.00,
+      discount: 0.00,
+      subTotal: 3000.00,
+      tax: 0.00,
+    },
+    {
+      serviceDate: "10/20/2024",
+      productService: "Plumbing work",
+      sku: "N/A",
+      description: "Plumbing work",
+      qty: 1,
+      rate: 1500.00,
+      discount: 0.00,
+      subTotal: 1500.00,
+      tax: 0.00,
+    },
+  ];
 
-  const estimateTotal = subtotalAfterDiscount + taxTotal;
-  const estimateBalanceDue = estimateTotal;
+  const billToAddress = estimate.billToAddress || customer?.address || "456 Oak Ave, Boston, MA 02109";
+  const shipToAddress = estimate.shipToAddress || "456 Oak Ave, Brooklyn, NY 11201";
+  const customerEmail = customer?.email || "mike.w@email.com";
+  const customerPhone = customer?.phone || "+1 (555) 234-5678";
+  const customerName = estimate.customerName || "Mike Williams";
 
-  // Format date
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-  };
-
-  // Format terms
-  const formatTerms = (terms: string) => {
-    if (!terms) return "due on receipt";
-    return terms.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-  };
-
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleSendEmail = () => {
-    setShowEmailModal(true);
-  };
-
-  const handleSendSMS = () => {
-    setShowSMSModal(true);
-  };
-
-  const handleReassignEmployee = () => {
-    setShowReassignModal(true);
-  };
-
-  const handleReassignSubmit = () => {
-    if (!selectedEmployee) {
-      toast({
-        title: "Error",
-        description: "Please select an employee",
-        variant: "destructive",
-      });
-      return;
+  const notesText = estimate.notesText || "Please ensure the area is clear before arrival. Call 30 mins prior.";
+  const attachments = estimate.attachments || [
+    {
+      fileName: "site_condition.jpg",
+      fileUrl: "https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      fileType: "image/jpeg"
     }
-    toast({
-      title: "Employee Reassigned",
-      description: `Estimate ${estimate.id} has been reassigned to the selected employee.`,
-    });
-    setShowReassignModal(false);
+  ];
+
+  const itemTotal = items.reduce((sum, item) => sum + item.subTotal, 0);
+  const totalDiscount = items.reduce((sum, item) => sum + (item.subTotal * item.discount / 100), 0);
+  const subtotalAfterDiscount = itemTotal - totalDiscount;
+  const totalTax = items.reduce((sum, item) => sum + item.tax, 0);
+  const estimateTotal = subtotalAfterDiscount + totalTax;
+  const estimateBalance = estimateTotal;
+  const totalBalance = estimateTotal;
+
+  const handleAction = (action: string) => {
+    if (onAction) {
+      onAction(action);
+    }
+    if (action === "close") {
+      onClose();
+    }
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0 bg-white">
-          {/* Header */}
-          <DialogHeader className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6 pb-4">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-3xl font-bold text-white">Preview Estimate</DialogTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={handlePrint}
-                  className="bg-orange-500 hover:bg-orange-600 text-white border-none"
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  Printer
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onOpenChange(false)}
-                  className="text-white hover:bg-blue-600/80 h-10 w-10 rounded-full"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-          </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="!fixed !inset-0 !translate-x-0 !translate-y-0 max-w-full w-full h-full max-h-full p-0 gap-0 rounded-none m-0 flex flex-col sm:!left-[50%] sm:!top-[50%] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:max-w-2xl sm:h-auto sm:max-h-[90vh] sm:rounded-lg sm:!inset-auto [&>button]:hidden">
+        <DialogTitle className="sr-only">Preview Estimate</DialogTitle>
+        <DialogDescription className="sr-only">
+          Preview estimate {estimate.id}
+        </DialogDescription>
 
-          <div className="p-6 space-y-6">
-            {/* Estimate Details Section - Blue Background */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Estimate No.</p>
-                  <p className="font-semibold text-gray-900">{estimate.id || "Generated After Save"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Estimate Date</p>
-                  <p className="font-semibold text-gray-900">{formatDate(estimate.createdDate)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Terms</p>
-                  <p className="font-semibold text-gray-900">{formatTerms(estimate.terms || "due on receipt")}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Valid Until</p>
-                  <p className="font-semibold text-gray-900">{formatDate(estimate.validUntil)}</p>
-                </div>
-              </div>
-            </div>
+        {/* Orange Header */}
+        <div className="bg-orange-500 px-4 py-3 flex items-center justify-between safe-top">
+          <h2 className="text-lg font-bold text-white">Preview Estimate</h2>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleAction("print")}
+              className="text-white hover:bg-orange-600 h-9 px-3"
+            >
+              <Printer className="h-4 w-4 mr-1.5" />
+              <span className="text-sm">Printer</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onClose}
+              className="text-white hover:bg-orange-600 h-9 w-9 p-0"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
 
-            {/* Bill To & Ship To Section - Blue Background */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Bill To</h3>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-gray-600">Name -</span> <span className="font-medium text-gray-900">{customer?.name || estimate.customerName || "N/A"}</span></p>
-                    <p><span className="text-gray-600">Email -</span> <span className="font-medium text-gray-900">{customer?.email || estimate.customerEmail || "N/A"}</span></p>
-                    <p><span className="text-gray-600">Address -</span> <span className="font-medium text-gray-900">{customer?.address || estimate.jobAddress || "N/A"}</span></p>
-                    <p><span className="text-gray-600">Phone -</span> <span className="font-medium text-gray-900">{customer?.phone || estimate.customerPhone || "N/A"}</span></p>
-                  </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Ship To</h3>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-gray-600">Name -</span> <span className="font-medium text-gray-900">{estimate.shipToName || customer?.name || "N/A"}</span></p>
-                    <p><span className="text-gray-600">Email -</span> <span className="font-medium text-gray-900">{customer?.email || estimate.customerEmail || "N/A"}</span></p>
-                    <p><span className="text-gray-600">Address -</span> <span className="font-medium text-gray-900">{estimate.shipToAddress || estimate.jobAddress || "N/A"}</span></p>
-                    <p><span className="text-gray-600">Phone -</span> <span className="font-medium text-gray-900">{customer?.phone || estimate.customerPhone || "N/A"}</span></p>
-                  </div>
-                </div>
+        {/* Content - Scrollable */}
+        <div className="flex-1 overflow-y-auto bg-white">
+          <div className="p-4 space-y-4">
+            {/* Estimate Details */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <p className="text-xs text-gray-600 mb-1">Estimate No.</p>
+                <p className="text-sm font-semibold">{estimate.id}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 mb-1">Estimate Date</p>
+                <p className="text-sm font-semibold">{estimateDate}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 mb-1">Terms</p>
+                <p className="text-sm font-semibold">{terms}</p>
+              </div>
+              <div>
+                <p className="text-xs text-gray-600 mb-1">Valid Until</p>
+                <p className="text-sm font-semibold">{validUntil}</p>
               </div>
             </div>
 
-            {/* Items Table */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-blue-600 text-white">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold">Service Date</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold">Product/Service</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold">SKU</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold">Description</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold">QTY</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Rate</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Discount</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Sub Total</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Tax</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white">
-                  {items.map((item: any, index: number) => {
-                    const itemSubtotal = (item.rate || 0) * (item.quantity || 0);
-                    const discountAmount = item.discount ? (itemSubtotal * (item.discount / 100)) : 0;
-                    const afterDiscount = itemSubtotal - discountAmount;
-                    const taxAmount = ((item.tax || 0) / 100) * afterDiscount;
-                    
-                    return (
-                      <tr key={index} className="border-b border-gray-100">
-                        <td className="px-4 py-3 text-sm text-gray-900">{formatDate(item.serviceDate || estimate.createdDate)}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.description || item.product || "N/A"}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{item.sku || "N/A"}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs">{item.fullDescription || item.description || "N/A"}</td>
-                        <td className="px-4 py-3 text-sm text-center text-gray-900">{item.quantity || 0}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-900">${(item.rate || 0).toFixed(2)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-900">{item.discount ? `${item.discount}%` : "0.00%"}</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">${afterDiscount.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-900">${taxAmount.toFixed(2)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="grid grid-cols-3 gap-6">
-              {/* Terms & Conditions Section */}
-              <div className="col-span-2 space-y-4">
-                <div>
-                  <h3 className="text-blue-600 font-semibold mb-1">Message on Statement</h3>
-                  <p className="text-sm text-gray-600">{estimate.messageOnStatement || "-"}</p>
-                </div>
-                <div>
-                  <h3 className="text-blue-600 font-semibold mb-1">Message on Estimate</h3>
-                  <p className="text-sm text-gray-600">{estimate.messageOnEstimate || "-"}</p>
-                </div>
-                <div>
-                  <h3 className="text-blue-600 font-semibold mb-1">Terms & Conditions</h3>
-                  <p className="text-sm text-gray-600">{estimate.termsConditions || "from global settings"}</p>
-                </div>
-                <div>
-                  <h3 className="text-blue-600 font-semibold mb-1">Cancellation & Refund Policy</h3>
-                  <p className="text-sm text-gray-600">{estimate.cancellationPolicy || "-"}</p>
-                </div>
-                <div>
-                  <h3 className="text-blue-600 font-semibold mb-2">Thank You For Your Business!</h3>
-                  <p className="text-sm text-gray-600">
-                    If below 'Pay Now' button didn't work, just copy and paste this URL into your web browser's address bar to complete payment:
-                  </p>
+            {/* Bill To / Ship To */}
+            <div className="grid grid-cols-2 gap-4 pt-2 border-t">
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-2">Bill To</p>
+                <div className="text-xs space-y-1">
+                  <p className="font-medium">{customerName}</p>
+                  <p className="text-gray-600">{customerEmail}</p>
+                  <p className="text-gray-600">{billToAddress}</p>
+                  <p className="text-gray-600">{customerPhone}</p>
                 </div>
               </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-2">Ship To/Job Address</p>
+                <div className="text-xs space-y-1">
+                  <p className="font-medium">{customerName}</p>
+                  <p className="text-gray-600">{customerEmail}</p>
+                  <p className="text-gray-600">{shipToAddress}</p>
+                  <p className="text-gray-600">{customerPhone}</p>
+                </div>
+              </div>
+            </div>
 
-              {/* Summary Section */}
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Item Total:</span>
-                    <span className="font-medium text-gray-900">${itemTotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Sub Total after Discount:</span>
-                    <span className="font-medium text-gray-900">${subtotalAfterDiscount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Taxes:</span>
-                    <span className="font-medium text-gray-900">${taxTotal.toFixed(2)}</span>
-                  </div>
-                  {items.map((item: any, index: number) => {
-                    if (item.tax && item.tax > 0) {
-                      const itemSubtotal = (item.rate || 0) * (item.quantity || 0);
-                      const discountAmount = item.discount ? (itemSubtotal * (item.discount / 100)) : 0;
-                      const afterDiscount = itemSubtotal - discountAmount;
-                      const taxAmount = (item.tax / 100) * afterDiscount;
-                      return (
-                        <div key={index} className="flex justify-between text-xs text-gray-500">
-                          <span>default : {item.tax}% of ${afterDiscount.toFixed(2)} = ${taxAmount.toFixed(2)}</span>
-                          <span>${taxAmount.toFixed(2)}</span>
+            {/* Service Items Table */}
+            <div className="pt-2 border-t space-y-4">
+              <div className="space-y-3 sm:hidden">
+                {items.map((item, index) => (
+                  <div
+                    key={index}
+                    className="rounded-2xl border border-gray-200 bg-white p-3 shadow-sm"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900">{item.productService}</p>
+                        <p className="text-[11px] text-gray-500">{item.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-orange-500">${item.subTotal.toFixed(2)}</p>
+                        <p className="text-[11px] text-gray-500">Subtotal</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 space-y-2 text-[11px] text-gray-600">
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <p className="font-medium text-gray-800">Service Date</p>
+                          <p>{item.serviceDate}</p>
                         </div>
-                      );
-                    }
-                    return null;
-                  })}
-                  <Separator />
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-900">Estimate Total:</span>
-                    <span className="font-bold text-lg text-gray-900">${estimateTotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Estimate Balance due:</span>
-                    <span className="font-medium text-gray-900">${estimateBalanceDue.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Total Balance due:</span>
-                    <span className="font-medium text-gray-900">${estimateBalanceDue.toFixed(2)}</span>
-                  </div>
-                  
-                  <div className="pt-2 space-y-2">
-                    {estimate.status !== "Paid" && (
-                      <Button 
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                        onClick={() => {
-                          if (onPayNow) {
-                            onPayNow(estimate);
-                            onOpenChange(false);
-                          }
-                        }}
-                      >
-                        Pay Now
-                      </Button>
-                    )}
-                    <div className="flex items-center justify-center py-4">
-                      <div 
-                        className={`
-                          inline-block px-8 py-3 border-4 rounded-lg font-bold text-xl
-                          transform rotate-[-3deg] shadow-lg
-                          ${estimate.status === "Paid" 
-                            ? "border-green-500 text-green-600 bg-green-50" 
-                            : "border-red-500 text-red-600 bg-red-50"
-                          }
-                        `}
-                        style={{
-                          fontFamily: 'serif',
-                          letterSpacing: '2px'
-                        }}
-                      >
-                        {estimate.status === "Paid" ? "Paid" : "Unpaid"}
+                        <div>
+                          <p className="font-medium text-gray-800">SKU</p>
+                          <p>{item.sku}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">Quantity</p>
+                          <p>{item.qty}</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div>
+                          <p className="font-medium text-gray-800">Rate</p>
+                          <p>${item.rate.toFixed(2)}</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">Discount</p>
+                          <p>{item.discount.toFixed(2)}%</p>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-800">Tax</p>
+                          <p>${item.tax.toFixed(2)}</p>
+                        </div>
                       </div>
                     </div>
                   </div>
+                ))}
+              </div>
+
+              <div className="hidden sm:block overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="bg-orange-500 text-white">
+                      <th className="px-2 py-2 text-left font-semibold">Service Date</th>
+                      <th className="px-2 py-2 text-left font-semibold">Product/Service</th>
+                      <th className="px-2 py-2 text-left font-semibold">SKU</th>
+                      <th className="px-2 py-2 text-left font-semibold">Description</th>
+                      <th className="px-2 py-2 text-center font-semibold">QTY</th>
+                      <th className="px-2 py-2 text-right font-semibold">Rate</th>
+                      <th className="px-2 py-2 text-right font-semibold">Discount</th>
+                      <th className="px-2 py-2 text-right font-semibold">Sub Total</th>
+                      <th className="px-2 py-2 text-right font-semibold">Tax</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {items.map((item, index) => (
+                      <tr key={index} className="border-b">
+                        <td className="px-2 py-2">{item.serviceDate}</td>
+                        <td className="px-2 py-2">{item.productService}</td>
+                        <td className="px-2 py-2">{item.sku}</td>
+                        <td className="px-2 py-2">{item.description}</td>
+                        <td className="px-2 py-2 text-center">{item.qty}</td>
+                        <td className="px-2 py-2 text-right">${item.rate.toFixed(2)}</td>
+                        <td className="px-2 py-2 text-right">{item.discount.toFixed(2)}%</td>
+                        <td className="px-2 py-2 text-right">${item.subTotal.toFixed(2)}</td>
+                        <td className="px-2 py-2 text-right">${item.tax.toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Summary of Charges */}
+            <div className="pt-2 border-t">
+              <div className="flex flex-col items-end space-y-1 text-xs">
+                <div className="flex justify-between w-full max-w-[200px]">
+                  <span className="text-gray-600">Item Total:</span>
+                  <span className="font-medium">${itemTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between w-full max-w-[200px]">
+                  <span className="text-gray-600">Sub Total after Discount:</span>
+                  <span className="font-medium">${subtotalAfterDiscount.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between w-full max-w-[200px]">
+                  <span className="text-gray-600">Taxes:</span>
+                  <span className="font-medium">${totalTax.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between w-full max-w-[200px] pt-2 border-t">
+                  <span className="text-base font-bold">Estimate Total:</span>
+                  <span className="text-base font-bold">${estimateTotal.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between w-full max-w-[200px]">
+                  <span className="text-gray-600">Estimate Balance due:</span>
+                  <span className="font-medium">${estimateBalance.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between w-full max-w-[200px]">
+                  <span className="text-gray-600">Total Balance due:</span>
+                  <span className="font-medium">${totalBalance.toFixed(2)}</span>
                 </div>
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-              <div className="flex items-center gap-3">
-                {estimate.status !== "Paid" && onEdit && (
+            {/* Messages */}
+            <div className="pt-2 border-t space-y-2">
+              <div className="flex items-start gap-2">
+                <p className="text-xs text-gray-600 min-w-[140px]">Message on Statement:</p>
+                <p className="text-xs text-gray-900">-</p>
+              </div>
+              <div className="flex items-start gap-2">
+                <p className="text-xs text-gray-600 min-w-[140px]">Message on Estimate:</p>
+                <p className="text-xs text-gray-900">-</p>
+              </div>
+            </div>
+
+            {/* Notes Section */}
+            <div className="pt-2 border-t space-y-2">
+              <div>
+                <p className="text-xs font-semibold text-gray-700 mb-1">Notes</p>
+                <div className="text-xs text-gray-900">
+                  {notesText || "–"}
+                </div>
+              </div>
+
+              {attachments && attachments.length > 0 && (
+                <div className="space-y-1 mt-2">
+                  {attachments.map((file, index) => (
+                    <a
+                      key={index}
+                      href={file.fileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2 border rounded-lg hover:bg-gray-50 transition-colors text-xs text-blue-600"
+                    >
+                      {file.fileType.includes('image') ? (
+                        <ImageIcon className="h-4 w-4 text-gray-500" />
+                      ) : file.fileType.includes('pdf') ? (
+                        <FileText className="h-4 w-4 text-gray-500" />
+                      ) : (
+                        <Paperclip className="h-4 w-4 text-gray-500" />
+                      )}
+                      <span className="truncate">{file.fileName}</span>
+                    </a>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Pay Now Button and Status Stamp */}
+            <div className="pt-4 flex items-center justify-between gap-4">
+              {estimate.status === "Unpaid" && (
+                <>
                   <Button
-                    onClick={() => {
-                      if (onEdit) {
-                        onEdit(estimate);
-                        onOpenChange(false);
-                      }
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => handleAction("pay-now")}
+                    className="bg-orange-500 hover:bg-orange-600 text-white flex-1"
                   >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Estimate
+                    Pay Now
                   </Button>
-                )}
+                  <div className="relative">
+                    <div className="border-2 border-dashed border-red-500 bg-red-500 text-white px-4 py-2 transform rotate-[-5deg]">
+                      <p className="text-sm font-bold whitespace-nowrap">Unpaid</p>
+                    </div>
+                  </div>
+                </>
+              )}
+              {estimate.status === "Converted to Invoice" && (
+                <div className="relative w-full flex justify-center">
+                  <div className="border-2 border-dashed border-primary bg-primary text-white px-4 py-2 transform rotate-[-5deg]">
+                    <p className="text-sm font-bold whitespace-nowrap">Converted to Invoice</p>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Policies */}
+            <div className="pt-4 border-t space-y-2 text-xs">
+              <div>
+                <span className="text-gray-600">Terms & Conditions:</span>
+                <span className="text-blue-600 ml-1">from global settings</span>
+              </div>
+              <div>
+                <span className="text-gray-600">Cancellation & Refund Policy:</span>
+              </div>
+              <div className="pt-2">
+                <p className="font-semibold text-gray-900">Thank You For Your Business!</p>
+              </div>
+              <div className="pt-2 text-gray-600">
+                <p>If below 'Pay Now' button didn't work, just copy and paste this URL into your web browser's address bar to complete payment:</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Action Bar - Sticky Footer - Only show for non-converted estimates */}
+        {estimate.status !== "Converted to Invoice" && (
+          <div className="bg-orange-500 safe-bottom">
+            <div className="px-3 pt-3 pb-4">
+              <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 w-full">
                 <Button
-                  onClick={handleSendEmail}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleAction("send-email")}
+                  className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
                 >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Email
+                  <Mail className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                  <span className="whitespace-nowrap text-[10px] sm:text-xs">Send Email</span>
                 </Button>
                 <Button
-                  onClick={handleSendSMS}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleAction("send-sms")}
+                  className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
                 >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Send via SMS
+                  <MessageSquare className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                  <span className="whitespace-nowrap text-[10px] sm:text-xs">Send SMS</span>
                 </Button>
                 <Button
-                  onClick={handleReassignEmployee}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleAction("reassign")}
+                  className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
                 >
-                  <UserCog className="h-4 w-4 mr-2" />
-                  Reassign Employee
+                  <UserCog className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                  <span className="whitespace-nowrap text-[10px] sm:text-xs">Reassign</span>
                 </Button>
               </div>
-              <Button
-                onClick={() => onOpenChange(false)}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
-              >
-                Close
-              </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Send Email Modal */}
-      <SendEmailModal
-        open={showEmailModal}
-        onOpenChange={setShowEmailModal}
-        customerEmail={customer?.email || estimate.customerEmail || ""}
-      />
-
-      {/* Send SMS Modal */}
-      <SendSMSModal
-        open={showSMSModal}
-        onOpenChange={setShowSMSModal}
-        customerName={customer?.name || estimate.customerName || ""}
-        phoneNumber={customer?.phone || estimate.customerPhone || ""}
-      />
-
-      {/* Reassign Employee Modal */}
-      <Dialog open={showReassignModal} onOpenChange={setShowReassignModal}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Reassign Employee</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Select New Employee</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose employee" />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-popover">
-                  {mockEmployees
-                    .filter((emp) => emp.status === "Active")
-                    .map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name} - {employee.role}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowReassignModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleReassignSubmit} className="bg-blue-600 hover:bg-blue-700 text-white">
-              Reassign
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
+
+export default PreviewEstimateModal;
 

@@ -177,7 +177,7 @@ const EmployeeJobRoute = () => {
   }, [filterEmpId]);
 
   return (
-    <div className="h-full flex flex-col overflow-hidden bg-muted/10">
+    <div className="employee-job-route-page h-full flex flex-col overflow-hidden bg-muted/10">
       <TabletHeader title="Scheduled Route" showBack onBack={handleBack} className="px-4 md:px-6 lg:px-8" />
 
       <div className="flex-1 overflow-y-auto scrollable pb-8 pt-6">

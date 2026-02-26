@@ -1,65 +1,57 @@
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { ChevronLeft, CheckSquare } from "lucide-react";
+import MobileHeader from "@/components/layout/MobileHeader";
+import { Check } from "lucide-react";
 
 const Help = () => {
-  const navigate = useNavigate();
-
   const benefits = [
     "Works seamlessly.",
     "Assign customer appointments and dispatch employees, track employee progress.",
     "Send estimates and agreements via SMS/Email to your customer, receive payment via remotely.",
     "Create and manage your service agreements, invoices and estimates.",
     "Manage employee's work flow.",
-    "Track employee."
+    "Track employee.",
   ];
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="bg-primary text-primary-foreground p-4 flex items-center gap-3 shadow-lg">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/settings")}
-          className="hover:bg-primary-foreground/20 text-primary-foreground"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-xl font-semibold">Service Pro911 - Help</h1>
-      </div>
+    <div className="h-full flex flex-col overflow-hidden bg-gray-50">
+      <MobileHeader title="Help" showBack={true} />
+      
+      <div className="flex-1 overflow-y-auto scrollable pt-14 pb-6 px-4">
+        <div className="max-w-md mx-auto h-full flex flex-col">
+          {/* Heading - Centered at top */}
+          <h1 className="text-lg font-bold uppercase text-center text-gray-900 mb-8 mt-4 tracking-tight">
+            APP BENEFITS
+          </h1>
 
-      <main className="p-4 sm:p-6 max-w-6xl mx-auto">
-        <div className="flex justify-end mb-12">
-          <div className="text-right">
-            <h2 className="text-5xl font-bold text-muted-foreground mb-2">APP BENEFITS</h2>
+          {/* Benefits List */}
+          <div className="flex-1 space-y-4 px-2">
+            {benefits.map((benefit, index) => (
+              <div key={index} className="flex items-start gap-3">
+                {/* Orange Checkmark Icon */}
+                <div className="flex-shrink-0 mt-0.5">
+                  <Check className="h-5 w-5 text-[#FF8A3C]" strokeWidth={2.5} />
+                </div>
+                {/* Benefit Text */}
+                <p className="text-sm text-gray-900 leading-relaxed flex-1 text-left">
+                  {benefit}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Pagination Dots */}
+          <div className="flex justify-center items-center gap-2.5 mt-auto mb-8 pt-8">
+            {/* First dot - filled in primary accent color */}
+            <div className="h-2.5 w-2.5 rounded-full bg-[#FF8A3C]" />
+            {/* Remaining dots - light neutral gray */}
+            {[1, 2, 3, 4, 5].map((index) => (
+              <div
+                key={index}
+                className="h-2.5 w-2.5 rounded-full bg-gray-300"
+              />
+            ))}
           </div>
         </div>
-
-        <div className="space-y-6 max-w-4xl">
-          {benefits.map((benefit, index) => (
-            <div
-              key={index}
-              className="flex items-start gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors"
-            >
-              <CheckSquare className="h-6 w-6 text-primary shrink-0 mt-1" />
-              <p className="text-lg text-muted-foreground leading-relaxed">
-                {benefit}
-              </p>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex justify-center mt-16 gap-2">
-          {[...Array(5)].map((_, index) => (
-            <div
-              key={index}
-              className={`h-3 w-3 rounded-full ${
-                index === 0 ? "bg-primary" : "bg-primary/30"
-              }`}
-            />
-          ))}
-        </div>
-      </main>
+      </div>
     </div>
   );
 };

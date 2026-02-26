@@ -267,26 +267,6 @@ const AddressAutocomplete = ({
 
       {/* Additional Address Fields */}
       <div className="grid grid-cols-2 gap-3">
-        {/* Zipcode */}
-        <div>
-          <Label htmlFor="zipcode">Zipcode {required && <span className="text-red-500">*</span>}</Label>
-          <Input
-            id="zipcode"
-            type="text"
-            value={value.zipcode}
-            placeholder="Enter zipcode"
-            className="mt-2 h-11"
-            onChange={(e) =>
-              onChange({
-                ...value,
-                zipcode: e.target.value,
-                fullAddress: value.streetAddress ? `${value.streetAddress}, ${e.target.value}, ${value.country}` : "",
-              })
-            }
-            disabled={!isAddressSelected}
-          />
-        </div>
-
         {/* Country */}
         <div>
           <Label htmlFor="country">Country {required && <span className="text-red-500">*</span>}</Label>
@@ -301,6 +281,26 @@ const AddressAutocomplete = ({
                 ...value,
                 country: e.target.value,
                 fullAddress: value.streetAddress ? `${value.streetAddress}, ${value.zipcode}, ${e.target.value}` : "",
+              })
+            }
+            disabled={!isAddressSelected}
+          />
+        </div>
+
+        {/* Zipcode */}
+        <div>
+          <Label htmlFor="zipcode">Zipcode {required && <span className="text-red-500">*</span>}</Label>
+          <Input
+            id="zipcode"
+            type="text"
+            value={value.zipcode}
+            placeholder="Enter zipcode"
+            className="mt-2 h-11"
+            onChange={(e) =>
+              onChange({
+                ...value,
+                zipcode: e.target.value,
+                fullAddress: value.streetAddress ? `${value.streetAddress}, ${e.target.value}, ${value.country}` : "",
               })
             }
             disabled={!isAddressSelected}

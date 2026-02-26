@@ -9,13 +9,13 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary-hover shadow-lg hover:shadow-2xl relative overflow-hidden",
+        default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-lg hover:shadow-xl active:shadow-md",
         destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90 shadow-lg hover:shadow-xl",
-        outline: "border-2 border-border bg-background text-foreground hover:bg-muted hover:border-primary/50 shadow-sm hover:shadow-md",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/90 shadow-lg hover:shadow-xl",
+        outline: "border-2 border-border bg-background text-foreground hover:bg-muted/50 hover:border-primary shadow-sm hover:shadow-md",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-md hover:shadow-lg",
         ghost: "hover:bg-muted/50 hover:text-foreground transition-colors",
         link: "text-primary underline-offset-4 hover:underline",
-        accent: "bg-gradient-to-r from-accent to-accent/90 text-accent-foreground hover:from-accent/90 hover:to-accent shadow-lg hover:shadow-xl",
+        accent: "bg-gradient-to-r from-primary to-primary/90 text-primary-foreground hover:from-primary/90 hover:to-primary shadow-lg hover:shadow-xl",
         success: "bg-gradient-to-r from-success to-success/90 text-white hover:from-success/90 hover:to-success shadow-lg hover:shadow-xl",
       },
       size: {

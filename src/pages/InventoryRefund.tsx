@@ -1,319 +1,231 @@
-import { useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { useState, useMemo } from "react";
+import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { RotateCcw, Search, Plus, DollarSign, Package, AlertCircle, RefreshCw } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
+import { Search, RefreshCw, Plus } from "lucide-react";
+import { toast } from "sonner";
 
-const mockRefunds = [
+interface Refund {
+  id: string;
+  date: string;
+  customerName: string;
+  itemName: string;
+  sku: string;
+  quantity: number;
+  amount: number;
+  reason: string;
+  status: "Completed" | "Pending";
+}
+
+// Mock refund data
+const mockRefunds: Refund[] = [
   {
-    id: "REF001",
-    date: "2024-01-15",
+    id: "REF-001",
+    date: "2024-01-28",
     customerName: "John Smith",
-    itemName: "Pipe Wrench 14in",
-    sku: "PW-14-001",
+    itemName: "HVAC Filter - Standard",
+    sku: "HVAC-FILT-001",
     quantity: 2,
-    amount: 89.98,
-    reason: "Damaged on delivery",
+    amount: 51.98,
+    reason: "Defective Item",
     status: "Completed",
-    invoiceNumber: "INV-2024-123",
   },
   {
-    id: "REF002",
-    date: "2024-01-14",
+    id: "REF-002",
+    date: "2024-01-27",
     customerName: "Sarah Johnson",
-    itemName: "PVC Pipe 1/2in",
-    sku: "PP-12-002",
-    quantity: 10,
-    amount: 45.50,
-    reason: "Wrong item ordered",
+    itemName: "Electrical Wire - 12 AWG",
+    sku: "ELEC-WIRE-012",
+    quantity: 5,
+    amount: 87.50,
+    reason: "Wrong Item Shipped",
     status: "Pending",
-    invoiceNumber: "INV-2024-118",
   },
   {
-    id: "REF003",
-    date: "2024-01-13",
+    id: "REF-003",
+    date: "2024-01-26",
     customerName: "Mike Davis",
-    itemName: "Copper Fitting Set",
-    sku: "CF-SET-003",
-    quantity: 1,
-    amount: 125.00,
-    reason: "Customer changed mind",
+    itemName: "Plumbing Pipe - 1/2 inch",
+    sku: "PLUM-PIPE-001",
+    quantity: 10,
+    amount: 45.00,
+    reason: "Customer Return",
     status: "Completed",
-    invoiceNumber: "INV-2024-105",
+  },
+  {
+    id: "REF-004",
+    date: "2024-01-25",
+    customerName: "Emma Wilson",
+    itemName: "HVAC Filter - Standard",
+    sku: "HVAC-FILT-001",
+    quantity: 1,
+    amount: 25.99,
+    reason: "Damaged in Transit",
+    status: "Pending",
+  },
+  {
+    id: "REF-005",
+    date: "2024-01-24",
+    customerName: "Tom Brown",
+    itemName: "Electrical Multimeter",
+    sku: "ELEC-MULT-001",
+    quantity: 1,
+    amount: 89.99,
+    reason: "Customer Changed Mind",
+    status: "Completed",
   },
 ];
 
 const InventoryRefund = () => {
-  const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
-  const [refundModalOpen, setRefundModalOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const filteredRefunds = mockRefunds.filter(refund => {
-    const matchesSearch = 
-      refund.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      refund.itemName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      refund.sku.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === "all" || refund.status === filterStatus;
-    return matchesSearch && matchesStatus;
-  });
-
-  const handleAddRefund = () => {
-    toast({
-      title: "Refund Created",
-      description: "The refund has been processed successfully.",
+  // Filter refunds based on search and status
+  const filteredRefunds = useMemo(() => {
+    return mockRefunds.filter((refund) => {
+      const matchesSearch =
+        refund.customerName.toLowerCase().includes(search.toLowerCase()) ||
+        refund.itemName.toLowerCase().includes(search.toLowerCase()) ||
+        refund.sku.toLowerCase().includes(search.toLowerCase());
+      const matchesStatus =
+        filterStatus === "all" || refund.status.toLowerCase() === filterStatus.toLowerCase();
+      return matchesSearch && matchesStatus;
     });
-    setRefundModalOpen(false);
+  }, [search, filterStatus]);
+
+  const handleSyncRefunds = () => {
+    toast.info("Syncing refunds...");
+  };
+
+  const handleProcessRefund = () => {
+    toast.info("Opening process refund form...");
   };
 
   return (
-    <div className="flex-1">
-      <AppHeader searchPlaceholder="Search refunds..." />
+    <div className="h-full flex flex-col overflow-hidden">
+      <MobileHeader title="Inventory Refunds" />
 
-      <main className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-primary to-primary/80 rounded-xl shadow-lg">
-              <RotateCcw className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Inventory Refunds</h1>
-              <p className="text-sm sm:text-base text-muted-foreground">Manage customer refunds and returns</p>
-            </div>
+      <div
+        className="flex-1 overflow-y-auto scrollable px-4 pb-4"
+        style={{
+          paddingTop: "calc(3.5rem + env(safe-area-inset-top) + 0.5rem)",
+        }}
+      >
+        {/* Subtitle */}
+        <p className="text-xs text-gray-500 mb-2 mt-1">Manage customer refunds and returns</p>
+
+        {/* Action Buttons */}
+        <div className="flex flex-row items-center gap-2 min-[320px]:gap-2 mb-2">
+          <Button
+            variant="outline"
+            onClick={handleSyncRefunds}
+            className="flex-1 h-[44px] border border-gray-300 rounded-lg text-sm font-medium px-3"
+          >
+            <RefreshCw className="h-4 w-4 mr-1.5" />
+            Sync Refunds
+          </Button>
+          <Button
+            onClick={handleProcessRefund}
+            className="flex-1 h-[44px] bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium px-3"
+          >
+            <Plus className="h-4 w-4 mr-1.5" />
+            Process Refund
+          </Button>
+        </div>
+
+        {/* Search and Filter Row */}
+        <div className="flex flex-row items-center gap-2 mb-2">
+          {/* Search Field */}
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 z-10" />
+            <Input
+              type="text"
+              placeholder="Search by customer, item, or SKU..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full h-[44px] pl-9 pr-3 py-2.5 text-sm border border-gray-300 rounded-lg focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+            />
           </div>
-          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-            <Button
-              variant="outline"
-              onClick={() => {
-                toast({
-                  title: "Refunds Synced",
-                  description: "Refunds have been synced successfully.",
-                });
-              }}
-              className="gap-2 shadow-sm hover:shadow-md transition-all"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span className="text-sm">Sync Refunds</span>
-            </Button>
-            <Button
-              onClick={() => setRefundModalOpen(true)}
-              className="gap-2 shadow-md hover:shadow-lg transition-all"
-            >
-              <Plus className="h-4 w-4" />
-              <span className="text-sm">Process Refund</span>
-            </Button>
+
+          {/* Filter Dropdown */}
+          <div className="w-[140px] flex-shrink-0">
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-full h-[44px] border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="completed">Completed</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border border-border bg-gradient-to-br from-card to-card/50 shadow-md hover:shadow-lg transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-primary/10 rounded-lg">
-                  <RotateCcw className="h-5 w-5 text-primary" />
+        {/* Refund History List */}
+        <div className="space-y-2">
+          {filteredRefunds.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <p className="text-sm">No refunds found</p>
+            </div>
+          ) : (
+            filteredRefunds.map((refund) => (
+              <div
+                key={refund.id}
+                className="bg-white border border-gray-200 rounded-xl p-3 shadow-sm"
+              >
+                {/* Top Row: Refund ID (left) | Status + Quantity (right) */}
+                <div className="flex justify-between items-center mb-1">
+                  <div>
+                    <p className="text-sm font-medium text-gray-700">{refund.id}</p>
+                    <p className="text-xs text-gray-500">{refund.date}</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-gray-800">
+                      Qty: {refund.quantity}
+                    </span>
+                    <Badge
+                      className={`text-xs px-2 py-0.5 h-6 ${
+                        refund.status === "Completed"
+                          ? "bg-green-100 text-green-700 border-green-200"
+                          : "bg-orange-100 text-orange-700 border-orange-200"
+                      }`}
+                    >
+                      {refund.status}
+                    </Badge>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Total Refunds</p>
-                  <p className="text-2xl font-bold text-foreground">45</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
 
-          <Card className="border border-border bg-gradient-to-br from-card to-card/50 shadow-md hover:shadow-lg transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-success/10 rounded-lg">
-                  <DollarSign className="h-5 w-5 text-success" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Total Amount</p>
-                  <p className="text-2xl font-bold text-foreground">$2,345</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                {/* Customer Name */}
+                <h3 className="text-sm font-semibold text-gray-800 mb-0.5">
+                  {refund.customerName}
+                </h3>
 
-          <Card className="border border-border bg-gradient-to-br from-card to-card/50 shadow-md hover:shadow-lg transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-warning/10 rounded-lg">
-                  <AlertCircle className="h-5 w-5 text-warning" />
-                </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Pending</p>
-                  <p className="text-2xl font-bold text-foreground">8</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                {/* Item Name */}
+                <p className="text-sm text-gray-700 mb-1">{refund.itemName}</p>
 
-          <Card className="border border-border bg-gradient-to-br from-card to-card/50 shadow-md hover:shadow-lg transition-all">
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 bg-accent/10 rounded-lg">
-                  <Package className="h-5 w-5 text-accent" />
+                {/* SKU and Amount Row */}
+                <div className="flex items-center justify-between mb-1">
+                  <Badge
+                    variant="outline"
+                    className="text-xs px-2 py-0.5 bg-gray-50 text-gray-600 border-gray-200 h-6"
+                  >
+                    {refund.sku}
+                  </Badge>
+                  <p className="text-sm font-semibold text-green-600">
+                    ${refund.amount.toFixed(2)}
+                  </p>
                 </div>
-                <div>
-                  <p className="text-xs text-muted-foreground">Items Returned</p>
-                  <p className="text-2xl font-bold text-foreground">67</p>
-                </div>
+
+                {/* Reason */}
+                <p className="text-xs text-gray-500">{refund.reason}</p>
               </div>
-            </CardContent>
-          </Card>
+            ))
+          )}
         </div>
-
-        {/* Filters */}
-        <Card className="border border-border shadow-md">
-          <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by customer, item, or SKU..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Refund Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="Completed">Completed</SelectItem>
-                  <SelectItem value="Pending">Pending</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Refunds Table */}
-        <Card className="border border-border shadow-lg">
-          <CardHeader className="border-b border-border bg-gradient-to-r from-muted/50 to-muted/20">
-            <CardTitle className="text-lg font-bold">Refund History</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="overflow-x-auto">
-              <Table>
-                <TableHeader>
-                  <TableRow className="bg-muted/30 hover:bg-muted/30">
-                    <TableHead className="font-semibold">Refund ID</TableHead>
-                    <TableHead className="font-semibold">Date</TableHead>
-                    <TableHead className="font-semibold">Customer</TableHead>
-                    <TableHead className="font-semibold">Item</TableHead>
-                    <TableHead className="font-semibold">SKU</TableHead>
-                    <TableHead className="font-semibold text-right">Qty</TableHead>
-                    <TableHead className="font-semibold text-right">Amount</TableHead>
-                    <TableHead className="font-semibold">Reason</TableHead>
-                    <TableHead className="font-semibold">Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRefunds.map((refund) => (
-                    <TableRow key={refund.id} className="hover:bg-muted/20 transition-colors">
-                      <TableCell className="font-medium">{refund.id}</TableCell>
-                      <TableCell className="text-muted-foreground">{refund.date}</TableCell>
-                      <TableCell className="font-semibold">{refund.customerName}</TableCell>
-                      <TableCell className="font-medium text-foreground">{refund.itemName}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="bg-muted/50">
-                          {refund.sku}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right font-bold">{refund.quantity}</TableCell>
-                      <TableCell className="text-right font-bold text-success text-lg">
-                        ${refund.amount.toFixed(2)}
-                      </TableCell>
-                      <TableCell className="text-muted-foreground max-w-[200px] truncate">
-                        {refund.reason}
-                      </TableCell>
-                      <TableCell>
-                        <Badge 
-                          variant="outline"
-                          className={
-                            refund.status === "Completed"
-                              ? "bg-success/20 text-success border-success/60 font-semibold shadow-sm"
-                              : "bg-warning/20 text-warning border-warning/60 font-semibold shadow-sm"
-                          }
-                        >
-                          {refund.status}
-                        </Badge>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </CardContent>
-        </Card>
-      </main>
-
-      {/* Add Refund Modal */}
-      <Dialog open={refundModalOpen} onOpenChange={setRefundModalOpen}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Process Inventory Refund</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="invoice">Invoice Number *</Label>
-                <Input id="invoice" placeholder="INV-2024-XXX" />
-              </div>
-              <div>
-                <Label htmlFor="customer">Customer Name *</Label>
-                <Input id="customer" placeholder="Enter customer name" />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="item">Select Item *</Label>
-              <Select>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose inventory item" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="item1">Pipe Wrench 14in (PW-14-001)</SelectItem>
-                  <SelectItem value="item2">PVC Pipe 1/2in (PP-12-002)</SelectItem>
-                  <SelectItem value="item3">Copper Fitting Set (CF-SET-003)</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="quantity">Quantity *</Label>
-                <Input id="quantity" type="number" min="1" defaultValue="1" />
-              </div>
-              <div>
-                <Label htmlFor="amount">Refund Amount *</Label>
-                <Input id="amount" type="number" step="0.01" placeholder="0.00" />
-              </div>
-            </div>
-            <div>
-              <Label htmlFor="reason">Refund Reason *</Label>
-              <Textarea id="reason" placeholder="Enter reason for refund..." rows={3} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setRefundModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAddRefund}>Process Refund</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      </div>
     </div>
   );
 };

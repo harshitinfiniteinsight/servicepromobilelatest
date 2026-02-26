@@ -1,103 +1,89 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { AppHeader } from "@/components/AppHeader";
+import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Percent } from "lucide-react";
-import { toast } from "sonner";
+import { Slider } from "@/components/ui/slider";
+import { Info } from "lucide-react";
 
 const MinimumDepositPercentage = () => {
-  const navigate = useNavigate();
-  const [depositPercentage, setDepositPercentage] = useState("10");
+  const [percentage, setPercentage] = useState([25]);
 
   const handleSave = () => {
-    if (!depositPercentage || parseFloat(depositPercentage) <= 0 || parseFloat(depositPercentage) > 100) {
-      toast.error("Please enter a valid percentage between 1 and 100");
-      return;
-    }
-    toast.success("Minimum deposit percentage saved successfully");
+    // In real app, save settings
+    alert(`Minimum deposit set to ${percentage[0]}%`);
   };
 
   return (
-    <div className="flex-1">
-      <AppHeader searchPlaceholder="Search..." onSearchChange={() => {}} />
+    <div className="h-full flex flex-col overflow-hidden">
+      <MobileHeader title="Minimum Deposit" showBack={true} />
       
-      <main className="px-6 py-6 animate-fade-in">
-        {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/agreements")}
-            className="rounded-full"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-          <div className="flex items-center gap-3">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Percent className="h-6 w-6 text-primary" />
-            </div>
+      <div className="flex-1 overflow-y-auto scrollable pt-14 px-4 pb-6 space-y-4">
+        {/* Info Card */}
+        <div className="p-4 rounded-xl bg-primary/10 border border-primary/20">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-primary flex-shrink-0 mt-0.5" />
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Minimum Deposit Percentage</h1>
-              <p className="text-muted-foreground">Set the minimum required deposit for agreements</p>
+              <h3 className="font-semibold mb-1">Minimum Deposit Percentage</h3>
+              <p className="text-sm text-muted-foreground">
+                Set the minimum deposit percentage required for estimates and invoices. This helps ensure payment security.
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="max-w-2xl mx-auto">
-          <Card className="border-2 shadow-lg hover:shadow-xl transition-shadow">
-            <CardContent className="pt-8 pb-8">
-              <div className="space-y-6">
-                <div className="text-center space-y-2">
-                  <Label className="text-lg font-semibold text-foreground">
-                    Set minimum deposit amount to accept Agreement
-                  </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Customers must pay at least this percentage upfront
-                  </p>
-                </div>
-
-                <div className="flex items-center justify-center gap-4 pt-4">
-                  <div className="relative flex-1 max-w-sm">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-bold text-muted-foreground pointer-events-none">
-                      %
-                    </div>
-                    <Input
-                      type="number"
-                      min="1"
-                      max="100"
-                      value={depositPercentage}
-                      onChange={(e) => setDepositPercentage(e.target.value)}
-                      className="h-16 text-2xl font-semibold text-center pl-12 pr-6 border-2"
-                      placeholder="10"
-                    />
-                  </div>
-                  
-                  <Button
-                    onClick={handleSave}
-                    size="lg"
-                    className="h-16 px-12 text-lg font-bold shadow-lg hover:shadow-xl transition-all"
-                  >
-                    SAVE
-                  </Button>
-                </div>
-
-                <div className="bg-primary/5 rounded-lg p-4 border border-primary/20 mt-6">
-                  <div className="flex items-center gap-2 justify-center">
-                    <Percent className="h-5 w-5 text-primary" />
-                    <p className="text-center text-muted-foreground">
-                      Current minimum deposit:{" "}
-                      <span className="font-bold text-foreground text-lg">{depositPercentage}%</span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Current Value Display */}
+        <div className="p-6 rounded-xl bg-primary/5 border border-primary/20 text-center">
+          <Label className="text-sm text-muted-foreground mb-2 block">Current Setting</Label>
+          <div className="text-5xl font-bold text-primary mb-2">{percentage[0]}%</div>
+          <p className="text-sm text-muted-foreground">
+            Minimum deposit required for all estimates and invoices
+          </p>
         </div>
-      </main>
+
+        {/* Slider */}
+        <div className="space-y-4">
+          <div>
+            <Label className="text-base mb-4 block">Adjust Percentage</Label>
+            <Slider
+              value={percentage}
+              onValueChange={setPercentage}
+              min={0}
+              max={100}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground mt-2">
+              <span>0%</span>
+              <span>50%</span>
+              <span>100%</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Examples */}
+        <div className="p-4 rounded-xl border bg-card">
+          <h3 className="font-semibold mb-3">Examples</h3>
+          <div className="space-y-2 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">$1,000 invoice:</span>
+              <span className="font-semibold">${(1000 * percentage[0] / 100).toFixed(2)} deposit</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">$5,000 estimate:</span>
+              <span className="font-semibold">${(5000 * percentage[0] / 100).toFixed(2)} deposit</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">$10,000 job:</span>
+              <span className="font-semibold">${(10000 * percentage[0] / 100).toFixed(2)} deposit</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Save Button */}
+        <Button className="w-full" size="lg" onClick={handleSave}>
+          Save Settings
+        </Button>
+      </div>
     </div>
   );
 };

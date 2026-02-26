@@ -1,725 +1,1589 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { AppHeader } from "@/components/AppHeader";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Trash2, UserPlus, FileText, Minus, Tag, X, Percent, DollarSign, Camera, ArrowLeft, RefreshCw, List } from "lucide-react";
-import { mockCustomers, mockEmployees, mockDiscounts, mockEstimates } from "@/data/mockData";
-import { QuickAddCustomerModal } from "@/components/modals/QuickAddCustomerModal";
-import { AddItemModal } from "@/components/modals/AddItemModal";
-import { Switch } from "@/components/ui/switch";
-import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { mockCustomers, mockInventory, mockEmployees, mockDiscounts, mockEstimates } from "@/data/mobileMockData";
+import { Search, Plus, Minus, X, RefreshCw, List, Check, ChevronsUpDown, Package, FileText, Save, Upload, Tag, Camera } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { showSuccessToast } from "@/utils/toast";
+import { addNotes } from "@/services/noteService";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 
 const AddEstimate = () => {
   const navigate = useNavigate();
   const { id } = useParams();
-  const mode = id ? "edit" : "create";
-  const estimate = id ? mockEstimates.find(est => est.id === id) : null;
-
-  const estimateData = estimate as any;
+  const location = useLocation();
+  const isEditMode = id && location.pathname.includes('/edit');
+  const [step, setStep] = useState(1);
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
+  const [customerSearch, setCustomerSearch] = useState("");
   
-  const [formData, setFormData] = useState({
-    customerId: estimateData?.customerId || "",
-    employeeId: estimateData?.employeeId || "",
-    terms: estimateData?.terms || "net 30",
-    memo: estimateData?.memo || "",
+  const [employeeOpen, setEmployeeOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [employeeSearch, setEmployeeSearch] = useState("");
+
+  // Get user role and current employee ID
+  const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
+  const isEmployee = userType === "employee";
+  const currentEmployeeId = typeof window !== "undefined" ? localStorage.getItem("currentEmployeeId") || "1" : "1";
+
+  // Auto-fill employee field for employees on component mount
+  useEffect(() => {
+    if (isEmployee && currentEmployeeId) {
+      // Always set to current employee for employees, preventing changes
+      if (selectedEmployee !== currentEmployeeId) {
+        setSelectedEmployee(currentEmployeeId);
+      }
+    }
+  }, [isEmployee, currentEmployeeId, selectedEmployee]);
+  const [items, setItems] = useState<Array<{ id: string; name: string; quantity: number; price: number; isCustom?: boolean }>>([]);
+  const [itemSearch, setItemSearch] = useState("");
+  const [tax, setTax] = useState(0);
+  const [discount, setDiscount] = useState(0);
+  const [discountType, setDiscountType] = useState<"%" | "$">("%");
+  const [selectedDiscounts, setSelectedDiscounts] = useState<Array<typeof mockDiscounts[0]>>([]);
+  const [customDiscounts, setCustomDiscounts] = useState<Array<{ name: string; type: "%" | "$"; value: number }>>([]);
+  const [showDiscountModal, setShowDiscountModal] = useState(false);
+  const [customDiscountValue, setCustomDiscountValue] = useState("");
+  const [customDiscountType, setCustomDiscountType] = useState<"%" | "$">("%");
+  const [terms, setTerms] = useState<string>("");
+  const [termsAndConditions, setTermsAndConditions] = useState<string>("");
+  const [cancellationPolicy, setCancellationPolicy] = useState<string>("");
+  const [notes, setNotes] = useState("");
+  const [uploadedDocs, setUploadedDocs] = useState<string[]>([]);
+  const [customerList, setCustomerList] = useState(() => [...mockCustomers]);
+  const [showAddExisting, setShowAddExisting] = useState(false);
+  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
+  const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
+  const [newCustomerLastName, setNewCustomerLastName] = useState("");
+  const [newCustomerEmail, setNewCustomerEmail] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [showAddCustom, setShowAddCustom] = useState(false);
+  const [customItemName, setCustomItemName] = useState("");
+  const [customItemPrice, setCustomItemPrice] = useState("");
+  const [customItemImage, setCustomItemImage] = useState<string | null>(null);
+  const [showVariablePriceDialog, setShowVariablePriceDialog] = useState(false);
+  const [pendingVariableItem, setPendingVariableItem] = useState<typeof mockInventory[0] | null>(null);
+  const [variableItemPrice, setVariableItemPrice] = useState("");
+  const processedReturnStateRef = useRef<string | null>(null);
+
+  // Handle prefill data from location.state (when creating new from paid item)
+  useEffect(() => {
+    if (!isEditMode) {
+      const prefill = (location.state as any)?.prefill;
+      if (prefill) {
+        // Prefill customer
+        if (prefill.customerId) {
+          setSelectedCustomer(prefill.customerId);
+        }
+        
+        // Prefill employee (only if not employee mode, as employees are auto-filled)
+        if (!isEmployee && prefill.employeeId) {
+          setSelectedEmployee(prefill.employeeId);
+        }
+      }
+    }
+  }, [location.state, isEditMode, isEmployee]);
+
+  // Load estimate data when in edit mode
+  useEffect(() => {
+    if (isEditMode && id) {
+      const estimate = mockEstimates.find(est => est.id === id);
+      if (estimate) {
+        // Prefill customer
+        setSelectedCustomer(estimate.customerId);
+        
+        // Prefill employee (using first employee as default)
+        if (mockEmployees.length > 0) {
+          setSelectedEmployee(mockEmployees[0].id);
+        }
+        
+        // Prefill items - create items from estimate amount
+        // In a real app, you'd load actual items from the estimate
+        setItems([{
+          id: `item-${estimate.id}`,
+          name: "Service Item",
+          quantity: 1,
+          price: estimate.amount,
+        }]);
+        
+        // Prefill terms (default to "Due on Receipt")
+        setTerms("Due on Receipt");
+        
+        // Prefill tax and discount (defaults)
+        setTax(0);
+        setDiscount(0);
+        setSelectedDiscounts([]);
+        setCustomDiscounts([]);
+        
+        // Prefill notes and other fields (empty by default, can be enhanced)
+        setNotes("");
+        setTermsAndConditions("");
+        setCancellationPolicy("");
+        setUploadedDocs([]);
+      }
+    }
+  }, [isEditMode, id]);
+
+  // Handle return from Add Inventory page
+  useEffect(() => {
+    const state = location.state as { newInventoryItem?: any; returnTo?: string } | null;
+    if (state?.newInventoryItem && state?.returnTo === "estimate") {
+      const newItem = state.newInventoryItem;
+      const stateKey = `${newItem.id}-${newItem.name}`;
+      
+      // Prevent processing the same state multiple times
+      if (processedReturnStateRef.current === stateKey) {
+        return;
+      }
+      
+      // Check if item already exists and add it if not
+      setItems(prev => {
+        // Check if item already exists in items list
+        if (prev.find(i => i.id === newItem.id)) {
+          return prev;
+        }
+        
+        processedReturnStateRef.current = stateKey;
+        
+        // Add the new item to the items list
+        const price = parseFloat(newItem.price) || 0;
+        const updatedItems = [...prev, {
+          id: newItem.id,
+          name: newItem.name,
+          quantity: 1,
+          price: price
+        }];
+        
+        // Ensure we're on step 2
+        setStep(2);
+        
+        // Clear the state to prevent re-adding on re-render
+        window.history.replaceState({}, document.title);
+        
+        toast.success("Item added to inventory and selected");
+        
+        return updatedItems;
+      });
+    }
+  }, [location.state]);
+
+  const filteredInventory = mockInventory.filter(i =>
+    i.name.toLowerCase().includes(itemSearch.toLowerCase()) ||
+    i.sku.toLowerCase().includes(itemSearch.toLowerCase())
+  );
+
+  // Sort customers by joinedDate (most recent first)
+  const sortedCustomers = [...customerList].sort((a, b) => {
+    const dateA = new Date(a.joinedDate).getTime();
+    const dateB = new Date(b.joinedDate).getTime();
+    return dateB - dateA; // Descending order (most recent first)
   });
 
-  const [items, setItems] = useState(estimateData?.items || []);
-  const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
-  const [showAddItemModal, setShowAddItemModal] = useState(false);
-  const [showTerms, setShowTerms] = useState(false);
-  const [termsConditions, setTermsConditions] = useState(estimateData?.termsConditions || "");
-  const [cancellationPolicy, setCancellationPolicy] = useState(estimateData?.cancellationPolicy || "");
-  const [taxRate, setTaxRate] = useState(estimateData?.taxRate || 0);
-  const [selectedDiscount, setSelectedDiscount] = useState<any>(estimateData?.discount || null);
-  const [showDiscountModal, setShowDiscountModal] = useState(false);
-  const [discountError, setDiscountError] = useState("");
-  const [memoAttachment, setMemoAttachment] = useState<File | null>(null);
-  const [memoAttachmentPreview, setMemoAttachmentPreview] = useState<string>("");
+  // Filter customers based on search
+  const filteredCustomers = sortedCustomers.filter(customer =>
+    customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    customer.email.toLowerCase().includes(customerSearch.toLowerCase())
+  );
 
-  const handleAddItem = (newItem: any) => {
-    setItems([...items, newItem]);
+  // Filter employees based on search
+  const filteredEmployees = mockEmployees.filter(employee =>
+    employee.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+    employee.email.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+    employee.role.toLowerCase().includes(employeeSearch.toLowerCase())
+  );
+
+  const resetQuickAddForm = () => {
+    setNewCustomerFirstName("");
+    setNewCustomerLastName("");
+    setNewCustomerEmail("");
+    setNewCustomerPhone("");
   };
 
-  const removeItem = (index: number) => {
-    setItems(items.filter((_: any, i: number) => i !== index));
+  const handleQuickAddCustomer = () => {
+    if (
+      !newCustomerFirstName.trim() ||
+      !newCustomerLastName.trim() ||
+      !newCustomerEmail.trim() ||
+      !newCustomerPhone.trim()
+    ) {
+      toast.error("Please fill in all customer details.");
+      return;
+    }
+
+    const id = `CUST-${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    const newCustomer = {
+      id,
+      name: `${newCustomerFirstName.trim()} ${newCustomerLastName.trim()}`,
+      email: newCustomerEmail.trim(),
+      phone: newCustomerPhone.trim(),
+      address: "",
+      status: "Active",
+      lastVisit: nowIso,
+      totalSpent: 0,
+      joinedDate: nowIso,
+      notes: "Added via quick add",
+    };
+
+    setCustomerList(prev => [newCustomer, ...prev]);
+    setSelectedCustomer(id);
+    setShowQuickAddCustomer(false);
+    setCustomerOpen(false);
+    setCustomerSearch("");
+    resetQuickAddForm();
+    toast.success("Customer added successfully.");
   };
 
-  const updateItemQuantity = (index: number, change: number) => {
-    const newItems = [...items];
-    const newQuantity = Math.max(1, newItems[index].quantity + change);
-    newItems[index].quantity = newQuantity;
-    newItems[index].amount = newItems[index].quantity * newItems[index].rate;
-    setItems(newItems);
-  };
-
-  const subtotal = items.reduce((sum: number, item: any) => sum + item.amount, 0);
-  const taxAmount = subtotal * (taxRate / 100);
-  
-  const discountAmount = selectedDiscount 
-    ? selectedDiscount.type === "%" 
-      ? subtotal * (selectedDiscount.value / 100)
-      : selectedDiscount.value
-    : 0;
-  
-  const total = subtotal + taxAmount - discountAmount;
-
-  const handleMemoAttachmentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setMemoAttachment(file);
-      if (file.type.startsWith("image/")) {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          setMemoAttachmentPreview(reader.result as string);
-        };
-        reader.readAsDataURL(file);
+  const addItem = (item: typeof mockInventory[0]) => {
+    if (!items.find(i => i.id === item.id)) {
+      // Check if item is variable type (V)
+      if ((item as any).type === "V") {
+        // Show price input dialog for variable items
+        setPendingVariableItem(item);
+        setVariableItemPrice(item.unitPrice.toString());
+        setShowVariablePriceDialog(true);
       } else {
-        setMemoAttachmentPreview("");
+        // Add item directly with unit price for fixed and per unit items
+      setItems([...items, { id: item.id, name: item.name, quantity: 1, price: item.unitPrice }]);
+        setShowAddExisting(false);
+        setItemSearch("");
       }
     }
   };
 
-  const removeMemoAttachment = () => {
-    setMemoAttachment(null);
-    setMemoAttachmentPreview("");
+  const confirmVariablePrice = () => {
+    if (pendingVariableItem && variableItemPrice) {
+      const price = parseFloat(variableItemPrice) || 0;
+      setItems([...items, { 
+        id: pendingVariableItem.id, 
+        name: pendingVariableItem.name, 
+        quantity: 1, 
+        price: price 
+      }]);
+      setShowVariablePriceDialog(false);
+      setPendingVariableItem(null);
+      setVariableItemPrice("");
+      setShowAddExisting(false);
+      setItemSearch("");
+    }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    const estimateData = {
-      ...formData,
-      items,
-      amount: total,
-      termsConditions: showTerms ? termsConditions : "",
-      cancellationPolicy: showTerms ? cancellationPolicy : "",
-      memoAttachment: memoAttachment,
-    };
-    console.log("Form submitted:", estimateData);
-    toast.success(mode === "create" ? "Estimate created successfully" : "Estimate updated successfully");
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCustomItemImage(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setCustomItemImage(null);
+  };
+
+  const handleDocumentUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files) {
+      const fileArray = Array.from(files);
+      fileArray.forEach(file => {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setUploadedDocs(prev => [...prev, reader.result as string]);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+  };
+
+  const removeDocument = (index: number) => {
+    setUploadedDocs(prev => prev.filter((_, i) => i !== index));
+  };
+
+  const addCustomItem = () => {
+    if (customItemName && customItemPrice) {
+      const newId = `custom-${Date.now()}`;
+      setItems([...items, { 
+        id: newId, 
+        name: customItemName, 
+        quantity: 1, 
+        price: parseFloat(customItemPrice),
+        isCustom: true
+      }]);
+      setCustomItemName("");
+      setCustomItemPrice("");
+      setCustomItemImage(null);
+      setShowAddCustom(false);
+    }
+  };
+
+  const updateQuantity = (id: string, delta: number) => {
+    setItems(items.map(item => {
+      if (item.id === id) {
+        const newQty = Math.max(1, item.quantity + delta);
+        return { ...item, quantity: newQty };
+      }
+      return item;
+    }));
+  };
+
+  const removeItem = (id: string) => {
+    setItems(items.filter(i => i.id !== id));
+  };
+
+  // Calculate Item Total (sum of all line items)
+  const itemTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  // Calculate total discount from all sources (based on item total)
+  const selectedDiscountsAmount = selectedDiscounts.reduce((sum, disc) => {
+    return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+  }, 0);
+  
+  const customDiscountsAmount = customDiscounts.reduce((sum, disc) => {
+    return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+  }, 0);
+  
+  const totalDiscounts = selectedDiscountsAmount + customDiscountsAmount;
+  
+  // Calculate Subtotal (after discounts)
+  const subtotal = Math.max(0, itemTotal - totalDiscounts);
+  
+  // Calculate Tax (on subtotal after discounts)
+  const taxAmount = subtotal * (tax / 100);
+  
+  // Calculate Total
+  const total = subtotal + taxAmount;
+
+  const handleSyncItem = () => {
+    toast.success("Syncing items...");
+    // Add sync logic here
+  };
+
+  const handleGoToEstimateList = () => {
     navigate("/estimates");
   };
 
+  const steps = [
+    { number: 1, title: "Customer & Employee" },
+    { number: 2, title: "Services" },
+    { number: 3, title: "Pricing" },
+    { number: 4, title: "Terms & Cancellation" },
+  ];
+
+  const headerActions = (
+    <div className="flex items-center gap-2">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleSyncItem}
+        className="h-9 px-2 touch-target hover:bg-gray-100"
+      >
+        <RefreshCw className="h-4 w-4 mr-1.5" />
+        <span className="text-xs font-medium">Sync Item</span>
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={handleGoToEstimateList}
+        className="h-9 px-2 touch-target hover:bg-gray-100"
+      >
+        <List className="h-4 w-4 mr-1.5" />
+        <span className="text-xs font-medium">List</span>
+      </Button>
+    </div>
+  );
+
   return (
-    <>
-      <div className="flex-1">
-        <AppHeader searchPlaceholder="Search..." onSearchChange={() => {}} />
-        
-        <main className="px-4 sm:px-6 py-4 sm:py-6 animate-fade-in">
-          {/* Page Header */}
-          <div className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-6 rounded-lg mb-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate("/estimates")}
-                  className="text-primary-foreground hover:bg-primary-foreground/20"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <div className="flex items-center gap-2">
-                  <FileText className="h-6 w-6" />
-                  <h1 className="text-2xl font-bold">
-                    {mode === "create" ? "Add new estimate" : "Edit Estimate"}
-                  </h1>
-                </div>
-              </div>
+    <div className="h-full flex flex-col overflow-hidden">
+      <MobileHeader title={isEditMode ? "Edit Estimate" : "New Estimate"} showBack={true} actions={headerActions} />
+
+      <Dialog
+        open={showQuickAddCustomer}
+        onOpenChange={(open) => {
+          setShowQuickAddCustomer(open);
+          if (!open) {
+            resetQuickAddForm();
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Quick Add Customer</DialogTitle>
+            <DialogDescription>Add a new customer to your list</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div>
+              <Label htmlFor="quick-first-name">First Name</Label>
+              <Input
+                id="quick-first-name"
+                value={newCustomerFirstName}
+                onChange={(e) => setNewCustomerFirstName(e.target.value)}
+                placeholder="Enter first name"
+                className="mt-2"
+              />
             </div>
-          </div>
-
-          {/* Action Buttons Bar */}
-          <div className="flex items-center justify-end gap-3 mb-6">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate("/estimates")}
-              className="gap-2"
-            >
-              <List className="h-4 w-4" />
-              Estimate List
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                toast.success("Inventory items synced successfully");
-                // Sync logic would go here - this could refresh available inventory items
-              }}
-              className="gap-2"
-            >
-              <RefreshCw className="h-4 w-4" />
-              Sync Item
-            </Button>
-          </div>
-
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-6 max-w-6xl mx-auto">
-              {/* Customer and Employee Selection */}
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="customer" className="text-sm font-semibold">Select Customer *</Label>
-                  <div className="flex gap-2">
-                    <Select value={formData.customerId} onValueChange={(value) => {
-                      if (value === "add-new") {
-                        setShowAddCustomerModal(true);
-                      } else {
-                        setFormData({ ...formData, customerId: value });
-                      }
-                    }}>
-                      <SelectTrigger className="h-11 border-2 border-border/50 hover:border-primary/50 transition-colors bg-background">
-                        <SelectValue placeholder="Please Select Customer" />
-                      </SelectTrigger>
-                      <SelectContent className="z-50 bg-popover backdrop-blur-xl border-2">
-                        <SelectItem value="add-new" className="text-primary font-semibold">
-                          <div className="flex items-center gap-2">
-                            <UserPlus className="h-4 w-4" />
-                            Add New Customer
-                          </div>
-                        </SelectItem>
-                        <Separator className="my-2" />
-                        {mockCustomers.filter(c => c.status === "active").map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="employee" className="text-sm font-semibold">Select Employee</Label>
-                  <Select value={formData.employeeId} onValueChange={(value) => setFormData({ ...formData, employeeId: value })}>
-                    <SelectTrigger className="h-11 border-2 border-border/50 hover:border-primary/50 transition-colors bg-background">
-                      <SelectValue placeholder="Select employee" />
-                    </SelectTrigger>
-                    <SelectContent className="z-50 bg-popover backdrop-blur-xl border-2">
-                      {mockEmployees.filter(e => e.status === "Active").map((employee) => (
-                        <SelectItem key={employee.id} value={employee.id}>
-                          {employee.name} - {employee.role}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              {/* Terms */}
-              <div className="grid gap-2">
-                <Label htmlFor="terms">Terms *</Label>
-                <Select value={formData.terms} onValueChange={(value) => setFormData({ ...formData, terms: value })}>
-                  <SelectTrigger className="glass-effect">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-popover backdrop-blur-xl">
-                    <SelectItem value="due on receipt">Due on Receipt</SelectItem>
-                    <SelectItem value="net 15">Net 15</SelectItem>
-                    <SelectItem value="net 30">Net 30</SelectItem>
-                    <SelectItem value="net 45">Net 45</SelectItem>
-                    <SelectItem value="net 60">Net 60</SelectItem>
-                    <SelectItem value="net 90">Net 90</SelectItem>
-                    <SelectItem value="net 120">Net 120</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Line Items Section */}
-              <div className="border-t pt-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <Label className="text-lg font-semibold">Items / Services</Label>
-                    <p className="text-xs text-muted-foreground">Add items to this estimate</p>
-                  </div>
-                  <Button type="button" onClick={() => setShowAddItemModal(true)} className="gap-2 shadow-md hover:shadow-lg transition-all">
-                    <Plus className="h-4 w-4" />
-                    ADD ITEM
-                  </Button>
-                </div>
-
-                {items.length > 0 ? (
-                  <div className="space-y-3">
-                    {items.map((item: any, index: number) => (
-                      <Card key={index} className="border-border/50 hover:border-primary/30 transition-all duration-200">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-start gap-3 flex-1">
-                              {item.imagePreview && (
-                                <img
-                                  src={item.imagePreview}
-                                  alt={item.description}
-                                  className="w-16 h-16 object-cover rounded-lg border border-border"
-                                />
-                              )}
-                              <div className="flex-1">
-                                <div className="flex items-center gap-2 mb-1">
-                                  <p className="font-semibold text-foreground">{item.description}</p>
-                                  {item.type === "custom" && (
-                                    <Badge variant="outline" className="text-xs bg-primary/10 text-primary border-primary/20">Custom</Badge>
-                                  )}
-                                  {item.sku && (
-                                    <Badge variant="outline" className="text-xs font-mono">{item.sku}</Badge>
-                                  )}
-                                </div>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                  <span>Rate: ${item.rate.toFixed(2)}</span>
-                                  <span>×</span>
-                                  <span>Quantity: {item.quantity}</span>
-                                </div>
-                              </div>
-                            </div>
-                            
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-2 bg-muted/30 rounded-lg p-1">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => updateItemQuantity(index, -1)}
-                                  className="h-8 w-8 p-0 hover:bg-primary hover:text-primary-foreground transition-colors"
-                                >
-                                  <Minus className="h-4 w-4" />
-                                </Button>
-                                <span className="text-sm font-semibold min-w-[2rem] text-center">{item.quantity}</span>
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => updateItemQuantity(index, 1)}
-                                  className="h-8 w-8 p-0 hover:bg-primary hover:text-primary-foreground transition-colors"
-                                >
-                                  <Plus className="h-4 w-4" />
-                                </Button>
-                              </div>
-                              
-                              <div className="text-right min-w-[100px]">
-                                <p className="text-sm text-muted-foreground">Amount</p>
-                                <p className="text-xl font-bold text-primary">${item.amount.toFixed(2)}</p>
-                              </div>
-                              
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => removeItem(index)}
-                                className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                              >
-                                <Trash2 className="h-5 w-5" />
-                              </Button>
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12 bg-muted/20 rounded-xl border-2 border-dashed border-border">
-                    <FileText className="h-12 w-12 mx-auto mb-3 text-muted-foreground/50" />
-                    <p className="text-muted-foreground mb-4">No items added yet</p>
-                    <Button type="button" onClick={() => setShowAddItemModal(true)} variant="outline">
-                      <Plus className="h-4 w-4 mr-2" />
-                      Add Your First Item
-                    </Button>
-                  </div>
-                )}
-
-                {items.length > 0 && (
-                  <div className="mt-6 pt-4 border-t space-y-4">
-                    {/* Discount Section */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Tag className="h-5 w-5 text-primary" />
-                        <div>
-                          <Label className="text-base font-semibold">Order Discount</Label>
-                          <p className="text-xs text-muted-foreground">Apply discount to this estimate</p>
-                        </div>
-                      </div>
-                      <Button type="button" variant="outline" onClick={() => setShowDiscountModal(true)} className="gap-2 border-2 hover:border-primary/50 shadow-sm">
-                        <Plus className="h-4 w-4" />
-                        ADD ORDER DISCOUNT
-                      </Button>
-                    </div>
-
-                    {selectedDiscount && (
-                      <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
-                        <CardContent className="p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              {selectedDiscount.type === "%" ? (
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                  <Percent className="h-5 w-5 text-primary" />
-                                </div>
-                              ) : (
-                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                  <DollarSign className="h-5 w-5 text-primary" />
-                                </div>
-                              )}
-                              <div>
-                                <p className="font-semibold">{selectedDiscount.name}</p>
-                                <p className="text-sm text-muted-foreground">
-                                  {selectedDiscount.type === "%" ? `${selectedDiscount.value}%` : `$${selectedDiscount.value}`} discount
-                                </p>
-                              </div>
-                            </div>
-                            <Button
-                              type="button"
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => {
-                                setSelectedDiscount(null);
-                                setDiscountError("");
-                              }}
-                              className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                            >
-                              <X className="h-5 w-5" />
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    )}
-
-                    {discountError && (
-                      <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
-                        <p className="text-sm text-destructive">{discountError}</p>
-                      </div>
-                    )}
-
-                    {/* Order Summary */}
-                    <div className="flex justify-end">
-                      <Card className="bg-gradient-to-br from-primary/10 to-accent/10 border-primary/20 min-w-[320px]">
-                        <CardContent className="p-6 space-y-3">
-                          <div className="text-lg font-semibold mb-4">Order Summary</div>
-                          
-                          <div className="flex justify-between text-sm">
-                            <span className="text-muted-foreground">Subtotal:</span>
-                            <span className="font-medium">${subtotal.toFixed(2)}</span>
-                          </div>
-                          
-                          <div className="flex justify-between items-center text-sm">
-                            <div className="flex items-center gap-2">
-                              <span className="text-muted-foreground">Tax:</span>
-                              <Input
-                                type="number"
-                                value={taxRate}
-                                onChange={(e) => setTaxRate(parseFloat(e.target.value) || 0)}
-                                min="0"
-                                max="100"
-                                step="0.1"
-                                className="h-7 w-16 text-xs"
-                                placeholder="0"
-                              />
-                              <span className="text-xs text-muted-foreground">%</span>
-                            </div>
-                            <span className="font-medium">${taxAmount.toFixed(2)}</span>
-                          </div>
-                          
-                          {selectedDiscount && (
-                            <div className="flex justify-between text-sm text-green-600 dark:text-green-400">
-                              <span>Discount:</span>
-                              <span className="font-medium">-${discountAmount.toFixed(2)}</span>
-                            </div>
-                          )}
-                          
-                          <Separator />
-                          
-                          <div className="flex justify-between pt-2">
-                            <span className="text-lg font-semibold">Total:</span>
-                            <span className="text-2xl font-bold text-primary">${total.toFixed(2)}</span>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Memo Field */}
-              <div className="space-y-3">
-                <Label htmlFor="memo">Memo</Label>
-                <div className="relative">
-                  <Input
-                    id="memo"
-                    value={formData.memo}
-                    onChange={(e) => setFormData({ ...formData, memo: e.target.value })}
-                    placeholder="Add a memo or note..."
-                    className="glass-effect pr-12"
-                  />
-                  <label
-                    htmlFor="memo-attachment"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 cursor-pointer hover:bg-muted rounded-md p-2 transition-colors"
-                  >
-                    <Camera className="h-5 w-5 text-muted-foreground" />
-                  </label>
-                  <input
-                    id="memo-attachment"
-                    type="file"
-                    accept="image/*,.pdf,.doc,.docx"
-                    onChange={handleMemoAttachmentChange}
-                    className="hidden"
-                  />
-                </div>
-
-                {/* Attachment Preview */}
-                {memoAttachment && (
-                  <Card className="border-primary/20">
-                    <CardContent className="p-3">
-                      <div className="flex items-center gap-3">
-                        {memoAttachmentPreview ? (
-                          <img src={memoAttachmentPreview} alt="Preview" className="h-12 w-12 object-cover rounded border" />
-                        ) : (
-                          <div className="h-12 w-12 bg-muted rounded flex items-center justify-center">
-                            <FileText className="h-6 w-6 text-muted-foreground" />
-                          </div>
-                        )}
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{memoAttachment.name}</p>
-                          <p className="text-xs text-muted-foreground">{(memoAttachment.size / 1024).toFixed(2)} KB</p>
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          onClick={removeMemoAttachment}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-
-              {/* Terms & Cancellation Section */}
-              <Card className="border-border/50">
-                <CardContent className="pt-6">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <Label className="text-base font-semibold">Terms & Cancellation</Label>
-                        <p className="text-xs text-muted-foreground">Add terms and cancellation policy</p>
-                      </div>
-                    </div>
-                    <Switch
-                      checked={showTerms}
-                      onCheckedChange={setShowTerms}
-                    />
-                  </div>
-
-                  {showTerms && (
-                    <div className="grid grid-cols-2 gap-4 mt-4 animate-fade-in">
-                      <div className="grid gap-2">
-                        <Label htmlFor="terms">Terms & Conditions</Label>
-                        <Textarea
-                          id="terms"
-                          value={termsConditions}
-                          onChange={(e) => setTermsConditions(e.target.value)}
-                          placeholder="Enter terms and conditions..."
-                          className="min-h-[120px] glass-effect"
-                        />
-                      </div>
-                      <div className="grid gap-2">
-                        <Label htmlFor="cancellation">Cancellation & Return Policy</Label>
-                        <Textarea
-                          id="cancellation"
-                          value={cancellationPolicy}
-                          onChange={(e) => setCancellationPolicy(e.target.value)}
-                          placeholder="Enter cancellation and return policy..."
-                          className="min-h-[120px] glass-effect"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Fixed Footer */}
-              <div className="sticky bottom-0 bg-background border-t pt-4 pb-4 flex items-center justify-end gap-2 mt-6">
-                <Button type="button" variant="outline" onClick={() => navigate("/estimates")}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={items.length === 0 || !formData.customerId} className="min-w-[180px] h-11 shadow-lg hover:shadow-xl transition-all">
-                  {mode === "create" ? "CREATE ESTIMATE" : "SAVE CHANGES"}
-                </Button>
-              </div>
+            <div>
+              <Label htmlFor="quick-last-name">Last Name</Label>
+              <Input
+                id="quick-last-name"
+                value={newCustomerLastName}
+                onChange={(e) => setNewCustomerLastName(e.target.value)}
+                placeholder="Enter last name"
+                className="mt-2"
+              />
             </div>
-          </form>
-        </main>
+            <div>
+              <Label htmlFor="quick-email">Email</Label>
+              <Input
+                id="quick-email"
+                type="email"
+                value={newCustomerEmail}
+                onChange={(e) => setNewCustomerEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="quick-phone">Phone Number</Label>
+              <Input
+                id="quick-phone"
+                type="tel"
+                value={newCustomerPhone}
+                onChange={(e) => setNewCustomerPhone(e.target.value)}
+                placeholder="(555) 123-4567"
+                className="mt-2"
+              />
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleQuickAddCustomer}
+              disabled={
+                !newCustomerFirstName.trim() ||
+                !newCustomerLastName.trim() ||
+                !newCustomerEmail.trim() ||
+                !newCustomerPhone.trim()
+              }
+            >
+              Add Customer
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Progress Indicator */}
+      <div className="px-2 sm:px-4 pt-16 pb-4">
+        <div className="flex items-center justify-center mb-2 overflow-x-auto">
+          <div className="flex items-center justify-between w-full min-w-max px-1">
+            {steps.map((s, idx) => (
+              <div key={s.number} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center flex-1 min-w-0">
+                  <div className={cn(
+                    "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-semibold shrink-0",
+                    step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {step > s.number ? "✓" : s.number}
+                  </div>
+                </div>
+                {idx < steps.length - 1 && (
+                  <div className={cn(
+                    "h-0.5 flex-1 mx-1 sm:mx-2 min-w-[12px] sm:min-w-[16px] max-w-[24px] sm:max-w-[32px]",
+                    step > s.number ? "bg-primary" : "bg-muted"
+                  )} />
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="text-xs sm:text-sm text-muted-foreground text-center whitespace-nowrap px-2">
+          Step {step} of {steps.length}: {steps[step - 1].title}
+        </p>
       </div>
 
-      <QuickAddCustomerModal
-        open={showAddCustomerModal}
-        onOpenChange={setShowAddCustomerModal}
-      />
-
-      <AddItemModal
-        open={showAddItemModal}
-        onOpenChange={setShowAddItemModal}
-        onAddItem={handleAddItem}
-        context="estimate"
-      />
-
-      <Dialog open={showDiscountModal} onOpenChange={setShowDiscountModal}>
-        <DialogContent className="sm:max-w-[600px] max-h-[85vh] overflow-y-auto app-card">
-          <DialogHeader>
-            <DialogTitle className="text-gradient">Add Discount</DialogTitle>
-            <DialogDescription>
-              Select an existing discount or create a custom one
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-6 py-4">
-            {/* Add Custom Discount Section */}
-            <Card className="border-primary/20">
-              <CardContent className="pt-6 space-y-4">
-                <div className="flex items-center gap-2 mb-2">
-                  <Plus className="h-5 w-5 text-primary" />
-                  <Label className="text-base font-semibold">Add Custom Discount</Label>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label>Discount Value *</Label>
-                    <Input
-                      type="number"
-                      placeholder="Enter amount"
-                      className="glass-effect"
-                      id="customDiscountValue"
+      <div className="flex-1 overflow-y-auto scrollable px-4 pb-6 space-y-4">
+        {/* Step 1: Customer & Job Type */}
+        {step === 1 && (
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between">
+                <Label>Customer</Label>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-sm font-semibold text-orange-500 hover:text-orange-600"
+                  onClick={() => setShowQuickAddCustomer(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Add
+                </Button>
+              </div>
+              <Popover 
+                open={customerOpen} 
+                onOpenChange={(open) => {
+                  setCustomerOpen(open);
+                  if (!open) {
+                    setCustomerSearch("");
+                  }
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={customerOpen}
+                    className="w-full justify-between mt-2 h-11"
+                  >
+                    {selectedCustomer
+                      ? sortedCustomers.find((customer) => customer.id === selectedCustomer)?.name
+                      : "Select customer..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command shouldFilter={false} value="">
+                    <CommandInput 
+                      placeholder="Search customers..." 
+                      value={customerSearch}
+                      onValueChange={setCustomerSearch}
                     />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label>Type *</Label>
-                    <Select defaultValue="%">
-                      <SelectTrigger className="glass-effect">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent className="bg-popover backdrop-blur-xl">
-                        <SelectItem value="%">Percentage (%)</SelectItem>
-                        <SelectItem value="$">Fixed Amount ($)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
+                    <CommandList>
+                      <CommandEmpty>No customer found.</CommandEmpty>
+                      <CommandGroup>
+                        {filteredCustomers.map((customer, index) => {
+                          const isSelected = selectedCustomer === customer.id;
+                          return (
+                            <CommandItem
+                              key={customer.id}
+                              value={`${customer.name} ${customer.email}`}
+                              onSelect={() => {
+                                setSelectedCustomer(customer.id);
+                                setCustomerOpen(false);
+                              }}
+                              className={cn(
+                                "flex items-center justify-between",
+                                isSelected 
+                                  ? "!bg-primary !text-white [&>div>div>span]:!text-white [&>div>div>span.text-xs]:!text-white data-[selected='true']:!bg-primary data-[selected=true]:!text-white" 
+                                  : "data-[selected='true']:bg-accent/50 data-[selected=true]:text-foreground"
+                              )}
+                              data-selected={isSelected ? "true" : undefined}
+                            >
+                              <div className="flex items-center flex-1 min-w-0">
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4 shrink-0",
+                                    isSelected ? "opacity-100 text-white" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col flex-1 min-w-0">
+                                  <span className="font-medium truncate">{customer.name}</span>
+                                  <span className={cn(
+                                    "text-xs truncate",
+                                    isSelected ? "text-white" : "text-muted-foreground"
+                                  )}>{customer.email}</span>
+                                </div>
+                              </div>
+                              {index < 5 && (
+                                <Badge 
+                                  variant="secondary" 
+                                  className={cn(
+                                    "text-xs px-1.5 py-0 h-5 ml-2 shrink-0",
+                                    isSelected && "bg-white/20 text-white border-white/30"
+                                  )}
+                                >
+                                  Recently Added
+                                </Badge>
+                              )}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div>
+              <Label>Employee</Label>
+              {isEmployee ? (
+                // Disabled input for employees
+                <div className="mt-2">
+                  <Input
+                    value={selectedEmployee ? mockEmployees.find(employee => employee.id === selectedEmployee)?.name || "" : ""}
+                    disabled
+                    className="w-full h-11 bg-gray-50 text-gray-600 cursor-not-allowed"
+                    readOnly
+                  />
                 </div>
-                
-                <Button 
-                  type="button" 
-                  className="w-full"
-                  onClick={() => {
-                    const input = document.getElementById('customDiscountValue') as HTMLInputElement;
-                    const value = parseFloat(input?.value || "0");
-                    const select = document.querySelector('[id="customDiscountValue"]')?.closest('.grid')?.querySelector('button');
-                    const type = select?.textContent?.includes('%') ? '%' : '$';
-                    
-                    if (value > 0) {
-                      const newDiscount = {
-                        id: `CUSTOM-${Date.now()}`,
-                        name: "Custom Discount",
-                        value: value,
-                        type: type
-                      };
-                      
-                      const calculatedDiscount = type === "%" 
-                        ? subtotal * (value / 100)
-                        : value;
-                      
-                      if (calculatedDiscount > subtotal) {
-                        setDiscountError("Discount cannot be higher than the subtotal amount");
-                      } else {
-                        setSelectedDiscount(newDiscount);
-                        setDiscountError("");
-                        setShowDiscountModal(false);
+              ) : (
+                // Editable popover for merchants
+                <Popover 
+                  open={employeeOpen} 
+                  onOpenChange={(open) => {
+                    if (!isEmployee) {
+                      setEmployeeOpen(open);
+                      if (!open) {
+                        setEmployeeSearch("");
                       }
                     }
                   }}
                 >
-                  Add Custom Discount
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Existing Discounts */}
-            <div>
-              <Label className="text-base font-semibold mb-3 block">Select from Existing Discounts</Label>
-              <div className="grid grid-cols-2 gap-3">
-                {mockDiscounts.map((discount) => (
-                  <Card
-                    key={discount.id}
-                    className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                      selectedDiscount?.id === discount.id 
-                        ? 'border-primary border-2 bg-primary/10 shadow-lg' 
-                        : 'border-border/50 hover:border-primary/50'
-                    }`}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      const calculatedDiscount = discount.type === "%" 
-                        ? subtotal * (discount.value / 100)
-                        : discount.value;
-                      
-                      if (calculatedDiscount > subtotal) {
-                        setDiscountError(`${discount.name} (${discount.type === "%" ? `${discount.value}%` : `$${discount.value}`}) exceeds the subtotal amount`);
-                        setSelectedDiscount(null);
-                        toast.error("Discount cannot exceed subtotal amount");
-                      } else {
-                        setSelectedDiscount(discount);
-                        setDiscountError("");
-                        setShowDiscountModal(false);
-                        toast.success(`Discount "${discount.name}" applied successfully`);
-                      }
-                    }}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1">
-                          <p className="font-semibold text-sm mb-1">{discount.name}</p>
-                          <div className="flex items-center gap-1">
-                            {discount.type === "%" ? (
-                              <Percent className="h-3 w-3 text-primary" />
-                            ) : (
-                              <DollarSign className="h-3 w-3 text-primary" />
-                            )}
-                            <span className="text-lg font-bold text-primary">
-                              {discount.type === "%" ? `${discount.value}%` : `$${discount.value}`}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {discount.isDefault && (
-                            <Badge variant="outline" className="text-xs">Default</Badge>
-                          )}
-                          {selectedDiscount?.id === discount.id && (
-                            <div className="h-5 w-5 rounded-full bg-primary flex items-center justify-center">
-                              <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={employeeOpen}
+                      className="w-full justify-between mt-2 h-11"
+                    >
+                      {selectedEmployee
+                        ? mockEmployees.find((employee) => employee.id === selectedEmployee)?.name
+                        : "Select employee..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command shouldFilter={false} value="">
+                      <CommandInput 
+                        placeholder="Search employees..." 
+                        value={employeeSearch}
+                        onValueChange={setEmployeeSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>No employee found.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredEmployees.map((employee) => {
+                            const isSelected = selectedEmployee === employee.id;
+                            return (
+                              <CommandItem
+                                key={employee.id}
+                                value={`${employee.name} ${employee.email} ${employee.role}`}
+                                onSelect={() => {
+                                  setSelectedEmployee(employee.id);
+                                  setEmployeeOpen(false);
+                                }}
+                                className={cn(
+                                  isSelected 
+                                    ? "!bg-primary !text-white [&>div>span]:!text-white [&>div>span.text-xs]:!text-white data-[selected='true']:!bg-primary data-[selected=true]:!text-white" 
+                                    : "data-[selected='true']:bg-accent/50 data-[selected=true]:text-foreground"
+                                )}
+                                data-selected={isSelected ? "true" : undefined}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    isSelected ? "opacity-100 text-white" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{employee.name}</span>
+                                  <span className={cn(
+                                    "text-xs",
+                                    isSelected ? "text-white" : "text-muted-foreground"
+                                  )}>{employee.role}</span>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
             </div>
           </div>
+        )}
 
-          <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setShowDiscountModal(false)}>
-              Close
+        {/* Step 2: Services/Items */}
+        {step === 2 && (
+          <div className="space-y-4">
+            {/* Action Buttons */}
+            <div className="grid grid-cols-3 gap-2">
+              <Dialog open={showAddExisting} onOpenChange={setShowAddExisting}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full flex-col h-auto py-2.5 px-1 min-h-[70px]">
+                    <Package className="h-4 w-4 mb-1.5 flex-shrink-0" />
+                    <span className="text-[11px] leading-tight text-center whitespace-normal break-words w-full px-0.5">Add Existing Item</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Add Existing Item</DialogTitle>
+                    <DialogDescription>Select items from your inventory</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    {/* Inventory Type Legend */}
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-xs font-semibold text-muted-foreground mb-2">Inventory Type:</p>
+                      <div className="flex flex-wrap gap-3 text-xs">
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium">F</span>
+                          <span className="text-muted-foreground">= Fixed</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium">V</span>
+                          <span className="text-muted-foreground">= Variable</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-medium">U</span>
+                          <span className="text-muted-foreground">= Per Unit</span>
+                        </div>
+                      </div>
+                    </div>
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search inventory..."
+                value={itemSearch}
+                onChange={(e) => setItemSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+                    <div className="space-y-2 max-h-[400px] overflow-y-auto">
+                      {filteredInventory.length > 0 ? (
+                        filteredInventory.map(item => {
+                          const isAlreadyAdded = !!items.find(i => i.id === item.id);
+                          return (
+                  <div
+                    key={item.id}
+                              onClick={() => {
+                                if (!isAlreadyAdded) {
+                                  addItem(item);
+                                }
+                              }}
+                              className={cn(
+                                "p-4 rounded-xl border bg-card cursor-pointer transition-colors",
+                                isAlreadyAdded 
+                                  ? "opacity-50 cursor-not-allowed" 
+                                  : "hover:bg-accent/5 active:bg-accent/10"
+                              )}
+                  >
+                    <div className="flex-1">
+                                <div className="flex items-center gap-2 mb-1">
+                      <p className="font-semibold">{item.name}</p>
+                                  {(item as any).type && (
+                                    <Badge variant="outline" className="text-xs px-1.5 py-0 h-5">
+                                      {(item as any).type}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <div className="flex items-center justify-between">
+                      <p className="text-sm text-muted-foreground">{item.sku}</p>
+                      <p className="text-sm font-medium">${item.unitPrice.toFixed(2)}</p>
+                                </div>
+                                {isAlreadyAdded && (
+                                  <p className="text-xs text-muted-foreground mt-1">Already added</p>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })
+                      ) : (
+                        <p className="text-center text-muted-foreground py-4">
+                          {itemSearch ? "No items found" : "No inventory items available"}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Dialog open={showAddCustom} onOpenChange={setShowAddCustom}>
+                <DialogTrigger asChild>
+                  <Button variant="outline" className="w-full flex-col h-auto py-2.5 px-1 min-h-[70px]">
+                    <FileText className="h-4 w-4 mb-1.5 flex-shrink-0" />
+                    <span className="text-[11px] leading-tight text-center whitespace-normal break-words w-full px-0.5">Add Custom Item</span>
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Add Custom Item</DialogTitle>
+                    <DialogDescription>Create and add a custom item</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    <div>
+                      <Label>Item Image (Optional)</Label>
+                      {customItemImage ? (
+                        <div className="mt-2 relative">
+                          <img 
+                            src={customItemImage} 
+                            alt="Item preview" 
+                            className="w-full h-48 object-cover rounded-lg border"
+                          />
+                          <Button
+                            type="button"
+                            variant="destructive"
+                            size="sm"
+                            className="absolute top-2 right-2"
+                            onClick={removeImage}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <label className="mt-2 flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <Upload className="h-8 w-8 text-muted-foreground mb-2" />
+                            <p className="text-sm text-muted-foreground">Click to upload image</p>
+                            <p className="text-xs text-muted-foreground mt-1">PNG, JPG up to 10MB</p>
+                          </div>
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={handleImageUpload}
+                          />
+                        </label>
+                      )}
+                    </div>
+                    <div>
+                      <Label>Item Name</Label>
+                      <Input
+                        placeholder="Enter item name"
+                        value={customItemName}
+                        onChange={(e) => setCustomItemName(e.target.value)}
+                        className="mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label>Price</Label>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        value={customItemPrice}
+                        onChange={(e) => setCustomItemPrice(e.target.value)}
+                        className="mt-2"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <Button 
+                      className="w-full" 
+                      onClick={addCustomItem}
+                      disabled={!customItemName || !customItemPrice}
+                    >
+                      Add Item
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
+
+              <Button 
+                variant="outline" 
+                className="w-full flex-col h-auto py-2.5 px-1 min-h-[70px]"
+                onClick={() => {
+                  // Navigate to Add Inventory page with return state
+                  const returnPath = isEditMode ? `/estimates/${id}/edit` : "/estimates/new";
+                  navigate("/inventory/new", {
+                    state: {
+                      returnTo: "estimate",
+                      returnPath: returnPath,
+                      returnStep: 2,
+                      currentItems: items,
+                      preserveState: true
+                    }
+                  });
+                }}
+              >
+                <Save className="h-4 w-4 mb-1.5 flex-shrink-0" />
+                <span className="text-[11px] leading-tight text-center whitespace-normal break-words w-full px-0.5">Add to Inventory</span>
+              </Button>
+
+              {/* Variable Price Dialog */}
+              <Dialog open={showVariablePriceDialog} onOpenChange={setShowVariablePriceDialog}>
+                <DialogContent className="max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Set Price for Variable Item</DialogTitle>
+                    <DialogDescription>Enter the price for this variable-priced item</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4 mt-4">
+                    {pendingVariableItem && (
+                      <div className="p-3 bg-muted/50 rounded-lg">
+                        <p className="font-semibold text-sm">{pendingVariableItem.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Default Price: ${pendingVariableItem.unitPrice.toFixed(2)}
+                        </p>
+              </div>
+            )}
+                    <div>
+                      <Label>Enter Price</Label>
+                      <Input
+                        type="number"
+                        placeholder="0.00"
+                        value={variableItemPrice}
+                        onChange={(e) => setVariableItemPrice(e.target.value)}
+                        className="mt-2"
+                        min="0"
+                        step="0.01"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          setShowVariablePriceDialog(false);
+                          setPendingVariableItem(null);
+                          setVariableItemPrice("");
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        className="flex-1"
+                        onClick={confirmVariablePrice}
+                        disabled={!variableItemPrice || parseFloat(variableItemPrice) <= 0}
+                      >
+                        Add Item
+                      </Button>
+                    </div>
+                  </div>
+                </DialogContent>
+              </Dialog>
+            </div>
+
+            {/* Selected Items */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-gray-900">Selected Items</h3>
+              {items.length === 0 ? (
+                <div className="text-center py-12 bg-gray-50 rounded-xl border-2 border-dashed">
+                  <p className="text-muted-foreground">No items added yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {items.map(item => {
+                    const inventoryItem = mockInventory.find(inv => inv.id === item.id);
+                    const itemType = inventoryItem ? (inventoryItem as any).type : (item as any).type;
+                    return (
+                      <div
+                        key={item.id}
+                        className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 hover:shadow-md transition-shadow"
+                      >
+                        {/* Card Header */}
+                        <div className="flex items-start justify-between mb-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="text-sm font-semibold text-cyan-600 truncate">
+                                {item.name}
+                              </h4>
+                              {itemType && (
+                                <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-5 flex-shrink-0">
+                                  {itemType}
+                                </Badge>
+                              )}
+                            </div>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-700 rounded-lg transition-colors flex-shrink-0"
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+
+                        {/* Card Content */}
+                        <div className="space-y-3">
+                          {/* Rate */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-600">Rate:</span>
+                            <span className="text-sm font-medium text-gray-900">
+                              ${item.price.toFixed(2)}
+                            </span>
+                          </div>
+
+                          {/* Quantity Counter */}
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs text-gray-600">Quantity:</span>
+                            <div className="flex items-center border border-gray-300 rounded-lg bg-white">
+                      <Button
+                        size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 rounded-l-lg hover:bg-green-50 active:bg-green-100 transition-colors"
+                        onClick={() => updateQuantity(item.id, -1)}
+                      >
+                                <Minus className="h-4 w-4 text-green-600" />
+                      </Button>
+                              <Input
+                                type="number"
+                                value={item.quantity}
+                                onChange={(e) => {
+                                  const qty = Math.max(1, parseInt(e.target.value) || 1);
+                                  setItems(items.map(i => i.id === item.id ? { ...i, quantity: qty } : i));
+                                }}
+                                className="w-12 h-8 text-center border-0 border-x border-gray-300 rounded-none focus-visible:ring-0 focus-visible:ring-offset-0 text-sm font-medium"
+                                min="1"
+                              />
+                      <Button
+                        size="sm"
+                                variant="ghost"
+                                className="h-8 w-8 p-0 rounded-r-lg hover:bg-green-50 active:bg-green-100 transition-colors"
+                        onClick={() => updateQuantity(item.id, 1)}
+                      >
+                                <Plus className="h-4 w-4 text-green-600" />
+                      </Button>
+                            </div>
+                          </div>
+
+                          {/* Price (Total) */}
+                          <div className="flex items-center justify-between pt-2 border-t border-gray-200">
+                            <span className="text-sm font-semibold text-gray-900">Price:</span>
+                            <span className="text-base font-bold text-gray-900">
+                              ${(item.price * item.quantity).toFixed(2)}
+                            </span>
+                      </div>
+                    </div>
+                  </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Pricing & Discounts */}
+        {step === 3 && (
+          <div className="space-y-4">
+            <div>
+              <Label>Terms</Label>
+              <Select value={terms} onValueChange={setTerms}>
+                <SelectTrigger className="mt-2">
+                  <SelectValue placeholder="Select payment terms" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="due-on-receipt">Due on Receipt</SelectItem>
+                  <SelectItem value="net-15">Net 15</SelectItem>
+                  <SelectItem value="net-30">Net 30</SelectItem>
+                  <SelectItem value="net-45">Net 45</SelectItem>
+                  <SelectItem value="net-60">Net 60</SelectItem>
+                  <SelectItem value="net-90">Net 90</SelectItem>
+                  <SelectItem value="net-120">Net 120</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full justify-start h-12"
+                onClick={() => setShowDiscountModal(true)}
+              >
+                <Tag className="h-4 w-4 mr-2" />
+                {selectedDiscounts.length > 0 || customDiscounts.length > 0
+                  ? `Discounts (${selectedDiscounts.length + customDiscounts.length})`
+                  : "Add Order Discount"}
+              </Button>
+              
+              {/* Display all applied discounts */}
+              {selectedDiscounts.map((disc, index) => (
+                <div key={`selected-${index}`} className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                  <span className="text-sm text-gray-700">
+                    {disc.name} ({disc.type === "%" ? `${disc.value}%` : `$${disc.value}`})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-destructive"
+                    onClick={() => {
+                      setSelectedDiscounts(prev => prev.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+              
+              {customDiscounts.map((disc, index) => (
+                <div key={`custom-${index}`} className="flex items-center justify-between p-2 bg-green-50 rounded-lg">
+                  <span className="text-sm text-gray-700">
+                    Custom: {disc.name} ({disc.type === "%" ? `${disc.value}%` : `$${disc.value}`})
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 w-6 p-0 text-destructive"
+                    onClick={() => {
+                      setCustomDiscounts(prev => prev.filter((_, i) => i !== index));
+                    }}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+
+            {/* Order Summary */}
+            <div className="p-4 rounded-xl bg-red-50/50 border border-red-100/50 shadow-sm">
+              <h3 className="text-lg font-bold mb-4 text-gray-900">Order Summary</h3>
+              
+              {/* 1. Item Total */}
+              <div className="flex justify-between mb-2">
+                <span className="text-sm text-gray-700">Item Total:</span>
+                <span className="text-sm font-medium text-gray-900">${itemTotal.toFixed(2)}</span>
+              </div>
+              
+              {/* 2. Discounts - List each individually */}
+              {selectedDiscounts.length > 0 || customDiscounts.length > 0 ? (
+                <div className="mb-2">
+                  {selectedDiscounts.map((disc, index) => {
+                    const amount = disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value;
+                    return (
+                      <div key={`summary-selected-${index}`} className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-600">  {disc.name}:</span>
+                        <span className="text-sm font-medium text-green-600">-${amount.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                  {customDiscounts.map((disc, index) => {
+                    const amount = disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value;
+                    return (
+                      <div key={`summary-custom-${index}`} className="flex justify-between mb-1">
+                        <span className="text-sm text-gray-600">  {disc.name}:</span>
+                        <span className="text-sm font-medium text-green-600">-${amount.toFixed(2)}</span>
+                      </div>
+                    );
+                  })}
+                  {/* Total Discounts */}
+                  <div className="flex justify-between mb-2 pt-1 border-t border-gray-200">
+                    <span className="text-sm font-semibold text-gray-700">Total Discounts:</span>
+                    <span className="text-sm font-semibold text-green-600">-${totalDiscounts.toFixed(2)}</span>
+                  </div>
+                </div>
+              ) : null}
+              
+              {/* 3. Subtotal (after discounts) */}
+              <div className="flex justify-between mb-2 pb-2 border-b border-gray-200">
+                <span className="text-sm font-semibold text-gray-700">Subtotal:</span>
+                <span className="text-sm font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
+              </div>
+              
+              {/* 4. Tax (calculated on subtotal) */}
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm text-gray-700">Tax:</span>
+                <div className="flex items-center gap-1">
+                  <Input
+                    type="number"
+                    value={tax}
+                    onChange={(e) => {
+                      const value = parseFloat(e.target.value);
+                      setTax(isNaN(value) ? 0 : value);
+                    }}
+                    className="w-20 h-8 text-right text-sm p-1 border-gray-300 rounded"
+                    min="0"
+                    step="0.01"
+                  />
+                  <span className="text-sm text-gray-700">%</span>
+                  <span className="text-sm font-medium text-gray-900 ml-2">${taxAmount.toFixed(2)}</span>
+                </div>
+              </div>
+              
+              {/* 5. Total */}
+              <div className="flex justify-between pt-2 mt-2 border-t border-gray-200 items-baseline">
+                <span className="text-lg font-bold text-gray-900">Total:</span>
+                <span className="text-2xl font-bold text-orange-600">${total.toFixed(2)}</span>
+              </div>
+            </div>
+
+            <div>
+              <Label>Notes</Label>
+              <div className="relative mt-2">
+              <textarea
+                  className="w-full min-h-[120px] p-3 pr-12 rounded-lg border bg-background"
+                placeholder="Add any notes or special instructions..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+              />
+                <label className="absolute bottom-3 right-3 cursor-pointer">
+                  <input
+                    type="file"
+                    className="hidden"
+                    accept="image/*,.pdf,.doc,.docx"
+                    multiple
+                    onChange={handleDocumentUpload}
+                  />
+                  <Camera className="h-5 w-5 text-muted-foreground hover:text-primary transition-colors" />
+                </label>
+              </div>
+              {uploadedDocs.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {uploadedDocs.map((doc, index) => (
+                    <div key={index} className="relative group">
+                      <div className="w-16 h-16 rounded-lg border bg-muted flex items-center justify-center overflow-hidden">
+                        {doc.startsWith('data:image') ? (
+                          <img src={doc} alt={`Document ${index + 1}`} className="w-full h-full object-cover" />
+                        ) : (
+                          <FileText className="h-6 w-6 text-muted-foreground" />
+                        )}
+                      </div>
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute -top-1 -right-1 h-5 w-5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={() => removeDocument(index)}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Discount Modal */}
+        <Dialog open={showDiscountModal} onOpenChange={setShowDiscountModal}>
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>Add Discounts</DialogTitle>
+              <DialogDescription>
+                Select multiple discounts or create custom ones
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-6 mt-4">
+              {/* Select from Existing Discounts */}
+              <div>
+                <h3 className="font-semibold mb-4">Select from Existing Discounts</h3>
+                <div className="space-y-2">
+                  {mockDiscounts.filter(d => d.active).map((disc) => {
+                    const calculatedDiscount = disc.type === "%" 
+                      ? subtotal * (disc.value / 100)
+                      : disc.value;
+                    const isExceedsSubtotal = calculatedDiscount > subtotal;
+                    const isSelected = selectedDiscounts.some(d => d.id === disc.id);
+                    
+                    return (
+                      <div
+                        key={disc.id}
+                        onClick={() => {
+                          if (!isExceedsSubtotal) {
+                            if (isSelected) {
+                              setSelectedDiscounts(prev => prev.filter(d => d.id !== disc.id));
+                            } else {
+                              setSelectedDiscounts(prev => [...prev, disc]);
+                            }
+                          }
+                        }}
+                        className={cn(
+                          "p-4 rounded-xl border cursor-pointer transition-colors",
+                          isSelected
+                            ? "bg-primary/10 border-primary"
+                            : isExceedsSubtotal
+                            ? "opacity-50 cursor-not-allowed"
+                            : "bg-card hover:bg-accent/5"
+                        )}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={isSelected}
+                                disabled={isExceedsSubtotal}
+                                className="pointer-events-none"
+                              />
+                              <p className="font-semibold">{disc.name}</p>
+                            </div>
+                            <p className="text-sm text-primary font-medium mt-1 ml-6">
+                              {disc.type} {disc.value}{disc.type === "%" ? "%" : ""}
+                            </p>
+                            {isExceedsSubtotal && (
+                              <p className="text-xs text-destructive mt-1 ml-6">
+                                Exceeds subtotal amount
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Add Custom Discount */}
+              <div className="border-t pt-4">
+                <h3 className="font-semibold mb-4 flex items-center gap-2">
+                  <Plus className="h-4 w-4" />
+                  Add Custom Discount
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <Label>Discount Name *</Label>
+                    <Input
+                      type="text"
+                      placeholder="e.g., Special Offer"
+                      value={customDiscountValue}
+                      onChange={(e) => setCustomDiscountValue(e.target.value)}
+                      className="mt-2"
+                    />
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label>Value *</Label>
+                      <Input
+                        type="number"
+                        placeholder="Amount"
+                        value={discount}
+                        onChange={(e) => setDiscount(parseFloat(e.target.value) || 0)}
+                        className="mt-2"
+                        min="0"
+                        step="0.01"
+                      />
+                    </div>
+                    <div>
+                      <Label>Type *</Label>
+                      <Select value={customDiscountType} onValueChange={(value: "%" | "$") => setCustomDiscountType(value)}>
+                        <SelectTrigger className="mt-2">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="%">Percentage (%)</SelectItem>
+                          <SelectItem value="$">Fixed Amount ($)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      if (customDiscountValue && discount > 0) {
+                        setCustomDiscounts(prev => [...prev, {
+                          name: customDiscountValue,
+                          type: customDiscountType,
+                          value: discount
+                        }]);
+                        setCustomDiscountValue("");
+                        setDiscount(0);
+                      }
+                    }}
+                    disabled={!customDiscountValue || discount <= 0}
+                  >
+                    Add Custom Discount
+                  </Button>
+                </div>
+              </div>
+
+              {/* Done Button */}
+              <div className="border-t pt-4">
+                <Button
+                  className="w-full"
+                  onClick={() => setShowDiscountModal(false)}
+                >
+                  Done
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Step 4: Enter terms & cancellation */}
+        {step === 4 && (
+          <div className="space-y-4">
+            <div>
+              <Label>Terms & Conditions</Label>
+              <textarea
+                className="w-full min-h-[120px] p-3 rounded-lg border bg-background mt-2"
+                placeholder="Enter terms and conditions..."
+                value={termsAndConditions}
+                onChange={(e) => setTermsAndConditions(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label>Cancellation & Return Policy</Label>
+              <textarea
+                className="w-full min-h-[120px] p-3 rounded-lg border bg-background mt-2"
+                placeholder="Enter cancellation and return policy..."
+                value={cancellationPolicy}
+                onChange={(e) => setCancellationPolicy(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* Bottom Actions */}
+      <div className="p-4 border-t bg-background">
+        <div className="flex gap-2">
+          {step > 1 && (
+            <Button variant="outline" className="flex-1" onClick={() => setStep(step - 1)}>
+              Back
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </>
+          )}
+          {step < 4 ? (
+            <Button
+              className="flex-1"
+              onClick={() => setStep(step + 1)}
+              disabled={step === 1 && (!selectedCustomer || !selectedEmployee) || step === 2 && items.length === 0}
+            >
+              Next
+            </Button>
+          ) : (
+            <Button className="flex-1" onClick={async () => {
+              // Calculate amounts (used for both create and update)
+              const itemTotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+              
+              // Calculate total discount from all sources
+              const selectedDiscountsTotal = selectedDiscounts.reduce((sum, disc) => {
+                return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+              }, 0);
+              
+              const customDiscountsTotal = customDiscounts.reduce((sum, disc) => {
+                return sum + (disc.type === "%" ? itemTotal * (disc.value / 100) : disc.value);
+              }, 0);
+              
+              const discountAmount = selectedDiscountsTotal + customDiscountsTotal;
+              const subtotal = Math.max(0, itemTotal - discountAmount);
+              const taxAmount = subtotal * (tax / 100);
+              const total = subtotal + taxAmount;
+
+              if (isEditMode) {
+                // Update existing estimate
+                try {
+                  const existingEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+                  const estimateIndex = existingEstimates.findIndex((est: any) => est.id === id);
+                  
+                  if (estimateIndex !== -1) {
+                    // Update the estimate
+                    existingEstimates[estimateIndex] = {
+                      ...existingEstimates[estimateIndex],
+                      items: items.map(item => ({
+                        id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity,
+                        amount: item.price * item.quantity,
+                      })),
+                      subtotal,
+                      tax: taxAmount,
+                      total,
+                      amount: total,
+                      discount: discountAmount,
+                      notes: notes || undefined,
+                    };
+                    
+                    localStorage.setItem("servicepro_estimates", JSON.stringify(existingEstimates));
+                    showSuccessToast("Estimate updated successfully");
+                    navigate("/estimates");
+                  } else {
+                    toast.error("Estimate not found");
+                  }
+                } catch (error) {
+                  console.error("Error updating estimate:", error);
+                  toast.error("Failed to update estimate");
+                }
+              } else {
+                // Create estimate and save notes
+                if (!selectedCustomer) {
+                  toast.error("Please select a customer");
+                  return;
+                }
+                
+                const selectedCustomerData = customerList.find(c => c.id === selectedCustomer);
+                if (!selectedCustomerData) {
+                  toast.error("Customer not found");
+                  return;
+                }
+
+                // Generate estimate ID (similar to invoice ID format)
+                const existingEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+                const allEstimateIds = [
+                  ...existingEstimates.map((est: any) => est.id),
+                  ...mockEstimates.map(est => est.id)
+                ];
+                const maxNum = allEstimateIds.reduce((max: number, id: string) => {
+                  const match = id.match(/EST-(\d+)/);
+                  if (match) {
+                    return Math.max(max, parseInt(match[1], 10));
+                  }
+                  return max;
+                }, 0);
+                const newEstimateId = `EST-${String(maxNum + 1).padStart(3, '0')}`;
+
+                const estimateData = {
+                  id: newEstimateId,
+                  customerId: selectedCustomer,
+                  customerName: selectedCustomerData.name,
+                  issueDate: new Date().toISOString().split("T")[0],
+                  dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+                  amount: total,
+                  status: "Unpaid" as const,
+                  items: items.map(item => ({
+                    id: item.id,
+                    name: item.name,
+                    price: item.price,
+                    quantity: item.quantity,
+                    amount: item.price * item.quantity,
+                  })),
+                  subtotal,
+                  tax: taxAmount,
+                  total,
+                  discount: discountAmount,
+                  notes: notes || undefined,
+                  employeeId: selectedEmployee || undefined,
+                  employeeName: selectedEmployee ? mockEmployees.find(e => e.id === selectedEmployee)?.name : undefined,
+                  createdAt: new Date().toISOString(),
+                };
+
+                // Save estimate to localStorage
+                existingEstimates.push(estimateData);
+                localStorage.setItem("servicepro_estimates", JSON.stringify(existingEstimates));
+
+                // Save notes if they exist (text + all attachments as single note)
+                if (notes.trim() || uploadedDocs.length > 0) {
+                  // Prepare attachments array
+                  const attachments = uploadedDocs.map((docUrl) => {
+                    // Extract filename from data URL or use default
+                    const fileName = docUrl.includes(";base64,") 
+                      ? `attachment-${Date.now()}-${Math.random().toString(36).substr(2, 9)}.${docUrl.match(/data:([^;]+)/)?.[1]?.split("/")[1] || "file"}`
+                      : `attachment-${Date.now()}`;
+                    
+                    return {
+                      name: fileName,
+                      url: docUrl,
+                      type: docUrl.startsWith("data:image") ? "image/png" : "application/octet-stream",
+                    };
+                  });
+                  
+                  // Save as single note with text + all attachments
+                  await addNotes([{
+                    entityId: newEstimateId,
+                    entityType: "estimate" as const,
+                    customerId: selectedCustomer,
+                    text: notes.trim() || "", // Empty text if only attachments
+                    attachments: attachments.length > 0 ? attachments : undefined,
+                  }]);
+                }
+                
+                showSuccessToast("Estimate created successfully");
+                navigate("/estimates");
+              }
+            }}>
+              {isEditMode ? "Update Estimate" : "Create Estimate"}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
 export default AddEstimate;
-

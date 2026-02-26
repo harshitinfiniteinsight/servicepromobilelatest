@@ -63,8 +63,8 @@ const Walkthrough = () => {
           <Icon className="h-24 w-24 text-primary" />
         </div>
 
-        <h2 className="text-3xl font-bold mb-4">{slide.title}</h2>
-        <p className="text-lg text-muted-foreground mb-8">{slide.description}</p>
+        <h2 className="text-3xl font-bold mb-4 text-white">{slide.title}</h2>
+        <p className="text-lg text-white mb-8">{slide.description}</p>
 
         <div className="flex gap-2 mb-8">
           {slides.map((_, index) => (

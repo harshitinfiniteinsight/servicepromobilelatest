@@ -1,105 +1,85 @@
-import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft } from "lucide-react";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { showSuccessToast } from "@/utils/toast";
 
 const BusinessPolicies = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
-  const [paymentTerms, setPaymentTerms] = useState("due_on_receipt");
   const [termsConditions, setTermsConditions] = useState("");
   const [cancellationReturn, setCancellationReturn] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Business Policies Updated",
-      description: "Your business policies have been saved successfully.",
-    });
+  const handleSubmit = () => {
+    // Validate fields (if required by backend)
+    // For now, we'll allow empty fields but you can add validation if needed
+    // if (!termsConditions.trim() || !cancellationReturn.trim()) {
+    //   return;
+    // }
+
+    // In real app, save to server
+    // For now, simulate save
+    
+    // Show success toast
+    showSuccessToast("Business policies saved successfully.");
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="bg-primary text-primary-foreground p-4 flex items-center gap-3 shadow-lg">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/settings")}
-          className="hover:bg-primary-foreground/20 text-primary-foreground"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-xl font-semibold">Business Policies</h1>
+    <div className="h-full flex flex-col overflow-hidden" style={{ backgroundColor: "#FDF4EF" }}>
+      <MobileHeader title="Business Policies" showBack={true} />
+      
+      <div className="flex-1 overflow-y-auto scrollable pt-12 pb-6">
+        {/* Card Container */}
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mt-2 mx-4 mb-8">
+          {/* Form Fields */}
+          <div className="space-y-6">
+            {/* Terms & Conditions */}
+            <div className="space-y-2">
+              <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                Terms & Conditions:
+              </Label>
+              <Textarea
+                value={termsConditions}
+                onChange={(e) => setTermsConditions(e.target.value)}
+                placeholder="Enter your terms and conditions..."
+                className={cn(
+                  "min-h-[150px] rounded-lg border-gray-300 resize-none",
+                  "focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",
+                  "placeholder:text-gray-400"
+                )}
+              />
+            </div>
+
+            {/* Cancellation & Return */}
+            <div className="space-y-2">
+              <Label className="text-sm font-bold" style={{ color: "#F97316" }}>
+                Cancellation & Return:
+              </Label>
+              <Textarea
+                value={cancellationReturn}
+                onChange={(e) => setCancellationReturn(e.target.value)}
+                placeholder="Enter your cancellation and return policy..."
+                className={cn(
+                  "min-h-[150px] rounded-lg border-gray-300 resize-none",
+                  "focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2",
+                  "placeholder:text-gray-400"
+                )}
+              />
+            </div>
+          </div>
+
+          {/* Submit Button */}
+          <div className="mt-6 mb-8">
+            <Button
+              onClick={handleSubmit}
+              className="w-full rounded-xl font-bold text-white shadow-md hover:shadow-lg transition-all h-14 text-base"
+              style={{ backgroundColor: "#F97316" }}
+            >
+              SUBMIT
+            </Button>
+          </div>
+        </div>
       </div>
-
-      <main className="p-4 sm:p-6 max-w-4xl mx-auto animate-fade-in">
-        <Card className="border-2 shadow-xl">
-          <CardContent className="p-6 sm:p-8">
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="space-y-3">
-                <Label htmlFor="payment-terms" className="text-base font-semibold text-foreground">
-                  Payment Terms:
-                </Label>
-                <Select value={paymentTerms} onValueChange={setPaymentTerms}>
-                  <SelectTrigger id="payment-terms" className="h-12 border-2">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="due_on_receipt">due on receipt</SelectItem>
-                    <SelectItem value="net_15">Net 15</SelectItem>
-                    <SelectItem value="net_30">Net 30</SelectItem>
-                    <SelectItem value="net_60">Net 60</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="terms-conditions" className="text-base font-semibold text-foreground">
-                  Terms & Conditions:
-                </Label>
-                <Textarea
-                  id="terms-conditions"
-                  value={termsConditions}
-                  onChange={(e) => setTermsConditions(e.target.value)}
-                  placeholder="Enter your terms and conditions..."
-                  className="min-h-[300px] border-2 resize-none"
-                />
-              </div>
-
-              <div className="space-y-3">
-                <Label htmlFor="cancellation-return" className="text-base font-semibold text-foreground">
-                  Cancellation & Return:
-                </Label>
-                <Textarea
-                  id="cancellation-return"
-                  value={cancellationReturn}
-                  onChange={(e) => setCancellationReturn(e.target.value)}
-                  placeholder="Enter your cancellation and return policy..."
-                  className="min-h-[300px] border-2 resize-none"
-                />
-              </div>
-
-              <Button 
-                type="submit" 
-                className="w-full h-14 text-lg font-semibold"
-              >
-                SUBMIT
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-      </main>
     </div>
   );
 };

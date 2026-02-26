@@ -1,10 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Edit, Eye, Share2, FileText, MessageSquare, UserCog, MapPin, Image as ImageIcon, RefreshCw } from "lucide-react";
+import { Calendar, Edit, Eye, Share2, FileText, MessageSquare, UserCog, MapPin, Image as ImageIcon, RefreshCw, CreditCard, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
+
+// Source document type for jobs
+type SourceDocumentType = "invoice" | "estimate" | "agreement" | null;
 
 interface JobCardProps {
   job: {
@@ -16,6 +20,9 @@ interface JobCardProps {
     time: string;
     status: string;
     location: string;
+    images?: string[];
+    sourceType?: SourceDocumentType;
+    customerId?: string;
   };
   jobType?: "Agreement" | "Estimate" | "Invoice";
   paymentStatus?: "Paid" | "Open";
@@ -25,7 +32,7 @@ interface JobCardProps {
   isEmployee?: boolean;
   hasPictures?: boolean;
   onClick?: () => void;
-  onStatusChange?: (newStatus: string) => void;
+  onStatusChange?: (jobId: string, newStatus: string) => void;
   onSendFeedbackForm?: () => void;
   onViewFeedback?: () => void;
   onQuickAction?: (action: string) => void;
@@ -34,6 +41,19 @@ interface JobCardProps {
   onReschedule?: () => void;
   onAddPictures?: () => void;
   onViewPictures?: () => void;
+  onPay?: () => void;
+  onAssociate?: (documentType: "Invoice" | "Estimate" | "Agreement") => void;
+  // Additional props used in Jobs.tsx
+  index?: number;
+  showAnimation?: boolean;
+  userRole?: "merchant" | "employee";
+  onSendFeedback?: () => void;
+  onFillFeedback?: () => void;
+  previewEstimate?: () => void;
+  previewInvoice?: () => void;
+  previewAgreement?: () => void;
+  onEdit?: () => void;
+  onReassign?: () => void;
 }
 
 const JobCard = ({ 
@@ -54,9 +74,45 @@ const JobCard = ({
   onReassignEmployee,
   onReschedule,
   onAddPictures,
-  onViewPictures
+  onViewPictures,
+  onPay,
+  onAssociate,
+  // Additional props from Jobs.tsx
+  index,
+  showAnimation,
+  userRole,
+  onSendFeedback,
+  onFillFeedback,
+  previewEstimate,
+  previewInvoice,
+  previewAgreement,
+  onEdit,
+  onReassign
 }: JobCardProps) => {
+  const navigate = useNavigate();
+  
+  // Derive isEmployee from userRole prop if provided
+  const effectiveIsEmployee = isEmployee || userRole === "employee";
+  
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
+
+  // Derive payment status from job if not provided
+  const effectivePaymentStatus = paymentStatus || (() => {
+    // Check completed/feedback received status means paid
+    if (job.status === "Completed" || job.status === "Feedback Received") {
+      return "Paid";
+    }
+    return "Open";
+  })();
+  
+  // Derive source type from job ID if not provided
+  const effectiveSourceType: SourceDocumentType = job.sourceType || (() => {
+    const id = job.id.toUpperCase();
+    if (id.startsWith("INV")) return "invoice";
+    if (id.startsWith("EST")) return "estimate";
+    if (id.startsWith("AG") || id.includes("AGR")) return "agreement";
+    return null;
+  })();
 
   // Derive document ID display format (INV-001, EST-001, AGR-001)
   const getDocumentIdDisplay = () => {
@@ -105,30 +161,11 @@ const JobCard = ({
     return statusColors[status] || "bg-gray-100 text-gray-700 border-gray-200";
   };
 
-  // Handle preview - open modal instead of navigating
+  // Handle preview - navigate to Job Details page
   const handlePreview = () => {
-    const docIdDisplay = getDocumentIdDisplay();
-    
-    // Determine job type from prop or document ID format
-    let determinedJobType: "Agreement" | "Estimate" | "Invoice" | undefined = jobType;
-    
-    if (!determinedJobType) {
-      if (docIdDisplay.startsWith("AGR-")) {
-        determinedJobType = "Agreement";
-      } else if (docIdDisplay.startsWith("EST-")) {
-        determinedJobType = "Estimate";
-      } else if (docIdDisplay.startsWith("INV-")) {
-        determinedJobType = "Invoice";
-      }
-    }
-    
-    // Call onPreview callback if available
-    if (onPreview && determinedJobType) {
-      onPreview(docIdDisplay, determinedJobType);
-    } else if (onQuickAction) {
-      // Fallback to onQuickAction if onPreview not available
-      onQuickAction("preview");
-    }
+    // For demo/prototype, always navigate to Job Details
+    // This does NOT depend on invoice/estimate/agreement lookup
+    navigate(`/jobs/${job.id}`);
   };
 
   // Open Google Maps with job address
@@ -163,6 +200,227 @@ const JobCard = ({
       : false;
     
     const jobStatus = job.status;
+    const isUnpaid = effectivePaymentStatus === "Open";
+    const sourceType = effectiveSourceType;
+    const hasImages = hasPictures || (job.images && job.images.length > 0);
+    
+    // Helper to get source document label
+    const getSourceLabel = (type: SourceDocumentType): string => {
+      if (type === "invoice") return "Invoice";
+      if (type === "estimate") return "Estimate";
+      if (type === "agreement") return "Agreement";
+      return "";
+    };
+    
+    // Helper to handle preview - navigate to Job Details page
+    const handlePreviewAction = () => {
+      // For demo/prototype, always navigate to Job Details
+      handlePreview();
+    };
+    
+    // Helper to handle edit based on available props
+    const handleEditAction = () => {
+      if (onEdit) {
+        onEdit();
+      } else if (onQuickAction) {
+        onQuickAction("edit");
+      }
+    };
+    
+    // =========================================================
+    // TABLET VIEW - UNPAID JOBS MENU (New Requirements)
+    // =========================================================
+    // This applies to tablet view for unpaid jobs only
+    // Order: Preview, Reschedule Job, Show on Map, Upload Pictures,
+    //        View Pictures (if exists), Edit {Source}, Pay, Associate {Source}
+    // =========================================================
+    
+    if (isUnpaid) {
+      // 1. Preview - always first
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreviewAction,
+        separator: false,
+      });
+      
+      // 2. Reschedule Job
+      if (onReschedule) {
+        items.push({
+          label: "Reschedule Job",
+          icon: RefreshCw,
+          action: () => onReschedule(),
+          separator: false,
+        });
+      }
+      
+      // 3. Show on Map
+      items.push({
+        label: "Show on Map",
+        icon: MapPin,
+        action: () => openGoogleMaps(job.location),
+        separator: false,
+      });
+      
+      // 4. Upload Pictures - always show
+      if (onAddPictures) {
+        items.push({
+          label: "Upload Pictures",
+          icon: ImageIcon,
+          action: () => onAddPictures(),
+          separator: false,
+        });
+      }
+      
+      // 5. View Pictures - only if pictures exist
+      if (hasImages && onViewPictures) {
+        items.push({
+          label: "View Pictures",
+          icon: ImageIcon,
+          action: () => onViewPictures(),
+          separator: false,
+        });
+      }
+      
+      // 6. Edit {Source Document} - only if source type exists and user is not employee
+      if (sourceType && !effectiveIsEmployee && (onEdit || onQuickAction)) {
+        const sourceLabel = getSourceLabel(sourceType);
+        items.push({
+          label: `Edit ${sourceLabel}`,
+          icon: Edit,
+          action: handleEditAction,
+          separator: false,
+        });
+      }
+      
+      // 7. Pay
+      if (onPay) {
+        items.push({
+          label: "Pay",
+          icon: CreditCard,
+          action: () => onPay(),
+          separator: false,
+        });
+      }
+      
+      // 8. Associate {Source Document}
+      if (onAssociate) {
+        if (sourceType) {
+          // If job has a source type, show only that associate option
+          const sourceLabel = getSourceLabel(sourceType);
+          items.push({
+            label: `Associate ${sourceLabel}`,
+            icon: Link,
+            action: () => onAssociate(sourceLabel as "Invoice" | "Estimate" | "Agreement"),
+            separator: false,
+          });
+        } else {
+          // If no source type, show all three associate options
+          items.push({
+            label: "Associate Invoice",
+            icon: Link,
+            action: () => onAssociate("Invoice"),
+            separator: false,
+          });
+          items.push({
+            label: "Associate Estimate",
+            icon: Link,
+            action: () => onAssociate("Estimate"),
+            separator: false,
+          });
+          items.push({
+            label: "Associate Agreement",
+            icon: Link,
+            action: () => onAssociate("Agreement"),
+            separator: false,
+          });
+        }
+      }
+      
+      return items;
+    }
+    
+    // =========================================================
+    // TABLET VIEW - PAID JOBS MENU (New Requirements)
+    // =========================================================
+    // This applies to tablet view for paid jobs only
+    // Order: Preview, Show on Map, Upload Pictures,
+    //        Associate New {Source Document}, Associate {Source Document}
+    // =========================================================
+    
+    if (!isUnpaid && effectivePaymentStatus === "Paid") {
+      // 1. Preview - always first
+      items.push({
+        label: "Preview",
+        icon: Eye,
+        action: handlePreviewAction,
+        separator: false,
+      });
+      
+      // 2. Show on Map
+      items.push({
+        label: "Show on Map",
+        icon: MapPin,
+        action: () => openGoogleMaps(job.location),
+        separator: false,
+      });
+      
+      // 3. Upload Pictures - always show
+      if (onAddPictures) {
+        items.push({
+          label: "Upload Pictures",
+          icon: ImageIcon,
+          action: () => onAddPictures(),
+          separator: false,
+        });
+      }
+      
+      // 4 & 5. Associate New and Associate - Dynamic based on sourceType
+      if (onAssociate) {
+        if (sourceType) {
+          // If job has a source type, show specific "Associate New {Source}" and "Associate {Source}"
+          const sourceLabel = getSourceLabel(sourceType);
+          
+          // 4. Associate New {Source Document}
+          items.push({
+            label: `Associate New ${sourceLabel}`,
+            icon: Link,
+            action: () => {
+              toast.info(`Creating and associating new ${sourceLabel}`);
+              // The actual implementation would show a modal or navigate to create form
+            },
+            separator: false,
+          });
+          
+          // 5. Associate {Source Document}
+          items.push({
+            label: `Associate ${sourceLabel}`,
+            icon: Link,
+            action: () => onAssociate(sourceLabel as "Invoice" | "Estimate" | "Agreement"),
+            separator: false,
+          });
+        } else {
+          // If no source type, show only the combined "Associate New" option
+          // 4. Associate New Invoice / Estimate / Agreement - single combined option
+          items.push({
+            label: "Associate New Invoice / Estimate / Agreement",
+            icon: Link,
+            action: () => {
+              toast.info("Select document type to create and associate");
+              // The actual implementation would show a submenu or modal
+            },
+            separator: false,
+          });
+          // No specific "Associate {Source}" option when sourceType is null
+        }
+      }
+      
+      return items;
+    }
+    
+    // =========================================================
+    // PAID JOBS / OTHER STATUSES - Original behavior
+    // =========================================================
     
     // Status-based menu logic
     if (jobStatus === "Scheduled") {
@@ -177,7 +435,7 @@ const JobCard = ({
       });
       
       // Edit - only if payment status is Open AND user is NOT an employee
-      if (paymentStatus === "Open" && onQuickAction && !isEmployee) {
+      if (effectivePaymentStatus === "Open" && onQuickAction && !effectiveIsEmployee) {
         items.push({
           label: "Edit",
           icon: Edit,
@@ -197,11 +455,11 @@ const JobCard = ({
       }
 
       // Reassign Employee - only for merchant
-      if (!isEmployee && onReassignEmployee) {
+      if (!effectiveIsEmployee && (onReassignEmployee || onReassign)) {
         items.push({
           label: "Reassign Employee",
           icon: UserCog,
-          action: () => onReassignEmployee(),
+          action: () => (onReassignEmployee || onReassign)?.(),
           separator: false,
         });
       }

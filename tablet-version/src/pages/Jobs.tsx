@@ -24,6 +24,9 @@ import AddServicePicturesModal from "@/components/modals/AddServicePicturesModal
 import ViewServicePicturesModal from "@/components/modals/ViewServicePicturesModal";
 import CannotEditModal from "@/components/modals/CannotEditModal";
 import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
+import AssociateInvoiceModal from "@/components/modals/AssociateInvoiceModal";
+import PaymentModal from "@/components/modals/PaymentModal";
+import CashPaymentModal from "@/components/modals/CashPaymentModal";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -163,6 +166,16 @@ const Jobs = () => {
   const [showViewPicturesModal, setShowViewPicturesModal] = useState(false);
   const [selectedJobForPictures, setSelectedJobForPictures] = useState<typeof mockJobs[0] | null>(null);
 
+  // Payment modals state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
+  const [selectedJobForPayment, setSelectedJobForPayment] = useState<{
+    id: string;
+    amount: number;
+    sourceType?: string;
+    sourceId?: string;
+  } | null>(null);
+
   // Cannot Edit modal state
   const [showCannotEditModal, setShowCannotEditModal] = useState(false);
   const [selectedJobForCannotEdit, setSelectedJobForCannotEdit] = useState<{
@@ -204,6 +217,9 @@ const Jobs = () => {
   // Reschedule job modal state
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [selectedJobForReschedule, setSelectedJobForReschedule] = useState<typeof jobs[0] | null>(null);
+  // Associate invoice modal state
+  const [showAssociateModal, setShowAssociateModal] = useState(false);
+  const [selectedJobForAssociate, setSelectedJobForAssociate] = useState<typeof jobs[0] | null>(null);
 
   // Metrics carousel state
   const [metricsGroupIndex, setMetricsGroupIndex] = useState(0);
@@ -897,6 +913,90 @@ const Jobs = () => {
     setSelectedJobForReschedule(null);
   };
 
+  // Handle pay for unpaid jobs
+  const handlePay = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      // Get amount from the associated source document
+      let amount = 0;
+      if (job.sourceType && job.sourceId) {
+        if (job.sourceType === "invoice") {
+          const invoice = mockInvoices.find(inv => inv.id === job.sourceId);
+          amount = invoice?.amount || 0;
+        } else if (job.sourceType === "estimate") {
+          const estimate = mockEstimates.find(est => est.id === job.sourceId);
+          amount = estimate?.amount || 0;
+        } else if (job.sourceType === "agreement") {
+          const agreement = mockAgreements.find(agr => agr.id === job.sourceId);
+          amount = agreement?.amount || 0;
+        }
+      }
+      
+      setSelectedJobForPayment({
+        id: jobId,
+        amount,
+        sourceType: job.sourceType,
+        sourceId: job.sourceId
+      });
+      setShowPaymentModal(true);
+    }
+  };
+
+  const handlePaymentMethodSelect = (method: string) => {
+    if (selectedJobForPayment) {
+      // Payment method selected - will be handled by payment modal
+      // Create notification if needed
+      toast.success("Payment initiated");
+    }
+  };
+
+  const handlePaymentModalClose = () => {
+    setShowPaymentModal(false);
+    setSelectedJobForPayment(null);
+  };
+
+  const handleCashPaymentComplete = () => {
+    if (selectedJobForPayment) {
+      // Mark job as paid
+      const jobId = selectedJobForPayment.id;
+      handleStatusChange(jobId, "Completed");
+      toast.success("Payment completed successfully");
+    }
+    setShowCashPaymentModal(false);
+    setSelectedJobForPayment(null);
+  };
+
+  const handleCashPaymentClose = () => {
+    setShowCashPaymentModal(false);
+    setSelectedJobForPayment(null);
+  };
+
+  // Handle associate document to job
+  const handleAssociate = (jobId: string, documentType: "Invoice" | "Estimate" | "Agreement") => {
+    const job = jobs.find(j => j.id === jobId);
+    if (job) {
+      // Open associate modal for tablet view
+      setSelectedJobForAssociate(job);
+      setShowAssociateModal(true);
+    }
+  };
+
+  // Handle successful document association
+  const handleDocumentAssociated = (documentType: "invoice" | "estimate" | "agreement", documentId: string) => {
+    if (!selectedJobForAssociate) return;
+
+    // Show success message
+    const docTypeLabel = documentType.charAt(0).toUpperCase() + documentType.slice(1);
+    toast.success(`${docTypeLabel} ${documentId} associated successfully`);
+
+    // Close modal
+    setShowAssociateModal(false);
+    setSelectedJobForAssociate(null);
+
+    // Optional: Refresh job data if needed
+    // You can add additional logic here to update the job or refresh the list
+  };
+
   // Handle reassign employee
   const handleReassignEmployee = (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
@@ -1374,7 +1474,7 @@ const Jobs = () => {
                     title: (job.id.startsWith("AG") || job.id.includes("AGR")) ? job.id : job.title,
                     status: job.status as any,
                   }}
-                  onStatusChange={handleStatusChange}
+                  onStatusChange={(jobId, newStatus) => handleStatusChange(jobId, newStatus)}
                   index={index}
                   showAnimation={true}
                   userRole={userRole as "merchant" | "employee"}
@@ -1389,8 +1489,10 @@ const Jobs = () => {
                   previewInvoice={() => handlePreview(job.id, "Invoice")}
                   previewAgreement={() => handlePreview(job.id, "Agreement")}
                   onEdit={() => handleEditJob(job.id)}
-                                  onReschedule={() => handleRescheduleJob(job.id)}
+                  onReschedule={() => handleRescheduleJob(job.id)}
                   onReassign={() => handleReassignEmployee(job.id)}
+                  onPay={() => handlePay(job.id)}
+                  onAssociate={(docType) => handleAssociate(job.id, docType)}
                 />
               ))
             )}
@@ -1474,6 +1576,28 @@ const Jobs = () => {
         />
       )}
 
+      {/* Payment Modals */}
+      {selectedJobForPayment && (
+        <>
+          <PaymentModal
+            isOpen={showPaymentModal}
+            onClose={handlePaymentModalClose}
+            amount={selectedJobForPayment.amount}
+            onPaymentMethodSelect={handlePaymentMethodSelect}
+            entityType={selectedJobForPayment.sourceType === "invoice" ? "invoice" : 
+                       selectedJobForPayment.sourceType === "estimate" ? "estimate" : 
+                       selectedJobForPayment.sourceType === "agreement" ? "agreement" : undefined}
+          />
+          <CashPaymentModal
+            isOpen={showCashPaymentModal}
+            onClose={handleCashPaymentClose}
+            onBack={handleCashPaymentClose}
+            amount={selectedJobForPayment.amount}
+            onPaymentComplete={handleCashPaymentComplete}
+          />
+        </>
+      )}
+
       {/* Cannot Edit Modal */}
       <CannotEditModal
         isOpen={showCannotEditModal}
@@ -1541,6 +1665,21 @@ const Jobs = () => {
           }}
           onConfirm={handleReassignEmployeeConfirm}
           currentEmployeeName={selectedJobForReassign.technicianName}
+        />
+      )}
+
+      {/* Associate Invoice Modal */}
+      {selectedJobForAssociate && (
+        <AssociateInvoiceModal
+          isOpen={showAssociateModal}
+          onClose={() => {
+            setShowAssociateModal(false);
+            setSelectedJobForAssociate(null);
+          }}
+          jobId={selectedJobForAssociate.id}
+          customerId={selectedJobForAssociate.customerId}
+          onDocumentAssociated={handleDocumentAssociated}
+          jobSourceType={(selectedJobForAssociate as any).sourceType || "none"}
         />
       )}
     </div>

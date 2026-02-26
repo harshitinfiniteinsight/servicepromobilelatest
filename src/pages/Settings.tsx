@@ -1,140 +1,161 @@
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { AppHeader } from "@/components/AppHeader";
-import { Card, CardContent } from "@/components/ui/card";
+import TabletHeader from "@/components/layout/TabletHeader";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { 
-  User, 
-  KeyRound, 
-  Shield, 
-  FileText, 
-  Languages, 
-  HelpCircle, 
-  LogOut,
+  User,
+  Lock,
+  Shield,
+  Building2,
+  CreditCard,
+  Wallet,
+  Globe,
+  HelpCircle,
   ChevronRight,
-  CreditCard
+  MessageSquare,
+  X
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 const Settings = () => {
   const navigate = useNavigate();
-  const { toast } = useToast();
-
-  const settingsOptions = [
-    {
-      icon: User,
-      label: "Profile",
-      description: "Manage your personal information",
-      onClick: () => navigate("/settings/profile"),
-      color: "text-primary",
-      bg: "bg-primary/10"
-    },
-    {
-      icon: KeyRound,
-      label: "Change Password",
-      description: "Update your account password",
-      onClick: () => navigate("/settings/change-password"),
-      color: "text-accent",
-      bg: "bg-accent/10"
-    },
-    {
-      icon: Shield,
-      label: "Permission Settings",
-      description: "Configure app permissions and access",
-      onClick: () => navigate("/settings/permissions"),
-      color: "text-info",
-      bg: "bg-info/10"
-    },
-    {
-      icon: FileText,
-      label: "Business Policies",
-      description: "Manage payment terms, terms & conditions, and return policy",
-      onClick: () => navigate("/settings/business-policies"),
-      color: "text-secondary",
-      bg: "bg-secondary/10"
-    },
-    {
-      icon: CreditCard,
-      label: "Payment Settings",
-      description: "Configure payment methods and options",
-      onClick: () => navigate("/settings/payment-methods"),
-      color: "text-warning",
-      bg: "bg-warning/10"
-    },
-    {
-      icon: Languages,
-      label: "Change App Language",
-      description: "Select your preferred language",
-      onClick: () => navigate("/settings/language"),
-      color: "text-success",
-      bg: "bg-success/10"
-    },
-    {
-      icon: HelpCircle,
-      label: "Help",
-      description: "Get help and support",
-      onClick: () => navigate("/settings/help"),
-      color: "text-purple-500",
-      bg: "bg-purple-500/10"
-    },
-    {
-      icon: LogOut,
-      label: "Logout",
-      description: "Sign out of your account",
-      onClick: () => {
-        toast({
-          title: "Logged Out",
-          description: "You have been successfully logged out.",
-        });
-        // Add actual logout logic here
-        setTimeout(() => navigate("/"), 1000);
-      },
-      color: "text-destructive",
-      bg: "bg-destructive/10"
+  const [showFeedbackSettingsModal, setShowFeedbackSettingsModal] = useState(false);
+  const [autoSendFeedback, setAutoSendFeedback] = useState(false);
+  
+  // Load saved feedback setting from localStorage
+  useEffect(() => {
+    const savedSetting = localStorage.getItem("autoSendFeedback");
+    if (savedSetting !== null) {
+      setAutoSendFeedback(savedSetting === "true");
     }
+  }, []);
+
+  // Settings options list
+  const settingsOptions = [
+    { label: "Profile", route: "/settings/profile", icon: User },
+    { label: "Change Password", route: "/settings/change-password", icon: Lock },
+    { label: "Permission Settings", route: "/settings/permissions", icon: Shield },
+    { label: "Business Policies", route: "/settings/business-policies", icon: Building2 },
+    { label: "Feedback Settings", route: null, icon: MessageSquare, isModal: true },
+    { label: "Payment Settings", route: "/settings/payment-methods", icon: CreditCard },
+    { label: "Configure Card Reader", route: "/settings/configure-card-reader", icon: Wallet },
+    { label: "Change App Language", route: "/settings/language", icon: Globe },
+    { label: "Help", route: "/settings/help", icon: HelpCircle },
   ];
 
-  return (
-    <div className="flex-1">
-      <AppHeader searchPlaceholder="Search settings..." />
-      
-      <main className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-fade-in">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-2">
-            Settings
-          </h1>
-          <p className="text-muted-foreground">
-            Manage your account and app preferences
-          </p>
-        </div>
+  const handleOptionClick = (option: typeof settingsOptions[0]) => {
+    if (option.isModal) {
+      setShowFeedbackSettingsModal(true);
+    } else if (option.route) {
+      navigate(option.route);
+    }
+  };
 
-        <div className="max-w-4xl grid gap-4">
-          {settingsOptions.map((option, index) => (
-            <Card
-              key={index}
-              className="border-2 shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 cursor-pointer group"
-              onClick={option.onClick}
-            >
-              <CardContent className="p-6">
-                <div className="flex items-center gap-4">
-                  <div className={`p-3 rounded-xl ${option.bg} group-hover:scale-110 transition-transform duration-300`}>
-                    <option.icon className={`h-6 w-6 ${option.color}`} />
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex flex-col">
+      {/* Header */}
+      <TabletHeader title="Settings" />
+
+      {/* Main Content */}
+      <div className="flex-1 p-6 overflow-auto">
+        <div className="max-w-2xl mx-auto">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+            {settingsOptions.map((option, index) => {
+              const Icon = option.icon;
+              return (
+                <div
+                  key={option.label}
+                  onClick={() => handleOptionClick(option)}
+                  className={`flex items-center space-x-4 p-4 hover:bg-gray-50 cursor-pointer transition-colors group ${
+                    index !== settingsOptions.length - 1 ? 'border-b border-gray-100' : ''
+                  }`}
+                >
+                  <div className="p-2.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                    <Icon className="h-5 w-5" />
                   </div>
-                  
-                  <div className="flex-1">
-                    <h3 className="font-bold text-lg text-foreground mb-1">
-                      {option.label}
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                      {option.description}
-                    </p>
-                  </div>
-                  
-                  <ChevronRight className="h-5 w-5 text-muted-foreground group-hover:translate-x-1 transition-transform" />
+                  <span className="flex-1 text-base font-medium text-gray-800 group-hover:text-primary transition-colors">
+                    {option.label}
+                  </span>
+                  <ChevronRight className="h-5 w-5 text-gray-400 group-hover:text-primary group-hover:translate-x-1 transition-all" />
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              );
+            })}
+          </div>
         </div>
-      </main>
+      </div>
+
+      {/* Feedback Settings Modal */}
+      <Dialog 
+        open={showFeedbackSettingsModal} 
+        onOpenChange={(open) => {
+          setShowFeedbackSettingsModal(open);
+          // Load saved setting when modal opens
+          if (open) {
+            const savedSetting = localStorage.getItem("autoSendFeedback");
+            if (savedSetting !== null) {
+              setAutoSendFeedback(savedSetting === "true");
+            } else {
+              setAutoSendFeedback(false); // Default to OFF
+            }
+          }
+        }}
+      >
+        <DialogContent className="w-[calc(100%-2rem)] sm:w-auto sm:max-w-md rounded-2xl max-h-[90vh] overflow-y-auto p-0 gap-0 [&>button]:hidden">
+          <DialogHeader className="relative px-6 pt-6 pb-4 border-b border-gray-200">
+            <DialogTitle className="text-lg font-semibold text-center">Feedback Settings</DialogTitle>
+            <DialogDescription className="sr-only">
+              Configure automatic feedback form email settings for completed jobs
+            </DialogDescription>
+            <button
+              onClick={() => setShowFeedbackSettingsModal(false)}
+              className="absolute top-4 right-4 p-1.5 rounded-full hover:bg-gray-100 active:bg-gray-200 transition-colors"
+              aria-label="Close"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          </DialogHeader>
+          
+          <div className="px-6 py-6 space-y-6">
+            {/* Toggle Row */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-5">
+                <div className="flex-1 min-w-0 pr-4">
+                  <h3 className="text-sm font-medium text-gray-900 mb-1.5">
+                    Send Feedback Form Automatically
+                  </h3>
+                  <p className="text-xs text-gray-500 leading-relaxed">
+                    Automatically email a feedback form to customers when their job status changes to Completed.
+                  </p>
+                </div>
+                <div className="flex-shrink-0">
+                  <Switch
+                    checked={autoSendFeedback}
+                    onCheckedChange={setAutoSendFeedback}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Save Button */}
+            <div className="pt-4">
+              <Button
+                onClick={() => {
+                  // Save setting (in real app, this would be an API call)
+                  // Store in localStorage for persistence
+                  localStorage.setItem("autoSendFeedback", String(autoSendFeedback));
+                  showSuccessToast("Feedback settings saved successfully");
+                  setShowFeedbackSettingsModal(false);
+                }}
+                className="w-full h-11 text-sm font-semibold"
+              >
+                Save
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

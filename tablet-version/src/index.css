@@ -206,6 +206,38 @@
   /* Leaflet Map Customizations */
   .leaflet-container {
     font-family: inherit;
+    /* Ensure maps stay below modals (modals use z-50) */
+    z-index: 0 !important;
+    position: relative !important;
+  }
+  
+  /* Ensure all Leaflet layers stay below modals */
+  .leaflet-pane {
+    z-index: auto !important;
+  }
+  
+  /* Override all Leaflet internal panes */
+  .leaflet-map-pane,
+  .leaflet-tile-pane,
+  .leaflet-overlay-pane,
+  .leaflet-shadow-pane,
+  .leaflet-marker-pane,
+  .leaflet-tooltip-pane,
+  .leaflet-popup-pane {
+    z-index: auto !important;
+  }
+  
+  /* Ensure Leaflet controls stay below modals */
+  .leaflet-control-container,
+  .leaflet-top,
+  .leaflet-bottom {
+    z-index: 10 !important;
+  }
+  
+  /* Ensure popups and tooltips stay below modals */
+  .leaflet-popup,
+  .leaflet-tooltip {
+    z-index: 20 !important;
   }
 
   .leaflet-popup-content-wrapper {
@@ -224,6 +256,13 @@
   .route-marker {
     background: transparent !important;
     border: none !important;
+  }
+
+  /* Employee Job Route page container - ensure map stays behind modals */
+  .employee-job-route-page {
+    position: relative;
+    z-index: 0;
+    isolation: isolate;
   }
 
   .route-marker .marker-wrapper {

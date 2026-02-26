@@ -1,879 +1,1100 @@
-import { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { AppHeader } from "@/components/AppHeader";
+import { useState, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import MobileHeader from "@/components/layout/MobileHeader";
+import EstimateCard from "@/components/cards/EstimateCard";
+import EmptyState from "@/components/cards/EmptyState";
+import PaymentModal from "@/components/modals/PaymentModal";
+import CashPaymentModal from "@/components/modals/CashPaymentModal";
+import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
+import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
+import SendEmailModal from "@/components/modals/SendEmailModal";
+import SendSMSModal from "@/components/modals/SendSMSModal";
+import ReassignEmployeeModal from "@/components/modals/ReassignEmployeeModal";
+import ShareAddressModal from "@/components/modals/ShareAddressModal";
+import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
+import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
+import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
+import EstimateToInvoiceInfoModal from "@/components/modals/EstimateToInvoiceInfoModal";
+import AssignToJobModal from "@/components/modals/AssignToJobModal";
+import { mockEstimates, mockCustomers, mockEmployees, mockInvoices } from "@/data/mobileMockData";
+import { createJobLookupMap } from "@/utils/jobLookup";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Plus, Eye, Mail, MessageSquare, DollarSign, Banknote, MapPin, UserCog, FileText, XCircle, MoreVertical, RotateCcw, Edit, History, CalendarRange, RefreshCw, X, ChevronLeft, ChevronRight } from "lucide-react";
-import { mockEstimates, mockEmployees } from "@/data/mockData";
-import { SendEmailModal } from "@/components/modals/SendEmailModal";
-import { SendSMSModal } from "@/components/modals/SendSMSModal";
-import { ShareAddressModal } from "@/components/modals/ShareAddressModal";
-import { PayCashModal } from "@/components/modals/PayCashModal";
-import { InvoicePaymentModal } from "@/components/modals/InvoicePaymentModal";
-import { PreviewEstimateModal } from "@/components/modals/PreviewEstimateModal";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { useToast } from "@/hooks/use-toast";
-import { format, differenceInDays, startOfToday, startOfMonth, addMonths, subMonths } from "date-fns";
-import { cn } from "@/lib/utils";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Search, FileText, Eye, Mail, MessageSquare, Edit, UserCog, History, RotateCcw, XCircle, Receipt, FilePlus, CreditCard, DollarSign, Briefcase, StickyNote, Calendar as CalendarIcon, Link } from "lucide-react";
+import { toast } from "sonner";
+import { format } from "date-fns";
+import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
+import { createPaymentNotification } from "@/services/notificationService";
+import { convertToJob } from "@/services/jobConversionService";
+import { convertEstimateToInvoice } from "@/services/estimateToInvoiceService";
 
 const Estimates = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("active");
-  const [statusFilter, setStatusFilter] = useState("all");
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("activate");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
+  const [selectedEstimate, setSelectedEstimate] = useState<{ id: string; amount: number } | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [previewEstimate, setPreviewEstimate] = useState<any>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showSMSModal, setShowSMSModal] = useState(false);
+  const [showReassignModal, setShowReassignModal] = useState(false);
+  const [showShareAddressModal, setShowShareAddressModal] = useState(false);
+  const [selectedEstimateForAction, setSelectedEstimateForAction] = useState<any>(null);
+  const [deactivatedEstimates, setDeactivatedEstimates] = useState<Set<string>>(new Set());
+  const [statusFilterValue, setStatusFilterValue] = useState<string>("all");
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
   });
-  const [currentMonth, setCurrentMonth] = useState<Date>(startOfMonth(startOfToday()));
-  const [tempDateRange, setTempDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
-    from: undefined,
-    to: undefined,
-  });
-  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [showDateRangePicker, setShowDateRangePicker] = useState(false);
+  const [showEstimateToInvoiceInfoModal, setShowEstimateToInvoiceInfoModal] = useState(false);
+  const [convertedEstimates, setConvertedEstimates] = useState<Set<string>>(new Set());
+  const [showInvoicePreview, setShowInvoicePreview] = useState(false);
+  const [previewInvoice, setPreviewInvoice] = useState<any>(null);
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [selectedEstimateForNote, setSelectedEstimateForNote] = useState<string | null>(null);
+  const [allEstimates, setAllEstimates] = useState<any[]>([]);
+  const [showScheduleModal, setShowScheduleModal] = useState(false);
+  const [estimateToConvert, setEstimateToConvert] = useState<any>(null);
+  const [showAssignToJobModal, setShowAssignToJobModal] = useState(false);
+  const [estimateForAssignJob, setEstimateForAssignJob] = useState<any>(null);
+  const [jobLookupRefreshKey, setJobLookupRefreshKey] = useState(0);
 
-  // Apply date range from navigation state
+  // Get user role from localStorage
+  const userRole = localStorage.getItem("userType") || "merchant";
+  const isEmployee = userRole === "employee";
+
+  // Load estimates from localStorage and merge with mock data
+  const loadEstimates = () => {
+    try {
+      const storedEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+      // Merge stored and mock estimates, avoiding duplicates
+      const estimateMap = new Map();
+      
+      // Add mock estimates first
+      mockEstimates.forEach(est => {
+        estimateMap.set(est.id, est);
+      });
+      
+      // Add/override with stored estimates
+      storedEstimates.forEach((est: any) => {
+        estimateMap.set(est.id, est);
+      });
+      
+      // Convert to array and sort by createdAt (most recent first)
+      const merged = Array.from(estimateMap.values()).sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.date || a.issueDate).getTime();
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.date || b.issueDate).getTime();
+        return dateB - dateA; // Descending order (newest first)
+      });
+      
+      setAllEstimates(merged);
+    } catch (error) {
+      console.error("Error loading estimates:", error);
+      setAllEstimates(mockEstimates);
+    }
+  };
+
   useEffect(() => {
-    if (location.state?.dateRange) {
-      setDateRange(location.state.dateRange);
-      // Clear the state to prevent re-applying on re-render
-      window.history.replaceState({}, document.title);
-    }
-  }, [location.state]);
-  const [emailModalOpen, setEmailModalOpen] = useState(false);
-  const [smsModalOpen, setSmsModalOpen] = useState(false);
-  const [shareAddressModalOpen, setShareAddressModalOpen] = useState(false);
-  const [reassignModalOpen, setReassignModalOpen] = useState(false);
-  const [selectedEstimate, setSelectedEstimate] = useState<any>(null);
-  const [selectedEmployee, setSelectedEmployee] = useState("");
-  const [payCashModalOpen, setPayCashModalOpen] = useState(false);
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [selectedEstimateForPayment, setSelectedEstimateForPayment] = useState<any>(null);
-  const [previewModalOpen, setPreviewModalOpen] = useState(false);
-  const [selectedEstimateForPreview, setSelectedEstimateForPreview] = useState<any>(null);
-  const { toast } = useToast();
+    loadEstimates();
 
-  const filteredEstimates = mockEstimates.filter((estimate) => {
-    const matchesActive = activeTab === "active" 
-      ? estimate.isActive 
-      : !estimate.isActive;
+    // Reload when window gains focus (user navigates back)
+    const handleFocus = () => {
+      loadEstimates();
+    };
+
+    window.addEventListener('focus', handleFocus);
     
-    const matchesSearch = 
-      estimate.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      estimate.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      estimate.employeeName.toLowerCase().includes(searchQuery.toLowerCase());
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
+  // Ensure employees always use "activate" filter (no tabs for employees)
+  useEffect(() => {
+    if (isEmployee) {
+      setStatusFilter("activate");
+    }
+  }, [isEmployee]);
+
+  // Load converted and deactivated estimates from localStorage on mount
+  useEffect(() => {
+    const converted = JSON.parse(localStorage.getItem("convertedEstimates") || "[]");
+    if (converted.length > 0) {
+      setConvertedEstimates(new Set(converted));
+    }
+
+    // Load deactivated estimates
+    const deactivated = JSON.parse(localStorage.getItem("deactivatedEstimates") || "[]");
+    if (deactivated.length > 0) {
+      setDeactivatedEstimates(new Set(deactivated));
+    }
+  }, []);
+
+  // Persist deactivated estimates
+  useEffect(() => {
+    if (deactivatedEstimates.size > 0) {
+      localStorage.setItem("deactivatedEstimates", JSON.stringify(Array.from(deactivatedEstimates)));
+    }
+  }, [deactivatedEstimates]);
+
+  // Date range filtering helper
+  const isWithinDateRange = (dateString: string) => {
+    if (!dateRange.from && !dateRange.to) return true;
     
-    // Don't apply status filter for deactivated tab
-    const matchesStatus = activeTab === "deactivated" 
-      ? true
-      : (statusFilter === "all" || 
-         (statusFilter === "paid" && estimate.status === "Paid") ||
-         (statusFilter === "open" && estimate.status === "Open"));
+    const date = new Date(dateString);
+    date.setHours(0, 0, 0, 0);
     
-    const estimateDate = new Date(estimate.createdDate);
-    const matchesDateRange = 
-      (!dateRange.from || estimateDate >= dateRange.from) &&
-      (!dateRange.to || estimateDate <= dateRange.to);
-    
-    return matchesActive && matchesSearch && matchesStatus && matchesDateRange;
+    if (dateRange.from && dateRange.to) {
+      const start = new Date(dateRange.from);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+      return date >= start && date <= end;
+    } else if (dateRange.from) {
+      const start = new Date(dateRange.from);
+      start.setHours(0, 0, 0, 0);
+      return date >= start;
+    } else if (dateRange.to) {
+      const end = new Date(dateRange.to);
+      end.setHours(23, 59, 59, 999);
+      return date <= end;
+    }
+    return true;
+  };
+
+  const handleDateRangeConfirm = (range: { from: Date | undefined; to: Date | undefined }) => {
+    setDateRange(range);
+    setShowDateRangePicker(false);
+  };
+
+  // Create job lookup map for estimates (refreshes when allEstimates changes or after job assignment)
+  const estimateJobLookup = useMemo(() => createJobLookupMap("estimate"), [allEstimates, jobLookupRefreshKey]);
+
+  const filteredEstimates = allEstimates.map(est => {
+    // Check if estimate has been converted
+    const isConverted = convertedEstimates.has(est.id);
+    // Only update status if it's currently Unpaid and has been converted
+    if (isConverted && est.status === "Unpaid") {
+      return {
+        ...est,
+        status: "Converted to Invoice" as const,
+      };
+    }
+    return est;
+  }).filter(est => {
+    const matchesSearch = est.id.toLowerCase().includes(search.toLowerCase()) ||
+      est.customerName.toLowerCase().includes(search.toLowerCase());
+
+    // Filter by status (All / Paid / Unpaid)
+    const matchesStatus = statusFilterValue === "all" || est.status === statusFilterValue;
+
+    // Filter by date range
+    const matchesDateRange = isWithinDateRange(est.issueDate);
+
+    // Filter by tab
+    // Activate: Both Paid and Unpaid estimates that are NOT deactivated
+    // Deactivated: Only Unpaid estimates that ARE deactivated
+    let matchesTab = true;
+    const isDeactivated = deactivatedEstimates.has(est.id);
+    if (statusFilter === "deactivated") {
+      matchesTab = est.status === "Unpaid" && isDeactivated;
+    } else {
+      // Activate tab: exclude deactivated estimates
+      matchesTab = !isDeactivated;
+    }
+
+    return matchesSearch && matchesStatus && matchesDateRange && matchesTab;
   });
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Paid":
-        return "bg-success/10 text-success border-success/20";
-      case "Open":
-        return "bg-warning/10 text-warning border-warning/20";
-      default:
-        return "bg-muted text-muted-foreground";
+  const handlePayNow = (estimateId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const estimate = allEstimates.find(est => est.id === estimateId);
+    if (estimate) {
+      setSelectedEstimate({ id: estimateId, amount: estimate.amount });
+      // Show info modal before proceeding to payment
+      setShowEstimateToInvoiceInfoModal(true);
     }
   };
 
-  const handleSendEmail = (estimate: any) => {
-    setSelectedEstimate(estimate);
-    setEmailModalOpen(true);
+  const handleContinueToPayment = () => {
+    // Close info modal and show payment modal
+    setShowEstimateToInvoiceInfoModal(false);
+    setShowPaymentModal(true);
   };
 
-  const handleSendSMS = (estimate: any) => {
-    setSelectedEstimate(estimate);
-    setSmsModalOpen(true);
-  };
-
-  const handleReassign = (estimate: any) => {
-    setSelectedEstimate(estimate);
-    setReassignModalOpen(true);
-  };
-
-  const handleReassignSubmit = () => {
-    toast({
-      title: "Employee Reassigned",
-      description: `Estimate ${selectedEstimate?.id} has been reassigned.`,
-    });
-    setReassignModalOpen(false);
-    setSelectedEmployee("");
-  };
-
-  const handlePayEstimate = (estimate: any) => {
-    setSelectedEstimateForPayment(estimate);
-    setPaymentModalOpen(true);
-  };
-
-  const handlePayCash = (estimate: any) => {
-    setSelectedEstimate(estimate);
-    setPayCashModalOpen(true);
-  };
-
-  const handleShareAddress = (estimate: any) => {
-    setSelectedEstimate(estimate);
-    setShareAddressModalOpen(true);
-  };
-
-  const handlePreview = (estimate: any) => {
-    setSelectedEstimateForPreview(estimate);
-    setPreviewModalOpen(true);
-  };
-
-  const handleEditEstimate = (estimate: any) => {
-    navigate(`/estimates/${estimate.id}/edit`);
-  };
-
-  const handlePreviousMonth = () => {
-    setCurrentMonth((prev) => startOfMonth(subMonths(prev, 1)));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentMonth((prev) => startOfMonth(addMonths(prev, 1)));
-  };
-
-  const handleMonthChange = (date: Date) => {
-    setCurrentMonth(startOfMonth(date));
-  };
-
-  const calculateDuration = () => {
-    if (tempDateRange.from && tempDateRange.to) {
-      const days = differenceInDays(tempDateRange.to, tempDateRange.from) + 1;
-      return days;
+  const handlePaymentMethodSelect = (method: string) => {
+    if (selectedEstimate) {
+      // Payment processing toast removed - only success toast shown after payment completes
+      // No processing toast for cash payments
+      // Create payment notification
+      createPaymentNotification("estimate", selectedEstimate.id);
+      // Navigate to payment processing page or handle payment
+      // navigate(`/payment/${selectedEstimate.id}?method=${method}`);
     }
-    return 0;
   };
 
-  const handleDateRangeSelect = (range: { from: Date | undefined; to: Date | undefined } | undefined) => {
-    if (!range) {
-      setTempDateRange({ from: undefined, to: undefined });
+  const handlePayCash = (estimateId: string) => {
+    const estimate = allEstimates.find(est => est.id === estimateId);
+    if (!estimate) {
+      toast.error("Estimate not found");
       return;
     }
-    setTempDateRange(range);
+    setSelectedEstimate({ id: estimateId, amount: estimate.amount });
+    setShowCashPaymentModal(true);
   };
 
-  const handleApplyDateRange = () => {
-    setDateRange(tempDateRange);
-    setPopoverOpen(false);
-  };
-
-  const handleClearDateRange = () => {
-    setTempDateRange({ from: undefined, to: undefined });
-    setDateRange({ from: undefined, to: undefined });
-  };
-
-  const handlePopoverOpenChange = (open: boolean) => {
-    setPopoverOpen(open);
-    if (open) {
-      // Initialize tempDateRange with current dateRange when popover opens
-      setTempDateRange(dateRange);
-      // Set current month to start date if available, otherwise today
-      if (dateRange.from) {
-        setCurrentMonth(startOfMonth(dateRange.from));
+  const handleCashPaymentComplete = () => {
+    if (selectedEstimate) {
+      // Create payment notification
+      createPaymentNotification("estimate", selectedEstimate.id);
+      
+      // Convert estimate to invoice after successful payment
+      const conversionResult = convertEstimateToInvoice(selectedEstimate.id);
+      if (conversionResult.success) {
+        toast.success("Payment completed. Estimate converted to Invoice.");
       } else {
-        setCurrentMonth(startOfMonth(startOfToday()));
+        toast.success("Payment completed");
+        console.error("Failed to convert estimate to invoice:", conversionResult.error);
       }
     }
+    setShowCashPaymentModal(false);
+    setSelectedEstimate(null);
   };
 
-  const handleDeactivate = (estimate: any) => {
-    if (estimate.status !== "Open") {
-      toast({
-        title: "Cannot Deactivate",
-        description: "Only open estimates can be deactivated.",
-        variant: "destructive",
-      });
-      return;
+  const handleCashPaymentClose = () => {
+    setShowCashPaymentModal(false);
+    setSelectedEstimate(null);
+  };
+
+
+  const handleMenuAction = (action: string, estimateId: string) => {
+    switch (action) {
+      case "preview":
+        const estimate = allEstimates.find(est => est.id === estimateId);
+        if (estimate) {
+          setPreviewEstimate(estimate);
+          setShowPreviewModal(true);
+        }
+        break;
+      case "send-email":
+        const emailEstimate = allEstimates.find(est => est.id === estimateId);
+        if (emailEstimate) {
+          const customer = mockCustomers.find(c => c.id === emailEstimate.customerId);
+          setSelectedEstimateForAction({
+            ...emailEstimate,
+            customerEmail: customer?.email || "",
+            customerPhone: customer?.phone || "",
+            customerName: emailEstimate.customerName,
+          });
+          setShowEmailModal(true);
+        }
+        break;
+      case "send-sms":
+        const smsEstimate = allEstimates.find(est => est.id === estimateId);
+        if (smsEstimate) {
+          const customer = mockCustomers.find(c => c.id === smsEstimate.customerId);
+          setSelectedEstimateForAction({
+            ...smsEstimate,
+            customerEmail: customer?.email || "",
+            customerPhone: customer?.phone || "",
+            customerName: smsEstimate.customerName,
+          });
+          setShowSMSModal(true);
+        }
+        break;
+      case "edit":
+        navigate(`/estimates/${estimateId}/edit`);
+        break;
+      case "share-address":
+        const shareEstimate = allEstimates.find(est => est.id === estimateId);
+        if (shareEstimate) {
+          const customer = mockCustomers.find(c => c.id === shareEstimate.customerId);
+          setSelectedEstimateForAction({
+            ...shareEstimate,
+            jobAddress: customer?.address || "No address available",
+          });
+          setShowShareAddressModal(true);
+        }
+        break;
+      case "add-note":
+        setSelectedEstimateForNote(estimateId);
+        setShowNoteModal(true);
+        break;
+      case "reassign":
+        const reassignEstimate = allEstimates.find(est => est.id === estimateId);
+        if (reassignEstimate) {
+          setSelectedEstimateForAction({
+            ...reassignEstimate,
+            currentEmployeeId: reassignEstimate.customerId, // Using customerId as placeholder for employeeId
+          });
+          setShowReassignModal(true);
+        }
+        break;
+      case "doc-history":
+        const docEstimate = allEstimates.find(est => est.id === estimateId);
+        if (docEstimate) {
+          // Navigate to customer profile
+          navigate(`/customers/${docEstimate.customerId}`);
+        }
+        break;
+      case "deactivate":
+        setDeactivatedEstimates(prev => new Set(prev).add(estimateId));
+        toast.success("Estimate deactivated");
+        break;
+      case "refund":
+        toast.success("Processing refund...");
+        break;
+      case "convert-to-invoice":
+        const convertEstimate = allEstimates.find(est => est.id === estimateId);
+        if (convertEstimate) {
+          const customer = mockCustomers.find(c => c.id === convertEstimate.customerId);
+          // Find employee by name if employeeName exists, otherwise use first employee
+          const employee = (convertEstimate as any).employeeName
+            ? mockEmployees.find(emp => emp.name === (convertEstimate as any).employeeName)
+            : mockEmployees[0];
+
+          // Get job address from estimate or customer address
+          const jobAddress = (convertEstimate as any).jobAddress || customer?.address || "";
+
+          // Convert estimate items to invoice items format
+          // If estimate has items array, use it; otherwise create a single item from amount
+          const estimateItems = (convertEstimate as any).items || [];
+          const invoiceItems = estimateItems.length > 0
+            ? estimateItems.map((item: any, index: number) => ({
+              id: item.id || `item-${index}`,
+              name: item.name || item.description || "Service Item",
+              quantity: item.quantity || 1,
+              price: item.price || item.rate || item.amount || 0,
+              isCustom: !item.id,
+            }))
+            : [{
+              id: `item-${convertEstimate.id}`,
+              name: "Service Item",
+              quantity: 1,
+              price: convertEstimate.amount,
+            }];
+
+          navigate("/invoices/new", {
+            state: {
+              fromEstimate: true, // Flag to disable Recurring invoice type
+              prefill: {
+                customerId: convertEstimate.customerId,
+                jobAddress: jobAddress,
+                employeeId: employee?.id || mockEmployees[0]?.id || "1",
+                items: invoiceItems,
+                notes: (convertEstimate as any).notes || (convertEstimate as any).memo || "",
+                termsAndConditions: (convertEstimate as any).termsAndConditions || (convertEstimate as any).terms || "",
+                cancellationPolicy: (convertEstimate as any).cancellationPolicy || "",
+                tax: (convertEstimate as any).taxRate || 0,
+                discount: (convertEstimate as any).discount ?
+                  (typeof (convertEstimate as any).discount === 'object' ? (convertEstimate as any).discount : null) : null,
+                estimateId: estimateId, // Pass estimateId to track conversion
+              }
+            }
+          });
+        }
+        break;
+      case "create-new-estimate":
+        const createEstimate = allEstimates.find(est => est.id === estimateId);
+        if (createEstimate) {
+          const customer = mockCustomers.find(c => c.id === createEstimate.customerId);
+          // Find employee by name if employeeName exists, otherwise use first employee
+          const employee = (createEstimate as any).employeeName
+            ? mockEmployees.find(emp => emp.name === (createEstimate as any).employeeName)
+            : mockEmployees[0];
+
+          navigate("/estimates/new", {
+            state: {
+              prefill: {
+                customerId: createEstimate.customerId,
+                jobAddress: (createEstimate as any).jobAddress || customer?.address || "",
+                employeeId: employee?.id || mockEmployees[0]?.id || "1",
+              }
+            }
+          });
+        }
+        break;
+      case "view-invoice":
+        // Get the invoice ID from the conversion mapping
+        const estimateToInvoiceMap = JSON.parse(localStorage.getItem("estimateToInvoiceMap") || "{}");
+        const invoiceId = estimateToInvoiceMap[estimateId];
+
+        // If no mapping exists, try to find invoice by matching customer and amount
+        // This handles cases where estimate was converted but mapping wasn't saved
+        let invoice = invoiceId ? mockInvoices.find(inv => inv.id === invoiceId) : null;
+
+        // If invoice not found by ID, try to find by matching estimate data
+        if (!invoice) {
+          const estimate = allEstimates.find(est => est.id === estimateId);
+          if (estimate) {
+            // Try to find invoice with same customer and similar amount
+            invoice = mockInvoices.find(inv =>
+              inv.customerId === estimate.customerId &&
+              Math.abs(inv.amount - estimate.amount) < 1
+            );
+
+            // If still not found, create a temporary invoice from estimate data
+            if (!invoice) {
+              invoice = {
+                id: invoiceId || `INV-EST-${estimateId}`,
+                customerId: estimate.customerId,
+                customerName: estimate.customerName,
+                issueDate: new Date().toISOString().split('T')[0],
+                dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+                amount: estimate.amount,
+                status: "Open" as const,
+                paymentMethod: "Credit Card",
+                type: "single" as const,
+              };
+            }
+          }
+        }
+
+        if (invoice) {
+          setPreviewInvoice(invoice);
+          setShowInvoicePreview(true);
+        } else {
+          toast.error("Invoice not found for this estimate");
+        }
+        break;
+      case "activate":
+        setDeactivatedEstimates(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(estimateId);
+          return newSet;
+        });
+
+        // Log activity
+        const activateEstimate = async () => {
+          const { addActivityLog } = await import("@/services/activityLogService");
+          const estimate = allEstimates.find(e => e.id === estimateId);
+          if (estimate) {
+            addActivityLog({
+              type: "estimate",
+              action: "reactivated",
+              documentId: estimate.id,
+              customerName: estimate.customerName,
+              amount: estimate.amount,
+            });
+          }
+        };
+        activateEstimate();
+
+        toast.success("Estimate activated");
+        break;
+      case "pay-now":
+        const payNowEstimate = allEstimates.find(est => est.id === estimateId);
+        if (payNowEstimate) {
+          setSelectedEstimate({ id: estimateId, amount: payNowEstimate.amount });
+          // Show info modal before proceeding to payment
+          setShowEstimateToInvoiceInfoModal(true);
+        }
+        break;
+      case "pay-cash":
+        handlePayCash(estimateId);
+        break;
+      case "convert-to-job":
+        const estimateForConversion = allEstimates.find(est => est.id === estimateId);
+        if (estimateForConversion) {
+          setEstimateToConvert(estimateForConversion);
+          setShowScheduleModal(true);
+        }
+        break;
+      case "assign-to-job":
+        const estimateForAssign = allEstimates.find(est => est.id === estimateId);
+        if (estimateForAssign) {
+          setEstimateForAssignJob(estimateForAssign);
+          setShowAssignToJobModal(true);
+        }
+        break;
+      default:
+        break;
     }
-    toast({
-      title: "Estimate Deactivated",
-      description: `${estimate.id} has been deactivated.`,
-    });
   };
 
-  const handleActivate = (estimate: any) => {
-    toast({
-      title: "Estimate Activated",
-      description: `${estimate.id} has been reactivated.`,
-    });
-  };
+  const renderActionButtons = (estimate: typeof mockEstimates[0], type: string) => {
+    if (type === "deactivated") {
+      const items: KebabMenuItem[] = [
+        {
+          label: "Preview",
+          icon: Eye,
+          action: () => handleMenuAction("preview", estimate.id),
+        },
+        {
+          label: "Activate",
+          icon: RotateCcw,
+          action: () => handleMenuAction("activate", estimate.id),
+        },
+      ];
+      return <KebabMenu items={items} menuWidth="w-44" />;
+    }
 
-  const handleRefund = (estimate: any) => {
-    toast({
-      title: "Refund Processing",
-      description: `Processing refund for ${estimate.id}`,
-    });
-  };
+    // Handle "Converted to Invoice" status - only show Preview Estimate and View Invoice
+    if (estimate.status === "Converted to Invoice") {
+      const items: KebabMenuItem[] = [
+        {
+          label: "Preview Estimate",
+          icon: Eye,
+          action: () => handleMenuAction("preview", estimate.id),
+        },
+        {
+          label: "View Invoice",
+          icon: Receipt,
+          action: () => handleMenuAction("view-invoice", estimate.id),
+        },
+      ];
 
-  const handleDocHistory = (estimate: any) => {
-    // Navigate to customer details page
-    navigate(`/customers/${estimate.customerId || '1'}`);
+      return <KebabMenu items={items} menuWidth="w-56" />;
+    }
+
+    if (estimate.status === "Unpaid") {
+      // Check if estimate has already been converted to job using lookup map
+      const hasAssociatedJob = estimateJobLookup.has(estimate.id);
+      const isConverted = hasAssociatedJob || estimate.status === "Converted to Job" || convertedEstimates.has(estimate.id);
+
+      const items: KebabMenuItem[] = [
+        {
+          label: "Preview",
+          icon: Eye,
+          action: () => handleMenuAction("preview", estimate.id),
+        },
+        // Add "Convert to Job" for unpaid estimates (same as paid)
+        ...(!isConverted ? [{
+          label: "Convert to Job",
+          icon: Briefcase,
+          action: () => handleMenuAction("convert-to-job", estimate.id),
+        }] : []),
+        // Add "Assign to Job" - only show if not already associated with a job
+        ...(!hasAssociatedJob ? [{
+          label: "Assign to Job",
+          icon: Link,
+          action: () => handleMenuAction("assign-to-job", estimate.id),
+        }] : []),
+        {
+          label: "Send Email",
+          icon: Mail,
+          action: () => handleMenuAction("send-email", estimate.id),
+        },
+        {
+          label: "Send SMS",
+          icon: MessageSquare,
+          action: () => handleMenuAction("send-sms", estimate.id),
+        },
+      ];
+
+      // Employees should NOT see sensitive admin actions on unpaid estimates
+      if (!isEmployee) {
+        items.push(
+          {
+            label: "Edit Estimate",
+            icon: Edit,
+            action: () => handleMenuAction("edit", estimate.id),
+            separator: true,
+          },
+          {
+            label: "Customer History",
+            icon: History,
+            action: () => handleMenuAction("doc-history", estimate.id),
+          },
+          {
+            label: "Add Note",
+            icon: StickyNote,
+            action: () => handleMenuAction("add-note", estimate.id),
+          },
+          {
+            label: "Reassign Employee",
+            icon: UserCog,
+            action: () => handleMenuAction("reassign", estimate.id),
+          }
+        );
+
+        items.push({
+          label: "Deactivate",
+          icon: XCircle,
+          action: () => handleMenuAction("deactivate", estimate.id),
+        });
+      }
+
+      return <KebabMenu items={items} menuWidth="w-56" />;
+    }
+
+    // Handle "Converted to Invoice" status - only show Preview Estimate and View Invoice
+    if (estimate.status === "Converted to Invoice") {
+      const items: KebabMenuItem[] = [
+        {
+          label: "Preview Estimate",
+          icon: Eye,
+          action: () => handleMenuAction("preview", estimate.id),
+        },
+        {
+          label: "View Invoice",
+          icon: Receipt,
+          action: () => handleMenuAction("view-invoice", estimate.id),
+        },
+      ];
+
+      return <KebabMenu items={items} menuWidth="w-56" />;
+    }
+
+    const items: KebabMenuItem[] = [
+      {
+        label: "Preview",
+        icon: Eye,
+        action: () => handleMenuAction("preview", estimate.id),
+      },
+      {
+        label: "Send Email",
+        icon: Mail,
+        action: () => handleMenuAction("send-email", estimate.id),
+      },
+      {
+        label: "Send SMS",
+        icon: MessageSquare,
+        action: () => handleMenuAction("send-sms", estimate.id),
+      },
+      {
+        label: "Add Note",
+        icon: StickyNote,
+        action: () => handleMenuAction("add-note", estimate.id),
+      },
+      {
+        label: "Reassign Employee",
+        icon: UserCog,
+        action: () => handleMenuAction("reassign", estimate.id),
+      },
+      {
+        label: "Refund",
+        icon: RotateCcw,
+        action: () => handleMenuAction("refund", estimate.id),
+        separator: true,
+      },
+    ];
+    return <KebabMenu items={items} menuWidth="w-48" />;
   };
 
   return (
-    <div className="flex-1">
-      <AppHeader searchPlaceholder="Search estimates..." onSearchChange={setSearchQuery} />
+    <div className="h-full flex flex-col overflow-hidden">
+      <MobileHeader
+        title="Estimates"
+        showBack={true}
+        actions={
+          <Button size="sm" className="h-8 w-8 p-0" onClick={() => navigate("/estimates/new")}>
+            <Plus className="h-4 w-4" />
+          </Button>
+        }
+      />
 
-      <main className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-fade-in">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Estimates</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Manage service estimates and proposals</p>
-          </div>
-          <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full sm:w-auto">
-            {activeTab !== "deactivated" && (
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-full sm:w-[140px] touch-target">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="open">Open</SelectItem>
-                </SelectContent>
-              </Select>
-            )}
-            <Popover open={popoverOpen} onOpenChange={handlePopoverOpenChange}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="gap-2 touch-target w-full sm:w-auto">
-                  <CalendarRange className="h-4 w-4" />
-                  <span className="hidden sm:inline">
-                    {dateRange.from ? (
-                      dateRange.to ? (
-                        <>
-                          {format(dateRange.from, "MMM dd")} - {format(dateRange.to, "MMM dd")}
-                        </>
-                      ) : (
-                        format(dateRange.from, "MMM dd, yyyy")
-                      )
-                    ) : (
-                      "Date Range"
-                    )}
-                  </span>
-                  <span className="sm:hidden">
-                    {dateRange.from ? format(dateRange.from, "MMM dd") : "Date"}
-                  </span>
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[400px] p-0 rounded-2xl overflow-hidden bg-white" align="start">
-                <style>{`
-                  .estimates-calendar {
-                    width: 100%;
-                    max-width: 100%;
-                    margin: 0 auto;
-                    overflow-x: hidden;
-                  }
-                  .estimates-calendar .rdp {
-                    margin: 0;
-                    padding: 0;
-                  }
-                  .estimates-calendar .rdp-months {
-                    display: flex;
-                    flex-direction: column;
-                    width: 100%;
-                  }
-                  .estimates-calendar .rdp-month {
-                    width: 100%;
-                    margin: 0;
-                    padding: 0;
-                  }
-                  .estimates-calendar .rdp-caption {
-                    display: flex;
-                    justify-content: center;
-                    align-items: center;
-                    position: relative;
-                    margin-bottom: 1rem;
-                    padding: 0;
-                    min-height: 44px;
-                  }
-                  .estimates-calendar .rdp-caption_label {
-                    font-size: 1rem;
-                    font-weight: 600;
-                    color: #111827;
-                    text-align: center;
-                    margin: 0;
-                    padding: 0;
-                  }
-                  .estimates-calendar table {
-                    width: 100%;
-                    max-width: 100%;
-                    margin: 0 auto;
-                    border-collapse: collapse;
-                    table-layout: fixed;
-                  }
-                  .estimates-calendar thead,
-                  .estimates-calendar tbody {
-                    display: block;
-                    width: 100%;
-                  }
-                  .estimates-calendar thead tr,
-                  .estimates-calendar tbody tr {
-                    display: grid;
-                    grid-template-columns: repeat(7, 1fr);
-                    width: 100%;
-                    gap: 4px;
-                    margin-bottom: 4px;
-                    margin-top: 0;
-                    padding: 0;
-                  }
-                  .estimates-calendar thead th,
-                  .estimates-calendar tbody td {
-                    display: flex;
-                    width: 100%;
-                    max-width: 100%;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 0;
-                    margin: 0;
-                  }
-                  .estimates-calendar thead th {
-                    height: 32px;
-                    font-size: 0.75rem;
-                    font-weight: 500;
-                    color: #4b5563;
-                  }
-                  .estimates-calendar tbody td {
-                    min-height: 44px;
-                    height: 44px;
-                  }
-                  .estimates-calendar .rdp-day {
-                    width: 100%;
-                    max-width: 44px;
-                    height: 44px;
-                    margin: 0 auto;
-                    padding: 0;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    border-radius: 9999px;
-                    font-size: 0.875rem;
-                    font-weight: 400;
-                    transition: all 0.2s;
-                    cursor: pointer;
-                  }
-                  .estimates-calendar .rdp-day:hover {
-                    background: #fff7ed;
-                    color: #9a3412;
-                  }
-                  .estimates-calendar .rdp-day_selected {
-                    background: #f97316;
-                    color: white;
-                    font-weight: 600;
-                  }
-                  .estimates-calendar .rdp-day_range_start,
-                  .estimates-calendar .rdp-day_range_end {
-                    background: #f97316;
-                    color: white;
-                    font-weight: 600;
-                  }
-                  .estimates-calendar .rdp-day_range_middle {
-                    background: #ffedd5;
-                    color: #9a3412;
-                    border-radius: 0;
-                  }
-                  .estimates-calendar .rdp-day_today {
-                    background: #fff7ed;
-                    color: #9a3412;
-                    font-weight: 600;
-                    border: 2px solid #fdba74;
-                  }
-                  .estimates-calendar .rdp-day_outside {
-                    color: #9ca3af;
-                    opacity: 0.5;
-                  }
-                  .estimates-calendar .rdp-day_disabled {
-                    color: #d1d5db;
-                    opacity: 0.5;
-                    cursor: not-allowed;
-                  }
-                  .estimates-calendar .rdp-day_hidden {
-                    visibility: hidden;
-                  }
-                `}</style>
-                {/* Header */}
-                <div className="px-4 pt-4 pb-3 bg-orange-500 rounded-t-2xl relative">
-                  <div className="text-base font-semibold text-white text-center">Select Date Range</div>
-                </div>
-
-                {/* Date Display Section */}
-                <div className="px-4 py-3 bg-orange-50 border-b border-orange-100">
-                  <div className="flex items-center justify-center gap-4">
-                    {/* Start Date */}
-                    <div className="text-center">
-                      <div className="text-xs text-orange-600 font-medium mb-1 uppercase tracking-wide">
-                        Start Date
-                      </div>
-                      {tempDateRange.from ? (
-                        <div className="space-y-0.5">
-                          <div className="text-lg font-bold text-orange-900">
-                            {format(tempDateRange.from, "d")}
-                          </div>
-                          <div className="text-xs font-medium text-orange-700">
-                            {format(tempDateRange.from, "MMMM yyyy")}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-gray-400 text-xs">Select start date</div>
-                      )}
-                    </div>
-
-                    {/* Dash Separator */}
-                    {tempDateRange.from && (
-                      <div className="text-orange-400 text-xl font-bold">–</div>
-                    )}
-
-                    {/* End Date */}
-                    <div className="text-center">
-                      <div className="text-xs text-orange-600 font-medium mb-1 uppercase tracking-wide">
-                        End Date
-                      </div>
-                      {tempDateRange.to ? (
-                        <div className="space-y-0.5">
-                          <div className="text-lg font-bold text-orange-900">
-                            {format(tempDateRange.to, "d")}
-                          </div>
-                          <div className="text-xs font-medium text-orange-700">
-                            {format(tempDateRange.to, "MMMM yyyy")}
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="text-gray-400 text-xs">Select end date</div>
-                      )}
-                    </div>
-
-                    {/* Duration */}
-                    {tempDateRange.from && tempDateRange.to && (
-                      <div className="ml-4 pl-4 border-l border-orange-200">
-                        <div className="text-xs text-orange-600 font-medium mb-1">Duration</div>
-                        <div className="text-base font-bold text-orange-900">
-                          {calculateDuration()} {calculateDuration() === 1 ? "Day" : "Days"}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Calendar Section */}
-                <div className="p-4 bg-white">
-                  {/* Custom Month Navigation */}
-                  <div className="flex items-center justify-center mb-4 relative min-h-[44px]">
-                    <button
-                      type="button"
-                      onClick={handlePreviousMonth}
-                      className="h-10 w-10 p-0 hover:bg-orange-100 rounded-md flex items-center justify-center touch-target active:bg-orange-200 flex-shrink-0 border border-gray-200 bg-white absolute left-0"
-                      aria-label="Previous month"
-                    >
-                      <ChevronLeft className="h-5 w-5 text-gray-700" />
-                    </button>
-                    <div className="text-base font-semibold text-gray-900 text-center px-12">
-                      {format(currentMonth, "MMMM yyyy")}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleNextMonth}
-                      className="h-10 w-10 p-0 hover:bg-orange-100 rounded-md flex items-center justify-center touch-target active:bg-orange-200 flex-shrink-0 border border-gray-200 bg-white absolute right-0"
-                      aria-label="Next month"
-                    >
-                      <ChevronRight className="h-5 w-5 text-gray-700" />
-                    </button>
-                  </div>
-
-                  <div className="estimates-calendar">
-                    <Calendar
-                      mode="range"
-                      selected={tempDateRange}
-                      month={currentMonth}
-                      onMonthChange={handleMonthChange}
-                      defaultMonth={currentMonth}
-                      onSelect={handleDateRangeSelect}
-                      numberOfMonths={1}
-                      className="w-full"
-                      showOutsideDays={false}
-                      classNames={{
-                        months: "flex flex-col w-full",
-                        month: "space-y-0 w-full",
-                        caption: "hidden",
-                        caption_label: "hidden",
-                        nav: "hidden",
-                        nav_button: "hidden",
-                        nav_button_previous: "hidden",
-                        nav_button_next: "hidden",
-                        table: "w-full border-collapse mx-auto",
-                        head_row: "grid grid-cols-7 mb-2 w-full gap-1",
-                        head_cell: "text-gray-600 font-medium text-xs flex items-center justify-center py-2 text-center",
-                        row: "grid grid-cols-7 w-full mb-1 gap-1",
-                        cell: "h-[44px] text-center text-sm p-0 relative flex items-center justify-center [&:has([aria-selected].day-range-end)]:rounded-r-full [&:has([aria-selected].day-range-start)]:rounded-l-full [&:has([aria-selected].day-range-middle)]:bg-orange-100",
-                        day: "h-[44px] w-full p-0 font-normal rounded-full hover:bg-orange-50 hover:text-orange-900 focus:bg-orange-50 focus:text-orange-900 transition-colors touch-target active:scale-95 flex items-center justify-center mx-auto max-w-[44px] min-w-[36px]",
-                        day_range_start: "bg-orange-500 text-white hover:bg-orange-600 hover:text-white rounded-full font-semibold",
-                        day_range_end: "bg-orange-500 text-white hover:bg-orange-600 hover:text-white rounded-full font-semibold",
-                        day_selected: "bg-orange-500 text-white hover:bg-orange-600 hover:text-white rounded-full font-semibold",
-                        day_range_middle: "bg-orange-100 text-orange-900 hover:bg-orange-200 rounded-none aria-selected:bg-orange-100",
-                        day_today: "bg-orange-50 text-orange-900 font-semibold border-2 border-orange-300",
-                        day_outside: "text-gray-400 opacity-50",
-                        day_disabled: "text-gray-300 opacity-50 cursor-not-allowed",
-                        day_hidden: "invisible",
-                      }}
-                      components={{
-                        IconLeft: () => null,
-                        IconRight: () => null,
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Footer Actions */}
-                <div className="px-4 py-3 border-t border-gray-100 bg-white rounded-b-2xl flex justify-end gap-3">
-                  <Button
-                    variant="outline"
-                    onClick={handleClearDateRange}
-                    className="h-10 px-6 rounded-lg border-gray-300 text-sm font-medium"
-                  >
-                    Clear
-                  </Button>
-                  <Button
-                    onClick={handleApplyDateRange}
-                    className={cn(
-                      "h-10 px-6 rounded-lg text-sm font-medium",
-                      tempDateRange.from && tempDateRange.to
-                        ? "bg-orange-500 hover:bg-orange-600 text-white"
-                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
-                    )}
-                    disabled={!tempDateRange.from || !tempDateRange.to}
-                  >
-                    Apply
-                  </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
-            <Button onClick={() => navigate("/estimates/new")} className="gap-2 touch-target w-full sm:w-auto">
-              <Plus className="h-4 w-4 sm:h-5 sm:w-5" />
-              New Estimate
-            </Button>
+      <div className="flex-1 overflow-y-auto scrollable px-3 pb-4 space-y-3" style={{ paddingTop: 'calc(3rem + env(safe-area-inset-top) + 0.5rem)' }}>
+        {/* Search */}
+        <div className="flex gap-2">
+          <div className="relative flex-1 min-w-0">
+            <Search className="absolute left-2.5 top-1/2 transform -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+            <Input
+              placeholder="Search estimates..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 h-9 text-sm py-2"
+            />
           </div>
         </div>
 
-        <div className="grid gap-4 grid-cols-1 md:grid-cols-3">
-          <Card>
-            <CardHeader>
-              <CardTitle>Total Estimates</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">
-                {mockEstimates.length}
-              </div>
-            </CardContent>
-          </Card>
+        {/* Status Tabs - Hidden for employees */}
+        {!isEmployee ? (
+          <Tabs
+            value={statusFilter}
+            onValueChange={setStatusFilter}
+            className="space-y-3"
+          >
+            <TabsList className="w-full grid grid-cols-2 h-9">
+              <TabsTrigger value="activate" className="text-xs py-1.5 px-2">Activate</TabsTrigger>
+              <TabsTrigger value="deactivated" className="text-xs py-1.5 px-2">Deactivated</TabsTrigger>
+            </TabsList>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Active Estimates</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-green-500">
-                {mockEstimates.filter((estimate) => estimate.isActive).length}
-              </div>
-            </CardContent>
-          </Card>
+            <TabsContent value={statusFilter} className="mt-1.5">
+              {(() => {
+                const estimates = filteredEstimates;
+                const showFilters = statusFilter !== "deactivated";
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Pending Estimates</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-orange-500">
-                {mockEstimates.filter((estimate) => estimate.status === "Open").length}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-          <TabsList>
-            <TabsTrigger value="active">Active</TabsTrigger>
-            <TabsTrigger value="deactivated">Deactivated</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="active" className="space-y-4">
-            {filteredEstimates.length === 0 ? (
-              <Card className="p-8 text-center">
-                <p className="text-muted-foreground">No active estimates found</p>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {filteredEstimates.map((estimate) => (
-                  <Card key={estimate.id} className="shadow-sm hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Created Date</p>
-                          <p className="font-medium">{estimate.createdDate}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Job ID</p>
-                          <p className="font-medium">{estimate.id}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Customer Name</p>
-                          <p className="font-medium">{estimate.customerName}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Employee Name</p>
-                          <p className="font-medium">{estimate.employeeName}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Amount</p>
-                          <p className="font-medium text-lg">${estimate.amount.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Sync</p>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-between gap-2">
-                          <Badge className={getStatusColor(estimate.status)} variant="outline">
-                            {estimate.status.toUpperCase()}
-                          </Badge>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-8 w-8">
-                                <MoreVertical className="h-4 w-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 z-50 bg-popover">
-                              <DropdownMenuItem onClick={() => handlePreview(estimate)}>
-                                <Eye className="mr-2 h-4 w-4" />
-                                Preview Estimate
-                              </DropdownMenuItem>
-                              
-                              {estimate.status === "Open" && (
-                                <>
-                                  <DropdownMenuItem onClick={() => handleSendEmail(estimate)}>
-                                    <Mail className="mr-2 h-4 w-4" />
-                                    Send Email
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleSendSMS(estimate)}>
-                                    <MessageSquare className="mr-2 h-4 w-4" />
-                                    Send SMS
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleEditEstimate(estimate)}>
-                                    <Edit className="mr-2 h-4 w-4" />
-                                    Edit Estimate
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handlePayEstimate(estimate)}>
-                                    <DollarSign className="mr-2 h-4 w-4" />
-                                    Pay Estimate
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handlePayCash(estimate)}>
-                                    <Banknote className="mr-2 h-4 w-4" />
-                                    Pay Cash
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleShareAddress(estimate)}>
-                                    <MapPin className="mr-2 h-4 w-4" />
-                                    Share Job Address
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleReassign(estimate)}>
-                                    <UserCog className="mr-2 h-4 w-4" />
-                                    Reassign Employee
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleDocHistory(estimate)}>
-                                    <History className="mr-2 h-4 w-4" />
-                                    Customer History
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleDeactivate(estimate)}>
-                                    <XCircle className="mr-2 h-4 w-4" />
-                                    Deactivate
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                              
-                              {estimate.status === "Paid" && (
-                                <>
-                                  <DropdownMenuItem onClick={() => handleDocHistory(estimate)}>
-                                    <History className="mr-2 h-4 w-4" />
-                                    Customer History
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => handleRefund(estimate)}>
-                                    <RotateCcw className="mr-2 h-4 w-4" />
-                                    Refund
-                                  </DropdownMenuItem>
-                                </>
-                              )}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="deactivated" className="space-y-4">
-            {filteredEstimates.length === 0 ? (
-              <Card className="p-8 text-center">
-                <p className="text-muted-foreground">No deactivated estimates found</p>
-              </Card>
-            ) : (
-              <div className="space-y-4">
-                {filteredEstimates.map((estimate) => (
-                  <Card key={estimate.id} className="shadow-sm hover:shadow-md transition-shadow opacity-75">
-                    <CardContent className="p-6">
-                      <div className="grid grid-cols-1 md:grid-cols-7 gap-4 items-center">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Created Date</p>
-                          <p className="font-medium">{estimate.createdDate}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Job ID</p>
-                          <p className="font-medium">{estimate.id}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Customer Name</p>
-                          <p className="font-medium">{estimate.customerName}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Employee Name</p>
-                          <p className="font-medium">{estimate.employeeName}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Amount</p>
-                          <p className="font-medium text-lg">${estimate.amount.toLocaleString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-muted-foreground">Sync</p>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <RefreshCw className="h-4 w-4" />
-                          </Button>
-                        </div>
-                        <div className="flex items-center justify-end gap-2">
+                return (
+                  <div className="space-y-2.5">
+                    {showFilters && (
+                      <div className="flex gap-2">
+                        <div className="flex-1 min-w-0">
                           <Button
                             variant="outline"
-                            size="sm"
-                            onClick={() => handleActivate(estimate)}
+                            onClick={() => setShowDateRangePicker(true)}
+                            className="w-full h-9 px-2.5 text-xs font-normal justify-start gap-1.5"
                           >
-                            Activate
+                            <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                            {dateRange.from && dateRange.to ? (
+                              <span className="truncate text-left text-xs">
+                                {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
+                              </span>
+                            ) : dateRange.from ? (
+                              <span className="truncate text-left text-xs">{format(dateRange.from, "MM/dd/yyyy")}</span>
+                            ) : (
+                              <span className="text-muted-foreground truncate text-left text-xs">Date Range</span>
+                            )}
                           </Button>
                         </div>
+
+                        <div className="flex-1 min-w-0">
+                          <Select value={statusFilterValue} onValueChange={setStatusFilterValue}>
+                            <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
+                              <SelectValue placeholder="Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All Statuses</SelectItem>
+                              <SelectItem value="Unpaid">Unpaid</SelectItem>
+                              <SelectItem value="Converted to Invoice">Converted to Invoice</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    </CardContent>
-                  </Card>
+                    )}
+
+                    {estimates.length > 0 ? (
+                      <div className="space-y-2">
+                        {estimates.map(estimate => (
+                          <EstimateCard
+                            key={estimate.id}
+                            estimate={estimate}
+                            onClick={() => navigate(`/estimates/${estimate.id}`)}
+                            jobId={estimateJobLookup.get(estimate.id)}
+                            payButton={
+                              statusFilter === "activate" && estimate.status === "Unpaid" ? (
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  className="h-auto min-h-0 px-2 py-1 text-xs font-semibold whitespace-nowrap bg-primary hover:bg-primary/90 rounded-xl shadow-sm hover:shadow-md transition-all leading-tight"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handlePayNow(estimate.id, e);
+                                  }}
+                                >
+                                  Pay
+                                </Button>
+                              ) : undefined
+                            }
+                            actionButtons={renderActionButtons(estimate, statusFilter)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <EmptyState
+                        icon={<FileText className="h-8 w-8 text-muted-foreground" />}
+                        title="No estimates found"
+                        description="Try adjusting your search or filters"
+                        actionLabel="Create Estimate"
+                        onAction={() => navigate("/estimates/new")}
+                      />
+                    )}
+                  </div>
+                );
+              })()}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          // Employee view: No tabs, just the list with filters
+          <div className="space-y-2.5">
+            {/* Date Range & Status Filter */}
+            <div className="flex gap-2">
+              <div className="flex-1 min-w-0">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDateRangePicker(true)}
+                  className="w-full h-9 px-2.5 text-xs font-normal justify-start gap-1.5"
+                >
+                  <CalendarIcon className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                  {dateRange.from && dateRange.to ? (
+                    <span className="truncate text-left text-xs">
+                      {format(dateRange.from, "MM/dd/yyyy")} - {format(dateRange.to, "MM/dd/yyyy")}
+                    </span>
+                  ) : dateRange.from ? (
+                    <span className="truncate text-left text-xs">{format(dateRange.from, "MM/dd/yyyy")}</span>
+                  ) : (
+                    <span className="text-muted-foreground truncate text-left text-xs">Date Range</span>
+                  )}
+                </Button>
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <Select value={statusFilterValue} onValueChange={setStatusFilterValue}>
+                  <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
+                    <SelectValue placeholder="Status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Statuses</SelectItem>
+                    <SelectItem value="Paid">Paid</SelectItem>
+                    <SelectItem value="Unpaid">Unpaid</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Estimates List */}
+            {filteredEstimates.length > 0 ? (
+              <div className="space-y-2">
+                {filteredEstimates.map(estimate => (
+                  <EstimateCard
+                    key={estimate.id}
+                    estimate={estimate}
+                    onClick={() => navigate(`/estimates/${estimate.id}`)}
+                    jobId={estimateJobLookup.get(estimate.id)}
+                    payButton={
+                      estimate.status === "Unpaid" ? (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          className="h-auto min-h-0 px-2 py-1 text-xs font-semibold whitespace-nowrap bg-primary hover:bg-primary/90 rounded-xl shadow-sm hover:shadow-md transition-all leading-tight"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePayNow(estimate.id, e);
+                          }}
+                        >
+                          Pay
+                        </Button>
+                      ) : undefined
+                    }
+                    actionButtons={renderActionButtons(estimate, "activate")}
+                  />
                 ))}
               </div>
+            ) : (
+              <EmptyState
+                icon={<FileText className="h-8 w-8 text-muted-foreground" />}
+                title="No estimates found"
+                description="Try adjusting your search or filters"
+                actionLabel="Create Estimate"
+                onAction={() => navigate("/estimates/new")}
+              />
             )}
-          </TabsContent>
-        </Tabs>
-      </main>
-
-      <SendEmailModal
-        open={emailModalOpen}
-        onOpenChange={setEmailModalOpen}
-        customerEmail={selectedEstimate?.customerEmail || ""}
-      />
-
-      <SendSMSModal
-        open={smsModalOpen}
-        onOpenChange={setSmsModalOpen}
-        customerName={selectedEstimate?.customerName || ""}
-        phoneNumber={selectedEstimate?.customerPhone || ""}
-      />
-
-      <ShareAddressModal
-        open={shareAddressModalOpen}
-        onOpenChange={setShareAddressModalOpen}
-        jobAddress={selectedEstimate?.address || "123 Main Street, City, State"}
-        jobId={selectedEstimate?.id || ""}
-      />
-
-      <PayCashModal
-        open={payCashModalOpen}
-        onOpenChange={setPayCashModalOpen}
-        orderAmount={selectedEstimate?.amount || 0}
-        orderId={selectedEstimate?.id || ""}
-      />
-
-
-      <InvoicePaymentModal
-        open={paymentModalOpen}
-        onOpenChange={setPaymentModalOpen}
-        invoice={selectedEstimateForPayment}
-      />
-
-      <PreviewEstimateModal
-        open={previewModalOpen}
-        onOpenChange={(open) => {
-          setPreviewModalOpen(open);
-          if (!open) setSelectedEstimateForPreview(null);
-        }}
-        estimate={selectedEstimateForPreview}
-        onEdit={(estimate) => {
-          navigate(`/estimates/${estimate.id}/edit`);
-        }}
-        onPayNow={(estimate) => {
-          setSelectedEstimateForPayment(estimate);
-          setPaymentModalOpen(true);
-        }}
-      />
-
-      <Dialog open={reassignModalOpen} onOpenChange={setReassignModalOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Reassign Employee</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Select New Employee</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose employee" />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-popover">
-                  {mockEmployees
-                    .filter((emp) => emp.status === "Active")
-                    .map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name} - {employee.role}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
           </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setReassignModalOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleReassignSubmit}>Reassign</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+        )}
+      </div>
+
+      {/* Estimate to Invoice Info Modal */}
+      <EstimateToInvoiceInfoModal
+        isOpen={showEstimateToInvoiceInfoModal}
+        onClose={() => {
+          setShowEstimateToInvoiceInfoModal(false);
+          setSelectedEstimate(null);
+        }}
+        onContinue={handleContinueToPayment}
+      />
+
+      {/* Payment Modal */}
+      {selectedEstimate && (
+        <>
+          <PaymentModal
+            isOpen={showPaymentModal}
+            onClose={() => {
+              setShowPaymentModal(false);
+              setSelectedEstimate(null);
+            }}
+            amount={selectedEstimate.amount}
+            onPaymentMethodSelect={handlePaymentMethodSelect}
+          />
+          <CashPaymentModal
+            isOpen={showCashPaymentModal}
+            onClose={handleCashPaymentClose}
+            onBack={handleCashPaymentClose}
+            amount={selectedEstimate.amount}
+            onPaymentComplete={handleCashPaymentComplete}
+          />
+        </>
+      )}
+
+      {/* Preview Estimate Modal */}
+      {previewEstimate && (
+        <PreviewEstimateModal
+          isOpen={showPreviewModal}
+          onClose={() => {
+            setShowPreviewModal(false);
+            setPreviewEstimate(null);
+          }}
+          estimate={previewEstimate}
+          onAction={(action) => {
+            if (action === "pay-now") {
+              setShowPreviewModal(false);
+              setSelectedEstimate({ id: previewEstimate.id, amount: previewEstimate.amount });
+              // Show info modal before proceeding to payment
+              setShowEstimateToInvoiceInfoModal(true);
+            } else if (action === "edit") {
+              navigate(`/estimates/${previewEstimate.id}/edit`);
+              setShowPreviewModal(false);
+            } else {
+              handleMenuAction(action, previewEstimate.id);
+            }
+          }}
+        />
+      )}
+
+      {/* Send Email Modal */}
+      {selectedEstimateForAction && (
+        <SendEmailModal
+          isOpen={showEmailModal}
+          onClose={() => {
+            setShowEmailModal(false);
+            setSelectedEstimateForAction(null);
+          }}
+          customerEmail={selectedEstimateForAction.customerEmail}
+          customerName={selectedEstimateForAction.customerName}
+        />
+      )}
+
+      {/* Send SMS Modal */}
+      {selectedEstimateForAction && (
+        <SendSMSModal
+          isOpen={showSMSModal}
+          onClose={() => {
+            setShowSMSModal(false);
+            setSelectedEstimateForAction(null);
+          }}
+          customerPhone={selectedEstimateForAction.customerPhone || ""}
+          customerCountryCode="+1"
+          entityId={selectedEstimateForAction.id}
+          entityType="estimate"
+          customerName={selectedEstimateForAction.customerName}
+        />
+      )}
+
+      {/* Reassign Employee Modal */}
+      {selectedEstimateForAction && (
+        <ReassignEmployeeModal
+          isOpen={showReassignModal}
+          onClose={() => {
+            setShowReassignModal(false);
+            setSelectedEstimateForAction(null);
+          }}
+          currentEmployeeId={selectedEstimateForAction.currentEmployeeId}
+          estimateId={selectedEstimateForAction.id}
+        />
+      )}
+
+      {/* Share Address Modal */}
+      {selectedEstimateForAction && (
+        <ShareAddressModal
+          isOpen={showShareAddressModal}
+          onClose={() => {
+            setShowShareAddressModal(false);
+            setSelectedEstimateForAction(null);
+          }}
+          jobAddress={selectedEstimateForAction.jobAddress}
+          estimateId={selectedEstimateForAction.id}
+        />
+      )}
+
+      {/* Document Note Modal */}
+      {selectedEstimateForNote && (() => {
+        const estimate = allEstimates.find(est => est.id === selectedEstimateForNote);
+        if (!estimate) return null;
+        return (
+          <DocumentNoteModal
+            open={showNoteModal}
+            onClose={() => {
+              setShowNoteModal(false);
+              setSelectedEstimateForNote(null);
+            }}
+            documentId={selectedEstimateForNote}
+            documentType="estimate"
+            customerId={estimate.customerId}
+            customerName={estimate.customerName}
+            onNoteAdded={() => {
+              // Optionally refresh estimate data or show updated notes
+            }}
+          />
+        );
+      })()}
+
+      {/* Preview Invoice Modal */}
+      {previewInvoice && (
+        <PreviewInvoiceModal
+          isOpen={showInvoicePreview}
+          onClose={() => {
+            setShowInvoicePreview(false);
+            setPreviewInvoice(null);
+          }}
+          invoice={previewInvoice}
+          onAction={(action) => {
+            if (action === "close" || action === "edit") {
+              setShowInvoicePreview(false);
+              setPreviewInvoice(null);
+            }
+          }}
+        />
+      )}
+
+      {/* Date Range Picker Modal */}
+      <DateRangePickerModal
+        isOpen={showDateRangePicker}
+        onClose={() => setShowDateRangePicker(false)}
+        dateRange={dateRange}
+        onConfirm={handleDateRangeConfirm}
+      />
+
+      {/* Schedule Service Modal for Convert to Job */}
+      {estimateToConvert && (
+        <ScheduleServiceModal
+          isOpen={showScheduleModal}
+          onClose={() => {
+            setShowScheduleModal(false);
+            setEstimateToConvert(null);
+          }}
+          onConfirm={(date, time, employeeId, updatedAddress, jobTitle) => {
+            try {
+              const result = convertToJob("estimate", estimateToConvert.id, date, time, employeeId, updatedAddress, jobTitle);
+              if (result.success) {
+                toast.success("Job scheduled successfully");
+                setShowScheduleModal(false);
+                setEstimateToConvert(null);
+                navigate("/jobs");
+              } else {
+                toast.error(result.error || "Failed to create job");
+                setShowScheduleModal(false);
+                setEstimateToConvert(null);
+              }
+            } catch (error) {
+              console.error("Error creating job:", error);
+              toast.error("Failed to create job");
+              setShowScheduleModal(false);
+              setEstimateToConvert(null);
+            }
+          }}
+          employee={{
+            id: mockEmployees.find(e => e.name === estimateToConvert.employeeName)?.id || mockEmployees[0].id,
+            name: estimateToConvert.employeeName || mockEmployees[0].name,
+            email: mockEmployees.find(e => e.name === estimateToConvert.employeeName)?.email || mockEmployees[0].email,
+          }}
+          sourceType="estimate"
+          sourceId={estimateToConvert.id}
+          jobAddress={undefined}
+          defaultJobTitle={(estimateToConvert as any).title || (estimateToConvert as any).serviceName || `Estimate ${estimateToConvert.id} Service`}
+        />
+      )}
+
+      {/* Assign to Job Modal */}
+      {estimateForAssignJob && (
+        <AssignToJobModal
+          isOpen={showAssignToJobModal}
+          onClose={() => {
+            setShowAssignToJobModal(false);
+            setEstimateForAssignJob(null);
+          }}
+          documentType="estimate"
+          documentId={estimateForAssignJob.id}
+          customerId={estimateForAssignJob.customerId}
+          onAssigned={(jobId) => {
+            // Refresh the job lookup map to show the Job ID badge
+            setJobLookupRefreshKey(prev => prev + 1);
+          }}
+        />
+      )}
     </div>
   );
 };

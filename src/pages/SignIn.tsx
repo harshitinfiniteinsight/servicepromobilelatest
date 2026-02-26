@@ -3,230 +3,156 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
-import { Eye, EyeOff, Lock, Mail, Wrench, Hammer, Zap, Wind, Briefcase } from "lucide-react";
-import { ForgotPasswordModal } from "@/components/modals/ForgotPasswordModal";
-
-const demoBusinesses = [
-  {
-    id: "plumber",
-    name: "Pro Plumbing Services",
-    icon: Wrench,
-    color: "from-blue-500 to-blue-600",
-    description: "Residential & Commercial Plumbing",
-  },
-  {
-    id: "carpenter",
-    name: "Master Carpentry Co.",
-    icon: Hammer,
-    color: "from-amber-600 to-amber-700",
-    description: "Custom Woodwork & Renovation",
-  },
-  {
-    id: "electrician",
-    name: "Elite Electric Solutions",
-    icon: Zap,
-    color: "from-yellow-500 to-orange-500",
-    description: "Electrical Installation & Repair",
-  },
-  {
-    id: "hvac",
-    name: "Cool Comfort HVAC",
-    icon: Wind,
-    color: "from-cyan-500 to-blue-600",
-    description: "Heating, Cooling & Air Quality",
-  },
-  {
-    id: "general",
-    name: "General Service",
-    icon: Briefcase,
-    color: "from-purple-500 to-indigo-600",
-    description: "Multi-Service & General Contractor",
-  },
-];
+import { cn } from "@/lib/utils";
 
 const SignIn = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState("demo@servicepro911.com");
-  const [password, setPassword] = useState("demo123");
-  const [showPassword, setShowPassword] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false);
+  const [loginType, setLoginType] = useState<"merchant" | "employee">("merchant");
+  const [email, setEmail] = useState("");
+  const [employeeCode, setEmployeeCode] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleSignIn = async (e: React.FormEvent) => {
+  const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
-
-    // Simulate API call
-    setTimeout(() => {
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.removeItem("demoBusinessType"); // Clear demo mode for regular login
-      toast.success("Welcome back!");
-      navigate("/");
-      setLoading(false);
-    }, 1000);
-  };
-
-  const handleDemoSignIn = (businessType: string, businessName: string) => {
-    setLoading(true);
-    localStorage.setItem("isAuthenticated", "true");
-    localStorage.setItem("demoBusinessType", businessType);
-    localStorage.setItem("demoBusinessName", businessName);
-    toast.success(`Welcome to ${businessName}!`);
-    setTimeout(() => {
-      navigate("/");
-      setLoading(false);
-    }, 800);
+    if (loginType === "merchant") {
+      if (email && password) {
+        localStorage.setItem("isAuthenticated", "true");
+        localStorage.setItem("userType", "merchant");
+        localStorage.removeItem("currentEmployeeId");
+        toast.success("Welcome back!");
+        navigate("/");
+      } else {
+        toast.error("Please enter email and password");
+      }
+    } else {
+      if (employeeCode && password) {
+        localStorage.setItem("isAuthenticated", "true");
+        // Set current employee ID (in real app, this would come from API response)
+        // For demo, use employeeCode to determine employee ID
+        const employeeId = employeeCode.toLowerCase().includes("mike") ? "1" : 
+                          employeeCode.toLowerCase().includes("tom") ? "2" : 
+                          employeeCode.toLowerCase().includes("chris") ? "3" : "1";
+        localStorage.setItem("currentEmployeeId", employeeId);
+        localStorage.setItem("userType", "employee");
+        toast.success("Welcome back!");
+        navigate("/employee-dashboard");
+      } else {
+        toast.error("Please enter employee code/email and password");
+      }
+    }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4 gradient-mesh">
-      <Card className="w-full max-w-2xl glass-effect">
-        <CardHeader className="space-y-1 text-center px-4 sm:px-6 pt-6">
-          <CardTitle className="text-2xl sm:text-3xl font-bold">Welcome Back</CardTitle>
-          <CardDescription className="text-sm sm:text-base">Sign in to your ServicePro911 account or try a demo</CardDescription>
-        </CardHeader>
-        <CardContent className="px-4 sm:px-6 pb-6">
-          <Tabs defaultValue="signin" className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-4 sm:mb-6 h-auto">
-              <TabsTrigger value="signin" className="py-2.5 text-sm sm:text-base">Sign In</TabsTrigger>
-              <TabsTrigger value="demo" className="py-2.5 text-sm sm:text-base">Demo Accounts</TabsTrigger>
-            </TabsList>
+    <div className="h-full w-full flex flex-col bg-gradient-to-br from-primary/10 via-accent/5 to-background p-6">
+      <div className="flex-1 flex flex-col justify-center max-w-md mx-auto w-full">
+        <div className="text-center mb-8">
+          <h1 className="text-4xl font-bold mb-2">ServicePro</h1>
+          <p className="text-muted-foreground">Mobile</p>
+        </div>
 
-            <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+        <div className="bg-background/80 backdrop-blur-sm rounded-2xl p-6 shadow-lg">
+          <h2 className="text-2xl font-bold mb-4">Sign In</h2>
+          
+          {/* Tabs */}
+          <div className="flex gap-0 mb-6 border-b border-gray-200">
+            <button
+              type="button"
+              onClick={() => setLoginType("merchant")}
+              className={cn(
+                "flex-1 py-2 text-center text-sm font-medium transition-colors",
+                loginType === "merchant"
+                  ? "text-orange-600 border-b-2 border-orange-500"
+                  : "text-gray-600 hover:text-orange-600"
+              )}
+            >
+              Merchant Login
+            </button>
+            <button
+              type="button"
+              onClick={() => setLoginType("employee")}
+              className={cn(
+                "flex-1 py-2 text-center text-sm font-medium transition-colors",
+                loginType === "employee"
+                  ? "text-orange-600 border-b-2 border-orange-500"
+                  : "text-gray-600 hover:text-orange-600"
+              )}
+            >
+              Employee Login
+            </button>
+          </div>
+          
+          <form onSubmit={handleSignIn} className="space-y-4">
+            {loginType === "merchant" ? (
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
                   type="email"
-                  placeholder="demo@servicepro911.com"
+                  placeholder="your@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="pl-10"
-                  required
+                  className="h-12 text-base"
                 />
               </div>
-            </div>
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-                <button
-                  type="button"
-                  onClick={() => setForgotPasswordOpen(true)}
-                  className="text-sm text-primary hover:underline font-medium"
-                >
-                  Forgot Password?
-                </button>
-              </div>
-              <div className="relative">
-                <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            ) : (
+              <div className="space-y-2">
+                <Label htmlFor="employeeCode">Employee Code/Email</Label>
                 <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="demo123"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="pl-10 pr-10"
-                  required
+                  id="employeeCode"
+                  type="text"
+                  placeholder="Enter employee code or email"
+                  value={employeeCode}
+                  onChange={(e) => setEmployeeCode(e.target.value)}
+                  className="h-12 text-base"
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-3 text-muted-foreground hover:text-foreground"
-                >
-                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                </button>
               </div>
+            )}
+
+            <div className="space-y-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="h-12 text-base"
+              />
             </div>
-                <Button type="submit" className="w-full gradient-primary touch-target" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign In"}
-                </Button>
-                <div className="text-center text-sm">
-                  <span className="text-muted-foreground">Don't have an account? </span>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/signup")}
-                    className="text-primary hover:underline font-medium"
-                  >
-                    Sign Up
-                  </button>
-                </div>
-              </form>
-            </TabsContent>
 
-            <TabsContent value="demo">
-              <div className="space-y-4">
-                <div className="text-center mb-6">
-                  <h3 className="font-semibold text-lg mb-2">Try a Service Business Demo</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Choose a business type to explore the app with realistic data
-                  </p>
-                </div>
+            <div className="text-right">
+              <button
+                type="button"
+                onClick={() => navigate("/forgot-password")}
+                className="text-sm text-[#EB6A3C] hover:underline"
+              >
+                Forgot Password?
+              </button>
+            </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {demoBusinesses.map((business) => (
-                    <Card
-                      key={business.id}
-                      className="cursor-pointer hover:scale-105 transition-all duration-300 overflow-hidden group border-2 hover:border-primary/50"
-                      onClick={() => handleDemoSignIn(business.id, business.name)}
-                    >
-                      <CardContent className="p-6">
-                        <div className="flex flex-col items-center text-center space-y-3">
-                          <div
-                            className={`h-16 w-16 rounded-2xl bg-gradient-to-br ${business.color} flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}
-                          >
-                            <business.icon className="h-8 w-8 text-white" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-foreground">{business.name}</h4>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              {business.description}
-                            </p>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="mt-2 group-hover:bg-primary/10 touch-target"
-                          >
-                            Try Demo →
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
+            <Button type="submit" className="w-full h-12 text-base mt-6">
+              Sign In
+            </Button>
+          </form>
 
-                <div className="text-center text-xs text-muted-foreground mt-6 p-4 bg-muted/30 rounded-lg">
-                  <p className="font-medium mb-1">🎯 Demo Mode Features:</p>
-                  <p>
-                    Experience the full app with pre-populated customers, appointments, invoices,
-                    and estimates tailored to your selected business type.
-                  </p>
-                </div>
-
-                <div className="text-center text-sm pt-2">
-                  <span className="text-muted-foreground">Want to create your own account? </span>
-                  <button
-                    type="button"
-                    onClick={() => navigate("/signup")}
-                    className="text-primary hover:underline font-medium"
-                  >
-                    Sign Up
-                  </button>
-                </div>
-              </div>
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
-      <ForgotPasswordModal open={forgotPasswordOpen} onOpenChange={setForgotPasswordOpen} />
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground">
+              Don't have an account?{" "}
+              <button
+                onClick={() => navigate("/signup")}
+                className="text-primary font-medium"
+              >
+                Sign Up
+              </button>
+            </p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };
 
 export default SignIn;
+
+

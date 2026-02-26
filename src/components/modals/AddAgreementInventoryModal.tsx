@@ -1,150 +1,140 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
-import { Search } from "lucide-react";
-import { mockInventory } from "@/data/mockData";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { X } from "lucide-react";
+import { toast } from "sonner";
 
 interface AddAgreementInventoryModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
+  availableInventory: Array<{
+    id: string;
+    name: string;
+    sku: string;
+  }>;
+  onAdd?: (inventoryId: string) => void;
 }
 
-export function AddAgreementInventoryModal({ open, onOpenChange }: AddAgreementInventoryModalProps) {
-  const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+const AddAgreementInventoryModal = ({
+  open,
+  onClose,
+  availableInventory,
+  onAdd,
+}: AddAgreementInventoryModalProps) => {
+  const [selectedInventory, setSelectedInventory] = useState<string>("");
 
-  const variableInventories = mockInventory.filter(
-    item => item.type === "Variable" && !(item as any).isAgreementInventory
-  );
-  const filteredInventories = variableInventories.filter(item =>
-    item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    item.sku.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (open) {
+      setSelectedInventory("");
+    }
+  }, [open]);
 
-  const handleToggleItem = (itemId: string) => {
-    setSelectedItems(prev =>
-      prev.includes(itemId)
-        ? prev.filter(id => id !== itemId)
-        : [...prev, itemId]
-    );
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (selectedItems.length === 0) {
-      toast({
-        title: "No items selected",
-        description: "Please select at least one inventory item.",
-        variant: "destructive",
-      });
+  const handleSave = () => {
+    if (!selectedInventory) {
+      toast.error("Please select an inventory item");
       return;
     }
-    toast({
-      title: "Agreement Inventory Added",
-      description: `${selectedItems.length} item(s) added to agreement inventory.`,
-    });
-    setSelectedItems([]);
-    setSearchQuery("");
-    onOpenChange(false);
+
+    if (onAdd) {
+      onAdd(selectedInventory);
+    } else {
+      // Mock add - in real app, this would call an API
+      console.info("Adding inventory to agreement", selectedInventory);
+      toast.success("Inventory added to agreement successfully");
+    }
+
+    onClose();
+  };
+
+  const handleClose = () => {
+    setSelectedInventory("");
+    onClose();
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Select Agreement Inventory</DialogTitle>
+    <Dialog open={open} onOpenChange={handleClose}>
+      <DialogContent className="w-[92%] max-w-sm mx-auto p-4 rounded-2xl shadow-lg bg-white [&>button]:hidden max-h-[85vh] overflow-y-auto">
+        <DialogDescription className="sr-only">
+          Add agreement inventory modal
+        </DialogDescription>
+        {/* Header */}
+        <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b border-gray-100">
+          <DialogTitle className="text-base font-semibold text-gray-900">Add Agreement Inventory</DialogTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-full hover:bg-gray-100"
+            onClick={handleClose}
+          >
+            <X className="h-5 w-5 text-gray-600" />
+          </Button>
         </DialogHeader>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <Label htmlFor="search">Search Variable Inventories</Label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                id="search"
-                placeholder="Search by name, ID, or SKU..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+
+        {/* Content */}
+        <div className="space-y-2 pt-2">
+          {/* Explanatory Text */}
+          <div className="text-xs text-gray-600 leading-relaxed space-y-1.5">
+            <p>
+              Every E-sign agreement comes with default inventory. You may edit the default inventory name by going to the inventory item and updating the name and information.
+            </p>
+            <p className="font-semibold text-gray-700 text-xs">
+              IMPORTANT: You may only use <em>Variable</em> inventory for the E-sign agreement.
+            </p>
+            <p>
+              When adding inventory for the E-sign Agreement, make sure to choose <em>Variable</em> under the field Price Type.
+            </p>
+            <p>
+              Once saved, you will see the newly added variable inventory inside the E-sign Agreement inventory. Choose the newly created inventory and add it to the E-sign agreement as per your requirements or select an existing inventory shown below.
+            </p>
           </div>
 
-          <div className="border rounded-lg p-4 max-h-[400px] overflow-y-auto space-y-3 bg-muted/20">
-            {filteredInventories.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                {searchQuery ? "No matching inventories found" : "No variable inventories available"}
-              </p>
-            ) : (
-              filteredInventories.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-start gap-3 p-3 bg-background rounded-md border border-border hover:border-primary/50 transition-colors"
-                >
-                  <Checkbox
-                    id={item.id}
-                    checked={selectedItems.includes(item.id)}
-                    onCheckedChange={() => handleToggleItem(item.id)}
-                    className="mt-1"
-                  />
-                  <div className="flex-1 cursor-pointer" onClick={() => handleToggleItem(item.id)}>
-                    <Label
-                      htmlFor={item.id}
-                      className="font-semibold text-base cursor-pointer"
-                    >
-                      {item.name}
-                    </Label>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      <span className="text-xs text-muted-foreground">
-                        ID: <span className="font-medium text-foreground">{item.id}</span>
-                      </span>
-                      <span className="text-xs text-muted-foreground">•</span>
-                      <span className="text-xs text-muted-foreground">
-                        SKU: <span className="font-medium text-foreground">{item.sku}</span>
-                      </span>
-                      <span className="text-xs text-muted-foreground">•</span>
-                      <span className="text-xs text-muted-foreground">
-                        Stock: <span className="font-medium text-foreground">{item.stockQuantity}</span>
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
+          {/* Form Field */}
+          <div className="space-y-1">
+            <Label className="text-xs font-medium text-gray-700">Select Agreement Inventory *</Label>
+            <Select value={selectedInventory} onValueChange={setSelectedInventory}>
+              <SelectTrigger className="w-full border border-gray-200 rounded-lg px-2 py-1.5 text-xs focus:ring-1 focus:ring-orange-500 focus:border-orange-500 h-8">
+                <SelectValue placeholder="Choose inventory" />
+              </SelectTrigger>
+              <SelectContent>
+                {availableInventory.length === 0 ? (
+                  <SelectItem value="no-items" disabled>
+                    No variable inventory available
+                  </SelectItem>
+                ) : (
+                  availableInventory.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.name} ({item.sku})
+                    </SelectItem>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           </div>
 
-          {selectedItems.length > 0 && (
-            <div className="p-3 bg-primary/10 rounded-md border border-primary/20">
-              <p className="text-sm font-medium text-foreground">
-                {selectedItems.length} item(s) selected
-              </p>
-            </div>
-          )}
-
-          <div className="flex gap-2 pt-4">
+          {/* Buttons */}
+          <div className="flex gap-2 pt-1">
             <Button
-              type="button"
               variant="outline"
-              onClick={() => {
-                setSelectedItems([]);
-                setSearchQuery("");
-                onOpenChange(false);
-              }}
-              className="flex-1"
+              onClick={handleClose}
+              className="flex-1 py-1.5 border border-gray-200 rounded-lg text-xs font-medium hover:bg-gray-50"
             >
               Cancel
             </Button>
-            <Button type="submit" className="flex-1">
-              Add Selected
+            <Button
+              onClick={handleSave}
+              className="flex-1 bg-orange-500 text-white rounded-lg py-1.5 text-xs font-medium hover:bg-orange-600"
+            >
+              Add
             </Button>
           </div>
-        </form>
+        </div>
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export default AddAgreementInventoryModal;
+

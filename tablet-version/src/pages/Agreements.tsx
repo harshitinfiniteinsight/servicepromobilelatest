@@ -15,9 +15,11 @@ import { DocumentVerificationModal } from "@/components/modals/DocumentVerificat
 import PaymentModal from "@/components/modals/PaymentModal";
 import SendSMSModal from "@/components/modals/SendSMSModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
-import { mockAgreements, mockCustomers, mockEmployees, mockInventory } from "@/data/mobileMockData";
+import AssignToJobModal from "@/components/modals/AssignToJobModal";
+import ScheduleJobModal from "@/components/modals/ScheduleJobModal";
+import { mockAgreements, mockCustomers, mockEmployees, mockInventory, mockJobs } from "@/data/mobileMockData";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, RefreshCw, X, Minus, AlertCircle } from "lucide-react";
+import { Plus, Calendar, DollarSign, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, RefreshCw, X, Minus, AlertCircle, ListPlus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
@@ -32,6 +34,10 @@ const Agreements = () => {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSmsModal, setShowSmsModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [showAssignToJobModal, setShowAssignToJobModal] = useState(false);
+  const [selectedAgreementForAssignment, setSelectedAgreementForAssignment] = useState<any>(null);
+  const [showScheduleJobModal, setShowScheduleJobModal] = useState(false);
+  const [selectedAgreementForConversion, setSelectedAgreementForConversion] = useState<any>(null);
 
   // Add Agreement Form State (Tablet)
   const [currentStep, setCurrentStep] = useState(1);
@@ -65,6 +71,29 @@ const Agreements = () => {
 
   // State for managing all agreements (sorted list)
   const [allAgreements, setAllAgreements] = useState<typeof mockAgreements>([]);
+  
+  // Track job linkages (documentId -> jobId) with localStorage persistence
+  const [linkedJobs, setLinkedJobs] = useState<Record<string, string>>(() => {
+    // Load from localStorage or initialize with demo data
+    const stored = localStorage.getItem('agreement-job-links');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.error('Failed to parse stored job links:', e);
+      }
+    }
+    // Demo data - some agreements already linked to jobs
+    return {
+      'AGR-001': 'JOB-2468',
+      'AGR-003': 'JOB-1357'
+    };
+  });
+
+  // Sync linkedJobs to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('agreement-job-links', JSON.stringify(linkedJobs));
+  }, [linkedJobs]);
 
   // Get user role
   const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
@@ -313,16 +342,107 @@ const Agreements = () => {
         }
         break;
       case "convert-to-job":
-        const result = convertToJob("agreement", agreementId);
-        if (result.success) {
-          toast.success("Job created successfully");
-          navigate("/jobs");
-        } else {
-          toast.error(result.error || "Failed to convert to job");
+        const convertAgreement = mockAgreements.find(a => a.id === agreementId);
+        if (convertAgreement) {
+          setSelectedAgreementForConversion(convertAgreement);
+          setShowScheduleJobModal(true);
+        }
+        break;
+      case "assign-to-job":
+        const assignAgreement = mockAgreements.find(a => a.id === agreementId);
+        if (assignAgreement) {
+          setSelectedAgreementForAssignment(assignAgreement);
+          setShowAssignToJobModal(true);
         }
         break;
       default:
         break;
+    }
+  };
+
+  const handleAssignToJob = async (agreementId: string, jobId: string) => {
+    try {
+      // Import assignment service
+      const { assignToJob } = await import("@/services/jobAssignmentService");
+      
+      // Assign agreement to job
+      const result = assignToJob("agreement", agreementId, jobId);
+      
+      if (result.success) {
+        // Store the linked job ID
+        setLinkedJobs(prev => ({ ...prev, [agreementId]: jobId }));
+        
+        toast.success(`Agreement ${agreementId} assigned to ${jobId}`);
+        
+        // Log activity
+        const { addActivityLog } = await import("@/services/activityLogService");
+        addActivityLog({
+          type: "agreement",
+          action: "assigned_to_job",
+          documentId: agreementId,
+          customerName: selectedAgreementForAssignment?.customerName || "",
+          amount: selectedAgreementForAssignment?.amount || 0,
+          metadata: { jobId }
+        });
+        
+        // Close modal
+        setShowAssignToJobModal(false);
+        setSelectedAgreementForAssignment(null);
+      } else {
+        toast.error(result.error || "Failed to assign agreement to job");
+      }
+    } catch (error) {
+      console.error("Error assigning agreement to job:", error);
+      toast.error("An error occurred while assigning agreement");
+    }
+  };
+
+  const handleScheduleJobConfirm = async (jobData: {
+    title: string;
+    employeeId: string;
+    address: string;
+    date: string;
+    time: string;
+  }) => {
+    try {
+      if (!selectedAgreementForConversion) return;
+      
+      const result = convertToJob("agreement", selectedAgreementForConversion.id);
+      
+      if (result.success) {
+        // Generate a new job ID
+        const newJobId = `JOB-${Math.floor(1000 + Math.random() * 9000)}`;
+        
+        // Store the linked job ID
+        setLinkedJobs(prev => ({ ...prev, [selectedAgreementForConversion.id]: newJobId }));
+        
+        toast.success(`Job ${newJobId} created and scheduled successfully`);
+        
+        // Log activity
+        const { addActivityLog } = await import("@/services/activityLogService");
+        addActivityLog({
+          type: "agreement",
+          action: "converted_to_job",
+          documentId: selectedAgreementForConversion.id,
+          customerName: selectedAgreementForConversion.customerName,
+          amount: selectedAgreementForConversion.amount,
+          metadata: { 
+            jobId: newJobId,
+            jobTitle: jobData.title,
+            employeeId: jobData.employeeId,
+            scheduledDate: jobData.date,
+            scheduledTime: jobData.time
+          }
+        });
+        
+        setShowScheduleJobModal(false);
+        setSelectedAgreementForConversion(null);
+      } else {
+        toast.error(result.error || "Failed to create job");
+      }
+    } catch (error) {
+      console.error("Error creating job:", error);
+      toast.error("An error occurred while creating job");
     }
   };
 
@@ -378,6 +498,7 @@ const Agreements = () => {
                 // Unpaid agreements: Preview, Send Email, Send SMS, Edit Agreement
                 // "Convert to Job" should only appear for Paid agreements, not Unpaid
                 { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
+                { label: "Assign to Job", icon: ListPlus, action: () => handleMenuAction(agreement.id, "assign-to-job") },
                 { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
                 { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
                 // Edit Agreement: Only for merchants, not employees
@@ -943,7 +1064,7 @@ const Agreements = () => {
                               {agreement.status}
                             </Badge>
                           </div>
-                          <p className="text-xs text-muted-foreground mb-1.5 truncate">{agreement.customerName}</p>
+                          <p className="text-xs text-muted-foreground truncate">{agreement.customerName}</p>
                           <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                             <Calendar className="h-3 w-3 flex-shrink-0" />
                             <span className="truncate">
@@ -952,9 +1073,17 @@ const Agreements = () => {
                           </div>
                         </div>
                         <div className="text-right flex flex-col items-end gap-1.5 flex-shrink-0 ml-2" onClick={(e) => e.stopPropagation()}>
-                          <div className="flex items-baseline gap-1">
-                            <DollarSign className="h-3.5 w-3.5 text-primary flex-shrink-0" />
-                            <span className="text-lg font-bold whitespace-nowrap">${agreement.monthlyAmount.toFixed(2)}</span>
+                          <div className="flex items-center gap-1.5">
+                            {linkedJobs[agreement.id] && (
+                              <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 leading-4 bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
+                                <Briefcase className="h-2.5 w-2.5 mr-0.5" />
+                                {linkedJobs[agreement.id]}
+                              </Badge>
+                            )}
+                            <div className="flex items-baseline gap-1">
+                              <DollarSign className="h-3.5 w-3.5 text-primary flex-shrink-0" />
+                              <span className="text-lg font-bold whitespace-nowrap">${agreement.monthlyAmount.toFixed(2)}</span>
+                            </div>
                           </div>
                           <p className="text-[10px] text-muted-foreground text-right whitespace-nowrap">per month</p>
                           <div className="flex items-center gap-2">
@@ -1052,6 +1181,35 @@ const Agreements = () => {
           customerName={selectedAgreementForEmail.customerName}
         />
       ) : null}
+
+      {/* Assign to Job Modal */}
+      {selectedAgreementForAssignment && (
+        <AssignToJobModal
+          isOpen={showAssignToJobModal}
+          onClose={() => {
+            setShowAssignToJobModal(false);
+            setSelectedAgreementForAssignment(null);
+          }}
+          documentId={selectedAgreementForAssignment.id}
+          documentType="agreement"
+          jobs={mockJobs}
+          onAssign={(jobId) => handleAssignToJob(selectedAgreementForAssignment.id, jobId)}
+        />
+      )}
+
+      {/* Schedule Job Modal (Convert to Job) */}
+      {selectedAgreementForConversion && (
+        <ScheduleJobModal
+          isOpen={showScheduleJobModal}
+          onClose={() => {
+            setShowScheduleJobModal(false);
+            setSelectedAgreementForConversion(null);
+          }}
+          onConfirm={handleScheduleJobConfirm}
+          sourceType="agreement"
+          sourceId={selectedAgreementForConversion.id}
+        />
+      )}
     </div>
   );
 };

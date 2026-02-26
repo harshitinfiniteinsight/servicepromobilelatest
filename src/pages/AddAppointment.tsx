@@ -1,350 +1,389 @@
-import { useState } from "react";
-import { AppHeader } from "@/components/AppHeader";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Plus, Calendar as CalendarIcon, Clock } from "lucide-react";
-import { format } from "date-fns";
+import { Textarea } from "@/components/ui/textarea";
+import { mockAppointments, mockCustomers, mockEmployees, serviceTypes } from "@/data/mobileMockData";
+import { Plus, Users, UserCheck, UserRoundPlus, Calendar, Clock, Bell, Mail, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { mockCustomers, mockEmployees } from "@/data/mockData";
-import { QuickAddCustomerModal } from "@/components/modals/QuickAddCustomerModal";
-import { AddCategoryModal } from "@/components/modals/AddCategoryModal";
-import { useToast } from "@/hooks/use-toast";
+import { showSuccessToast } from "@/utils/toast";
 
-const AddAppointment = () => {
-  const { toast } = useToast();
-  const [date, setDate] = useState<Date>();
-  const [quickAddCustomerOpen, setQuickAddCustomerOpen] = useState(false);
-  const [addCategoryOpen, setAddCategoryOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    subject: "",
-    customer: "",
-    employee: "",
-    category: "",
-    email: "",
-    phone: "",
-    address: "",
-    time: "",
-    note: "",
-    reminder: "30mins",
-  });
+const reminderOptions = [
+  "15 minutes",
+  "30 minutes",
+  "1 hour",
+  "2 hours",
+  "1 day",
+] as const;
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Appointment Added",
-      description: "The appointment has been scheduled successfully.",
-    });
+interface AddAppointmentProps {
+  mode?: "create" | "edit";
+}
+
+const AddAppointment = ({ mode = "create" }: AddAppointmentProps) => {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromView = searchParams.get("fromView") || "calendar";
+  const fromDashboard = searchParams.get("from") === "dashboard";
+  const preselectedCustomerId = searchParams.get("customerId");
+  const preselectedCustomerName = searchParams.get("customerName");
+  
+  // Check if user is employee
+  const userType = localStorage.getItem("userType") || "merchant";
+  const isEmployee = userType === "employee";
+  const currentEmployeeId = localStorage.getItem("currentEmployeeId") || "1";
+  const currentEmployee = mockEmployees.find(emp => emp.id === currentEmployeeId);
+  
+  const [subject, setSubject] = useState("");
+  const [employeeId, setEmployeeId] = useState("");
+  const [customerId, setCustomerId] = useState("");
+  const [category, setCategory] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [address, setAddress] = useState("");
+  const [date, setDate] = useState("");
+  const [time, setTime] = useState("");
+  const [reminder, setReminder] = useState("30 minutes");
+  const [note, setNote] = useState("");
+
+  const activeEmployees = useMemo(
+    () => mockEmployees.filter(emp => emp.status === "Active"),
+    []
+  );
+  const selectedCustomerRecord = useMemo(
+    () => mockCustomers.find(customer => customer.id === customerId),
+    [customerId]
+  );
+
+  // Handle edit mode
+  useEffect(() => {
+    if (mode === "edit" && id) {
+      const appointment = mockAppointments.find(apt => apt.id === id);
+      if (appointment) {
+        setSubject(appointment.service);
+        // For employees, lock to their own ID; for merchants, use appointment's technician
+        if (isEmployee && currentEmployeeId) {
+          setEmployeeId(currentEmployeeId);
+        } else {
+          setEmployeeId(appointment.technicianId);
+        }
+        setCustomerId(appointment.customerId);
+        setCategory(serviceTypes.includes(appointment.service) ? appointment.service : "");
+        setEmail(`${appointment.customerName.split(" ").join(".").toLowerCase()}@example.com`);
+        const customer = mockCustomers.find(c => c.id === appointment.customerId);
+        setPhone(customer?.phone ?? "");
+        setAddress(customer?.address ?? "");
+        setDate(appointment.date);
+        setTime(
+          appointment.time
+            ? appointment.time
+                .replace(" AM", "")
+                .replace(" PM", "")
+            : ""
+        );
+        setReminder("30 minutes");
+        setNote(appointment.status === "Pending" ? "Follow up required" : "");
+      }
+    }
+  }, [mode, id, isEmployee, currentEmployeeId]);
+
+  // Auto-fill employee field for employee login
+  useEffect(() => {
+    if (isEmployee && currentEmployeeId && mode === "create") {
+      setEmployeeId(currentEmployeeId);
+    }
+  }, [isEmployee, currentEmployeeId, mode]);
+
+  // Handle pre-selected customer from query params
+  useEffect(() => {
+    if (mode === "create" && preselectedCustomerId && preselectedCustomerName) {
+      // Find the customer by ID to get full details
+      const customer = mockCustomers.find(c => c.id === preselectedCustomerId);
+      if (customer) {
+        setCustomerId(customer.id);
+        setEmail(customer.email);
+        setPhone(customer.phone);
+        setAddress(customer.address || "");
+      } else if (preselectedCustomerId) {
+        // If customer ID exists but not found in mock data, still set it
+        setCustomerId(preselectedCustomerId);
+      }
+    }
+  }, [preselectedCustomerId, preselectedCustomerName, mode]);
+
+  const handleSubmit = () => {
+    if (mode === "edit") {
+      showSuccessToast("Appointment updated successfully");
+    } else {
+      showSuccessToast("Appointment created successfully");
+    }
+    if (fromDashboard) {
+      navigate("/");
+    } else {
+      navigate(`/appointments/manage?view=${fromView}`);
+    }
   };
 
-  const mockCategories = [
-    { id: "1", name: "HVAC Service", color: "#FF6B35" },
-    { id: "2", name: "Plumbing", color: "#004E89" },
-    { id: "3", name: "Electrical", color: "#F77F00" },
-  ];
+  const handleBack = () => {
+    if (fromDashboard) {
+      navigate("/");
+    } else {
+      navigate(`/appointments/manage?view=${fromView}`);
+    }
+  };
 
-  const mockAppointmentHistory = [
-    {
-      id: "APT-001",
-      employeeId: "E-001",
-      customerName: "Sarah Johnson",
-      subject: "HVAC Maintenance",
-      date: "2025-10-20",
-      time: "10:00 AM",
-    },
-    {
-      id: "APT-002",
-      employeeId: "E-001",
-      customerName: "Mike Williams",
-      subject: "Plumbing Check",
-      date: "2025-10-22",
-      time: "2:00 PM",
-    },
-    {
-      id: "APT-003",
-      employeeId: "E-002",
-      customerName: "Emma Davis",
-      subject: "Electrical Repair",
-      date: "2025-10-21",
-      time: "11:00 AM",
-    },
-    {
-      id: "APT-004",
-      employeeId: "E-002",
-      customerName: "James Wilson",
-      subject: "Appliance Installation",
-      date: "2025-10-23",
-      time: "3:00 PM",
-    },
-  ];
-
-  // Filter appointments by selected employee
-  const filteredAppointmentHistory = formData.employee
-    ? mockAppointmentHistory.filter((apt) => apt.employeeId === formData.employee)
-    : [];
-
-  // Get selected employee name
-  const selectedEmployee = mockEmployees.find((emp) => emp.id === formData.employee);
+  const isFormValid = subject && employeeId && customerId && category && email && phone && date && time;
 
   return (
-    <div className="flex-1">
-      <AppHeader searchPlaceholder="Search..." />
+    <div className="h-full flex flex-col overflow-hidden bg-muted/10">
+      <MobileHeader 
+        title={mode === "edit" ? "Edit Appointment" : "Add Appointment"} 
+        showBack 
+        onBack={handleBack}
+      />
 
-      <main className="px-4 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6 animate-fade-in">
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">Add Appointment</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">Schedule a new appointment</p>
-          </div>
-          {formData.employee && (
-            <Button 
-              variant="outline"
-              onClick={() => document.getElementById('appointment-history')?.scrollIntoView({ behavior: 'smooth' })}
-              className="w-full sm:w-auto"
-            >
-              Appointment History
-            </Button>
-          )}
-        </div>
+      <div className="flex-1 overflow-y-auto scrollable pt-16 pb-6">
+        <div className="mx-4 rounded-3xl border border-gray-100 bg-white shadow-sm">
+          <div className="px-4 pt-4 pb-4 space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="appointment-subject" className="inline-flex items-center gap-1 text-sm font-medium text-gray-700">
+                Appointment Subject <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="appointment-subject"
+                placeholder="e.g., HVAC Maintenance Check"
+                value={subject}
+                onChange={(e) => setSubject(e.target.value)}
+                className="h-11 border-gray-300"
+              />
+            </div>
 
-        <form onSubmit={handleSubmit}>
-          <Card className="border border-border bg-card shadow-md">
-            <CardContent className="p-4 sm:p-6 space-y-4">
-              <div>
-                <Label htmlFor="subject">Appointment Subject *</Label>
-                <Input
-                  id="subject"
-                  value={formData.subject}
-                  onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                  placeholder="e.g., HVAC Maintenance Check"
-                  required
-                />
-              </div>
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-start sm:gap-4">
+                <div className="flex-1 space-y-2">
+                  <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                    <span>Employee</span>
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  {/* Hidden input for employee ID (for form submission) */}
+                  {isEmployee && currentEmployeeId && (
+                    <input type="hidden" name="employeeId" value={currentEmployeeId} />
+                  )}
+                  {/* Employee field - disabled for employees, editable for merchants */}
+                  {isEmployee && currentEmployee ? (
+                    <Input
+                      value={currentEmployee.name}
+                      disabled
+                      readOnly
+                      className="h-11 border-gray-300 bg-gray-50 text-gray-700 cursor-not-allowed"
+                      style={{ backgroundColor: '#f7f7f7', color: '#444', opacity: 1 }}
+                    />
+                  ) : (
+                    <Select value={employeeId} onValueChange={setEmployeeId}>
+                      <SelectTrigger className="h-11 border-gray-300">
+                        <SelectValue placeholder="Choose employee" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activeEmployees.map(emp => (
+                          <SelectItem key={emp.id} value={emp.id}>
+                            {emp.name} — {emp.role}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
 
-              {/* Employee, Customer, and Category in one row */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="employee">Select Employee *</Label>
-                  <Select value={formData.employee} onValueChange={(value) => setFormData({ ...formData, employee: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose employee" />
+                <div className="flex-1 space-y-2 mt-4 sm:mt-0">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                      <span>Customers</span>
+                      <span className="text-destructive">*</span>
+                    </Label>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-lg border border-dashed border-gray-300 text-primary hover:bg-gray-50"
+                      onClick={() => navigate("/customers/new")}
+                    >
+                      <UserRoundPlus className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <Select value={customerId} onValueChange={setCustomerId}>
+                    <SelectTrigger className="h-11 border-gray-300">
+                      <SelectValue placeholder="Choose customer" />
                     </SelectTrigger>
                     <SelectContent>
-                      {mockEmployees.map((employee) => (
-                        <SelectItem key={employee.id} value={employee.id}>
-                          {employee.name} - {employee.role}
+                      {mockCustomers.map(customer => (
+                        <SelectItem key={customer.id} value={customer.id}>
+                          {customer.name} — {customer.email}
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
-
-                <div>
-                  <Label htmlFor="customer">Select Customer *</Label>
-                  <div className="flex gap-2">
-                    <Select value={formData.customer} onValueChange={(value) => setFormData({ ...formData, customer: value })}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Choose customer" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockCustomers.map((customer) => (
-                          <SelectItem key={customer.id} value={customer.id}>
-                            {customer.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button type="button" variant="outline" size="icon" onClick={() => setQuickAddCustomerOpen(true)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="category">Category</Label>
-                  <div className="flex gap-2">
-                    <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
-                      <SelectTrigger className="flex-1">
-                        <SelectValue placeholder="Choose category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {mockCategories.map((category) => (
-                          <SelectItem key={category.id} value={category.id}>
-                            <div className="flex items-center gap-2">
-                              <div className="h-3 w-3 rounded-full" style={{ backgroundColor: category.color }}></div>
-                              {category.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Button type="button" variant="outline" size="icon" onClick={() => setAddCategoryOpen(true)}>
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                </div>
               </div>
+              {selectedCustomerRecord && (
+                <p className="text-xs text-muted-foreground">
+                  {selectedCustomerRecord.phone} · {selectedCustomerRecord.address}
+                </p>
+              )}
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="email">Email</Label>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                    <span>Category</span>
+                    <span className="text-destructive">*</span>
+                  </Label>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 rounded-lg border border-dashed border-gray-300 text-primary hover:bg-gray-50"
+                    onClick={() => navigate("/services/new")}
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
+                <Select value={category} onValueChange={setCategory}>
+                  <SelectTrigger className="h-11 border-gray-300">
+                    <SelectValue placeholder="Choose category" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {serviceTypes.map(type => (
+                      <SelectItem key={type} value={type}>
+                        {type}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Email *</Label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    id="email"
-                    type="email"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="pl-10 h-11 border-gray-300"
                     placeholder="customer@example.com"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
                   />
                 </div>
-                <div>
-                  <Label htmlFor="phone">Phone Number</Label>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700">Phone Number *</Label>
+                <div className="relative">
+                  <Phone className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
-                    id="phone"
-                    type="tel"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                    className="pl-10 h-11 border-gray-300"
                     placeholder="+1 (555) 123-4567"
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
                   />
                 </div>
               </div>
+            </div>
 
-              <div>
-                <Label htmlFor="address">Address</Label>
-                <Input
-                  id="address"
-                  value={formData.address}
-                  onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                  placeholder="123 Main St, City, State"
-                />
-              </div>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Address</Label>
+              <Textarea
+                placeholder="123 Main St, City, State"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+                className="min-h-[80px] border-gray-300"
+              />
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label>Appointment Date *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !date && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {date ? format(date, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={date}
-                        onSelect={setDate}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <div>
-                  <Label htmlFor="time">Appointment Time *</Label>
-                  <div className="relative">
-                    <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="time"
-                      type="time"
-                      value={formData.time}
-                      onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                      className="pl-10"
-                      required
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="note">Appointment Note</Label>
-                  <Textarea
-                    id="note"
-                    value={formData.note}
-                    onChange={(e) => setFormData({ ...formData, note: e.target.value })}
-                    placeholder="Additional notes or special instructions..."
-                    rows={3}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  <span>Appointment Date</span>
+                  <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    className="pl-10 h-11 border-gray-300"
                   />
                 </div>
-
-                <div>
-                  <Label htmlFor="reminder">Reminder Before</Label>
-                  <Select value={formData.reminder} onValueChange={(value) => setFormData({ ...formData, reminder: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10mins">10 minutes</SelectItem>
-                      <SelectItem value="20mins">20 minutes</SelectItem>
-                      <SelectItem value="30mins">30 minutes</SelectItem>
-                      <SelectItem value="1hour">1 hour</SelectItem>
-                      <SelectItem value="2hrs">2 hours</SelectItem>
-                      <SelectItem value="1day">1 day</SelectItem>
-                    </SelectContent>
-                  </Select>
+              </div>
+              <div className="space-y-2">
+                <Label className="text-sm font-medium text-gray-700 flex items-center gap-1">
+                  <span>Appointment Time</span>
+                  <span className="text-destructive">*</span>
+                </Label>
+                <div className="relative">
+                  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    type="time"
+                    value={time}
+                    onChange={(e) => setTime(e.target.value)}
+                    className="pl-10 h-11 border-gray-300"
+                  />
                 </div>
               </div>
+            </div>
 
-              <div className="flex gap-2 pt-4">
-                <Button type="submit" className="flex-1 sm:flex-initial">
-                  Add Appointment
-                </Button>
-                <Button type="button" variant="outline" className="flex-1 sm:flex-initial">
-                  Cancel
-                </Button>
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Appointment Note</Label>
+              <Textarea
+                placeholder="Additional notes or special instructions..."
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+                className="min-h-[80px] border-gray-300"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-sm font-medium text-gray-700">Reminder Before</Label>
+              <div className="relative">
+                <Bell className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Select value={reminder} onValueChange={setReminder}>
+                  <SelectTrigger className="pl-10 h-11 border-gray-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {reminderOptions.map(option => (
+                      <SelectItem key={option} value={option}>
+                        {option}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </CardContent>
-          </Card>
-        </form>
-
-        {/* Appointment History Section */}
-        {formData.employee && (
-          <div id="appointment-history">
-            <Card className="border border-border bg-card shadow-md">
-              <CardHeader className="border-b border-border bg-muted/30">
-                <CardTitle className="text-lg font-bold">
-                  Appointment History of {selectedEmployee?.name || ""}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-4">
-                <div className="space-y-3">
-                  {filteredAppointmentHistory.length > 0 ? (
-                    filteredAppointmentHistory.map((apt) => (
-                      <div key={apt.id} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-4 bg-muted/20 rounded-lg border border-border">
-                        <div className="flex-1 mb-3 sm:mb-0">
-                          <h4 className="font-semibold text-foreground">{apt.customerName}</h4>
-                          <p className="text-sm text-muted-foreground">{apt.subject}</p>
-                          <div className="flex gap-2 mt-1">
-                            <span className="text-xs px-2 py-1 bg-accent/10 text-accent rounded">{apt.date}</span>
-                            <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded">{apt.time}</span>
-                          </div>
-                        </div>
-                        <Button variant="outline" size="sm">Edit</Button>
-                      </div>
-                    ))
-                  ) : (
-                    <p className="text-muted-foreground text-center py-4">No appointment history found for this employee.</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
+            </div>
           </div>
-        )}
-      </main>
+        </div>
 
-      <QuickAddCustomerModal open={quickAddCustomerOpen} onOpenChange={setQuickAddCustomerOpen} />
-      <AddCategoryModal open={addCategoryOpen} onOpenChange={setAddCategoryOpen} selectedEmployee={formData.employee} />
+        <div className="mx-4 mt-4 flex flex-col gap-2 pb-2 safe-bottom">
+          <Button
+            className="w-full rounded-full py-3 text-sm font-semibold"
+            onClick={handleSubmit}
+            disabled={!isFormValid}
+          >
+            {mode === "edit" ? "Update Appointment" : "Add Appointment"}
+          </Button>
+          <Button
+            variant="outline"
+            className="w-full rounded-full py-3 text-sm font-semibold text-gray-700 border-gray-200 hover:bg-muted"
+            onClick={handleBack}
+            type="button"
+          >
+            Cancel
+          </Button>
+        </div>
+      </div>
     </div>
   );
 };

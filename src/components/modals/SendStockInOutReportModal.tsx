@@ -1,176 +1,225 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { X } from "lucide-react";
 import { toast } from "sonner";
+
+// Common country codes
+const countryCodes = [
+  { code: "+1", country: "US" },
+  { code: "+44", country: "UK" },
+  { code: "+91", country: "IN" },
+  { code: "+86", country: "CN" },
+  { code: "+81", country: "JP" },
+  { code: "+49", country: "DE" },
+  { code: "+33", country: "FR" },
+  { code: "+61", country: "AU" },
+  { code: "+55", country: "BR" },
+  { code: "+52", country: "MX" },
+  { code: "+34", country: "ES" },
+  { code: "+39", country: "IT" },
+  { code: "+82", country: "KR" },
+  { code: "+65", country: "SG" },
+  { code: "+971", country: "AE" },
+];
 
 interface SendStockInOutReportModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
+  onSend?: (data: {
+    email?: string;
+    phone?: string;
+    countryCode?: string;
+  }) => void;
 }
 
-export function SendStockInOutReportModal({ open, onOpenChange }: SendStockInOutReportModalProps) {
-  const [deliveryMethod, setDeliveryMethod] = useState<"email" | "phone" | "">("");
+const SendStockInOutReportModal = ({
+  open,
+  onClose,
+  onSend,
+}: SendStockInOutReportModalProps) => {
+  const [emailSelected, setEmailSelected] = useState(false);
+  const [phoneSelected, setPhoneSelected] = useState(false);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [countryCode, setCountryCode] = useState("+1");
-  const [phoneNumber, setPhoneNumber] = useState("");
+
+  // Reset form when modal closes
+  useEffect(() => {
+    if (!open) {
+      setEmailSelected(false);
+      setPhoneSelected(false);
+      setEmail("");
+      setPhone("");
+      setCountryCode("+1");
+    }
+  }, [open]);
 
   const handleSend = () => {
-    if (!deliveryMethod) {
-      toast.error("Please select a delivery method");
+    // Validation
+    if (!emailSelected && !phoneSelected) {
+      toast.error("Please select at least one delivery method");
       return;
     }
 
-    if (deliveryMethod === "email" && !email) {
+    if (emailSelected && !email.trim()) {
       toast.error("Please enter an email address");
       return;
     }
 
-    if (deliveryMethod === "phone" && !phoneNumber) {
+    if (emailSelected && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+
+    if (phoneSelected && !phone.trim()) {
       toast.error("Please enter a phone number");
       return;
     }
 
-    // Validate email format if email is selected
-    if (deliveryMethod === "email" && email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(email)) {
-        toast.error("Please enter a valid email address");
-        return;
-      }
+    const sendData: { email?: string; phone?: string; countryCode?: string } = {};
+    if (emailSelected) {
+      sendData.email = email.trim();
+    }
+    if (phoneSelected) {
+      sendData.phone = phone.trim();
+      sendData.countryCode = countryCode;
     }
 
-    // Send report logic here
-    const deliveryInfo = deliveryMethod === "email" 
-      ? `Email: ${email}` 
-      : `Phone: ${countryCode}${phoneNumber}`;
+    if (onSend) {
+      onSend(sendData);
+    } else {
+      // Mock send - in real app, this would call an API
+      console.info("Sending stock in/out report:", sendData);
+      toast.success("Report sent successfully");
+    }
 
-    toast.success(`Stock In/Out report sent successfully to ${deliveryInfo}`);
-    
-    // Reset form
-    setDeliveryMethod("");
+    handleClose();
+  };
+
+  const handleClose = () => {
+    setEmailSelected(false);
+    setPhoneSelected(false);
     setEmail("");
+    setPhone("");
     setCountryCode("+1");
-    setPhoneNumber("");
-    onOpenChange(false);
+    onClose();
   };
 
-  const handleClose = (open: boolean) => {
-    if (!open) {
-      // Reset form when closing
-      setDeliveryMethod("");
-      setEmail("");
-      setCountryCode("+1");
-      setPhoneNumber("");
-    }
-    onOpenChange(open);
-  };
+  const isSendDisabled = !emailSelected && !phoneSelected;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
-        <DialogHeader>
-          <DialogTitle className="text-2xl font-bold">Send Stock In/Out Report</DialogTitle>
+      <DialogContent className="w-[90%] max-w-sm mx-auto p-5 rounded-2xl shadow-lg bg-white [&>button]:hidden">
+        <DialogDescription className="sr-only">
+          Send stock in/out report modal
+        </DialogDescription>
+        {/* Header */}
+        <DialogHeader className="flex flex-row items-center justify-between pb-2 border-b border-gray-100">
+          <DialogTitle className="text-base font-semibold text-gray-800">Send Stock In/Out Report</DialogTitle>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-full hover:bg-gray-100"
+            onClick={handleClose}
+          >
+            <X className="h-5 w-5 text-gray-600" />
+          </Button>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Radio Group for Delivery Method */}
-          <RadioGroup value={deliveryMethod} onValueChange={(value) => setDeliveryMethod(value as "email" | "phone")}>
-            {/* Email Option */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="email" id="email-radio" />
-                <Label htmlFor="email-radio" className="text-sm font-semibold cursor-pointer">
-                  Email
-                </Label>
-              </div>
-              {deliveryMethod === "email" && (
-                <div className="ml-6">
-                  <Label htmlFor="email" className="text-sm text-muted-foreground mb-2 block">
-                    Email Address
-                  </Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="example@email.com"
-                    className="w-full"
-                  />
-                </div>
-              )}
+        {/* Form Fields */}
+        <div className="space-y-4 mt-3">
+          {/* Email Option */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="emailOption"
+                checked={emailSelected}
+                onCheckedChange={(checked) => setEmailSelected(checked === true)}
+                className="w-4 h-4 text-orange-500 border-gray-300 rounded data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+              />
+              <Label
+                htmlFor="emailOption"
+                className="text-sm font-medium text-gray-700 cursor-pointer"
+              >
+                Email
+              </Label>
             </div>
-
-            {/* Phone Number Option */}
-            <div className="space-y-3">
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="phone" id="phone-radio" />
-                <Label htmlFor="phone-radio" className="text-sm font-semibold cursor-pointer">
-                  Phone Number
-                </Label>
-              </div>
-              {deliveryMethod === "phone" && (
-                <div className="ml-6">
-                  <Label className="text-sm text-muted-foreground mb-2 block">
-                    Phone Number with Country Code
-                  </Label>
-                  <div className="flex gap-2">
-                    <Select value={countryCode} onValueChange={setCountryCode}>
-                      <SelectTrigger className="w-32">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="+1">+1 (US/CA)</SelectItem>
-                        <SelectItem value="+44">+44 (UK)</SelectItem>
-                        <SelectItem value="+91">+91 (IN)</SelectItem>
-                        <SelectItem value="+86">+86 (CN)</SelectItem>
-                        <SelectItem value="+81">+81 (JP)</SelectItem>
-                        <SelectItem value="+49">+49 (DE)</SelectItem>
-                        <SelectItem value="+33">+33 (FR)</SelectItem>
-                        <SelectItem value="+61">+61 (AU)</SelectItem>
-                        <SelectItem value="+52">+52 (MX)</SelectItem>
-                        <SelectItem value="+55">+55 (BR)</SelectItem>
-                        <SelectItem value="+7">+7 (RU)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Input
-                      type="tel"
-                      value={phoneNumber}
-                      onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ""))}
-                      placeholder="Phone number"
-                      className="flex-1"
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-          </RadioGroup>
-
-          {/* Send Button */}
-          <div className="pt-4">
-            <Button
-              onClick={handleSend}
-              className="w-full bg-orange-500 hover:bg-orange-600 text-white text-lg font-semibold py-6"
-            >
-              Send
-            </Button>
+            {emailSelected && (
+              <Input
+                type="email"
+                placeholder="Enter email address"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+              />
+            )}
           </div>
+
+          {/* Phone Option */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="phoneOption"
+                checked={phoneSelected}
+                onCheckedChange={(checked) => setPhoneSelected(checked === true)}
+                className="w-4 h-4 text-orange-500 border-gray-300 rounded data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500"
+              />
+              <Label
+                htmlFor="phoneOption"
+                className="text-sm font-medium text-gray-700 cursor-pointer"
+              >
+                Phone
+              </Label>
+            </div>
+            {phoneSelected && (
+              <div className="flex items-center gap-2">
+                {/* Country Code Dropdown */}
+                <Select value={countryCode} onValueChange={setCountryCode}>
+                  <SelectTrigger className="w-[90px] h-[38px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px]">
+                    {countryCodes.map((item) => (
+                      <SelectItem key={item.code} value={item.code}>
+                        {item.code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Phone Number Input */}
+                <Input
+                  type="tel"
+                  placeholder="Enter phone number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="flex-1 h-[38px] border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500"
+                />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer Button */}
+        <div className="flex justify-end pt-3 mt-4 border-t border-gray-100">
+          <Button
+            onClick={handleSend}
+            disabled={isSendDisabled}
+            className="bg-orange-500 hover:bg-orange-600 text-white rounded-lg px-4 py-1.5 text-sm disabled:bg-gray-300 disabled:cursor-not-allowed disabled:hover:bg-gray-300"
+          >
+            Send
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
   );
-}
+};
 
-
-
-
-
-
-
-
+export default SendStockInOutReportModal;
 
 
 

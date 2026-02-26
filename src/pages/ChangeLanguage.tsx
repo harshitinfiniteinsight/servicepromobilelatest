@@ -1,76 +1,98 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft } from "lucide-react";
+import MobileHeader from "@/components/layout/MobileHeader";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
-import { useToast } from "@/hooks/use-toast";
+import { cn } from "@/lib/utils";
+import { showSuccessToast } from "@/utils/toast";
 
 const ChangeLanguage = () => {
-  const navigate = useNavigate();
-  const { toast } = useToast();
   const [selectedLanguage, setSelectedLanguage] = useState("english");
 
   const handleLanguageChange = (value: string) => {
     setSelectedLanguage(value);
-    toast({
-      title: "Language Changed",
-      description: `App language has been changed to ${value === "english" ? "English" : "Spanish"}.`,
-    });
+    // Auto-save on change
+    showSuccessToast(`Language changed to ${value === "english" ? "English" : "Spanish"}.`);
   };
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="bg-primary text-primary-foreground p-4 flex items-center gap-3 shadow-lg">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/settings")}
-          className="hover:bg-primary-foreground/20 text-primary-foreground"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-xl font-semibold">Change App Language</h1>
-      </div>
+    <div className="h-full flex flex-col overflow-hidden bg-gray-50">
+      <MobileHeader title="Change App Language" showBack={true} />
+      
+      <div className="flex-1 overflow-y-auto scrollable pt-12 pb-6 px-4">
+        {/* Informational Text - Outside the card */}
+        <p className="text-sm text-gray-600 mb-6 leading-relaxed">
+          The app language will be set by default to your Clover POS set language.
+          <br />
+          You may choose to change the language using the options below.
+        </p>
 
-      <main className="p-4 sm:p-6 max-w-4xl mx-auto">
-        <div className="text-center mb-8 mt-12">
-          <p className="text-xl text-muted-foreground leading-relaxed max-w-3xl mx-auto">
-            The app language will be set by default to your Clover POS set language.
-            <br />
-            You may choose to change the language using the options below.
-          </p>
+        {/* Card Container */}
+        <div className="bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden">
+          {/* Language Options */}
+          <RadioGroup value={selectedLanguage} onValueChange={handleLanguageChange} className="space-y-0">
+            {/* English Option */}
+            <div
+              className={cn(
+                "flex items-center justify-between px-5 py-4 cursor-pointer transition-colors active:bg-gray-50",
+                selectedLanguage === "english" && "bg-orange-50/50"
+              )}
+              onClick={() => handleLanguageChange("english")}
+            >
+              <Label
+                htmlFor="english"
+                className={cn(
+                  "text-base font-bold cursor-pointer flex-1",
+                  selectedLanguage === "english" ? "text-[#FF8A3C]" : "text-gray-900"
+                )}
+              >
+                English
+              </Label>
+              <RadioGroupItem
+                value="english"
+                id="english"
+                className={cn(
+                  "h-5 w-5 border-2 flex-shrink-0",
+                  selectedLanguage === "english"
+                    ? "border-[#FF8A3C] text-[#FF8A3C]"
+                    : "border-gray-300"
+                )}
+              />
+            </div>
+
+            {/* Divider */}
+            <div className="h-px bg-gray-200 mx-5" />
+
+            {/* Spanish Option */}
+            <div
+              className={cn(
+                "flex items-center justify-between px-5 py-4 cursor-pointer transition-colors active:bg-gray-50",
+                selectedLanguage === "spanish" && "bg-orange-50/50"
+              )}
+              onClick={() => handleLanguageChange("spanish")}
+            >
+              <Label
+                htmlFor="spanish"
+                className={cn(
+                  "text-base font-bold cursor-pointer flex-1",
+                  selectedLanguage === "spanish" ? "text-[#FF8A3C]" : "text-gray-900"
+                )}
+              >
+                Spanish
+              </Label>
+              <RadioGroupItem
+                value="spanish"
+                id="spanish"
+                className={cn(
+                  "h-5 w-5 border-2 flex-shrink-0",
+                  selectedLanguage === "spanish"
+                    ? "border-[#FF8A3C] text-[#FF8A3C]"
+                    : "border-gray-300"
+                )}
+              />
+            </div>
+          </RadioGroup>
         </div>
-
-        <Card className="border-2 shadow-xl bg-primary/5 max-w-2xl mx-auto">
-          <CardContent className="p-8">
-            <RadioGroup value={selectedLanguage} onValueChange={handleLanguageChange}>
-              <div className="flex items-center justify-between p-6 border-b border-primary/20">
-                <Label htmlFor="english" className="text-2xl font-semibold text-primary cursor-pointer flex-1">
-                  English
-                </Label>
-                <RadioGroupItem
-                  value="english"
-                  id="english"
-                  className="h-8 w-8 border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                />
-              </div>
-
-              <div className="flex items-center justify-between p-6">
-                <Label htmlFor="spanish" className="text-2xl font-semibold text-primary cursor-pointer flex-1">
-                  Spanish
-                </Label>
-                <RadioGroupItem
-                  value="spanish"
-                  id="spanish"
-                  className="h-8 w-8 border-2 border-primary data-[state=checked]:bg-primary data-[state=checked]:text-primary-foreground"
-                />
-              </div>
-            </RadioGroup>
-          </CardContent>
-        </Card>
-      </main>
+      </div>
     </div>
   );
 };

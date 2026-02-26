@@ -1,431 +1,364 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useMemo } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Printer, X, Mail, MessageSquare, UserCog, Edit } from "lucide-react";
-import { SendEmailModal } from "./SendEmailModal";
-import { SendSMSModal } from "./SendSMSModal";
-import { mockEmployees, mockCustomers } from "@/data/mockData";
-import { useToast } from "@/hooks/use-toast";
+import { Printer, X, Mail, MessageSquare, UserCog, Edit, FileText, Image as ImageIcon, Paperclip } from "lucide-react";
+import { format } from "date-fns";
+import { mockCustomers } from "@/data/mobileMockData";
+import { cn } from "@/lib/utils";
 
-interface PreviewInvoiceModalProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  invoice: any;
-  onEdit?: (invoice: any) => void;
-  onPayNow?: (invoice: any) => void;
+interface InvoiceItem {
+  serviceDate: string;
+  productService: string;
+  sku: string;
+  description: string;
+  qty: number;
+  rate: number;
+  discount: number;
+  subTotal: number;
+  tax: number;
 }
 
-export const PreviewInvoiceModal = ({ open, onOpenChange, invoice, onEdit, onPayNow }: PreviewInvoiceModalProps) => {
-  const { toast } = useToast();
-  const [showEmailModal, setShowEmailModal] = useState(false);
-  const [showSMSModal, setShowSMSModal] = useState(false);
-  const [showReassignModal, setShowReassignModal] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState(invoice?.employeeId || "");
-
-  if (!invoice) return null;
-
-  // Find customer details
-  const customer = mockCustomers.find(c => c.id === invoice.customerId);
-  
-  // Calculate invoice totals
-  const items = invoice.items || [];
-  const itemTotal = items.reduce((sum: number, item: any) => {
-    const itemSubtotal = (item.rate || 0) * (item.quantity || 0);
-    const discountAmount = item.discount ? (itemSubtotal * (item.discount / 100)) : 0;
-    return sum + (itemSubtotal - discountAmount);
-  }, 0);
-
-  const discountTotal = items.reduce((sum: number, item: any) => {
-    const itemSubtotal = (item.rate || 0) * (item.quantity || 0);
-    return sum + (itemSubtotal * ((item.discount || 0) / 100));
-  }, 0);
-
-  const subtotalAfterDiscount = itemTotal;
-  const taxTotal = items.reduce((sum: number, item: any) => {
-    const itemSubtotal = (item.rate || 0) * (item.quantity || 0);
-    const discountAmount = item.discount ? (itemSubtotal * (item.discount / 100)) : 0;
-    const afterDiscount = itemSubtotal - discountAmount;
-    return sum + ((item.tax || 0) / 100) * afterDiscount;
-  }, 0);
-
-  const invoiceTotal = subtotalAfterDiscount + taxTotal;
-  const invoiceBalanceDue = invoiceTotal;
-
-  // Format date
-  const formatDate = (dateString: string) => {
-    if (!dateString) return "";
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+interface PreviewInvoiceModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  invoice: {
+    id: string;
+    customerId: string;
+    customerName: string;
+    issueDate: string;
+    dueDate: string;
+    amount: number;
+    status: string;
+    paymentMethod: string;
+    items?: InvoiceItem[];
+    notesText?: string;
+    attachments?: { fileName: string; fileUrl: string; fileType: string; }[];
   };
+  onAction?: (action: string) => void;
+}
 
-  // Format terms
-  const formatTerms = (terms: string) => {
-    if (!terms) return "due on receipt";
-    return terms.toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
-  };
+const PreviewInvoiceModal = ({ isOpen, onClose, invoice, onAction }: PreviewInvoiceModalProps) => {
+  const customer = useMemo(() => mockCustomers.find(c => c.id === invoice.customerId), [invoice.customerId]);
 
-  const handlePrint = () => {
-    window.print();
-  };
+  const invoiceDate = invoice.issueDate ? format(new Date(invoice.issueDate), "MM/dd/yyyy") : "09/12/2024";
+  const dueDate = invoice.dueDate ? format(new Date(invoice.dueDate), "MM/dd/yyyy") : "09/12/2024";
+  const terms = "Due On Receipt";
 
-  const handleSendEmail = () => {
-    setShowEmailModal(true);
-  };
-
-  const handleSendSMS = () => {
-    setShowSMSModal(true);
-  };
-
-  const handleReassignEmployee = () => {
-    setShowReassignModal(true);
-  };
-
-  const handleReassignSubmit = () => {
-    if (!selectedEmployee) {
-      toast({
-        title: "Error",
-        description: "Please select an employee",
-        variant: "destructive",
-      });
-      return;
+  const items = useMemo(() => {
+    if (!invoice.items || invoice.items.length === 0) {
+      return [
+        {
+          serviceDate: "09/12/2024",
+          productService: "Ceiling fan installation",
+          sku: "N/A",
+          description: "Ceiling fan installation",
+          qty: 1,
+          rate: 500,
+          discount: 0,
+          subTotal: 500,
+          tax: 0,
+        },
+        {
+          serviceDate: "09/12/2024",
+          productService: "Ceiling fan unit",
+          sku: "N/A",
+          description: "Ceiling fan unit",
+          qty: 1,
+          rate: 180,
+          discount: 0,
+          subTotal: 180,
+          tax: 0,
+        },
+      ];
     }
-    toast({
-      title: "Employee Reassigned",
-      description: `Invoice ${invoice.id} has been reassigned to the selected employee.`,
-    });
-    setShowReassignModal(false);
+
+    return invoice.items.map((item: any) => ({
+      serviceDate: item.serviceDate || (invoice.issueDate ? format(new Date(invoice.issueDate), "MM/dd/yyyy") : "09/12/2024"),
+      productService: item.productService || item.name || "Service",
+      sku: item.sku || "N/A",
+      description: item.description || item.name || "Description",
+      qty: item.qty ?? item.quantity ?? 1,
+      rate: item.rate ?? item.price ?? 0,
+      discount: item.discount ?? 0,
+      subTotal: item.subTotal ?? item.amount ?? item.total ?? 0,
+      tax: item.tax ?? 0,
+    }));
+  }, [invoice.items, invoice.issueDate]);
+
+  const itemTotal = items.reduce((sum, item) => sum + item.subTotal, 0);
+  const totalDiscount = items.reduce((sum, item) => sum + (item.subTotal * item.discount / 100), 0);
+  const subtotalAfterDiscount = itemTotal - totalDiscount;
+  const totalTax = items.reduce((sum, item) => sum + item.tax, 0);
+  const invoiceTotal = subtotalAfterDiscount + totalTax;
+  const balanceDue = invoice.status === "Paid" ? 0 : invoiceTotal;
+
+  const notesText = invoice.notesText || "Thank you for your business. Please include invoice number on check.";
+  const attachments = invoice.attachments || [
+    {
+      fileName: "completed_work.jpg",
+      fileUrl: "https://images.unsplash.com/photo-1581094794329-cd11179a28fa?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3",
+      fileType: "image/jpeg"
+    }
+  ];
+
+  const handleAction = (action: string) => {
+    onAction?.(action);
+    if (action === "close") {
+      onClose();
+    }
   };
 
   return (
-    <>
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto p-0 bg-white">
-          {/* Header */}
-          <DialogHeader className="bg-gradient-to-r from-blue-600 to-blue-500 text-white p-6 pb-4">
-            <div className="flex items-center justify-between">
-              <DialogTitle className="text-3xl font-bold text-white">Preview Invoice</DialogTitle>
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={handlePrint}
-                  className="bg-orange-500 hover:bg-orange-600 text-white border-none"
-                >
-                  <Printer className="h-4 w-4 mr-2" />
-                  Printer
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => onOpenChange(false)}
-                  className="text-white hover:bg-blue-600/80 h-10 w-10 rounded-full"
-                >
-                  <X className="h-5 w-5" />
-                </Button>
-              </div>
-            </div>
-          </DialogHeader>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="!fixed !inset-0 !translate-x-0 !translate-y-0 m-0 flex h-full max-h-full w-full max-w-full flex-col gap-0 rounded-none p-0 sm:!left-1/2 sm:!top-1/2 sm:h-auto sm:max-h-[92vh] sm:w-[720px] sm:!translate-x-[-50%] sm:!translate-y-[-50%] sm:rounded-3xl [&>button]:hidden">
+        <DialogTitle className="sr-only">Preview Invoice</DialogTitle>
+        <DialogDescription className="sr-only">Preview invoice {invoice.id}</DialogDescription>
 
-          <div className="p-6 space-y-6">
-            {/* Invoice Details Section - Blue Background */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Invoice No.</p>
-                  <p className="font-semibold text-gray-900">{invoice.id || "Generated After Save"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Invoice Date</p>
-                  <p className="font-semibold text-gray-900">{formatDate(invoice.issueDate)}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Terms</p>
-                  <p className="font-semibold text-gray-900">{formatTerms(invoice.terms || "due on receipt")}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">Due Date</p>
-                  <p className="font-semibold text-gray-900">{formatDate(invoice.issueDate)}</p>
-                </div>
-              </div>
-            </div>
+        <div className="bg-orange-500 px-3 py-3 flex items-center justify-between safe-top">
+          <h2 className="text-base font-semibold text-white">Preview Invoice</h2>
+          <div className="flex items-center gap-1.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleAction("print")}
+              className="text-white hover:bg-orange-600 h-8 px-2"
+            >
+              <Printer className="h-3.5 w-3.5 mr-1" />
+              <span className="text-xs">Print</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={onClose}
+              className="text-white hover:bg-orange-600 h-9 w-9 rounded-full"
+            >
+              <X className="h-5 w-5" />
+            </Button>
+          </div>
+        </div>
 
-            {/* Bill To & Ship To Section - Blue Background */}
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
-              <div className="grid grid-cols-2 gap-6">
+        <div className="flex-1 overflow-y-auto bg-gray-50">
+          <div className="mx-auto w-full max-w-[900px] px-3 py-3">
+            <div className="rounded-2xl bg-white shadow-2xl overflow-hidden border border-gray-100">
+              <div className="bg-orange-500 text-white px-4 py-3 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Bill To</h3>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-gray-600">Name -</span> <span className="font-medium text-gray-900">{customer?.name || invoice.customerName || "N/A"}</span></p>
-                    <p><span className="text-gray-600">Email -</span> <span className="font-medium text-gray-900">{customer?.email || "N/A"}</span></p>
-                    <p><span className="text-gray-600">Address -</span> <span className="font-medium text-gray-900">{customer?.address || "N/A"}</span></p>
-                    <p><span className="text-gray-600">Company -</span> <span className="font-medium text-gray-900">{invoice.company || "null"}</span></p>
-                    <p><span className="text-gray-600">Phone -</span> <span className="font-medium text-gray-900">{customer?.phone || "N/A"}</span></p>
+                  <p className="text-[10px] uppercase tracking-wide opacity-80">Invoice No.</p>
+                  <p className="text-base font-semibold">{invoice.id}</p>
+                </div>
+                <div className="flex gap-4 text-xs">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide opacity-80">Invoice Date</p>
+                    <p className="font-semibold text-sm">{invoiceDate}</p>
                   </div>
-                </div>
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-3">Ship To</h3>
-                  <div className="space-y-1 text-sm">
-                    <p><span className="text-gray-600">Name -</span> <span className="font-medium text-gray-900">{invoice.shipToName || "null null"}</span></p>
-                    <p><span className="text-gray-600">Email -</span> <span className="font-medium text-gray-900">{customer?.email || invoice.shipToEmail || "N/A"}</span></p>
-                    <p><span className="text-gray-600">Address -</span> <span className="font-medium text-gray-900">{invoice.shipToAddress || "null"}</span></p>
-                    <p><span className="text-gray-600">Company -</span> <span className="font-medium text-gray-900">{invoice.shipToCompany || "null"}</span></p>
-                    <p><span className="text-gray-600">Phone -</span> <span className="font-medium text-gray-900">{customer?.phone || "N/A"}</span></p>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide opacity-80">Terms</p>
+                    <p className="font-semibold text-sm">{terms}</p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] uppercase tracking-wide opacity-80">Due Date</p>
+                    <p className="font-semibold text-sm">{dueDate}</p>
                   </div>
                 </div>
               </div>
-            </div>
 
-            {/* Items Table */}
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-blue-600 text-white">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-sm font-semibold">Service Date</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold">Product/Service</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold">SKU</th>
-                    <th className="px-4 py-3 text-left text-sm font-semibold">Description</th>
-                    <th className="px-4 py-3 text-center text-sm font-semibold">QTY</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Rate</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Discount</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Sub Total</th>
-                    <th className="px-4 py-3 text-right text-sm font-semibold">Tax</th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white">
-                  {items.map((item: any, index: number) => {
-                    const itemSubtotal = (item.rate || 0) * (item.quantity || 0);
-                    const discountAmount = item.discount ? (itemSubtotal * (item.discount / 100)) : 0;
-                    const afterDiscount = itemSubtotal - discountAmount;
-                    const taxAmount = ((item.tax || 0) / 100) * afterDiscount;
-                    
-                    return (
-                      <tr key={index} className="border-b border-gray-100">
-                        <td className="px-4 py-3 text-sm text-gray-900">{formatDate(item.serviceDate || invoice.issueDate)}</td>
-                        <td className="px-4 py-3 text-sm font-medium text-gray-900">{item.description || item.product || "N/A"}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{item.sku || "N/A"}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600 max-w-xs">{item.fullDescription || item.description || "N/A"}</td>
-                        <td className="px-4 py-3 text-sm text-center text-gray-900">{item.quantity || 0}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-900">${(item.rate || 0).toFixed(2)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-900">{item.discount ? `${item.discount}%` : "0.00%"}</td>
-                        <td className="px-4 py-3 text-sm text-right font-medium text-gray-900">${afterDiscount.toFixed(2)}</td>
-                        <td className="px-4 py-3 text-sm text-right text-gray-900">${taxAmount.toFixed(2)}</td>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-4 py-3 bg-[#F5F8FF] border-b border-[#E0E7FF]">
+                <div>
+                  <p className="text-[10px] font-semibold text-[#0E1E3E] uppercase mb-1.5">Bill To</p>
+                  <div className="space-y-0.5 text-xs text-[#1D3A6B]">
+                    <p className="font-semibold">{customer?.name || invoice.customerName}</p>
+                    <p>{customer?.email || "info@email.com"}</p>
+                    <p>{customer?.address || "789 Pine Rd, Cambridge, MA 02140"}</p>
+                    <p>{customer?.phone || "(555) 345-6789"}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-[10px] font-semibold text-[#0E1E3E] uppercase mb-1.5">Ship To/Job Address</p>
+                  <div className="space-y-0.5 text-xs text-[#1D3A6B]">
+                    <p className="font-semibold">{customer?.name || invoice.customerName}</p>
+                    <p>{customer?.email || "info@email.com"}</p>
+                    <p>{customer?.address || "456 Oak Ave, Brooklyn, NY 11201"}</p>
+                    <p>{customer?.phone || "(555) 345-6789"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="px-4 py-3 space-y-3 bg-white">
+                <div className="overflow-x-auto -mx-4 px-4">
+                  <table className="w-full text-xs border border-[#E0E7FF] table-auto">
+                    <thead>
+                      <tr className="bg-orange-500 text-white">
+                        <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-left font-semibold whitespace-nowrap">Date</th>
+                        <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-left font-semibold min-w-[80px]">Product/Service</th>
+                        <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-left font-semibold hidden sm:table-cell">SKU</th>
+                        <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-left font-semibold min-w-[100px]">Description</th>
+                        <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-center font-semibold whitespace-nowrap">QTY</th>
+                        <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-right font-semibold whitespace-nowrap">Rate</th>
+                        <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-right font-semibold hidden md:table-cell whitespace-nowrap">Discount</th>
+                        <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-right font-semibold whitespace-nowrap">Sub Total</th>
+                        <th className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-right font-semibold whitespace-nowrap">Tax</th>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                    </thead>
+                    <tbody>
+                      {items.map((item, index) => (
+                        <tr key={index} className="border-b border-[#E0E7FF] hover:bg-gray-50/50">
+                          <td className="px-1.5 py-1.5 sm:px-2 sm:py-2 whitespace-nowrap">{item.serviceDate}</td>
+                          <td className="px-1.5 py-1.5 sm:px-2 sm:py-2 font-medium">{item.productService}</td>
+                          <td className="px-1.5 py-1.5 sm:px-2 sm:py-2 hidden sm:table-cell">{item.sku}</td>
+                          <td className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-[10px] sm:text-xs break-words">{item.description}</td>
+                          <td className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-center whitespace-nowrap">{item.qty}</td>
+                          <td className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-right whitespace-nowrap">${item.rate.toFixed(2)}</td>
+                          <td className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-right hidden md:table-cell whitespace-nowrap">{item.discount.toFixed(2)}%</td>
+                          <td className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-right font-medium whitespace-nowrap text-[#FF8A3C]">${item.subTotal.toFixed(2)}</td>
+                          <td className="px-1.5 py-1.5 sm:px-2 sm:py-2 text-right whitespace-nowrap">${item.tax.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
 
-            <div className="grid grid-cols-3 gap-6">
-              {/* Terms & Conditions Section */}
-              <div className="col-span-2 space-y-4">
-                <div>
-                  <h3 className="text-blue-600 font-semibold mb-1">Message on Statement</h3>
-                  <p className="text-sm text-gray-600">{invoice.messageOnStatement || "-"}</p>
+                <div className="flex justify-end">
+                  <div className="rounded-lg bg-[#F8FBFF] border border-[#E0E7FF] px-3 py-3 space-y-1.5 text-xs text-[#0E1E3E] w-full sm:w-auto sm:min-w-[280px]">
+                    <div className="flex justify-between items-center">
+                      <span className="text-left">Item Total</span>
+                      <span className="font-medium text-right">${itemTotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-left">Sub Total after Discount</span>
+                      <span className="font-medium text-right">${subtotalAfterDiscount.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-left">Taxes</span>
+                      <span className="font-medium text-right">${totalTax.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center border-t border-[#E0E7FF] pt-1.5 mt-1.5">
+                      <span className="font-semibold text-sm text-left">Invoice Total</span>
+                      <span className="font-semibold text-sm text-right">${invoiceTotal.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-left">Invoice Balance due</span>
+                      <span className="font-medium text-right">${balanceDue.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-left">Total Balance due</span>
+                      <span className="font-medium text-right">${balanceDue.toFixed(2)}</span>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-blue-600 font-semibold mb-1">Message on Invoice</h3>
-                  <p className="text-sm text-gray-600">{invoice.messageOnInvoice || "-"}</p>
+
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pt-2">
+                  {invoice.status !== "Paid" ? (
+                    <Button
+                      onClick={() => handleAction("pay-now")}
+                      className="bg-[#FF8A3C] hover:bg-[#ff7a1f] text-white font-semibold px-4 py-2 h-9 rounded-full text-sm"
+                    >
+                      Pay Now
+                    </Button>
+                  ) : (
+                    <div className="border-2 border-green-500 text-green-600 px-3 py-1.5 rounded-lg inline-flex items-center gap-1 bg-green-50">
+                      <span className="text-xs font-semibold">Paid</span>
+                    </div>
+                  )}
+
+                  <div
+                    className={cn(
+                      "px-3 py-1.5 rounded-md border-2 uppercase tracking-[2px] text-xs font-semibold inline-flex items-center",
+                      invoice.status === "Paid"
+                        ? "border-green-500 text-green-600 bg-green-50"
+                        : "border-red-500 text-red-500 bg-red-50"
+                    )}
+                  >
+                    {invoice.status === "Open" ? "Unpaid" : invoice.status}
+                  </div>
                 </div>
-                <div>
-                  <h3 className="text-blue-600 font-semibold mb-1">Terms & Conditions</h3>
-                  <p className="text-sm text-gray-600">{invoice.termsConditions || "from global settings"}</p>
-                </div>
-                <div>
-                  <h3 className="text-blue-600 font-semibold mb-1">Cancellation & Refund Policy</h3>
-                  <p className="text-sm text-gray-600">{invoice.cancellationPolicy || "-"}</p>
-                </div>
-                <div>
-                  <h3 className="text-blue-600 font-semibold mb-2">Thank You For Your Business!</h3>
-                  <p className="text-sm text-gray-600">
+
+                <div className="space-y-1.5 text-xs text-[#1D3A6B] pt-2 border-t border-gray-200">
+                  <p>
+                    <span className="font-semibold text-[#0E1E3E]">Message on Invoice:</span> –
+                  </p>
+
+                  {/* Notes Section */}
+                  <div className="pt-1.5 pb-1.5">
+                    <p className="font-semibold text-[#0E1E3E] mb-1">Notes:</p>
+                    <p className="mb-2">{notesText || "–"}</p>
+
+                    {attachments && attachments.length > 0 && (
+                      <div className="space-y-1">
+                        {attachments.map((file, index) => (
+                          <a
+                            key={index}
+                            href={file.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2 p-1.5 border border-gray-200 rounded-md hover:bg-gray-50 transition-colors text-xs text-blue-600 bg-white"
+                          >
+                            {file.fileType.includes('image') ? (
+                              <ImageIcon className="h-3.5 w-3.5 text-gray-500" />
+                            ) : file.fileType.includes('pdf') ? (
+                              <FileText className="h-3.5 w-3.5 text-gray-500" />
+                            ) : (
+                              <Paperclip className="h-3.5 w-3.5 text-gray-500" />
+                            )}
+                            <span className="truncate">{file.fileName}</span>
+                          </a>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <p>
+                    <span className="font-semibold text-[#0E1E3E]">Terms & Conditions:</span>{" "}
+                    <span className="text-orange-500">from global settings</span>
+                  </p>
+                  <p>
+                    <span className="font-semibold text-[#0E1E3E]">Cancellation & Refund Policy:</span> –
+                  </p>
+                  <p className="pt-1.5 font-semibold text-sm text-[#0E1E3E]">Thank You For Your Business!</p>
+                  <p className="text-[10px]">
                     If below 'Pay Now' button didn't work, just copy and paste this URL into your web browser's address bar to complete payment:
                   </p>
                 </div>
               </div>
-
-              {/* Summary Section */}
-              <div className="space-y-3">
-                <div className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Item Total:</span>
-                    <span className="font-medium text-gray-900">${itemTotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Sub Total after Discount:</span>
-                    <span className="font-medium text-gray-900">${subtotalAfterDiscount.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Taxes:</span>
-                    <span className="font-medium text-gray-900">${taxTotal.toFixed(2)}</span>
-                  </div>
-                  {items.map((item: any, index: number) => {
-                    if (item.tax && item.tax > 0) {
-                      const itemSubtotal = (item.rate || 0) * (item.quantity || 0);
-                      const discountAmount = item.discount ? (itemSubtotal * (item.discount / 100)) : 0;
-                      const afterDiscount = itemSubtotal - discountAmount;
-                      const taxAmount = (item.tax / 100) * afterDiscount;
-                      return (
-                        <div key={index} className="flex justify-between text-xs text-gray-500">
-                          <span>default : {item.tax}% of ${afterDiscount.toFixed(2)} = ${taxAmount.toFixed(2)}</span>
-                          <span>${taxAmount.toFixed(2)}</span>
-                        </div>
-                      );
-                    }
-                    return null;
-                  })}
-                  <Separator />
-                  <div className="flex justify-between">
-                    <span className="font-semibold text-gray-900">Invoice Total:</span>
-                    <span className="font-bold text-lg text-gray-900">${invoiceTotal.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Invoice Balance due:</span>
-                    <span className="font-medium text-gray-900">${invoiceBalanceDue.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Total Balance due:</span>
-                    <span className="font-medium text-gray-900">${invoiceBalanceDue.toFixed(2)}</span>
-                  </div>
-                  
-                  <div className="pt-2 space-y-2">
-                    {invoice.status !== "Paid" && (
-                      <Button 
-                        className="w-full bg-orange-500 hover:bg-orange-600 text-white"
-                        onClick={() => {
-                          if (onPayNow) {
-                            onPayNow(invoice);
-                            onOpenChange(false);
-                          }
-                        }}
-                      >
-                        Pay Now
-                      </Button>
-                    )}
-                    <div className="flex items-center justify-center py-4">
-                      <div 
-                        className={`
-                          inline-block px-8 py-3 border-4 rounded-lg font-bold text-xl
-                          transform rotate-[-3deg] shadow-lg
-                          ${invoice.status === "Paid" 
-                            ? "border-green-500 text-green-600 bg-green-50" 
-                            : "border-red-500 text-red-600 bg-red-50"
-                          }
-                        `}
-                        style={{
-                          fontFamily: 'serif',
-                          letterSpacing: '2px'
-                        }}
-                      >
-                        {invoice.status === "Paid" ? "Paid" : "Unpaid"}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
             </div>
+          </div>
+        </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center justify-between pt-4 border-t border-gray-200">
-              <div className="flex items-center gap-3">
-                {invoice.status !== "Paid" && onEdit && (
-                  <Button
-                    onClick={() => {
-                      if (onEdit) {
-                        onEdit(invoice);
-                        onOpenChange(false);
-                      }
-                    }}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Edit className="h-4 w-4 mr-2" />
-                    Edit Invoice
-                  </Button>
-                )}
-                <Button
-                  onClick={handleSendEmail}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <Mail className="h-4 w-4 mr-2" />
-                  Send Email
-                </Button>
-                <Button
-                  onClick={handleSendSMS}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Send via SMS
-                </Button>
-                <Button
-                  onClick={handleReassignEmployee}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  <UserCog className="h-4 w-4 mr-2" />
-                  Reassign Employee
-                </Button>
-              </div>
+        <div className="bg-orange-500 safe-bottom">
+          <div className="px-3 pt-3 pb-4">
+            <div className="flex flex-row items-center justify-between gap-2 sm:gap-3 w-full">
               <Button
-                onClick={() => onOpenChange(false)}
-                className="bg-orange-500 hover:bg-orange-600 text-white"
+                variant="ghost"
+                size="sm"
+                onClick={() => handleAction("send-email")}
+                className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
               >
-                Close
+                <Mail className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                <span className="whitespace-nowrap text-[10px] sm:text-xs">Send Email</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleAction("send-sms")}
+                className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
+              >
+                <MessageSquare className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                <span className="whitespace-nowrap text-[10px] sm:text-xs">Send SMS</span>
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => handleAction("reassign")}
+                className="text-white hover:bg-orange-600 h-9 px-2 sm:px-3 py-2 flex-1 min-w-0 justify-center text-xs rounded-lg"
+              >
+                <UserCog className="h-3.5 w-3.5 mr-1 sm:mr-1.5 flex-shrink-0" />
+                <span className="whitespace-nowrap text-[10px] sm:text-xs">Reassign</span>
               </Button>
             </div>
           </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Send Email Modal */}
-      <SendEmailModal
-        open={showEmailModal}
-        onOpenChange={setShowEmailModal}
-        customerEmail={customer?.email || ""}
-      />
-
-      {/* Send SMS Modal */}
-      <SendSMSModal
-        open={showSMSModal}
-        onOpenChange={setShowSMSModal}
-        customerName={customer?.name || invoice.customerName || ""}
-        phoneNumber={customer?.phone || ""}
-      />
-
-      {/* Reassign Employee Modal */}
-      <Dialog open={showReassignModal} onOpenChange={setShowReassignModal}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Reassign Employee</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Select New Employee</Label>
-              <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Choose employee" />
-                </SelectTrigger>
-                <SelectContent className="z-50 bg-popover">
-                  {mockEmployees
-                    .filter((emp) => emp.status === "Active")
-                    .map((employee) => (
-                      <SelectItem key={employee.id} value={employee.id}>
-                        {employee.name} - {employee.role}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => setShowReassignModal(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleReassignSubmit} className="bg-blue-600 hover:bg-blue-700 text-white">
-              Reassign
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 };
+
+export default PreviewInvoiceModal;
 

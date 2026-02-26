@@ -597,7 +597,7 @@ export const statusColors: Record<string, string> = {
   Paid: "bg-success/10 text-success border-success/20",  // For invoices only
   Unpaid: "bg-warning/10 text-warning border-warning/20",
   Open: "bg-warning/10 text-warning border-warning/20",
-  Overdue: "bg-destructive/10 text-destructive border-destructive/20",
+  "Converted to Invoice": "bg-primary/10 text-primary border-primary/20",
   Deactivated: "bg-muted text-muted-foreground border-muted",
   Draft: "bg-muted text-muted-foreground border-muted",
   Sent: "bg-primary/10 text-primary border-primary/20",
@@ -610,7 +610,6 @@ export const statusColors: Record<string, string> = {
   Confirmed: "bg-success/10 text-success border-success/20",
   Pending: "bg-warning/10 text-warning border-warning/20",
   "Expiring Soon": "bg-warning/10 text-warning border-warning/20",
-  "Converted to Invoice": "bg-primary/10 text-primary border-primary/20",
 };
 
 

@@ -1,283 +1,330 @@
-import { useState } from "react";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
-import { useToast } from "@/hooks/use-toast";
-import { Edit, StickyNote, Link2, FileText, Receipt, Users } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
+import { FileText, Receipt, User, X, Edit2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface Appointment {
+  id: string;
+  customerId: string;
+  customerName: string;
+  date: string;
+  time: string;
+  service: string;
+  duration: string;
+  technicianId: string;
+  technicianName: string;
+  status: string;
+}
 
 interface AppointmentDetailsModalProps {
   open: boolean;
-  onOpenChange: (open: boolean) => void;
-  appointment: {
-    id: string;
-    subject: string;
-    customerName: string;
-    employee: string;
-    date: string;
-    startTime: string;
-    endTime: string;
-    status: "Active" | "Deactivated";
-  } | null;
-  onToggleStatus: (appointmentId: string) => void;
-  onEdit: (appointment: any) => void;
-  onAddNote: (appointment: any) => void;
+  onClose: () => void;
+  appointment: Appointment | null;
+  onSave?: (appointment: Appointment) => void;
+  onCreateEstimate?: () => void;
+  onCreateInvoice?: () => void;
+  onViewCustomer?: () => void;
+  onEdit?: (appointmentId: string) => void;
 }
 
-export const AppointmentDetailsModal = ({
+const repeatOptions = [
+  "Not Repeated",
+  "Daily",
+  "Weekly",
+  "Monthly",
+] as const;
+
+const AppointmentDetailsModal = ({
   open,
-  onOpenChange,
+  onClose,
   appointment,
-  onToggleStatus,
+  onSave,
+  onCreateEstimate,
+  onCreateInvoice,
+  onViewCustomer,
   onEdit,
-  onAddNote,
 }: AppointmentDetailsModalProps) => {
-  const { toast } = useToast();
-  const navigate = useNavigate();
-  const [shareVia, setShareVia] = useState<"email-sms" | "email" | "sms">("email-sms");
-  const [shareWith, setShareWith] = useState<"customer" | "employee" | "both">("customer");
+  const [subject, setSubject] = useState("");
+  const [customerName, setCustomerName] = useState("");
+  const [employeeName, setEmployeeName] = useState("");
+  const [note, setNote] = useState("");
+  const [repeated, setRepeated] = useState("Not Repeated");
+  const [shareVia, setShareVia] = useState<"email" | "sms" | "both">("both");
+  const [shareAudience, setShareAudience] = useState<"customer" | "employee" | "both">("both");
+  const [isDeactivated, setIsDeactivated] = useState(false);
+
+  useEffect(() => {
+    if (appointment) {
+      setSubject(appointment.service);
+      setCustomerName(appointment.customerName);
+      setEmployeeName(appointment.technicianName);
+      setNote("");
+      setRepeated("Not Repeated");
+      setIsDeactivated(appointment.status.toLowerCase() !== "confirmed");
+    }
+  }, [appointment]);
+
+  const handleEdit = () => {
+    if (appointment && onEdit) {
+      onEdit(appointment.id);
+      onClose();
+    }
+  };
+
+  const formatDateTime = () => {
+    if (!appointment) return "";
+    const date = new Date(appointment.date + 'T00:00:00');
+    const formattedDate = date.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    return `${formattedDate} ${appointment.time}–${appointment.duration}`;
+  };
 
   if (!appointment) return null;
 
-  const handleShare = () => {
-    toast({
-      title: "Appointment Shared",
-      description: `Shared via ${shareVia} with ${shareWith}`,
-    });
-  };
-
-  const handleCreateEstimate = () => {
-    navigate("/estimates", { state: { customer: appointment.customerName, employee: appointment.employee } });
-    onOpenChange(false);
-    toast({
-      title: "Create Estimate",
-      description: "Opening estimate form with pre-selected customer and employee",
-    });
-  };
-
-  const handleCreateInvoice = () => {
-    navigate("/invoices", { state: { customer: appointment.customerName, employee: appointment.employee } });
-    onOpenChange(false);
-    toast({
-      title: "Create Invoice",
-      description: "Opening invoice form with pre-selected customer and employee",
-    });
-  };
-
-  const handleViewCustomer = () => {
-    navigate(`/customers/${appointment.customerName}`);
-    onOpenChange(false);
-    toast({
-      title: "View Customer",
-      description: `Opening details for ${appointment.customerName}`,
-    });
-  };
-
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[900px] max-h-[90vh] overflow-y-auto">
-        <DialogHeader className="space-y-0">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-2xl font-bold">Appointment Details</DialogTitle>
-            <div className="flex items-center gap-3">
-              <Badge 
-                variant={appointment.status === "Active" ? "default" : "secondary"}
-                className="text-sm"
-              >
-                {appointment.status}
-              </Badge>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={() => onEdit(appointment)}
-              >
-                <Edit className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="h-8 w-8"
-                onClick={() => onAddNote(appointment)}
-              >
-                <StickyNote className="h-4 w-4" />
-              </Button>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <Link2 className="h-4 w-4" />
-              </Button>
-            </div>
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl bg-white shadow-xl max-h-[90vh] overflow-hidden flex flex-col [&>button]:hidden">
+        <DialogDescription className="sr-only">
+          Appointment details modal for {appointment?.customerName || "appointment"}
+        </DialogDescription>
+        <DialogHeader className="px-5 pt-5 pb-3 flex flex-row items-center justify-between border-b border-gray-100">
+          <DialogTitle className="text-lg font-semibold text-gray-900">Appointment Details</DialogTitle>
+          <div className="flex items-center gap-2">
+            {/* Deactivate toggle - only for merchants, not employees */}
+            {(() => {
+              const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
+              const isEmployee = userType === "employee";
+              
+              if (!isEmployee) {
+                return (
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor="deactivate-toggle" className="text-xs font-medium text-gray-600 cursor-pointer">
+                      Deactivate
+                    </Label>
+                    <Switch
+                      id="deactivate-toggle"
+                      checked={isDeactivated}
+                      onCheckedChange={setIsDeactivated}
+                      disabled
+                    />
+                  </div>
+                );
+              }
+              return null;
+            })()}
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-full hover:bg-gray-100"
+              onClick={handleEdit}
+            >
+              <Edit2 className="h-4 w-4 text-gray-600" />
+            </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="h-9 w-9 rounded-full hover:bg-gray-100"
+            onClick={onClose}
+          >
+            <X className="h-5 w-5 text-gray-600" />
+          </Button>
           </div>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-muted-foreground">Subject</Label>
+        <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+            <div className="w-full">
+              <Label className="block text-xs font-medium text-gray-600 mb-1.5">Subject</Label>
               <Input
-                value={appointment.subject}
+                value={subject}
                 readOnly
-                className="bg-muted/30 border-border"
+                disabled
+                className="w-full h-10 min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed"
               />
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-muted-foreground">Appointment Date Time</Label>
+            <div className="w-full">
+              <Label className="block text-xs font-medium text-gray-600 mb-1.5">Appointment Date & Time</Label>
               <Input
-                value={`${appointment.date} ${appointment.startTime} TO ${appointment.endTime}`}
+                value={formatDateTime()}
                 readOnly
-                className="bg-muted/30 border-border"
+                disabled
+                className="w-full h-10 min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-muted-foreground">Customer Name</Label>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+            <div className="w-full">
+              <Label className="block text-xs font-medium text-gray-600 mb-1.5">Customer Name</Label>
               <Input
-                value={appointment.customerName}
+                value={customerName}
                 readOnly
-                className="bg-muted/30 border-border"
+                disabled
+                className="w-full h-10 min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed"
               />
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-muted-foreground">Employee Name</Label>
+            <div className="w-full">
+              <Label className="block text-xs font-medium text-gray-600 mb-1.5">Employee Name</Label>
               <Input
-                value={appointment.employee}
+                value={employeeName}
                 readOnly
-                className="bg-muted/30 border-border"
+                disabled
+                className="w-full h-10 min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed"
               />
             </div>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-muted-foreground">Appointment Note</Label>
-              <Textarea
-                placeholder="No notes added"
-                readOnly
-                className="bg-muted/30 border-border min-h-[80px]"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold text-muted-foreground">Repeated</Label>
-              <Input
-                value="Not Repeated"
-                readOnly
-                className="bg-muted/30 border-border"
-              />
-            </div>
+          <div className="w-full">
+            <Label className="block text-xs font-medium text-gray-600 mb-1.5">Appointment Note</Label>
+            <Textarea
+              value={note || "-"}
+              readOnly
+              disabled
+              className="w-full min-h-[60px] border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed"
+            />
           </div>
 
-          {appointment.status === "Active" && (
-            <div className="space-y-4 p-4 bg-muted/20 rounded-lg border border-border">
-              <Label className="text-base font-bold">Share Appointments</Label>
-              
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={shareVia === "email-sms" ? "default" : "outline"}
-                    onClick={() => setShareVia("email-sms")}
-                    className="flex-1 sm:flex-initial"
-                  >
-                    Email & SMS
-                  </Button>
-                  <Button
-                    variant={shareVia === "email" ? "default" : "outline"}
-                    onClick={() => setShareVia("email")}
-                    className="flex-1 sm:flex-initial"
-                  >
-                    Email
-                  </Button>
-                  <Button
-                    variant={shareVia === "sms" ? "default" : "outline"}
-                    onClick={() => setShareVia("sms")}
-                    className="flex-1 sm:flex-initial"
-                  >
-                    SMS
-                  </Button>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={shareWith === "customer" ? "default" : "outline"}
-                    onClick={() => setShareWith("customer")}
-                    className="flex-1 sm:flex-initial"
-                  >
-                    Customer
-                  </Button>
-                  <Button
-                    variant={shareWith === "employee" ? "default" : "outline"}
-                    onClick={() => setShareWith("employee")}
-                    className="flex-1 sm:flex-initial"
-                  >
-                    Employee
-                  </Button>
-                  <Button
-                    variant={shareWith === "both" ? "default" : "outline"}
-                    onClick={() => setShareWith("both")}
-                    className="flex-1 sm:flex-initial"
-                  >
-                    Both
-                  </Button>
-                </div>
-
-                <Button onClick={handleShare} className="w-full">
-                  Share
-                </Button>
-              </div>
-            </div>
-          )}
-
-          <div className="flex flex-wrap gap-3">
-            <Button
-              variant="outline"
-              className="gap-2 flex-1 sm:flex-initial"
-              onClick={handleCreateEstimate}
-            >
-              <FileText className="h-4 w-4" />
-              Create Estimate
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2 flex-1 sm:flex-initial"
-              onClick={handleCreateInvoice}
-            >
-              <Receipt className="h-4 w-4" />
-              Create Invoice
-            </Button>
-            <Button
-              variant="outline"
-              className="gap-2 flex-1 sm:flex-initial"
-              onClick={handleViewCustomer}
-            >
-              <Users className="h-4 w-4" />
-              View Customer
-            </Button>
+          <div className="w-full">
+            <Label className="block text-xs font-medium text-gray-600 mb-1.5">Repeated</Label>
+            <Select value={repeated} disabled>
+              <SelectTrigger className="w-full h-10 min-h-[44px] border border-gray-300 rounded-lg px-3 py-2 text-sm bg-gray-50 cursor-not-allowed">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {repeatOptions.map(option => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
-          <div className="flex justify-end">
+          <div className="space-y-2 pt-2">
+            <p className="text-xs font-semibold text-gray-700">Share Appointments</p>
+            
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant={shareVia === "both" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-9 text-xs font-medium border-gray-300",
+                  shareVia === "both" ? "bg-primary text-white border-primary" : "text-gray-700"
+                )}
+                onClick={() => setShareVia("both")}
+              >
+                Email & SMS
+              </Button>
+              <Button
+                variant={shareVia === "email" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-9 text-xs font-medium border-gray-300",
+                  shareVia === "email" ? "bg-primary text-white border-primary" : "text-gray-700"
+                )}
+                onClick={() => setShareVia("email")}
+              >
+                Email
+              </Button>
+              <Button
+                variant={shareVia === "sms" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-9 text-xs font-medium border-gray-300",
+                  shareVia === "sms" ? "bg-primary text-white border-primary" : "text-gray-700"
+                )}
+                onClick={() => setShareVia("sms")}
+              >
+                SMS
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <Button
+                variant={shareAudience === "customer" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-9 text-xs font-medium border-gray-300",
+                  shareAudience === "customer" ? "bg-primary text-white border-primary" : "text-gray-700"
+                )}
+                onClick={() => setShareAudience("customer")}
+              >
+                Customer
+              </Button>
+              <Button
+                variant={shareAudience === "employee" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-9 text-xs font-medium border-gray-300",
+                  shareAudience === "employee" ? "bg-primary text-white border-primary" : "text-gray-700"
+                )}
+                onClick={() => setShareAudience("employee")}
+              >
+                Employee
+              </Button>
+              <Button
+                variant={shareAudience === "both" ? "default" : "outline"}
+                size="sm"
+                className={cn(
+                  "h-9 text-xs font-medium border-gray-300",
+                  shareAudience === "both" ? "bg-primary text-white border-primary" : "text-gray-700"
+                )}
+                onClick={() => setShareAudience("both")}
+              >
+                Both
+              </Button>
+            </div>
+
             <Button
-              variant={appointment.status === "Active" ? "destructive" : "default"}
+              className="w-full h-10 bg-primary text-white rounded-lg mt-2 hover:bg-primary/90"
               onClick={() => {
-                onToggleStatus(appointment.id);
-                onOpenChange(false);
+                console.log("Share appointment", { shareVia, shareAudience });
+                onClose();
               }}
             >
-              {appointment.status === "Active" ? "Deactivate" : "Activate"} Appointment
+              Share
             </Button>
           </div>
+        </div>
+
+        <div className="px-5 py-3 border-t border-gray-100 flex items-center justify-between gap-2 text-sm">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 flex flex-col items-center gap-1 text-gray-700 hover:bg-gray-50 px-1 py-2 h-auto"
+            onClick={onCreateEstimate}
+          >
+            <FileText className="h-4 w-4" />
+            <span className="text-[10px] leading-tight text-center">Create Estimate</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 flex flex-col items-center gap-1 text-gray-700 hover:bg-gray-50 px-1 py-2 h-auto"
+            onClick={onCreateInvoice}
+          >
+            <Receipt className="h-4 w-4" />
+            <span className="text-[10px] leading-tight text-center">Create Invoice</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="flex-1 flex flex-col items-center gap-1 text-gray-700 hover:bg-gray-50 px-1 py-2 h-auto"
+            onClick={onViewCustomer}
+          >
+            <User className="h-4 w-4" />
+            <span className="text-[10px] leading-tight text-center">View Customer</span>
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
   );
 };
+
+export default AppointmentDetailsModal;
+

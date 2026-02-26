@@ -12,7 +12,9 @@ import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
 import InvoiceDueAlertModal from "@/components/modals/InvoiceDueAlertModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
-import { mockCustomers, mockInvoices, mockEmployees } from "@/data/mobileMockData";
+import AssignToJobModal from "@/components/modals/AssignToJobModal";
+import ScheduleJobModal from "@/components/modals/ScheduleJobModal";
+import { mockCustomers, mockInvoices, mockEmployees, mockJobs } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -82,8 +84,36 @@ const Invoices = () => {
   const [showInvoiceDueAlertModal, setShowInvoiceDueAlertModal] = useState(false);
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [selectedInvoiceForNote, setSelectedInvoiceForNote] = useState<Invoice | null>(null);
+  const [showAssignToJobModal, setShowAssignToJobModal] = useState(false);
+  const [selectedInvoiceForAssignment, setSelectedInvoiceForAssignment] = useState<Invoice | null>(null);
+  const [showScheduleJobModal, setShowScheduleJobModal] = useState(false);
+  const [selectedInvoiceForConversion, setSelectedInvoiceForConversion] = useState<Invoice | null>(null);
   const [allInvoices, setAllInvoices] = useState<Invoice[]>([]);
   const [newInvoiceId, setNewInvoiceId] = useState<string | null>(null);
+  
+  // Track job linkages (documentId -> jobId) with localStorage persistence
+  const [linkedJobs, setLinkedJobs] = useState<Record<string, string>>(() => {
+    // Load from localStorage or initialize with demo data
+    const stored = localStorage.getItem('invoice-job-links');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.error('Failed to parse stored job links:', e);
+      }
+    }
+    // Demo data - some invoices already linked to jobs
+    return {
+      'INV-032': 'JOB-1234',
+      'INV-031': 'JOB-5678',
+      'INV-010': 'JOB-9012'
+    };
+  });
+
+  // Sync linkedJobs to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('invoice-job-links', JSON.stringify(linkedJobs));
+  }, [linkedJobs]);
 
   // Add Invoice Form State (Tablet)
   const [currentStep, setCurrentStep] = useState(1);
@@ -541,7 +571,7 @@ const Invoices = () => {
           inv.customerName.toLowerCase().includes(search.toLowerCase());
 
         const matchesAllowedStatus =
-          type === "deactivated" ? true : ["Paid", "Open", "Overdue"].includes(inv.status);
+          type === "deactivated" ? true : ["Paid", "Open"].includes(inv.status);
 
         if (!matchesAllowedStatus) {
           return false;
@@ -741,16 +771,103 @@ const Invoices = () => {
         handlePayCash(invoice.id);
         break;
       case "convert-to-job":
-        const result = convertToJob("invoice", invoice.id);
-        if (result.success) {
-          toast.success("Job created successfully");
-          navigate("/jobs");
-        } else {
-          toast.error(result.error || "Failed to convert to job");
-        }
+        setSelectedInvoiceForConversion(invoice);
+        setShowScheduleJobModal(true);
+        break;
+      case "assign-to-job":
+        setSelectedInvoiceForAssignment(invoice);
+        setShowAssignToJobModal(true);
         break;
       default:
         break;
+    }
+  };
+
+  const handleAssignToJob = async (invoiceId: string, jobId: string) => {
+    try {
+      // Import assignment service
+      const { assignToJob } = await import("@/services/jobAssignmentService");
+      
+      // Assign invoice to job
+      const result = assignToJob("invoice", invoiceId, jobId);
+      
+      if (result.success) {
+        // Store the linked job ID
+        setLinkedJobs(prev => ({ ...prev, [invoiceId]: jobId }));
+        
+        toast.success(`Invoice ${invoiceId} assigned to ${jobId}`);
+        
+        // Log activity
+        const { addActivityLog } = await import("@/services/activityLogService");
+        addActivityLog({
+          type: "invoice",
+          action: "assigned_to_job",
+          documentId: invoiceId,
+          customerName: selectedInvoiceForAssignment?.customerName || "",
+          amount: selectedInvoiceForAssignment?.amount || 0,
+          metadata: { jobId }
+        });
+        
+        // Close modal
+        setShowAssignToJobModal(false);
+        setSelectedInvoiceForAssignment(null);
+      } else {
+        toast.error(result.error || "Failed to assign invoice to job");
+      }
+    } catch (error) {
+      console.error("Error assigning invoice to job:", error);
+      toast.error("An error occurred while assigning invoice");
+    }
+  };
+
+  const handleScheduleJobConfirm = async (jobData: {
+    title: string;
+    employeeId: string;
+    address: string;
+    date: string;
+    time: string;
+  }) => {
+    try {
+      if (!selectedInvoiceForConversion) return;
+      
+      // Call the job conversion service with the job data
+      const result = convertToJob("invoice", selectedInvoiceForConversion.id);
+      
+      if (result.success) {
+        // Generate a new job ID
+        const newJobId = `JOB-${Math.floor(1000 + Math.random() * 9000)}`;
+        
+        // Store the linked job ID
+        setLinkedJobs(prev => ({ ...prev, [selectedInvoiceForConversion.id]: newJobId }));
+        
+        toast.success(`Job ${newJobId} created and scheduled successfully`);
+        
+        // Log activity
+        const { addActivityLog } = await import("@/services/activityLogService");
+        addActivityLog({
+          type: "invoice",
+          action: "converted_to_job",
+          documentId: selectedInvoiceForConversion.id,
+          customerName: selectedInvoiceForConversion.customerName,
+          amount: selectedInvoiceForConversion.amount,
+          metadata: { 
+            jobId: newJobId,
+            jobTitle: jobData.title,
+            employeeId: jobData.employeeId,
+            scheduledDate: jobData.date,
+            scheduledTime: jobData.time
+          }
+        });
+        
+        // Close modal
+        setShowScheduleJobModal(false);
+        setSelectedInvoiceForConversion(null);
+      } else {
+        toast.error(result.error || "Failed to create job");
+      }
+    } catch (error) {
+      console.error("Error creating job:", error);
+      toast.error("An error occurred while creating job");
     }
   };
 
@@ -912,6 +1029,12 @@ const Invoices = () => {
           icon: Briefcase,
           action: () => handleMenuAction(invoice, "convert-to-job"),
         }] : []),
+        // Add "Assign to Job" for unpaid invoices (if not already assigned)
+        {
+          label: "Assign to Job",
+          icon: ListPlus,
+          action: () => handleMenuAction(invoice, "assign-to-job"),
+        },
         {
           label: "Send Email",
           icon: Mail,
@@ -1040,6 +1163,7 @@ const Invoices = () => {
                 invoice={invoice}
                 onClick={() => navigate(`/invoices/${invoice.id}`)}
                 className={newInvoiceId === invoice.id ? "ring-2 ring-primary ring-offset-2 bg-primary/5 border-primary" : ""}
+                jobId={linkedJobs[invoice.id]}
                 payButton={
                   invoice.status === "Open" ? (
                     <Button
@@ -1881,6 +2005,35 @@ const Invoices = () => {
           onNoteAdded={() => {
             // Optionally refresh invoice data or show updated notes
           }}
+        />
+      )}
+
+      {/* Assign to Job Modal */}
+      {selectedInvoiceForAssignment && (
+        <AssignToJobModal
+          isOpen={showAssignToJobModal}
+          onClose={() => {
+            setShowAssignToJobModal(false);
+            setSelectedInvoiceForAssignment(null);
+          }}
+          documentId={selectedInvoiceForAssignment.id}
+          documentType="invoice"
+          jobs={mockJobs}
+          onAssign={handleAssignToJob}
+        />
+      )}
+
+      {/* Schedule Job Modal (Convert to Job) */}
+      {selectedInvoiceForConversion && (
+        <ScheduleJobModal
+          isOpen={showScheduleJobModal}
+          onClose={() => {
+            setShowScheduleJobModal(false);
+            setSelectedInvoiceForConversion(null);
+          }}
+          onConfirm={handleScheduleJobConfirm}
+          sourceType="invoice"
+          sourceId={selectedInvoiceForConversion.id}
         />
       )}
 

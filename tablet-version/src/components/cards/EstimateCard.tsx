@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "lucide-react";
+import { Calendar, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 
@@ -16,10 +16,16 @@ interface EstimateCardProps {
   onClick?: () => void;
   payButton?: ReactNode;
   actionButtons?: ReactNode;
+  jobId?: string;
 }
 
-const EstimateCard = ({ estimate, onClick, payButton, actionButtons }: EstimateCardProps) => {
-  const statusLabel = estimate.status === "Open" ? "Unpaid" : estimate.status;
+const EstimateCard = ({ estimate, onClick, payButton, actionButtons, jobId }: EstimateCardProps) => {
+  // Map statuses appropriately
+  const statusLabel = estimate.status === "Converted to Invoice" 
+    ? "Converted to Invoice" 
+    : estimate.status === "Paid" 
+    ? "Paid" 
+    : "Unpaid";
   const isPaid = statusLabel === "Paid";
 
   return (
@@ -38,6 +44,12 @@ const EstimateCard = ({ estimate, onClick, payButton, actionButtons }: EstimateC
           <p className="text-xs text-muted-foreground truncate">{estimate.customerName}</p>
         </div>
         <div className="text-right flex items-center gap-1.5 flex-shrink-0 ml-2">
+          {jobId && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 leading-4 bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
+              <Briefcase className="h-2.5 w-2.5 mr-0.5" />
+              {jobId}
+            </Badge>
+          )}
           <div
             className={cn(
               "text-lg font-bold whitespace-nowrap",

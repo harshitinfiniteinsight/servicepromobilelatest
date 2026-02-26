@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
-import { Calendar } from "lucide-react";
+import { Calendar, Briefcase } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 
@@ -21,11 +21,12 @@ interface InvoiceCardProps {
   payButton?: ReactNode;
   actionButtons?: ReactNode;
   className?: string;
+  jobId?: string;
 }
 
-const InvoiceCard = ({ invoice, onClick, payButton, actionButtons, className }: InvoiceCardProps) => {
-  const statusLabel = invoice.status === "Open" ? "Unpaid" : invoice.status;
-  const isOverdue = statusLabel === "Overdue";
+const InvoiceCard = ({ invoice, onClick, payButton, actionButtons, className, jobId }: InvoiceCardProps) => {
+  // Map all statuses to either Paid or Unpaid
+  const statusLabel = invoice.status === "Paid" ? "Paid" : "Unpaid";
   const isPaid = statusLabel === "Paid";
 
   return (
@@ -47,11 +48,16 @@ const InvoiceCard = ({ invoice, onClick, payButton, actionButtons, className }: 
           <p className="text-xs text-muted-foreground truncate">{invoice.customerName}</p>
         </div>
         <div className="text-right flex items-center gap-1.5 flex-shrink-0 ml-2">
+          {jobId && (
+            <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 leading-4 bg-blue-50 text-blue-700 border-blue-200 flex-shrink-0">
+              <Briefcase className="h-2.5 w-2.5 mr-0.5" />
+              {jobId}
+            </Badge>
+          )}
           <div
             className={cn(
               "text-lg font-bold whitespace-nowrap",
-              isPaid && "text-success",
-              isOverdue && "text-destructive"
+              isPaid && "text-success"
             )}
           >
             ${invoice.amount.toLocaleString()}

@@ -1,585 +1,970 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
-import { AppHeader } from "@/components/AppHeader";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { mockCustomers, serviceTypes, mockEmployees, mockAgreements } from "@/data/mobileMockData";
+import { RefreshCw, List, ChevronsUpDown, Check, Plus, Calendar, Search } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { QuickAddCustomerModal } from "@/components/modals/QuickAddCustomerModal";
-import { AddAgreementInventoryModal } from "@/components/modals/AddAgreementInventoryModal";
-import { FollowUpAppointmentModal } from "@/components/modals/FollowUpAppointmentModal";
-import { AddAppointmentModal } from "@/components/modals/AddAppointmentModal";
-import { useToast } from "@/hooks/use-toast";
-import { mockCustomers, mockEmployees, mockInventory, mockAgreements } from "@/data/mockData";
-import { CalendarIcon, Plus, Search, Check, ArrowLeft, RefreshCw, List, FileText, CheckCircle2 } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
+import { showSuccessToast } from "@/utils/toast";
+
+const BASE_SERVICE_CATALOG = [
+  { id: "svc-1", name: "Service Call Fee", price: 95 },
+  { id: "svc-2", name: "Labor - Hourly Rate", price: 85 },
+  ...serviceTypes.map((name, index) => ({
+    id: `svc-${index + 3}`,
+    name,
+    price: 0,
+  })),
+];
 
 const AddAgreement = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
-  const mode = id ? "edit" : "create";
-  const agreement = id ? mockAgreements.find(ag => ag.id === id) : null;
-
-  const { toast } = useToast();
+  const location = useLocation();
+  const { id } = useParams<{ id?: string }>();
+  const isEditMode = !!id;
+  const agreement = isEditMode ? mockAgreements.find(ag => ag.id === id) : null;
+  
   const [step, setStep] = useState(1);
-  const [quickAddCustomerOpen, setQuickAddCustomerOpen] = useState(false);
-  const [agreementInventoryOpen, setAgreementInventoryOpen] = useState(false);
-  const [followUpOpen, setFollowUpOpen] = useState(false);
-  const [appointmentOpen, setAppointmentOpen] = useState(false);
-  const [customerSearchOpen, setCustomerSearchOpen] = useState(false);
+  const [customerList, setCustomerList] = useState(() => [...mockCustomers]);
+  const [customerOpen, setCustomerOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
   const [customerSearch, setCustomerSearch] = useState("");
-  const [serviceSearch, setServiceSearch] = useState("");
+  
+  const [showQuickAddCustomer, setShowQuickAddCustomer] = useState(false);
+  const [newCustomerFirstName, setNewCustomerFirstName] = useState("");
+  const [newCustomerLastName, setNewCustomerLastName] = useState("");
+  const [newCustomerEmail, setNewCustomerEmail] = useState("");
+  const [newCustomerPhone, setNewCustomerPhone] = useState("");
+  const [employeeOpen, setEmployeeOpen] = useState(false);
+  const [selectedEmployee, setSelectedEmployee] = useState<string | null>(null);
+  const [employeeSearch, setEmployeeSearch] = useState("");
 
-  // Step 1 data
-  const [selectedCustomer, setSelectedCustomer] = useState(agreement?.customerId || "");
-  const [selectedEmployee, setSelectedEmployee] = useState((agreement as any)?.employeeId || "");
+  // Get user role and current employee ID
+  const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
+  const isEmployee = userType === "employee";
+  const currentEmployeeId = typeof window !== "undefined" ? localStorage.getItem("currentEmployeeId") || "1" : "1";
 
-  // Step 2 data
-  const [agreementType, setAgreementType] = useState(agreement?.type || "one-time");
-  const [takeSnapshot, setTakeSnapshot] = useState(false);
-  const [uploadPhotoId, setUploadPhotoId] = useState(false);
-  const [agreementDuration, setAgreementDuration] = useState<Date | undefined>(
-    agreement?.endDate ? new Date(agreement.endDate) : undefined
-  );
-
-  // Step 3 data
-  const [selectedServices, setSelectedServices] = useState<Set<string>>(
-    new Set((agreement as any)?.services?.map((s: any) => s.id) || [])
-  );
-  const [servicePrices, setServicePrices] = useState<Record<string, number>>(
-    (agreement as any)?.services?.reduce((acc: Record<string, number>, s: any) => {
-      acc[s.id] = s.price;
-      return acc;
-    }, {}) || {}
-  );
-
-  // Step 4 data
-  const [workDescription, setWorkDescription] = useState((agreement as any)?.description || "");
-
+  // Auto-fill employee field for employees on component mount (only in create mode)
   useEffect(() => {
-    if (agreement) {
-      const agreementData = agreement as any;
-      // Pre-fill form data when editing
-      setSelectedCustomer(agreementData.customerId || "");
-      setSelectedEmployee(agreementData.employeeId || "");
-      setAgreementType(agreementData.type || "one-time");
-      setAgreementDuration(agreementData.endDate ? new Date(agreementData.endDate) : undefined);
-      setWorkDescription(agreementData.description || "");
-      if (agreementData.services) {
-        setSelectedServices(new Set(agreementData.services.map((s: any) => s.id)));
-        const prices: Record<string, number> = {};
-        agreementData.services.forEach((s: any) => {
-          prices[s.id] = s.price;
-        });
-        setServicePrices(prices);
+    if (isEmployee && currentEmployeeId && !isEditMode) {
+      // Always set to current employee for employees, preventing changes
+      if (selectedEmployee !== currentEmployeeId) {
+        setSelectedEmployee(currentEmployeeId);
       }
     }
-  }, [agreement]);
+  }, [isEmployee, currentEmployeeId, selectedEmployee, isEditMode]);
+  const [agreementType, setAgreementType] = useState("One Time");
+  const [serviceRequirement, setServiceRequirement] = useState<string[]>([]);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [workDescription, setWorkDescription] = useState("");
+  const [serviceSearch, setServiceSearch] = useState("");
+  const [serviceCatalog, setServiceCatalog] = useState(() => [...BASE_SERVICE_CATALOG]);
+  const [selectedServices, setSelectedServices] = useState<Record<string, { id: string; name: string; price: number }>>({});
+  const [agreementStatus, setAgreementStatus] = useState<"Open" | "Paid">("Open");
+  const [monthlyAmount, setMonthlyAmount] = useState(0);
+  const [billingCycle, setBillingCycle] = useState("Monthly");
+  const [agreementTerms, setAgreementTerms] = useState("");
+  const [cancellationPolicy, setCancellationPolicy] = useState("");
 
-  const filteredCustomers = mockCustomers.filter(
-    (customer) =>
-      customer.status === "active" &&
-      (customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
-        customer.email.toLowerCase().includes(customerSearch.toLowerCase()))
+  // Handle prefill data from location.state (when creating new from paid item)
+  useEffect(() => {
+    if (!isEditMode) {
+      const prefill = (location.state as any)?.prefill;
+      if (prefill) {
+        // Prefill customer
+        if (prefill.customerId) {
+          setSelectedCustomer(prefill.customerId);
+        }
+        
+        // Prefill employee (only if not employee mode, as employees are auto-filled)
+        if (!isEmployee && prefill.employeeId) {
+          setSelectedEmployee(prefill.employeeId);
+        }
+      }
+    }
+  }, [location.state, isEditMode, isEmployee]);
+
+  // Load agreement data in edit mode
+  useEffect(() => {
+    if (isEditMode && agreement) {
+      // Pre-fill customer
+      if (agreement.customerId) {
+        setSelectedCustomer(agreement.customerId);
+      }
+
+      // Pre-fill employee (if available in agreement, otherwise use current employee)
+      const employeeId = (agreement as any).employeeId || currentEmployeeId;
+      if (!isEmployee) {
+        setSelectedEmployee(employeeId);
+      }
+
+      // Pre-fill agreement type (plan name)
+      if (agreement.type) {
+        // Map agreement type to form values
+        // Assuming "One Time" or "Service" based on type
+        setAgreementType(agreement.type.includes("Service") || agreement.type.includes("Maintenance") ? "Service" : "One Time");
+      }
+
+      // Pre-fill dates
+      if (agreement.startDate) {
+        setStartDate(agreement.startDate);
+      }
+      if (agreement.endDate) {
+        setEndDate(agreement.endDate);
+      }
+
+      // Pre-fill monthly amount
+      if (agreement.monthlyAmount) {
+        setMonthlyAmount(agreement.monthlyAmount);
+      }
+
+      // Pre-fill billing cycle (default to Monthly if not specified)
+      if ((agreement as any).billingCycle) {
+        setBillingCycle((agreement as any).billingCycle);
+      } else {
+        // Default to Monthly based on monthlyAmount field
+        setBillingCycle("Monthly");
+      }
+
+      // Pre-fill status
+      if (agreement.status) {
+        setAgreementStatus(agreement.status as "Open" | "Paid");
+      }
+
+      // Pre-fill work description (if available)
+      if ((agreement as any).description) {
+        setWorkDescription((agreement as any).description);
+      }
+
+      // Pre-fill agreement terms (if available)
+      if ((agreement as any).agreementTerms) {
+        setAgreementTerms((agreement as any).agreementTerms);
+      }
+
+      // Pre-fill cancellation policy (if available)
+      if ((agreement as any).cancellationPolicy) {
+        setCancellationPolicy((agreement as any).cancellationPolicy);
+      }
+
+      // Pre-fill services (if available)
+      if ((agreement as any).services && Array.isArray((agreement as any).services)) {
+        const services: Record<string, { id: string; name: string; price: number }> = {};
+        (agreement as any).services.forEach((svc: any) => {
+          services[svc.id] = {
+            id: svc.id,
+            name: svc.name,
+            price: svc.price || 0,
+          };
+        });
+        setSelectedServices(services);
+      }
+
+      // Pre-fill service requirements (if available)
+      if ((agreement as any).serviceRequirement && Array.isArray((agreement as any).serviceRequirement)) {
+        setServiceRequirement((agreement as any).serviceRequirement);
+      }
+    }
+  }, [isEditMode, agreement, currentEmployeeId, isEmployee]);
+
+  const sortedCustomers = [...customerList].sort((a, b) => {
+    const dateA = new Date(a.joinedDate).getTime();
+    const dateB = new Date(b.joinedDate).getTime();
+    return dateB - dateA;
+  });
+
+  const filteredCustomers = sortedCustomers.filter(customer =>
+    customer.name.toLowerCase().includes(customerSearch.toLowerCase()) ||
+    customer.email.toLowerCase().includes(customerSearch.toLowerCase())
   );
 
-  const services = mockInventory.filter(
-    (item) =>
-      item.category === "Service" || item.type === "Fixed" || item.type === "Variable"
+  const filteredEmployees = mockEmployees.filter(employee =>
+    employee.name.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+    employee.email.toLowerCase().includes(employeeSearch.toLowerCase()) ||
+    employee.role.toLowerCase().includes(employeeSearch.toLowerCase())
   );
 
-  const filteredServices = services.filter((service) =>
+  const resetQuickAddForm = () => {
+    setNewCustomerFirstName("");
+    setNewCustomerLastName("");
+    setNewCustomerEmail("");
+    setNewCustomerPhone("");
+  };
+
+  const handleQuickAddCustomer = () => {
+    if (
+      !newCustomerFirstName.trim() ||
+      !newCustomerLastName.trim() ||
+      !newCustomerEmail.trim() ||
+      !newCustomerPhone.trim()
+    ) {
+      toast.error("Please fill in all customer details.");
+      return;
+    }
+
+    const id = `CUST-${Date.now()}`;
+    const nowIso = new Date().toISOString();
+    const newCustomer = {
+      id,
+      name: `${newCustomerFirstName.trim()} ${newCustomerLastName.trim()}`,
+      email: newCustomerEmail.trim(),
+      phone: newCustomerPhone.trim(),
+      address: "",
+      status: "Active",
+      lastVisit: nowIso,
+      totalSpent: 0,
+      joinedDate: nowIso,
+      notes: "Added via quick add",
+    };
+
+    setCustomerList(prev => [newCustomer, ...prev]);
+    setSelectedCustomer(id);
+    setShowQuickAddCustomer(false);
+    setCustomerOpen(false);
+    setCustomerSearch("");
+    resetQuickAddForm();
+    toast.success("Customer added successfully.");
+  };
+
+
+  const filteredServiceCatalog = serviceCatalog.filter(service =>
     service.name.toLowerCase().includes(serviceSearch.toLowerCase())
   );
 
-  const handleNext = () => {
-    if (step === 1 && (!selectedCustomer || !selectedEmployee)) {
-      toast({
-        title: "Missing Information",
-        description: "Please select both customer and employee",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (step === 2 && !agreementDuration) {
-      toast({
-        title: "Missing Information",
-        description: "Please select agreement duration",
-        variant: "destructive",
-      });
-      return;
-    }
-    if (step === 3 && selectedServices.size === 0) {
-      toast({
-        title: "Missing Information",
-        description: "Please select at least one service",
-        variant: "destructive",
-      });
-      return;
-    }
-    setStep(step + 1);
-  };
-
-  const handlePrevious = () => {
-    setStep(step - 1);
-  };
-
-  const handleCreateAgreement = () => {
-    if (!workDescription.trim()) {
-      toast({
-        title: "Missing Information",
-        description: "Please enter work description",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: mode === "create" ? "Agreement Created" : "Agreement Updated",
-      description: mode === "create" ? "The service agreement has been created successfully." : "The service agreement has been updated successfully.",
-    });
-    navigate("/agreements");
-    if (mode === "create") {
-      setFollowUpOpen(true);
-    }
-  };
-
-  const toggleService = (serviceId: string) => {
-    const newSelected = new Set(selectedServices);
-    if (newSelected.has(serviceId)) {
-      newSelected.delete(serviceId);
-      const newPrices = { ...servicePrices };
-      delete newPrices[serviceId];
-      setServicePrices(newPrices);
-    } else {
-      newSelected.add(serviceId);
-      const service = services.find((s) => s.id === serviceId);
-      if (service) {
-        setServicePrices({ ...servicePrices, [serviceId]: service.price });
+  const toggleServiceSelection = (service: { id: string; name: string; price: number }) => {
+    setSelectedServices(prev => {
+      const next = { ...prev };
+      if (next[service.id]) {
+        delete next[service.id];
+      } else {
+        next[service.id] = { ...service };
       }
-    }
-    setSelectedServices(newSelected);
+      return next;
+    });
   };
 
-  const updateServicePrice = (serviceId: string, price: number) => {
-    setServicePrices({ ...servicePrices, [serviceId]: price });
+  const handleServicePriceChange = (serviceId: string, value: string) => {
+    const price = Number(value);
+    const normalizedPrice = Number.isNaN(price) ? 0 : price;
+
+    setServiceCatalog(prev =>
+      prev.map(service =>
+        service.id === serviceId ? { ...service, price: normalizedPrice } : service
+      )
+    );
+
+    setSelectedServices(prev => {
+      if (!prev[serviceId]) return prev;
+      return {
+        ...prev,
+        [serviceId]: { ...prev[serviceId], price: normalizedPrice },
+      };
+    });
+  };
+
+  const handleAddService = () => {
+    toast.info("Add service action coming soon");
+  };
+
+  const selectedServicesList = Object.values(selectedServices);
+
+  const steps = [
+    { number: 1, title: "Customer & Employee" },
+    { number: 2, title: "Job Details" },
+    { number: 3, title: "Pricing / Items" },
+    { number: 4, title: "Attachments" },
+    { number: 5, title: "Terms & Cancellation" },
+  ];
+
+  const handleSyncItem = () => {
+    toast.success("Syncing agreement items...");
+  };
+
+  const handleGoToAgreementList = () => {
+    navigate("/agreements");
+  };
+
+  // Helper function to get agreement by ID (simulating API call)
+  const getAgreementById = (agreementId: string) => {
+    return mockAgreements.find(ag => ag.id === agreementId);
+  };
+
+  // Update agreement function (simulating API call)
+  const updateAgreement = (agreementId: string, payload: any) => {
+    // In a real app, this would be an API call
+    // For now, we'll just simulate success
+    const index = mockAgreements.findIndex(ag => ag.id === agreementId);
+    if (index !== -1) {
+      // Update the agreement in mock data
+      mockAgreements[index] = {
+        ...mockAgreements[index],
+        ...payload,
+      };
+      return Promise.resolve({ success: true });
+    }
+    return Promise.reject(new Error("Agreement not found"));
+  };
+
+  const handleSubmit = async () => {
+    if (isEditMode && id) {
+      // Update existing agreement
+      try {
+        const payload = {
+          customerId: selectedCustomer || "",
+          employeeId: selectedEmployee || currentEmployeeId,
+          type: agreementType,
+          startDate,
+          endDate,
+          monthlyAmount,
+          billingCycle,
+          status: agreementStatus,
+          description: workDescription,
+          services: selectedServicesList,
+          serviceRequirement,
+          agreementTerms,
+          cancellationPolicy,
+        };
+
+        await updateAgreement(id, payload);
+        showSuccessToast("Agreement updated successfully");
+        navigate("/agreements");
+      } catch (error) {
+        toast.error("Failed to update agreement");
+        console.error("Error updating agreement:", error);
+      }
+    } else {
+      // Create new agreement (existing logic)
+      navigate("/agreements");
+    }
+  };
+
+  const handleAgreementTypeChange = (value: string) => {
+    setAgreementType(value);
+    if (value !== "Service") {
+      setServiceRequirement([]);
+    }
   };
 
   return (
-    <>
-      <div className="flex-1">
-        <AppHeader searchPlaceholder="Search..." onSearchChange={() => {}} />
-        
-        <main className="px-4 sm:px-6 py-4 sm:py-6 animate-fade-in">
-          {/* Page Header */}
-          <div className="bg-gradient-to-r from-primary to-accent text-primary-foreground p-6 rounded-lg mb-6 shadow-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => navigate("/agreements")}
-                  className="text-primary-foreground hover:bg-primary-foreground/20"
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
-                <div className="flex items-center gap-2">
-                  <FileText className="h-6 w-6" />
-                  <h1 className="text-2xl font-bold">
-                    Service Pro911 - {mode === "create" ? "New Agreement" : "Edit Agreement"}
-                  </h1>
-                </div>
-              </div>
-              <Badge variant="secondary" className="bg-background/20 text-primary-foreground border-none">
-                Step {step} of 4
-              </Badge>
-            </div>
-          </div>
-
-          {/* Action Buttons Bar */}
-          <div className="flex items-center justify-end gap-3 mb-6">
+    <div className="h-full flex flex-col overflow-hidden">
+      <MobileHeader
+        title={isEditMode ? "Edit Agreement" : "New Agreement"}
+        showBack={true}
+        actions={
+          <div className="flex items-center gap-2">
             <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate("/agreements")}
-              className="gap-2"
+              variant="ghost"
+              size="sm"
+              onClick={handleSyncItem}
+              className="h-9 px-2 touch-target hover:bg-gray-100"
             >
-              <List className="h-4 w-4" />
-              Agreement List
+              <RefreshCw className="h-4 w-4 mr-1.5" />
+              <span className="text-xs font-medium">Sync Item</span>
             </Button>
             <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                toast({
-                  title: "Success",
-                  description: "Inventory items synced successfully",
-                });
-              }}
-              className="gap-2"
+              variant="ghost"
+              size="sm"
+              onClick={handleGoToAgreementList}
+              className="h-9 px-2 touch-target hover:bg-gray-100"
             >
-              <RefreshCw className="h-4 w-4" />
-              Sync Item
+              <List className="h-4 w-4 mr-1.5" />
+              <span className="text-xs font-medium">List</span>
             </Button>
           </div>
+        }
+      />
 
-          {/* Stepper */}
-          <div className="max-w-4xl mx-auto mb-6">
-            <div className="flex items-center justify-between">
-              {[1, 2, 3, 4].map((stepNumber, index) => (
-                <div key={stepNumber} className="flex items-center flex-1">
-                  <div className="flex flex-col items-center flex-1">
-                    <div
-                      className={cn(
-                        "flex items-center justify-center w-10 h-10 rounded-full border-2 font-semibold transition-all",
-                        stepNumber < step
-                          ? "bg-primary text-primary-foreground border-primary"
-                          : stepNumber === step
-                          ? "bg-primary text-primary-foreground border-primary ring-4 ring-primary/20"
-                          : "bg-background text-muted-foreground border-muted-foreground/30"
-                      )}
-                    >
-                      {stepNumber < step ? (
-                        <CheckCircle2 className="h-5 w-5" />
-                      ) : (
-                        stepNumber
-                      )}
-                    </div>
-                    <div
-                      className={cn(
-                        "mt-2 text-xs font-medium text-center",
-                        stepNumber <= step ? "text-foreground" : "text-muted-foreground"
-                      )}
-                    >
-                      {stepNumber === 1 && "Customer & Employee"}
-                      {stepNumber === 2 && "Agreement Type"}
-                      {stepNumber === 3 && "Select Services"}
-                      {stepNumber === 4 && "Work Description"}
-                    </div>
-                  </div>
-                  {index < 3 && (
-                    <div
-                      className={cn(
-                        "h-0.5 flex-1 mx-2 transition-all",
-                        stepNumber < step ? "bg-primary" : "bg-muted-foreground/30"
-                      )}
-                    />
-                  )}
-                </div>
-              ))}
+      <Dialog
+        open={showQuickAddCustomer}
+        onOpenChange={open => {
+          setShowQuickAddCustomer(open);
+          if (!open) {
+            resetQuickAddForm();
+          }
+        }}
+      >
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Quick Add Customer</DialogTitle>
+            <DialogDescription>Add a new customer to your list</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <div>
+              <Label htmlFor="agreement-quick-first-name">First Name</Label>
+              <Input
+                id="agreement-quick-first-name"
+                value={newCustomerFirstName}
+                onChange={e => setNewCustomerFirstName(e.target.value)}
+                placeholder="Enter first name"
+                className="mt-2"
+              />
             </div>
+            <div>
+              <Label htmlFor="agreement-quick-last-name">Last Name</Label>
+              <Input
+                id="agreement-quick-last-name"
+                value={newCustomerLastName}
+                onChange={e => setNewCustomerLastName(e.target.value)}
+                placeholder="Enter last name"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="agreement-quick-email">Email</Label>
+              <Input
+                id="agreement-quick-email"
+                type="email"
+                value={newCustomerEmail}
+                onChange={e => setNewCustomerEmail(e.target.value)}
+                placeholder="name@example.com"
+                className="mt-2"
+              />
+            </div>
+            <div>
+              <Label htmlFor="agreement-quick-phone">Phone Number</Label>
+              <Input
+                id="agreement-quick-phone"
+                type="tel"
+                value={newCustomerPhone}
+                onChange={e => setNewCustomerPhone(e.target.value)}
+                placeholder="(555) 123-4567"
+                className="mt-2"
+              />
+            </div>
+            <Button
+              className="w-full"
+              onClick={handleQuickAddCustomer}
+              disabled={
+                !newCustomerFirstName.trim() ||
+                !newCustomerLastName.trim() ||
+                !newCustomerEmail.trim() ||
+                !newCustomerPhone.trim()
+              }
+            >
+              Add Customer
+            </Button>
           </div>
-
-          <div className="max-w-4xl mx-auto bg-card rounded-xl border shadow-lg p-6">
-            {/* Step 1: Customer and Employee Selection */}
-            {step === 1 && (
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label>Select Customer *</Label>
-                  <div className="space-y-2">
-                    <Popover open={customerSearchOpen} onOpenChange={setCustomerSearchOpen}>
-                      <PopoverTrigger asChild>
-                        <Button
-                          variant="outline"
-                          role="combobox"
-                          aria-expanded={customerSearchOpen}
-                          className="w-full justify-between"
-                        >
-                          {selectedCustomer
-                            ? mockCustomers.find((c) => c.id === selectedCustomer)?.name
-                            : "Choose a customer"}
-                          <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-full p-0 z-50 bg-popover" align="start">
-                        <Command>
-                          <CommandInput placeholder="Search customers..." />
-                          <CommandList>
-                            <CommandEmpty>No customer found.</CommandEmpty>
-                            <CommandGroup>
-                              {filteredCustomers.map((customer) => (
-                                <CommandItem
-                                  key={customer.id}
-                                  value={customer.id}
-                                  onSelect={() => {
-                                    setSelectedCustomer(customer.id);
-                                    setCustomerSearchOpen(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      selectedCustomer === customer.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                  {customer.name} - {customer.email}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </CommandList>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setQuickAddCustomerOpen(true)}
-                      className="w-full gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add New Customer
-                    </Button>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Progress Indicator */}
+      <div className="px-2 sm:px-4 pt-16 pb-4">
+        <div className="flex items-center justify-center mb-2 overflow-x-auto">
+          <div className="flex items-center justify-between w-full min-w-max px-1">
+            {steps.map((s, idx) => (
+              <div key={s.number} className="flex items-center flex-1 min-w-0">
+                <div className="flex flex-col items-center flex-1 min-w-0">
+                  <div className={cn(
+                    "flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 rounded-full text-xs sm:text-sm font-semibold shrink-0",
+                    step >= s.number ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                  )}>
+                    {step > s.number ? "✓" : s.number}
                   </div>
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Select Employee *</Label>
-                  <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose an employee" />
-                    </SelectTrigger>
-                    <SelectContent className="z-50 bg-popover">
-                      {mockEmployees
-                        .filter((emp) => emp.status === "Active")
-                        .map((employee) => (
-                          <SelectItem key={employee.id} value={employee.id}>
-                            {employee.name} - {employee.role}
-                          </SelectItem>
-                        ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="flex justify-end pt-4 gap-2">
-                  <Button type="button" variant="outline" onClick={() => navigate("/agreements")}>
-                    Cancel
-                  </Button>
-                  <Button onClick={handleNext}>Next</Button>
-                </div>
+                {idx < steps.length - 1 && (
+                  <div className={cn(
+                    "h-0.5 flex-1 mx-1 sm:mx-2 min-w-[8px] sm:min-w-[12px] max-w-[20px] sm:max-w-[28px]",
+                    step > s.number ? "bg-primary" : "bg-muted"
+                  )} />
+                )}
               </div>
-            )}
-
-            {/* Step 2: Agreement Type and Details */}
-            {step === 2 && (
-              <div className="space-y-6">
-                <div className="space-y-4">
-                  <Label>Type of Agreement *</Label>
-                  <RadioGroup value={agreementType} onValueChange={setAgreementType}>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="one-time" id="one-time" />
-                      <Label htmlFor="one-time" className="font-normal cursor-pointer">
-                        One Time Agreement
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="service" id="service" />
-                      <Label htmlFor="service" className="font-normal cursor-pointer">
-                        Service Agreement
-                      </Label>
-                    </div>
-                  </RadioGroup>
-
-                  {agreementType === "service" && (
-                    <div className="space-y-3 pl-6 border-l-2 border-primary/20 animate-fade-in">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="snapshot"
-                          checked={takeSnapshot}
-                          onCheckedChange={(checked) => setTakeSnapshot(checked as boolean)}
-                        />
-                        <Label htmlFor="snapshot" className="font-normal cursor-pointer">
-                          Take a snapshot
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id="photoId"
-                          checked={uploadPhotoId}
-                          onCheckedChange={(checked) => setUploadPhotoId(checked as boolean)}
-                        />
-                        <Label htmlFor="photoId" className="font-normal cursor-pointer">
-                          Upload or capture a picture of Photo ID
-                        </Label>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                <div className="space-y-2">
-                  <Label>Agreement Duration *</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal",
-                          !agreementDuration && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {agreementDuration ? format(agreementDuration, "PPP") : "Pick a date"}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 z-50 bg-popover" align="start">
-                      <Calendar
-                        mode="single"
-                        selected={agreementDuration}
-                        onSelect={setAgreementDuration}
-                        initialFocus
-                        className="pointer-events-auto"
-                      />
-                    </PopoverContent>
-                  </Popover>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={handlePrevious} className="flex-1">
-                    Previous
-                  </Button>
-                  <Button onClick={handleNext} className="flex-1">
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 3: Select Services */}
-            {step === 3 && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      placeholder="Search services..."
-                      value={serviceSearch}
-                      onChange={(e) => setServiceSearch(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="icon"
-                    onClick={() => setAgreementInventoryOpen(true)}
-                  >
-                    <Plus className="h-4 w-4" />
-                  </Button>
-                </div>
-
-                <div className="border rounded-lg max-h-[400px] overflow-y-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead className="w-12">Select</TableHead>
-                        <TableHead>Name</TableHead>
-                        <TableHead className="w-32">Price</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {filteredServices.map((service) => (
-                        <TableRow key={service.id}>
-                          <TableCell>
-                            <Checkbox
-                              checked={selectedServices.has(service.id)}
-                              onCheckedChange={() => toggleService(service.id)}
-                            />
-                          </TableCell>
-                          <TableCell className="font-medium">{service.name}</TableCell>
-                          <TableCell>
-                            <Input
-                              type="number"
-                              value={servicePrices[service.id] || service.price}
-                              onChange={(e) =>
-                                updateServicePrice(service.id, parseFloat(e.target.value) || 0)
-                              }
-                              disabled={!selectedServices.has(service.id)}
-                              className="w-24"
-                              min="0"
-                              step="0.01"
-                            />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={handlePrevious} className="flex-1">
-                    Previous
-                  </Button>
-                  <Button onClick={handleNext} className="flex-1">
-                    Next
-                  </Button>
-                </div>
-              </div>
-            )}
-
-            {/* Step 4: Work Description */}
-            {step === 4 && (
-              <div className="space-y-6">
-                <div className="space-y-2">
-                  <Label htmlFor="workDescription">Work Description *</Label>
-                  <Textarea
-                    id="workDescription"
-                    value={workDescription}
-                    onChange={(e) => setWorkDescription(e.target.value)}
-                    placeholder="Enter detailed work description..."
-                    className="min-h-[200px]"
-                  />
-                </div>
-
-                <div className="flex gap-2 pt-4">
-                  <Button type="button" variant="outline" onClick={handlePrevious} className="flex-1">
-                    Previous
-                  </Button>
-                  <Button onClick={handleCreateAgreement} className="flex-1">
-                    {mode === "create" ? "Create Agreement" : "Save Changes"}
-                  </Button>
-                </div>
-              </div>
-            )}
+            ))}
           </div>
-        </main>
+        </div>
+        <p className="text-xs sm:text-sm text-muted-foreground text-center whitespace-nowrap px-2">
+          Step {step} of {steps.length}: {steps[step - 1].title}
+        </p>
       </div>
 
-      <QuickAddCustomerModal
-        open={quickAddCustomerOpen}
-        onOpenChange={setQuickAddCustomerOpen}
-      />
-      
-      <AddAgreementInventoryModal
-        open={agreementInventoryOpen}
-        onOpenChange={setAgreementInventoryOpen}
-      />
+      <div className="flex-1 overflow-y-auto scrollable px-4 pb-6 space-y-4">
+        {/* Step 1: Customer */}
+        {step === 1 && (
+          <div className="space-y-4">
+            <div>
+              <div className="flex items-center justify-between">
+                <Label>Customer</Label>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-2 text-sm font-semibold text-orange-500 hover:text-orange-600"
+                  onClick={() => setShowQuickAddCustomer(true)}
+                >
+                  <Plus className="h-4 w-4 mr-1.5" />
+                  Add
+                </Button>
+              </div>
+              <Popover
+                open={customerOpen}
+                onOpenChange={open => {
+                  setCustomerOpen(open);
+                  if (!open) {
+                    setCustomerSearch("");
+                  }
+                }}
+              >
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={customerOpen}
+                    className="w-full justify-between mt-2 h-11"
+                  >
+                    {selectedCustomer
+                      ? sortedCustomers.find(customer => customer.id === selectedCustomer)?.name
+                      : "Select customer..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                  <Command shouldFilter={false} value="">
+                    <CommandInput
+                placeholder="Search customers..."
+                value={customerSearch}
+                      onValueChange={setCustomerSearch}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No customer found.</CommandEmpty>
+                      <CommandGroup>
+                        {filteredCustomers.map((customer, index) => {
+                          const isSelected = selectedCustomer === customer.id;
+                          return (
+                            <CommandItem
+                              key={customer.id}
+                              value={`${customer.name} ${customer.email}`}
+                              onSelect={() => {
+                                setSelectedCustomer(customer.id);
+                                setCustomerOpen(false);
+                              }}
+                              className={cn(
+                                "flex items-center justify-between",
+                                isSelected
+                                  ? "!bg-primary !text-white [&>div>div>span]:!text-white [&>div>div>span.text-xs]:!text-white data-[selected='true']:!bg-primary data-[selected=true]:!text-white"
+                                  : "data-[selected='true']:bg-accent/50 data-[selected=true]:text-foreground"
+                              )}
+                              data-selected={isSelected ? "true" : undefined}
+                            >
+                              <div className="flex items-center flex-1 min-w-0">
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4 shrink-0",
+                                    isSelected ? "opacity-100 text-white" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col flex-1 min-w-0">
+                                  <span className="font-medium truncate">{customer.name}</span>
+                                  <span
+                                    className={cn(
+                                      "text-xs truncate",
+                                      isSelected ? "text-white" : "text-muted-foreground"
+                                    )}
+                                  >
+                                    {customer.email}
+                                  </span>
+                                </div>
+                              </div>
+                              {index < 5 && (
+                                <Badge
+                                  variant="secondary"
+                                  className={cn(
+                                    "text-xs px-1.5 py-0 h-5 ml-2 shrink-0",
+                                    isSelected && "bg-white/20 text-white border-white/30"
+                                  )}
+                                >
+                                  Recently Added
+                                </Badge>
+                              )}
+                            </CommandItem>
+                          );
+                        })}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
+            </div>
 
-      <FollowUpAppointmentModal
-        open={followUpOpen}
-        onOpenChange={setFollowUpOpen}
-        onScheduleAppointment={() => setAppointmentOpen(true)}
-      />
+            <div>
+              <Label>Assign Employee</Label>
+              {isEmployee ? (
+                // Disabled input for employees
+                <div className="mt-2">
+                  <Input
+                    value={selectedEmployee ? mockEmployees.find(employee => employee.id === selectedEmployee)?.name || "" : ""}
+                    disabled
+                    className="w-full h-11 bg-gray-50 text-gray-600 cursor-not-allowed"
+                    readOnly
+                  />
+                </div>
+              ) : (
+                // Editable popover for merchants
+                <Popover
+                  open={employeeOpen}
+                  onOpenChange={open => {
+                    if (!isEmployee) {
+                      setEmployeeOpen(open);
+                      if (!open) {
+                        setEmployeeSearch("");
+                      }
+                    }
+                  }}
+                >
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={employeeOpen}
+                      className="w-full justify-between mt-2 h-11"
+                    >
+                      {selectedEmployee
+                        ? mockEmployees.find(employee => employee.id === selectedEmployee)?.name
+                        : "Select employee..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+                    <Command shouldFilter={false} value="">
+                      <CommandInput
+                        placeholder="Search employees..."
+                        value={employeeSearch}
+                        onValueChange={setEmployeeSearch}
+                      />
+                      <CommandList>
+                        <CommandEmpty>No employee found.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredEmployees.map(employee => {
+                            const isSelected = selectedEmployee === employee.id;
+                            return (
+                              <CommandItem
+                                key={employee.id}
+                                value={`${employee.name} ${employee.email} ${employee.role}`}
+                                onSelect={() => {
+                                  setSelectedEmployee(employee.id);
+                                  setEmployeeOpen(false);
+                                }}
+                                className={cn(
+                                  isSelected
+                                    ? "!bg-primary !text-white [&>div>span]:!text-white [&>div>span.text-xs]:!text-white data-[selected='true']:!bg-primary data-[selected=true]:!text-white"
+                                    : "data-[selected='true']:bg-accent/50 data-[selected=true]:text-foreground"
+                                )}
+                                data-selected={isSelected ? "true" : undefined}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    isSelected ? "opacity-100 text-white" : "opacity-0"
+                                  )}
+                                />
+                                <div className="flex flex-col">
+                                  <span className="font-medium">{employee.name}</span>
+                                  <span
+                                    className={cn(
+                                      "text-xs",
+                                      isSelected ? "text-white" : "text-muted-foreground"
+                                    )}
+                                  >
+                                    {employee.role}
+                                  </span>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              )}
+            </div>
 
-      <AddAppointmentModal
-        open={appointmentOpen}
-        onOpenChange={setAppointmentOpen}
-        prefilledData={{
-          subject: "Follow Up",
-          customerId: selectedCustomer,
-          employeeId: selectedEmployee,
-        }}
-      />
-    </>
+          </div>
+        )}
+
+        {/* Step 2: Terms */}
+        {step === 2 && (
+          <div className="space-y-6">
+            <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-5 space-y-6">
+              <div className="space-y-3">
+                <Label className="text-base font-semibold tracking-tight">Type of Agreement *</Label>
+                <RadioGroup
+                  value={agreementType}
+                  onValueChange={handleAgreementTypeChange}
+                  className="flex flex-row gap-3"
+                >
+                  {[
+                    { value: "One Time", label: "One Time" },
+                    { value: "Service", label: "Service" },
+                  ].map(option => (
+                    <div
+                      key={option.value}
+                      className={cn(
+                        "flex flex-1 items-center gap-3 rounded-2xl border p-4 transition-colors",
+                        agreementType === option.value
+                          ? "border-orange-500 bg-orange-50/80"
+                          : "border-gray-200 hover:border-orange-200"
+                      )}
+                      onClick={() => handleAgreementTypeChange(option.value)}
+                    >
+                      <RadioGroupItem
+                        value={option.value}
+                        id={`agreement-type-${option.value.toLowerCase()}`}
+                        className="h-5 w-5 border-2 border-orange-500 data-[state=checked]:bg-orange-500 data-[state=checked]:text-white"
+                      />
+                      <Label
+                        htmlFor={`agreement-type-${option.value.toLowerCase()}`}
+                        className="text-sm font-medium cursor-pointer"
+                      >
+                        {option.label}
+                      </Label>
+            </div>
+                  ))}
+                </RadioGroup>
+
+                {agreementType === "Service" && (
+                  <div className="ml-3 pl-4 border-l-2 border-orange-100 space-y-3">
+                    <div className="space-y-2">
+                      {[
+                        { value: "snapshot", label: "Take a snapshot" },
+                        { value: "photo-id", label: "Upload or capture a picture of Photo ID" },
+                      ].map(option => {
+                        const checked = serviceRequirement.includes(option.value);
+                        return (
+                          <label key={option.value} className="flex items-center gap-3">
+                            <Checkbox
+                              checked={checked}
+                              onCheckedChange={isChecked => {
+                                setServiceRequirement(prev => {
+                                  if (isChecked) {
+                                    return [...prev, option.value];
+                                  }
+                                  return prev.filter(val => val !== option.value);
+                                });
+                              }}
+                              className="h-4 w-4 border-2 border-orange-500 data-[state=checked]:bg-orange-500 data-[state=checked]:text-white"
+                            />
+                            <span className="text-sm font-medium text-gray-800">{option.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-base font-semibold tracking-tight">Agreement Duration *</Label>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Start Date</span>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                        className="pl-9 h-11"
+                      />
+              </div>
+            </div>
+                  <div className="space-y-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">End Date</span>
+                    <div className="relative">
+                      <Calendar className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                        type="date"
+                        value={endDate}
+                        onChange={e => setEndDate(e.target.value)}
+                        className="pl-9 h-11"
+              />
+            </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Services */}
+        {step === 3 && (
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    placeholder="Search services..."
+                    value={serviceSearch}
+                    onChange={e => setServiceSearch(e.target.value)}
+                    className="pl-9 h-11 rounded-2xl border-gray-200"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={handleAddService}
+                  className="h-11 w-11 rounded-2xl border-gray-200"
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
+
+                <div className="rounded-2xl border border-gray-200 overflow-hidden">
+                  <div className="hidden sm:grid grid-cols-[1fr_140px] items-center bg-gray-50 px-4 py-3 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    <span>Name</span>
+                    <span className="text-right">Price</span>
+                  </div>
+
+                  {filteredServiceCatalog.length === 0 ? (
+                    <div className="px-4 py-6 text-sm text-muted-foreground text-center">
+                      No services found.
+                    </div>
+                  ) : (
+                    <div className="divide-y divide-gray-200">
+                      {filteredServiceCatalog.map(service => {
+                        const isSelected = Boolean(selectedServices[service.id]);
+                        return (
+                          <div
+                            key={service.id}
+                            className={cn(
+                              "flex flex-col sm:grid sm:grid-cols-[1fr_140px] gap-3 sm:gap-0 items-start sm:items-center px-4 py-3 transition-colors",
+                              isSelected ? "bg-orange-50" : "bg-white hover:bg-orange-50/60"
+                            )}
+                          >
+                            <button
+                              type="button"
+                              onClick={() => toggleServiceSelection(service)}
+                              className="flex w-full sm:w-auto items-center gap-3 text-left"
+                            >
+                              <span
+                                className={cn(
+                                  "h-4 w-4 rounded-full border-2 border-orange-500 flex items-center justify-center",
+                                  isSelected && "bg-orange-500"
+                                )}
+                              >
+                                {isSelected && <span className="h-2 w-2 rounded-full bg-white" />}
+                              </span>
+                              <span className="text-sm font-medium text-gray-900 break-words leading-snug">
+                                {service.name}
+                              </span>
+                            </button>
+                            <div className="w-full sm:w-auto flex justify-between sm:justify-end items-center gap-3">
+                              <span className="sm:hidden text-xs font-semibold uppercase tracking-wide text-muted-foreground">Price</span>
+                              <Input
+                                type="number"
+                                inputMode="decimal"
+                                value={service.price ? service.price.toString() : ""}
+                                onChange={e => handleServicePriceChange(service.id, e.target.value)}
+                                min="0"
+                                step="0.01"
+                                className="h-10 w-full sm:w-[110px] rounded-xl text-right"
+                              />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+              {selectedServicesList.length > 0 && (
+                <div className="text-sm text-muted-foreground">
+                  {selectedServicesList.length} service{selectedServicesList.length > 1 ? "s" : ""} selected
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Work Description */}
+        {step === 4 && (
+          <div className="space-y-5">
+            <div className="rounded-3xl border border-gray-200 bg-white shadow-sm p-5 space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold tracking-tight">Work Description *</Label>
+                <span className="text-xs font-medium text-muted-foreground">{workDescription.length}/1000</span>
+              </div>
+              <Textarea
+                placeholder="Enter detailed work description..."
+                value={workDescription}
+                onChange={e => setWorkDescription(e.target.value.slice(0, 1000))}
+                maxLength={1000}
+                className="min-h-[180px] resize-none rounded-2xl border-gray-200 focus-visible:ring-orange-500"
+              />
+              <p className="text-xs text-muted-foreground">
+                Include scope, expectations, and any special instructions for the team.
+              </p>
+            </div>
+
+          </div>
+        )}
+
+        {/* Step 5: Terms & Cancellation */}
+        {step === 5 && (
+          <div className="space-y-4">
+            <div>
+              <Label>Terms & Conditions</Label>
+              <textarea
+                className="w-full min-h-[120px] p-3 rounded-lg border bg-background mt-2"
+                placeholder="Enter terms and conditions..."
+                value={agreementTerms}
+                onChange={e => setAgreementTerms(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <Label>Cancellation & Return Policy</Label>
+              <textarea
+                className="w-full min-h-[120px] p-3 rounded-lg border bg-background mt-2"
+                placeholder="Enter cancellation and return policy..."
+                value={cancellationPolicy}
+                onChange={e => setCancellationPolicy(e.target.value)}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Bottom Actions */}
+      <div className="p-4 border-t bg-background space-y-2">
+        <div className="flex gap-2">
+          {step > 1 && (
+            <Button variant="outline" className="flex-1" onClick={() => setStep(step - 1)}>
+              Back
+            </Button>
+          )}
+          {step < 5 ? (
+            <Button
+              className="flex-1"
+              onClick={() => setStep(step + 1)}
+              disabled={
+                (step === 1 && (!selectedCustomer || !selectedEmployee)) ||
+                (step === 2 && (!startDate || !endDate || (agreementType === "Service" && serviceRequirement.length === 0))) ||
+                (step === 3 && selectedServicesList.length === 0) ||
+                (step === 4 && !workDescription.trim())
+              }
+            >
+              Next
+            </Button>
+          ) : (
+            <Button className="flex-1" onClick={handleSubmit}>
+              {isEditMode ? "Update Agreement" : "Create Agreement"}
+            </Button>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
 export default AddAgreement;
-

@@ -15,7 +15,9 @@ import ShareAddressModal from "@/components/modals/ShareAddressModal";
 import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import EstimateToInvoiceInfoModal from "@/components/modals/EstimateToInvoiceInfoModal";
-import { mockEstimates, mockCustomers, mockEmployees, mockInvoices } from "@/data/mobileMockData";
+import AssignToJobModal from "@/components/modals/AssignToJobModal";
+import ScheduleJobModal from "@/components/modals/ScheduleJobModal";
+import { mockEstimates, mockCustomers, mockEmployees, mockInvoices, mockJobs } from "@/data/mobileMockData";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -57,9 +59,36 @@ const Estimates = () => {
   });
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [showEstimateToInvoiceInfoModal, setShowEstimateToInvoiceInfoModal] = useState(false);
+  const [showAssignToJobModal, setShowAssignToJobModal] = useState(false);
+  const [selectedEstimateForAssignment, setSelectedEstimateForAssignment] = useState<any>(null);
+  const [showScheduleJobModal, setShowScheduleJobModal] = useState(false);
+  const [selectedEstimateForConversion, setSelectedEstimateForConversion] = useState<any>(null);
 
   // State for managing all estimates
   const [allEstimates, setAllEstimates] = useState<typeof mockEstimates>([]);
+  
+  // Track job linkages (documentId -> jobId) with localStorage persistence
+  const [linkedJobs, setLinkedJobs] = useState<Record<string, string>>(() => {
+    // Load from localStorage or initialize with demo data
+    const stored = localStorage.getItem('estimate-job-links');
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.error('Failed to parse stored job links:', e);
+      }
+    }
+    // Demo data - some estimates already linked to jobs
+    return {
+      'EST-002': 'JOB-3456',
+      'EST-005': 'JOB-7890'
+    };
+  });
+
+  // Sync linkedJobs to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('estimate-job-links', JSON.stringify(linkedJobs));
+  }, [linkedJobs]);
 
   // Add Estimate Form State (Tablet)
   const [currentStep, setCurrentStep] = useState(1);
@@ -226,12 +255,20 @@ const Estimates = () => {
 
   const handlePayNow = (estimateId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    const estimate = mockEstimates.find(est => est.id === estimateId);
-    if (estimate) {
-      setSelectedEstimate({ id: estimateId, amount: estimate.amount });
-      // Show info modal before proceeding to payment
-      setShowEstimateToInvoiceInfoModal(true);
+    // DEMO MODE: Try allEstimates first, then fallback to mockEstimates
+    let estimate = allEstimates.find(est => est.id === estimateId);
+    
+    if (!estimate) {
+      // DEMO MODE: Fallback to mockEstimates
+      estimate = mockEstimates.find(est => est.id === estimateId);
     }
+    
+    if (!estimate) {
+      toast.error("Estimate not found");
+      return;
+    }
+    setSelectedEstimate({ id: estimateId, amount: estimate.amount });
+    setShowPaymentModal(true);
   };
 
   const handleContinueToPayment = () => {
@@ -242,12 +279,29 @@ const Estimates = () => {
 
   const handlePaymentMethodSelect = (method: string) => {
     if (selectedEstimate) {
-      // Payment processing toast removed - only success toast shown after payment completes
-      // No processing toast for cash payments
       // Create payment notification
       createPaymentNotification("estimate", selectedEstimate.id);
-      // Navigate to payment processing page or handle payment
-      // navigate(`/payment/${selectedEstimate.id}?method=${method}`);
+      
+      // Convert estimate to invoice
+      const conversionResult = convertEstimateToInvoice(selectedEstimate.id);
+      
+      if (conversionResult.success) {
+        // Update estimate status to "Converted to Invoice"
+        setAllEstimates(prevEstimates =>
+          prevEstimates.map(est =>
+            est.id === selectedEstimate.id 
+              ? { ...est, status: "Converted to Invoice", convertedInvoiceId: conversionResult.invoiceId } 
+              : est
+          )
+        );
+        
+        // Close modal and show success
+        setShowPaymentModal(false);
+        setSelectedEstimate(null);
+        toast.success(`Payment completed. Estimate converted to Invoice ${conversionResult.invoiceId}`);
+      } else {
+        toast.error(conversionResult.error || "Failed to convert estimate to invoice");
+      }
     }
   };
 
@@ -266,13 +320,22 @@ const Estimates = () => {
       // Create payment notification
       createPaymentNotification("estimate", selectedEstimate.id);
       
-      // Convert estimate to invoice after successful payment
+      // Convert estimate to invoice
       const conversionResult = convertEstimateToInvoice(selectedEstimate.id);
+      
       if (conversionResult.success) {
-        toast.success("Payment completed. Estimate converted to Invoice.");
+        // Update estimate status to "Converted to Invoice"
+        setAllEstimates(prevEstimates =>
+          prevEstimates.map(est =>
+            est.id === selectedEstimate.id 
+              ? { ...est, status: "Converted to Invoice", convertedInvoiceId: conversionResult.invoiceId } 
+              : est
+          )
+        );
+        
+        toast.success(`Payment completed. Estimate converted to Invoice ${conversionResult.invoiceId}`);
       } else {
-        toast.success("Payment completed");
-        console.error("Failed to convert estimate to invoice:", conversionResult.error);
+        toast.error(conversionResult.error || "Failed to convert estimate to invoice");
       }
     }
     setShowCashPaymentModal(false);
@@ -512,16 +575,107 @@ const Estimates = () => {
         handlePayCash(estimateId);
         break;
       case "convert-to-job":
-        const result = convertToJob("estimate", estimateId);
-        if (result.success) {
-          toast.success("Job created successfully");
-          navigate("/jobs");
-        } else {
-          toast.error(result.error || "Failed to convert to job");
+        const jobConvertEstimate = mockEstimates.find(est => est.id === estimateId);
+        if (jobConvertEstimate) {
+          setSelectedEstimateForConversion(jobConvertEstimate);
+          setShowScheduleJobModal(true);
+        }
+        break;
+      case "assign-to-job":
+        const assignEstimate = mockEstimates.find(est => est.id === estimateId);
+        if (assignEstimate) {
+          setSelectedEstimateForAssignment(assignEstimate);
+          setShowAssignToJobModal(true);
         }
         break;
       default:
         break;
+    }
+  };
+
+  const handleAssignToJob = async (estimateId: string, jobId: string) => {
+    try {
+      // Import assignment service
+      const { assignToJob } = await import("@/services/jobAssignmentService");
+      
+      // Assign estimate to job
+      const result = assignToJob("estimate", estimateId, jobId);
+      
+      if (result.success) {
+        // Store the linked job ID
+        setLinkedJobs(prev => ({ ...prev, [estimateId]: jobId }));
+        
+        toast.success(`Estimate ${estimateId} assigned to ${jobId}`);
+        
+        // Log activity
+        const { addActivityLog } = await import("@/services/activityLogService");
+        addActivityLog({
+          type: "estimate",
+          action: "assigned_to_job",
+          documentId: estimateId,
+          customerName: selectedEstimateForAssignment?.customerName || "",
+          amount: selectedEstimateForAssignment?.amount || 0,
+          metadata: { jobId }
+        });
+        
+        // Close modal
+        setShowAssignToJobModal(false);
+        setSelectedEstimateForAssignment(null);
+      } else {
+        toast.error(result.error || "Failed to assign estimate to job");
+      }
+    } catch (error) {
+      console.error("Error assigning estimate to job:", error);
+      toast.error("An error occurred while assigning estimate");
+    }
+  };
+
+  const handleScheduleJobConfirm = async (jobData: {
+    title: string;
+    employeeId: string;
+    address: string;
+    date: string;
+    time: string;
+  }) => {
+    try {
+      if (!selectedEstimateForConversion) return;
+      
+      const result = convertToJob("estimate", selectedEstimateForConversion.id);
+      
+      if (result.success) {
+        // Generate a new job ID
+        const newJobId = `JOB-${Math.floor(1000 + Math.random() * 9000)}`;
+        
+        // Store the linked job ID
+        setLinkedJobs(prev => ({ ...prev, [selectedEstimateForConversion.id]: newJobId }));
+        
+        toast.success(`Job ${newJobId} created and scheduled successfully`);
+        
+        // Log activity
+        const { addActivityLog } = await import("@/services/activityLogService");
+        addActivityLog({
+          type: "estimate",
+          action: "converted_to_job",
+          documentId: selectedEstimateForConversion.id,
+          customerName: selectedEstimateForConversion.customerName,
+          amount: selectedEstimateForConversion.amount,
+          metadata: { 
+            jobId: newJobId,
+            jobTitle: jobData.title,
+            employeeId: jobData.employeeId,
+            scheduledDate: jobData.date,
+            scheduledTime: jobData.time
+          }
+        });
+        
+        setShowScheduleJobModal(false);
+        setSelectedEstimateForConversion(null);
+      } else {
+        toast.error(result.error || "Failed to create job");
+      }
+    } catch (error) {
+      console.error("Error creating job:", error);
+      toast.error("An error occurred while creating job");
     }
   };
 
@@ -587,6 +741,11 @@ const Estimates = () => {
           icon: Briefcase,
           action: () => handleMenuAction("convert-to-job", estimate.id),
         }] : []),
+        {
+          label: "Assign to Job",
+          icon: ListPlus,
+          action: () => handleMenuAction("assign-to-job", estimate.id),
+        },
         {
           label: "Send Email",
           icon: Mail,
@@ -935,6 +1094,7 @@ const Estimates = () => {
                             key={estimate.id}
                             estimate={estimate}
                             onClick={() => navigate(`/estimates/${estimate.id}`)}
+                            jobId={linkedJobs[estimate.id]}
                             payButton={
                               statusFilter === "activate" && estimate.status === "Unpaid" ? (
                                 <Button
@@ -995,6 +1155,7 @@ const Estimates = () => {
                     key={estimate.id}
                     estimate={estimate}
                     onClick={() => navigate(`/estimates/${estimate.id}`)}
+                    jobId={linkedJobs[estimate.id]}
                     payButton={
                       estimate.status === "Unpaid" ? (
                         <Button
@@ -1985,6 +2146,35 @@ const Estimates = () => {
         onConfirm={handleDateRangeConfirm}
         resetToToday={false}
       />
+
+      {/* Assign to Job Modal */}
+      {selectedEstimateForAssignment && (
+        <AssignToJobModal
+          isOpen={showAssignToJobModal}
+          onClose={() => {
+            setShowAssignToJobModal(false);
+            setSelectedEstimateForAssignment(null);
+          }}
+          documentId={selectedEstimateForAssignment.id}
+          documentType="estimate"
+          jobs={mockJobs}
+          onAssign={(jobId) => handleAssignToJob(selectedEstimateForAssignment.id, jobId)}
+        />
+      )}
+
+      {/* Schedule Job Modal (Convert to Job) */}
+      {selectedEstimateForConversion && (
+        <ScheduleJobModal
+          isOpen={showScheduleJobModal}
+          onClose={() => {
+            setShowScheduleJobModal(false);
+            setSelectedEstimateForConversion(null);
+          }}
+          onConfirm={handleScheduleJobConfirm}
+          sourceType="estimate"
+          sourceId={selectedEstimateForConversion.id}
+        />
+      )}
     </div>
   );
 };

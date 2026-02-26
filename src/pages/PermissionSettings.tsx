@@ -1,88 +1,128 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Checkbox } from "@/components/ui/checkbox";
-import { ChevronLeft } from "lucide-react";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
+import { showSuccessToast } from "@/utils/toast";
 
 const PermissionSettings = () => {
-  const navigate = useNavigate();
-  
   const [privacyAgreed, setPrivacyAgreed] = useState(true);
   const [crashReporting, setCrashReporting] = useState(true);
   const [cameraPermission, setCameraPermission] = useState(true);
 
+  const handlePrivacyChange = (checked: boolean) => {
+    setPrivacyAgreed(checked);
+    showSuccessToast("Permission settings updated successfully.");
+  };
+
+  const handleCrashReportingChange = (checked: boolean) => {
+    setCrashReporting(checked);
+    showSuccessToast("Permission settings updated successfully.");
+  };
+
+  const handleCameraPermissionChange = (checked: boolean) => {
+    setCameraPermission(checked);
+    showSuccessToast("Permission settings updated successfully.");
+  };
+
   return (
-    <div className="min-h-screen bg-muted/30">
-      <div className="bg-primary text-primary-foreground p-4 flex items-center gap-3 shadow-lg">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => navigate("/settings")}
-          className="hover:bg-primary-foreground/20 text-primary-foreground"
-        >
-          <ChevronLeft className="h-6 w-6" />
-        </Button>
-        <h1 className="text-xl font-semibold">Service Pro911 - SETTING</h1>
-      </div>
-
-      <main className="p-4 sm:p-6">
-        <div className="max-w-5xl mx-auto">
-          <div className="bg-background p-6 rounded-lg shadow-md mb-8 flex items-center gap-4">
-            <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
-              <div className="text-2xl font-bold text-primary">SP</div>
-            </div>
-            <h2 className="text-3xl font-bold">Service Pro911</h2>
-          </div>
-
-          <h3 className="text-4xl font-bold text-center mb-12">Permission Settings</h3>
-
-          <div className="space-y-6 max-w-4xl mx-auto">
-            <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors">
+    <div className="h-full flex flex-col overflow-hidden bg-gray-50">
+      <TabletHeader title="Permission Settings" showBack={true} />
+      
+      <div className="flex-1 overflow-y-auto scrollable pb-6">
+        {/* Card Container */}
+        <div className="bg-white rounded-xl shadow-md p-4 sm:p-6 mt-2 mx-4">
+          {/* Permission Items */}
+          <div className="space-y-8">
+            {/* Privacy Policy & EULA */}
+            <div className="flex items-start gap-4">
               <Checkbox
                 id="privacy"
                 checked={privacyAgreed}
-                onCheckedChange={(checked) => setPrivacyAgreed(checked as boolean)}
-                className="mt-1 h-6 w-6 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                onCheckedChange={handlePrivacyChange}
+                className={cn(
+                  "h-5 w-5 rounded-md border-2 mt-0.5 flex-shrink-0",
+                  "data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500 data-[state=checked]:text-white",
+                  "data-[state=unchecked]:border-gray-300 data-[state=unchecked]:bg-white",
+                  "focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+                )}
               />
-              <label htmlFor="privacy" className="text-base text-muted-foreground cursor-pointer flex-1">
+              <Label
+                htmlFor="privacy"
+                className="text-sm text-gray-900 cursor-pointer flex-1 leading-relaxed"
+              >
                 I agree to{" "}
-                <a href="#" className="text-primary underline hover:text-primary/80">
+                <a
+                  href="#"
+                  className="text-orange-500 hover:text-orange-600 underline font-medium"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // Navigate to Privacy Policy
+                    console.log("Navigate to Privacy Policy");
+                  }}
+                >
                   Privacy Policy
                 </a>{" "}
                 &{" "}
-                <a href="#" className="text-primary underline hover:text-primary/80">
+                <a
+                  href="#"
+                  className="text-orange-500 hover:text-orange-600 underline font-medium"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    // Navigate to EULA
+                    console.log("Navigate to EULA");
+                  }}
+                >
                   EULA
                 </a>
                 .
-              </label>
+              </Label>
             </div>
 
-            <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors">
+            {/* Crash Reporting */}
+            <div className="flex items-start gap-4">
               <Checkbox
                 id="crash"
                 checked={crashReporting}
-                onCheckedChange={(checked) => setCrashReporting(checked as boolean)}
-                className="mt-1 h-6 w-6 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                onCheckedChange={handleCrashReportingChange}
+                className={cn(
+                  "h-5 w-5 rounded-md border-2 mt-0.5 flex-shrink-0",
+                  "data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500 data-[state=checked]:text-white",
+                  "data-[state=unchecked]:border-gray-300 data-[state=unchecked]:bg-white",
+                  "focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+                )}
               />
-              <label htmlFor="crash" className="text-base text-muted-foreground cursor-pointer flex-1">
+              <Label
+                htmlFor="crash"
+                className="text-sm text-gray-900 cursor-pointer flex-1 leading-relaxed"
+              >
                 I allow the app to collect crash reporting data.
-              </label>
+              </Label>
             </div>
 
-            <div className="flex items-start gap-4 p-4 rounded-lg hover:bg-muted/50 transition-colors">
+            {/* Camera Permission */}
+            <div className="flex items-start gap-4">
               <Checkbox
                 id="camera"
                 checked={cameraPermission}
-                onCheckedChange={(checked) => setCameraPermission(checked as boolean)}
-                className="mt-1 h-6 w-6 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                onCheckedChange={handleCameraPermissionChange}
+                className={cn(
+                  "h-5 w-5 rounded-md border-2 mt-0.5 flex-shrink-0",
+                  "data-[state=checked]:bg-orange-500 data-[state=checked]:border-orange-500 data-[state=checked]:text-white",
+                  "data-[state=unchecked]:border-gray-300 data-[state=unchecked]:bg-white",
+                  "focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2"
+                )}
               />
-              <label htmlFor="camera" className="text-base text-muted-foreground cursor-pointer flex-1">
+              <Label
+                htmlFor="camera"
+                className="text-sm text-gray-900 cursor-pointer flex-1 leading-relaxed"
+              >
                 I allow the application to use the camera to capture agreement images. I understand that limiting this permission will limit my ability to add images to my agreement through this application.
-              </label>
+              </Label>
             </div>
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
