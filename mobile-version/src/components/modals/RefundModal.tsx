@@ -331,7 +331,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden flex flex-col [&>div]:p-0 [&>button]:hidden">
+      <DialogContent className="max-w-[420px] w-[92%] mx-auto p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden !flex !flex-col [&>div]:p-0 [&>button]:hidden">
         <DialogTitle className="sr-only">Refund Invoice</DialogTitle>
         <DialogDescription className="sr-only">Process refund for invoice {invoice.id}</DialogDescription>
         
@@ -344,14 +344,9 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
           >
             <ArrowLeft className="h-5 w-5 text-gray-600" />
           </button>
-          <div className="text-center">
-            <h2 className="text-base font-semibold text-gray-900">
-              {source === "job" ? `Refund for Job ID: ${jobId}` : "Refund Invoice"}
-            </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
-              Step {currentStep} of 2
-            </p>
-          </div>
+          <h2 className="text-base font-semibold text-gray-900">
+            {source === "job" ? `Refund for Job ID: ${jobId}` : "Refund Invoice"}
+          </h2>
           <button 
             onClick={handleClose} 
             className="p-1.5 rounded-full hover:bg-gray-100 transition-colors"
@@ -362,8 +357,9 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
         </div>
 
         {/* Scrollable Content */}
-        <div className="flex-1 overflow-y-auto bg-white px-4 py-4 space-y-4">
-          {/* Invoice Selector - Show when source is "job" and multiple invoices */}
+        <div className="flex-1 overflow-y-auto bg-white" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="px-4 py-4 space-y-4">
+            {/* Invoice Selector - Show when source is "job" and multiple invoices */}
           {source === "job" && allInvoices.length > 0 && (
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold text-gray-700">
@@ -422,8 +418,8 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
                 className={cn(
                   "w-full p-3 rounded-lg border text-left transition-all",
                   refundType === "full"
-                    ? "border-orange-500 bg-orange-50"
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                    ? "border-2 border-orange-500 bg-white"
+                    : "border border-gray-200 bg-white hover:border-gray-300"
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -451,8 +447,8 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
                 className={cn(
                   "w-full p-3 rounded-lg border text-left transition-all",
                   refundType === "partial"
-                    ? "border-orange-500 bg-orange-50"
-                    : "border-gray-200 bg-white hover:border-gray-300"
+                    ? "border-2 border-orange-500 bg-white"
+                    : "border border-gray-200 bg-white hover:border-gray-300"
                 )}
               >
                 <div className="flex items-center justify-between">
@@ -518,9 +514,13 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
                     const value = e.target.value.slice(0, 300);
                     setRefundReason(value);
                   }}
+                  onKeyDown={(e) => {
+                    e.stopPropagation();
+                  }}
                   placeholder="Enter reason for refund"
+                  disabled={isProcessing}
                   className={cn(
-                    "w-full p-3 rounded-lg border text-sm font-normal resize-none focus:outline-none focus:ring-2 transition-all",
+                    "w-full p-3 rounded-lg border text-sm font-normal resize-none focus:outline-none focus:ring-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed",
                     reasonError
                       ? "border-red-500 focus:ring-red-500"
                       : "border-gray-200 focus:ring-orange-500"
@@ -749,6 +749,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
               </div>
             </div>
           )}
+          </div>
         </div>
 
         {/* Footer */}
