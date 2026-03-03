@@ -6,6 +6,9 @@ import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import MobileLayout from "./components/layout/MobileLayout";
 import { CartProvider } from "@/contexts/CartContext";
 
+// Clear payment configuration on app load (for demo/development)
+localStorage.removeItem('paymentMethodsConfigured');
+
 // Import pages (will be created)
 import SignIn from "./pages/SignIn";
 import SignUp from "./pages/SignUp";
@@ -49,6 +52,7 @@ import Reports from "./pages/Reports";
 import InvoiceReport from "./pages/InvoiceReport";
 import EstimateReport from "./pages/EstimateReport";
 import MonthlyReportAlert from "./pages/MonthlyReportAlert";
+import PaymentDetails from "./pages/PaymentDetails";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/ChangePassword";
@@ -144,6 +148,7 @@ const AppContent = () => {
             <Route path="/reports/invoice" element={<InvoiceReport />} />
             <Route path="/reports/estimate" element={<EstimateReport />} />
             <Route path="/reports/monthly-alert" element={<MonthlyReportAlert />} />
+            <Route path="/reports/payment-details" element={<PaymentDetails />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/settings/profile" element={<Profile />} />
             <Route path="/settings/change-password" element={<ChangePassword />} />

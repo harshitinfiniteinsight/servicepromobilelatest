@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,31 +23,6 @@ interface ScheduleServiceModalProps {
   jobAddress?: string;
   defaultJobTitle?: string;
 }
-
-// Generate available time slots for a given date
-const generateTimeSlots = (date: Date): string[] => {
-  // Mock availability - in production, this would come from employee schedule
-  const dayOfWeek = date.getDay();
-  
-  // Weekend - fewer slots
-  if (dayOfWeek === 0 || dayOfWeek === 6) {
-    return ["09:00 AM", "10:00 AM", "11:00 AM", "12:00 PM"];
-  }
-  
-  // Weekday - full day
-  return [
-    "08:00 AM",
-    "09:00 AM",
-    "10:00 AM",
-    "11:00 AM",
-    "12:00 PM",
-    "01:00 PM",
-    "02:00 PM",
-    "03:00 PM",
-    "04:00 PM",
-    "05:00 PM",
-  ];
-};
 
 // Check if a date is available (mock implementation)
 const isDateAvailable = (date: Date): boolean => {
@@ -81,7 +56,9 @@ const ScheduleServiceModal = ({
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [selectedTime, setSelectedTime] = useState<string | null>(null);
+  const [durationHours, setDurationHours] = useState("");
+  const [startTime, setStartTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>(employee.id);
   // Job Title state - required field
@@ -112,6 +89,40 @@ const ScheduleServiceModal = ({
     return availableTechnicians.find(emp => emp.id === selectedEmployeeId) || availableTechnicians[0];
   }, [selectedEmployeeId, availableTechnicians]);
 
+  // Auto-calculate End Time based on Duration and Start Time
+  useEffect(() => {
+    // Only calculate if both Duration and Start Time are valid
+    const parsedDuration = Number(durationHours);
+    if (!startTime || !durationHours || Number.isNaN(parsedDuration) || parsedDuration <= 0) {
+      // Clear End Time if inputs are invalid
+      setEndTime("");
+      return;
+    }
+
+    try {
+      // Parse start time (format: "HH:MM")
+      const [hours, minutes] = startTime.split(':').map(Number);
+      
+      // Create a date object for calculation (date doesn't matter, only time)
+      const startDate = new Date();
+      startDate.setHours(hours, minutes, 0, 0);
+      
+      // Convert duration to minutes and add to start time
+      const durationMinutes = parsedDuration * 60;
+      const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
+      
+      // Format end time as "HH:MM"
+      const endHours = String(endDate.getHours()).padStart(2, '0');
+      const endMinutes = String(endDate.getMinutes()).padStart(2, '0');
+      const calculatedEndTime = `${endHours}:${endMinutes}`;
+      
+      setEndTime(calculatedEndTime);
+    } catch (error) {
+      console.error("Error calculating end time:", error);
+      setEndTime("");
+    }
+  }, [durationHours, startTime]);
+
   // Generate calendar days
   const calendarDays = useMemo(() => {
     const monthStart = startOfMonth(currentMonth);
@@ -125,12 +136,6 @@ const ScheduleServiceModal = ({
     return [...paddingDays, ...days];
   }, [currentMonth]);
 
-  // Get time slots for selected date
-  const timeSlots = useMemo(() => {
-    if (!selectedDate) return [];
-    return generateTimeSlots(selectedDate);
-  }, [selectedDate]);
-
   const handlePrevMonth = () => {
     setCurrentMonth(subMonths(currentMonth, 1));
   };
@@ -142,16 +147,14 @@ const ScheduleServiceModal = ({
   const handleDateSelect = (date: Date) => {
     if (!isDateAvailable(date)) return;
     setSelectedDate(date);
-    setSelectedTime(null); // Reset time when date changes
-  };
-
-  const handleTimeSelect = (time: string) => {
-    setSelectedTime(time);
+    setDurationHours("");
+    setStartTime("");
+    setEndTime("");
   };
 
   const handleConfirm = async () => {
     // Prevent duplicate submissions - also require jobTitle
-    if (!selectedDate || !selectedTime || !jobTitle.trim() || isConfirming) return;
+    if (!selectedDate || !canConfirm || isConfirming) return;
     
     setIsConfirming(true);
     
@@ -165,7 +168,8 @@ const ScheduleServiceModal = ({
       // Call onConfirm - this will handle job creation and navigation
       // Pass the updated address (use fullAddress if available, otherwise currentAddress)
       const finalAddress = addressData.fullAddress || currentAddress;
-      onConfirm(formattedDate, selectedTime, selectedEmployeeId, finalAddress, jobTitle.trim());
+      const selectedTimeValue = `${startTime} - ${endTime}`;
+      onConfirm(formattedDate, selectedTimeValue, selectedEmployeeId, finalAddress, jobTitle.trim());
     } catch (error) {
       console.error("Error creating job:", error);
       setIsConfirming(false);
@@ -175,7 +179,9 @@ const ScheduleServiceModal = ({
   const handleClose = () => {
     // Reset state when closing
     setSelectedDate(null);
-    setSelectedTime(null);
+    setDurationHours("");
+    setStartTime("");
+    setEndTime("");
     setCurrentMonth(new Date());
     setIsConfirming(false);
     setSelectedEmployeeId(employee.id);
@@ -227,8 +233,12 @@ const ScheduleServiceModal = ({
 
   const weekDays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
+  const parsedDuration = Number(durationHours);
+  const isDurationValid = !Number.isNaN(parsedDuration) && parsedDuration >= 0.5;
+  const isTimeRangeValid = !!startTime && !!endTime && startTime < endTime;
+
   // Job cannot be created without a valid address, date, time, and job title
-  const canConfirm = selectedDate && selectedTime && hasValidAddress && jobTitle.trim();
+  const canConfirm = !!(selectedDate && isDurationValid && startTime && endTime && isTimeRangeValid && hasValidAddress && jobTitle.trim());
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
@@ -476,48 +486,77 @@ const ScheduleServiceModal = ({
             </div>
           </div>
 
-          {/* Time Slots Section */}
+          {/* Manual Time Inputs */}
           {selectedDate && (
-            <div className="mx-4 mb-4 p-4 bg-gray-50 rounded-xl">
-              <div className="flex items-center gap-2 mb-3">
-                <Clock className="h-4 w-4 text-orange-500" />
-                <h3 className="text-sm font-semibold text-gray-900">
-                  Available Times for {format(selectedDate, "MMM d, yyyy")}
-                </h3>
+            <div className="mx-4 mb-4 space-y-4">
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Duration (Hours) <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="number"
+                  min={0.5}
+                  step={0.5}
+                  value={durationHours}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow empty value for clearing
+                    if (value === "") {
+                      setDurationHours("");
+                      return;
+                    }
+                    // Prevent negative or zero values
+                    const numValue = Number(value);
+                    if (numValue > 0) {
+                      setDurationHours(value);
+                    }
+                  }}
+                  placeholder="Enter duration"
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 text-sm"
+                />
+                {durationHours && !isDurationValid && (
+                  <p className="text-xs text-red-500 mt-1">Duration must be at least 0.5 hours</p>
+                )}
               </div>
-              
-              {timeSlots.length > 0 ? (
-                <div className="grid grid-cols-2 gap-2">
-                  {timeSlots.map((time) => (
-                    <button
-                      key={time}
-                      onClick={() => handleTimeSelect(time)}
-                      className={cn(
-                        "py-3 px-3 rounded-xl text-sm font-medium transition-all border",
-                        selectedTime === time
-                          ? "bg-orange-500 text-white border-orange-500 shadow-sm"
-                          : "bg-white text-gray-700 border-gray-200 hover:border-orange-300 hover:bg-orange-50"
-                      )}
-                    >
-                      {time}
-                    </button>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-6 text-gray-500 text-sm">
-                  No available time slots for this date.
-                </div>
-              )}
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  Start Time <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="time"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="h-12 rounded-xl border-gray-200 bg-gray-50 text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm font-medium text-gray-700 mb-2 block">
+                  End Time <span className="text-red-500">*</span>
+                  <span className="text-xs text-gray-500 ml-2">(Auto-calculated)</span>
+                </label>
+                <Input
+                  type="time"
+                  value={endTime}
+                  readOnly
+                  disabled
+                  className="h-12 rounded-xl border-gray-200 bg-gray-100 text-sm cursor-not-allowed"
+                />
+                {startTime && endTime && !isTimeRangeValid && (
+                  <p className="text-xs text-red-500 mt-1">End Time must be greater than Start Time</p>
+                )}
+              </div>
             </div>
           )}
 
           {/* Selection Summary */}
-          {selectedDate && selectedTime && (
+          {selectedDate && startTime && endTime && isTimeRangeValid && isDurationValid && (
             <div className="mx-4 mb-4 p-3.5 bg-green-50 rounded-xl border border-green-200">
               <div className="flex items-center gap-2">
                 <Check className="h-4 w-4 text-green-600" />
                 <span className="text-sm font-medium text-green-800">
-                  {format(selectedDate, "EEEE, MMMM d, yyyy")} at {selectedTime}
+                  {format(selectedDate, "EEEE, MMMM d, yyyy")} at {startTime} - {endTime} ({durationHours}h)
                 </span>
               </div>
             </div>
@@ -527,14 +566,22 @@ const ScheduleServiceModal = ({
         {/* Footer Actions */}
         <div className="px-5 py-4 border-t bg-white sticky bottom-0 rounded-b-2xl">
           {/* Validation message when CTA is disabled */}
-          {(!hasValidAddress || !selectedDate || !selectedTime) && (
+          {(!hasValidAddress || !selectedDate || !durationHours || !startTime || !endTime || !isDurationValid || !isTimeRangeValid) && (
             <div className="mb-3 p-2.5 bg-gray-50 rounded-lg">
               <p className="text-xs text-gray-500 text-center">
                 {!hasValidAddress 
                   ? "Enter a valid job address to continue"
                   : !selectedDate
                     ? "Select a date to continue"
-                    : "Select a time slot to continue"
+                    : !durationHours
+                      ? "Enter duration to continue"
+                      : !isDurationValid
+                        ? "Duration must be at least 0.5 hours"
+                        : !startTime
+                          ? "Select a start time to continue"
+                          : !endTime
+                            ? "Select an end time to continue"
+                            : "End Time must be greater than Start Time"
                 }
               </p>
             </div>

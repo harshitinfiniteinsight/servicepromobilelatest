@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Edit, Eye, Share2, FileText, MapPin, Image as ImageIcon, RefreshCw, Link } from "lucide-react";
+import { Calendar, Edit, Eye, Share2, FileText, MapPin, Image as ImageIcon, RefreshCw, Link, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import type { JobPaymentStatus, JobSourceType } from "@/data/mobileMockData";
@@ -58,6 +58,10 @@ interface JobCardProps {
   onAssociateNewAgreement?: () => void;
   // Associate existing documents to job
   onAssociateDocument?: (sourceType?: string) => void;
+  // Refund handler
+  onRefund?: () => void;
+  // Check if job is refundable
+  canRefund?: boolean;
 }
 
 const JobCard = ({ 
@@ -95,6 +99,9 @@ const JobCard = ({
   onAssociateNewAgreement,
   // Associate existing documents to job
   onAssociateDocument,
+  // Refund handler
+  onRefund,
+  canRefund = false,
 }: JobCardProps) => {
   const navigate = useNavigate();
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
@@ -452,6 +459,17 @@ const JobCard = ({
           icon: Link,
           action: () => onAssociateDocument(jobSourceType),
           separator: items.length > 0,
+        });
+      }
+
+      // Add Refund option for eligible jobs (Completed + has paid invoices)
+      if (canRefund && onRefund && jobStatus === "Completed") {
+        items.push({
+          label: "Refund",
+          icon: RotateCcw,
+          action: onRefund,
+          separator: true,
+          variant: "destructive",
         });
       }
     }

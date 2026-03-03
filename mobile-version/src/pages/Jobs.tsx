@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Search, Briefcase, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Filter, Plus } from "lucide-react";
+import { Search, Briefcase, Calendar as CalendarIcon, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Filter, Plus, X } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -25,6 +25,8 @@ import CannotEditModal from "@/components/modals/CannotEditModal";
 import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
 import JobPaymentModal from "@/components/modals/JobPaymentModal";
 import AssociateDocumentsModal from "@/components/modals/AssociateDocumentsModal";
+import RefundModal, { type RefundInvoiceData } from "@/components/modals/RefundModal";
+import { invoiceToRefundData, openRefundByInvoiceId } from "@/utils/refundUtils";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -241,6 +243,13 @@ const Jobs = () => {
   const [showAssociateDocumentsModal, setShowAssociateDocumentsModal] = useState(false);
   const [selectedJobForAssociation, setSelectedJobForAssociation] = useState<typeof jobs[0] | null>(null);
   const [associateDocumentsInitialTab, setAssociateDocumentsInitialTab] = useState<"invoice" | "estimate" | "agreement" | undefined>(undefined);
+
+  // Refund modal state
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundInvoice, setRefundInvoice] = useState<RefundInvoiceData | null>(null);
+  const [showInvoiceSelectorSheet, setShowInvoiceSelectorSheet] = useState(false);
+  const [paidInvoicesForSelector, setPaidInvoicesForSelector] = useState<any[]>([]);
+  const [currentRefundJobId, setCurrentRefundJobId] = useState<string | null>(null);
 
   // Metrics carousel state
   const [metricsGroupIndex, setMetricsGroupIndex] = useState(0);
@@ -1119,6 +1128,96 @@ const Jobs = () => {
     }
   };
 
+  // Helper: Get all paid invoices for a job
+  const getPaidInvoicesForJob = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return [];
+
+    // Check job's payment status first
+    if (job.paymentStatus !== "paid") return [];
+
+    // Get invoices associated with this job
+    let associatedInvoice: any = null;
+
+    // Check by sourceId reference (most common)
+    if ((job as any)?.sourceId) {
+      const bySourceId = mockInvoices.find(inv => inv.id === (job as any)?.sourceId);
+      if (bySourceId) associatedInvoice = bySourceId;
+    }
+
+    // Also check by job ID matching for direct invoice jobs
+    if (!associatedInvoice && job.id.startsWith("INV")) {
+      const directInvoice = mockInvoices.find(inv => inv.id === job.id);
+      if (directInvoice) associatedInvoice = directInvoice;
+    }
+
+    // Return the associated invoice (if found and payment received)
+    // Accept statuses that indicate payment received: "Paid", "Overdue" (means payment was made)
+    if (associatedInvoice && (
+      associatedInvoice.status === "Paid" || 
+      associatedInvoice.status === "Overdue" ||
+      associatedInvoice.status === "Converted to Invoice"
+    )) {
+      return [associatedInvoice];
+    }
+
+    return [];
+  };
+
+  // Helper: Check if a job is eligible for refund
+  const canRefundJob = (jobId: string): boolean => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return false;
+
+    // Job must be Completed or equivalent closed status
+    if (job.status !== "Completed") return false;
+
+    // Must have at least one paid invoice
+    const paidInvoices = getPaidInvoicesForJob(jobId);
+    return paidInvoices.length > 0;
+  };
+
+  // Handler: Open refund flow for job
+  const handleRefundJob = (jobId: string) => {
+    const paidInvoices = getPaidInvoicesForJob(jobId);
+
+    if (paidInvoices.length === 0) {
+      toast.error("No paid invoices found for this job");
+      return;
+    }
+
+    // Store the current job ID and all invoices for the refund modal
+    setCurrentRefundJobId(jobId);
+    setPaidInvoicesForSelector(paidInvoices);
+
+    // Always open refund modal with job context and all invoices
+    // The modal will handle showing the invoice selector
+    setRefundInvoice(paidInvoices[0]); // Pre-select first invoice
+    setShowRefundModal(true);
+  };
+
+  // Handler: Select invoice from selector and open refund modal
+  const handleSelectInvoiceForRefund = (invoiceId: string) => {
+    setShowInvoiceSelectorSheet(false);
+    const success = openRefundByInvoiceId(
+      invoiceId,
+      mockInvoices,
+      setRefundInvoice,
+      setShowRefundModal
+    );
+    if (!success) {
+      toast.error("Cannot refund this invoice");
+    }
+  };
+
+  // Handler: Process refund completion
+  const handleRefundComplete = (invoiceId: string, refundAmount: number, newStatus: string) => {
+    setShowRefundModal(false);
+    setRefundInvoice(null);
+    toast.success("Refund processed successfully");
+    // TODO: Update invoice status in backend
+  };
+
   return (
     <div className="h-full flex flex-col overflow-hidden bg-background">
       <MobileHeader
@@ -1406,6 +1505,9 @@ const Jobs = () => {
                 onAssociateNewAgreement={() => handleAssociateNewAgreement(job.id)}
                 // Associate existing documents to job
                 onAssociateDocument={(sourceType) => handleAssociateDocument(job.id, sourceType)}
+                // Refund handler
+                onRefund={() => handleRefundJob(job.id)}
+                canRefund={canRefundJob(job.id)}
               />
             ))
           )}
@@ -1601,6 +1703,68 @@ const Jobs = () => {
           initialTab={associateDocumentsInitialTab}
           jobSourceType={(selectedJobForAssociation as any).sourceType}
         />
+      )}
+
+      {/* Refund Modal */}
+      {refundInvoice && (
+        <RefundModal
+          isOpen={showRefundModal}
+          onClose={() => {
+            setShowRefundModal(false);
+            setRefundInvoice(null);
+            setCurrentRefundJobId(null);
+          }}
+          invoice={refundInvoice}
+          onRefundComplete={handleRefundComplete}
+          source={currentRefundJobId ? "job" : "invoice"}
+          jobId={currentRefundJobId || undefined}
+          allInvoices={currentRefundJobId ? paidInvoicesForSelector : undefined}
+        />
+      )}
+
+      {/* Invoice Selector Sheet for Multiple Paid Invoices */}
+      {showInvoiceSelectorSheet && paidInvoicesForSelector.length > 0 && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-end">
+          <div className="w-full bg-white rounded-t-2xl p-4 max-h-[80vh] flex flex-col animate-in slide-in-from-bottom-3">
+            {/* Header */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-gray-900">Select Invoice to Refund</h2>
+              <button
+                onClick={() => setShowInvoiceSelectorSheet(false)}
+                className="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Invoice List */}
+            <div className="flex-1 overflow-y-auto space-y-2">
+              {paidInvoicesForSelector.map((invoice) => (
+                <button
+                  key={invoice.id}
+                  onClick={() => handleSelectInvoiceForRefund(invoice.id)}
+                  className="w-full p-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 hover:border-gray-300 text-left transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-semibold text-gray-900">{invoice.id}</p>
+                      <p className="text-sm text-gray-500">{invoice.customerName}</p>
+                    </div>
+                    <p className="font-bold text-gray-900">${invoice.amount.toFixed(2)}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Cancel Button */}
+            <button
+              onClick={() => setShowInvoiceSelectorSheet(false)}
+              className="w-full mt-4 py-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-900 font-semibold transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

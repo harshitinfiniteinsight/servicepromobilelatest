@@ -4,7 +4,7 @@ import TabletHeader from "@/components/layout/TabletHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockJobs, mockCustomers, mockEmployees, mockInvoices, mockEstimates } from "@/data/mobileMockData";
-import { Calendar, Clock, MapPin, User, Phone, Mail, Briefcase, ChevronDown, ChevronUp } from "lucide-react";
+import { Calendar, Clock, MapPin, User, Phone, Mail, Briefcase, ChevronDown, ChevronUp, DollarSign } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
@@ -268,210 +268,230 @@ const JobDetails = () => {
       />
       
       <div className="flex-1 overflow-y-auto scrollable">
-        <div className="max-w-[1200px] mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-6">
-          {/* SECTION 1: Job Header Card - Full Width */}
-          <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-8">
-            <div className="flex items-start justify-between gap-6">
+        <div className="max-w-[1400px] mx-auto px-4 md:px-6 lg:px-8 py-6 space-y-6">
+          {/* SECTION 1: Job Header Card with Status */}
+          <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-6 md:p-8">
+            <div className="flex items-start justify-between gap-6 mb-4">
               <div className="flex-1 min-w-0">
-                <h1 className="text-2xl font-bold text-gray-900 mb-3">{job.title}</h1>
+                <h1 className="text-3xl font-bold text-gray-900 mb-4">{job.title}</h1>
                 <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600">
-                  <span className="font-medium">ID: {job.id}</span>
-                  <span>•</span>
-                  <span>{format(new Date(job.date), 'MMM d')} • {job.time}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-medium text-gray-700">ID:</span>
+                    <span>{job.id}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="h-4 w-4 text-gray-400" />
+                    <span>{format(new Date(job.date), 'MMM d, yyyy')}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-gray-400" />
+                    <span>{job.time}</span>
+                  </div>
                 </div>
               </div>
-              <Badge className={cn("text-sm flex-shrink-0 px-4 py-2", statusColors[jobStatus || job.status])}>
+              <Badge className={cn("text-sm flex-shrink-0 px-4 py-2 h-fit", statusColors[jobStatus || job.status])}>
                 {jobStatus || job.status}
               </Badge>
             </div>
           </div>
 
-          {/* SECTION 2: Customer Info + Quick Actions (Two Column) */}
-          <div className="grid grid-cols-1 lg:grid-cols-10 gap-6">
-            {/* LEFT: Customer Information (70%) */}
-            <div className="lg:col-span-7">
-              <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-5">Customer Information</h2>
-                <div className="grid grid-cols-2 gap-x-8 gap-y-5">
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1.5">Name</p>
-                    <p className="text-sm font-medium text-gray-900">{job.customerName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1.5">Job Address</p>
-                    <p className="text-sm font-medium text-gray-900">{job.location}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1.5">Assigned To</p>
-                    <p className="text-sm font-medium text-gray-900">{job.technicianName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1.5">Email</p>
-                    <p className="text-sm font-medium text-gray-900">{customer?.email || 'N/A'}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500 mb-1.5">Phone</p>
-                    <p className="text-sm font-medium text-gray-900">{customer?.phone || 'N/A'}</p>
-                  </div>
-                </div>
+          {/* SECTION 2: Customer Details Card with Inline Actions */}
+          <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-6 md:p-8">
+            <div className="flex items-center justify-between mb-6 gap-4">
+              <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                <User className="h-5 w-5 text-primary" />
+                Customer Details
+              </h2>
+              <div className="flex gap-3 flex-shrink-0">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  className="h-10 gap-2 whitespace-nowrap"
+                  onClick={handleSendSMS}
+                >
+                  <Phone className="h-4 w-4" />
+                  <span className="hidden sm:inline">Send SMS</span>
+                </Button>
+                <Button 
+                  size="sm"
+                  className="h-10 gap-2 whitespace-nowrap"
+                  onClick={handleSendEmail}
+                >
+                  <Mail className="h-4 w-4" />
+                  <span className="hidden sm:inline">Send Email</span>
+                </Button>
               </div>
             </div>
-
-            {/* RIGHT: Quick Actions (30%) */}
-            <div className="lg:col-span-3">
-              <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-6">
-                <h2 className="text-lg font-semibold text-gray-900 mb-5">Quick Actions</h2>
-                <div className="space-y-3 flex flex-col">
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-12 justify-center gap-2"
-                    onClick={handleSendEmail}
-                  >
-                    <Mail className="h-5 w-5" />
-                    <span>Send Email</span>
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    className="w-full h-12 justify-center gap-2"
-                    onClick={handleSendSMS}
-                  >
-                    <Phone className="h-5 w-5" />
-                    <span>Send SMS</span>
-                  </Button>
+            
+            <div className="grid grid-cols-2 gap-x-8 gap-y-6">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Name</p>
+                <p className="text-base font-medium text-gray-900">{job.customerName}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Job Address</p>
+                <div className="flex items-start gap-2">
+                  <MapPin className="h-4 w-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                  <p className="text-base font-medium text-gray-900 break-words">{job.location}</p>
                 </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Assigned To</p>
+                <div className="flex items-center gap-2">
+                  <div className="h-6 w-6 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary flex-shrink-0">
+                    {techInitials}
+                  </div>
+                  <p className="text-base font-medium text-gray-900">{job.technicianName}</p>
+                </div>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Email</p>
+                <p className="text-base font-medium text-gray-900">{customer?.email || 'N/A'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Phone</p>
+                <p className="text-base font-medium text-gray-900">{customer?.phone || 'N/A'}</p>
               </div>
             </div>
           </div>
 
-          {/* SECTION 3: Items Card - Full Width */}
-          <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-5">Items</h2>
-            {allItems.length === 0 ? (
-              <p className="text-sm text-gray-500">No invoices or estimates linked to this job</p>
-            ) : (
-              <div className="space-y-3">
-                {allItems.map((item) => (
-                  <div key={item.id} className="border border-gray-200 rounded-lg overflow-hidden">
-                    <div
-                      className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50 transition-colors"
-                      onClick={() => toggleItem(item.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Briefcase className="h-5 w-5 text-gray-400" />
-                        <span className="font-medium text-base">{item.id}</span>
-                        <Badge className={cn("text-xs", statusColors[item.status])}>
-                          {item.status}
-                        </Badge>
-                      </div>
-                      {expandedItems[item.id] ? (
-                        <ChevronUp className="h-5 w-5 text-gray-400" />
-                      ) : (
-                        <ChevronDown className="h-5 w-5 text-gray-400" />
-                      )}
-                    </div>
-                    {expandedItems[item.id] && (
-                      <div className="px-6 pb-6 pt-4 bg-gray-50 border-t border-gray-200">
-                        {/* Line Items */}
-                        {(() => {
-                          // Use demo fallback if no items available (demo-safe)
-                          const lineItems = (item.items && item.items.length > 0) 
-                            ? item.items 
-                            : createDemoLineItems(item);
-                          
-                          return (
-                            <div className="space-y-5">
-                              {lineItems.map((lineItem: any, index: number) => (
-                                <div key={index} className="space-y-3">
-                                  <div className="flex justify-between items-start gap-4">
-                                    <div className="flex-1 space-y-1.5">
-                                      <p className="font-medium text-base text-gray-900">{lineItem.name || lineItem.description}</p>
-                                      <p className="text-sm text-gray-500">
-                                        {lineItem.quantity || 1} × ${(lineItem.price || lineItem.unitPrice || 0).toFixed(2)}
-                                      </p>
-                                      {lineItem.discount && lineItem.discount > 0 && (
-                                        <p className="text-sm text-gray-600">Discount -${(lineItem.discount || 0).toFixed(2)}</p>
-                                      )}
-                                      {lineItem.customAdjustment && lineItem.customAdjustment !== 0 && (
-                                        <p className="text-sm text-gray-600">Custom ({lineItem.customAdjustment > 0 ? '+' : ''}${Math.abs(lineItem.customAdjustment || 0).toFixed(2)})</p>
-                                      )}
-                                      {lineItem.tax && lineItem.tax > 0 && (
-                                        <p className="text-sm text-gray-600">Item Tax ({lineItem.taxRate || 5}%) +${(lineItem.tax || 0).toFixed(2)}</p>
+          {/* SECTION 3: Two-Column Layout - Items (Left 2/3) and Payment (Right 1/3) */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* LEFT: Items Card (2 columns) */}
+            <div className="lg:col-span-2">
+              {/* SECTION 3: Items Card */}
+              <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-6 md:p-8">
+                <h2 className="text-lg font-semibold text-gray-900 mb-5 flex items-center gap-2">
+                  <Briefcase className="h-5 w-5 text-primary" />
+                  Items
+                </h2>
+                {allItems.length === 0 ? (
+                  <p className="text-sm text-gray-500">No invoices or estimates linked to this job</p>
+                ) : (
+                  <div className="space-y-3">
+                    {allItems.map((item) => (
+                      <div key={item.id} className="border border-gray-200 rounded-lg overflow-hidden">
+                        <div
+                          className="flex items-center justify-between p-5 cursor-pointer hover:bg-gray-50 transition-colors"
+                          onClick={() => toggleItem(item.id)}
+                        >
+                          <div className="flex items-center gap-3">
+                            <a href="#" className="font-semibold text-primary hover:underline">{item.id}</a>
+                            <Badge className={cn("text-xs", statusColors[item.status])}>
+                              {item.status}
+                            </Badge>
+                          </div>
+                          {expandedItems[item.id] ? (
+                            <ChevronUp className="h-5 w-5 text-gray-400" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-gray-400" />
+                          )}
+                        </div>
+                        {expandedItems[item.id] && (
+                          <div className="px-6 pb-6 pt-4 bg-gray-50 border-t border-gray-200">
+                            {/* Line Items */}
+                            {(() => {
+                              // Use demo fallback if no items available (demo-safe)
+                              const lineItems = (item.items && item.items.length > 0) 
+                                ? item.items 
+                                : createDemoLineItems(item);
+                              
+                              return (
+                                <div className="space-y-5">
+                                  {lineItems.map((lineItem: any, index: number) => (
+                                    <div key={index} className="space-y-3">
+                                      <div className="flex justify-between items-start gap-4">
+                                        <div className="flex-1 space-y-1.5">
+                                          <p className="font-medium text-base text-gray-900">{lineItem.name || lineItem.description}</p>
+                                          <p className="text-sm text-gray-500">
+                                            {lineItem.quantity || 1} × ${(lineItem.price || lineItem.unitPrice || 0).toFixed(2)}
+                                          </p>
+                                          {lineItem.discount && lineItem.discount > 0 && (
+                                            <p className="text-sm text-gray-600">Discount -${(lineItem.discount || 0).toFixed(2)}</p>
+                                          )}
+                                          {lineItem.customAdjustment && lineItem.customAdjustment !== 0 && (
+                                            <p className="text-sm text-gray-600">Custom ({lineItem.customAdjustment > 0 ? '+' : ''}${Math.abs(lineItem.customAdjustment || 0).toFixed(2)})</p>
+                                          )}
+                                          {lineItem.tax && lineItem.tax > 0 && (
+                                            <p className="text-sm text-gray-600">Item Tax ({lineItem.taxRate || 5}%) +${(lineItem.tax || 0).toFixed(2)}</p>
+                                          )}
+                                        </div>
+                                        <div className="text-right">
+                                          <span className="font-semibold text-base text-gray-900">${((lineItem.quantity || 1) * (lineItem.price || lineItem.unitPrice || 0)).toFixed(2)}</span>
+                                        </div>
+                                      </div>
+                                      {lineItem.subtotal !== undefined && (
+                                        <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
+                                          <span className="text-gray-600">Item Subtotal:</span>
+                                          <span className="font-medium text-gray-900">${(lineItem.subtotal || 0).toFixed(2)}</span>
+                                        </div>
                                       )}
                                     </div>
-                                    <div className="text-right">
-                                      <span className="font-semibold text-base text-gray-900">${((lineItem.quantity || 1) * (lineItem.price || lineItem.unitPrice || 0)).toFixed(2)}</span>
-                                    </div>
-                                  </div>
-                                  {lineItem.subtotal !== undefined && (
-                                    <div className="flex justify-between text-sm pt-2 border-t border-gray-200">
-                                      <span className="text-gray-600">Item Subtotal:</span>
-                                      <span className="font-medium text-gray-900">${(lineItem.subtotal || 0).toFixed(2)}</span>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
+                                  ))}
 
-                              {/* Divider */}
-                              <div className="border-t-2 border-gray-300 my-4"></div>
+                                  {/* Divider */}
+                                  <div className="border-t-2 border-gray-300 my-4"></div>
 
-                              {/* Totals Section - Right Aligned */}
-                              <div className="space-y-3">
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-gray-600">Subtotal:</span>
-                                  <span className="font-medium text-gray-900">${(item.subtotal || item.total || 0).toFixed(2)}</span>
-                                </div>
-                                {item.discount && item.discount > 0 && (
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Discount:</span>
-                                    <span className="font-medium text-gray-900">-${(item.discount || 0).toFixed(2)}</span>
+                                  {/* Totals Section - Right Aligned */}
+                                  <div className="space-y-3">
+                                    <div className="flex justify-between text-sm">
+                                      <span className="text-gray-600">Subtotal:</span>
+                                      <span className="font-medium text-gray-900">${(item.subtotal || item.total || 0).toFixed(2)}</span>
+                                    </div>
+                                    {item.discount && item.discount > 0 && (
+                                      <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Discount:</span>
+                                        <span className="font-medium text-gray-900">-${(item.discount || 0).toFixed(2)}</span>
+                                      </div>
+                                    )}
+                                    {item.tax && item.tax > 0 && (
+                                      <div className="flex justify-between text-sm">
+                                        <span className="text-gray-600">Tax:</span>
+                                        <span className="font-medium text-gray-900">${(item.tax || 0).toFixed(2)}</span>
+                                      </div>
+                                    )}
+                                    <div className="flex justify-between text-lg font-bold pt-3 border-t-2 border-gray-200">
+                                      <span className="text-gray-900">Total Amount:</span>
+                                      <span className="text-primary">${(item.total || 0).toFixed(2)}</span>
+                                    </div>
                                   </div>
-                                )}
-                                {item.tax && item.tax > 0 && (
-                                  <div className="flex justify-between text-sm">
-                                    <span className="text-gray-600">Tax:</span>
-                                    <span className="font-medium text-gray-900">${(item.tax || 0).toFixed(2)}</span>
-                                  </div>
-                                )}
-                                <div className="flex justify-between text-lg font-bold pt-3 border-t-2 border-gray-200">
-                                  <span className="text-gray-900">Total Amount:</span>
-                                  <span className="text-primary">${(item.total || 0).toFixed(2)}</span>
                                 </div>
-                              </div>
-                            </div>
-                          );
-                        })()}
+                              );
+                            })()}
+                          </div>
+                        )}
                       </div>
-                    )}
+                    ))}
                   </div>
-                ))}
+                )}
               </div>
-            )}
-          </div>
+            </div>
 
-          {/* SECTION 4: Payment Card - Full Width */}
-          <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-6">
-            <h2 className="text-lg font-semibold text-gray-900 mb-5">Payment</h2>
-            <div className="overflow-hidden rounded-lg border border-gray-200">
-              <table className="w-full text-sm">
-                <tbody>
-                  <tr className="border-b border-gray-200">
-                    <td className="px-4 py-3 text-gray-500 font-medium bg-gray-50 w-1/3">Invoice ID</td>
-                    <td className="px-4 py-3 text-gray-900">{job.sourceId || 'N/A'}</td>
-                  </tr>
-                  <tr className="border-b border-gray-200">
-                    <td className="px-4 py-3 text-gray-500 font-medium bg-gray-50">Status</td>
-                    <td className="px-4 py-3">
-                      <Badge className={cn("text-xs", statusColors[job.paymentStatus || 'unpaid'])}>
-                        {job.paymentStatus || 'Unpaid'}
-                      </Badge>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td className="px-4 py-3 text-gray-500 font-medium bg-gray-50">Payment Method</td>
-                    <td className="px-4 py-3 text-gray-900">Credit Card</td>
-                  </tr>
-                </tbody>
-              </table>
+            {/* RIGHT: Payment Card (1 column) */}
+            <div className="lg:col-span-1">
+
+              <div className="rounded-xl border border-gray-100 bg-white shadow-sm p-6 md:p-8 h-fit sticky top-6">
+                <h2 className="text-lg font-semibold text-gray-900 mb-5 flex items-center gap-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  Payment
+                </h2>
+                <div className="space-y-5">
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Invoice ID</p>
+                    <p className="text-base font-medium text-gray-900">{job.sourceId || 'N/A'}</p>
+                  </div>
+                  <div className="border-t border-gray-200 pt-5">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Status</p>
+                    <Badge className={cn("w-full text-center py-2.5 text-sm font-medium", statusColors[job.paymentStatus || 'unpaid'])}>
+                      {job.paymentStatus || 'Unpaid'}
+                    </Badge>
+                  </div>
+                  <div className="border-t border-gray-200 pt-5">
+                    <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Payment Method</p>
+                    <p className="text-base font-medium text-gray-900">Credit Card</p>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

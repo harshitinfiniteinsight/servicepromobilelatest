@@ -26,7 +26,7 @@ export interface Invoice {
   issueDate: string;
   dueDate: string;
   amount: number;
-  status: "Open" | "Paid" | "Overdue" | "Deactivated";
+  status: "Open" | "Paid" | "Overdue" | "Deactivated" | "Refunded" | "Partially Refunded";
   paymentMethod?: string;
   type: "single" | "recurring" | "deactivated";
   source?: "sell_product" | "manual" | "estimate" | "agreement";
@@ -42,6 +42,9 @@ export interface Invoice {
   createdAt?: string;
   // Invoice variant: "standard" (default) or "itemLevel" (item-level discount & tax)
   invoiceVariant?: "standard" | "itemLevel";
+  // Refund-related fields
+  refundedAmount?: number;
+  transactionId?: string;
 }
 
 const STORAGE_KEY = "servicepro_invoices";

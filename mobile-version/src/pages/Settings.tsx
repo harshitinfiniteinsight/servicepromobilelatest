@@ -34,7 +34,8 @@ import {
   ChevronRight,
   MessageSquare,
   X,
-  ListOrdered
+  ListOrdered,
+  Receipt
 } from "lucide-react";
 import { showSuccessToast } from "@/utils/toast";
 
@@ -135,6 +136,7 @@ const Settings = () => {
         { label: "Invoice Report", route: "/reports/invoice", icon: FileText },
         { label: "Estimate Report", route: "/reports/estimate", icon: TrendingUp },
         { label: "Monthly Report Alert", route: "/reports/monthly-alert", icon: BarChart3 },
+        { label: "Payment Details", route: "/reports/payment-details", icon: Receipt },
       ],
     },
     {

@@ -14,6 +14,7 @@ import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import AssignToJobModal from "@/components/modals/AssignToJobModal";
+import RefundModal, { type RefundInvoiceData } from "@/components/modals/RefundModal";
 import { mockCustomers, mockInvoices, mockEmployees } from "@/data/mobileMockData";
 import { createJobLookupMap } from "@/utils/jobLookup";
 import { Input } from "@/components/ui/input";
@@ -83,6 +84,8 @@ const Invoices = () => {
   const [showAssignToJobModal, setShowAssignToJobModal] = useState(false);
   const [invoiceForAssignJob, setInvoiceForAssignJob] = useState<Invoice | null>(null);
   const [jobLookupRefreshKey, setJobLookupRefreshKey] = useState(0);
+  const [showRefundModal, setShowRefundModal] = useState(false);
+  const [refundInvoice, setRefundInvoice] = useState<RefundInvoiceData | null>(null);
 
   // Get user role from localStorage
   const userRole = localStorage.getItem("userType") || "merchant";
@@ -379,7 +382,18 @@ const Invoices = () => {
         setShowReassignModal(true);
         break;
       case "refund":
-        toast.success("Processing refund...");
+        // Open refund modal with invoice data
+        setRefundInvoice({
+          id: invoice.id,
+          customerName: invoice.customerName,
+          amount: invoice.amount,
+          paidAmount: invoice.amount,
+          paymentMethod: invoice.paymentMethod,
+          status: invoice.status,
+          refundedAmount: (invoice as any).refundedAmount || 0,
+          transactionId: (invoice as any).transactionId,
+        });
+        setShowRefundModal(true);
         break;
       case "deactivate":
         // Update invoice status using service
@@ -1017,6 +1031,43 @@ const Invoices = () => {
           onAssigned={(jobId) => {
             // Refresh the job lookup map to show the Job ID badge
             setJobLookupRefreshKey(prev => prev + 1);
+          }}
+        />
+      )}
+
+      {/* Refund Modal */}
+      {refundInvoice && (
+        <RefundModal
+          isOpen={showRefundModal}
+          onClose={() => {
+            setShowRefundModal(false);
+            setRefundInvoice(null);
+          }}
+          invoice={refundInvoice}
+          onRefundComplete={(invoiceId, refundAmount, newStatus) => {
+            // Update the invoice status in the local state
+            const updatedInvoices = allInvoices.map(inv => {
+              if (inv.id === invoiceId) {
+                const currentRefunded = (inv as any).refundedAmount || 0;
+                return {
+                  ...inv,
+                  status: newStatus,
+                  refundedAmount: currentRefunded + refundAmount,
+                };
+              }
+              return inv;
+            });
+            setAllInvoices(updatedInvoices as Invoice[]);
+
+            // Also update in localStorage via service
+            updateInvoice(invoiceId, { 
+              status: newStatus as any,
+              refundedAmount: ((allInvoices.find(inv => inv.id === invoiceId) as any)?.refundedAmount || 0) + refundAmount,
+            });
+
+            // Close modal
+            setShowRefundModal(false);
+            setRefundInvoice(null);
           }}
         />
       )}

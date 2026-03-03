@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, Lock } from "lucide-react";
+import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import EnterCardDetailsModal from "./EnterCardDetailsModal";
@@ -8,7 +8,8 @@ import EnterACHPaymentDetailsModal from "./EnterACHPaymentDetailsModal";
 import CashPaymentModal from "./CashPaymentModal";
 import TapToPayModal from "./TapToPayModal";
 import ACHSetupSliderModal from "./ACHSetupSliderModal";
-import { useACHConfiguration } from "@/hooks/useACHConfiguration";
+import PaymentMethodSetupModal from "./PaymentMethodSetupModal";
+import { usePaymentConfiguration, type PaymentMethodKey } from "@/hooks/usePaymentConfiguration";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -26,13 +27,14 @@ interface PaymentModalProps {
 
 const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityType, agreement }: PaymentModalProps) => {
   const navigate = useNavigate();
-  const { achConfigured } = useACHConfiguration();
+  const { getMethodState, setMethodConfigured } = usePaymentConfiguration();
   const [showCardDetailsModal, setShowCardDetailsModal] = useState(false);
   const [showACHPaymentDetailsModal, setShowACHPaymentDetailsModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showTapToPayModal, setShowTapToPayModal] = useState(false);
   const [showNoReaderModal, setShowNoReaderModal] = useState(false);
-  const [showACHSetupModal, setShowACHSetupModal] = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [setupMethodKey, setSetupMethodKey] = useState<PaymentMethodKey | null>(null);
 
   // Calculate minimum amount payable for agreements
   const minimumAmountPayable = (() => {
@@ -68,30 +70,56 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     return minimumAmount;
   })();
 
-  const paymentOptions = [
-    {
-      id: "tap-to-pay",
-      label: "Tap to Pay",
-      icon: Zap,
-    },
-    {
-      id: "enter-card",
-      label: "Enter Card Manually",
-      icon: CreditCard,
-    },
-    {
-      id: "ach",
-      label: "ACH Bank Transfer",
-      icon: Building2,
-    },
-    {
-      id: "cash",
-      label: "Pay by Cash",
-      icon: DollarSign,
-    },
-  ];
+  const paymentOptions = useMemo(
+    () => [
+      {
+        id: "tap-to-pay",
+        methodKey: "tapToPay" as const,
+        label: "Tap to Pay",
+        setupLabel: "Setup Tap to Pay",
+        icon: Zap,
+      },
+      {
+        id: "enter-card",
+        methodKey: "cardManual" as const,
+        label: "Enter Card Manually",
+        setupLabel: "Setup Card",
+        icon: CreditCard,
+      },
+      {
+        id: "ach",
+        methodKey: "ach" as const,
+        label: "ACH Bank Transfer",
+        setupLabel: "Setup ACH",
+        icon: Building2,
+      },
+      {
+        id: "cash",
+        methodKey: "cash" as const,
+        label: "Pay by Cash",
+        setupLabel: "Setup Cash",
+        icon: DollarSign,
+      },
+    ],
+    []
+  );
+
+  const isMethodDisabled = (methodKey: PaymentMethodKey) => {
+    const methodState = getMethodState(methodKey);
+    return !methodState.enabled || !methodState.configured;
+  };
+
+  const handleSetupClick = (methodKey: PaymentMethodKey) => {
+    setSetupMethodKey(methodKey);
+    setShowSetupModal(true);
+  };
 
   const handlePaymentMethodClick = (methodId: string) => {
+    const option = paymentOptions.find((item) => item.id === methodId);
+    if (option && isMethodDisabled(option.methodKey)) {
+      return;
+    }
+
     if (methodId === "tap-to-pay") {
       // Check if card reader is connected
       const currentConnectedReaderId = localStorage.getItem("currentConnectedReaderId");
@@ -106,15 +134,8 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
       // Show card details modal instead of closing
       setShowCardDetailsModal(true);
     } else if (methodId === "ach") {
-      // Flow A: ACH is configured - show payment flow
-      // Flow B: ACH is NOT configured - show setup slider
-      if (achConfigured) {
-        // ACH is set up - open payment details modal
-        setShowACHPaymentDetailsModal(true);
-      } else {
-        // ACH not set up - show setup slider modal
-        setShowACHSetupModal(true);
-      }
+      // ACH is configured - open payment details modal
+      setShowACHPaymentDetailsModal(true);
     } else if (methodId === "cash") {
       // Show cash payment modal instead of closing
       setShowCashPaymentModal(true);
@@ -201,18 +222,33 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     navigate("/settings/configure-card-reader");
   };
 
-  const handleACHSetupBack = () => {
-    setShowACHSetupModal(false);
+  const handleSetupBack = () => {
+    setShowSetupModal(false);
   };
 
-  const handleACHSetupClose = () => {
-    setShowACHSetupModal(false);
-    onClose();
+  const handleSetupClose = () => {
+    setShowSetupModal(false);
+  };
+
+  const handleSetupComplete = () => {
+    if (setupMethodKey) {
+      // For card setup, enable both cardManual and tapToPay
+      if (setupMethodKey === "cardManual") {
+        setMethodConfigured("cardManual", true);
+        setMethodConfigured("tapToPay", true);
+      } else if (setupMethodKey === "tapToPay") {
+        setMethodConfigured("cardManual", true);
+        setMethodConfigured("tapToPay", true);
+      } else {
+        setMethodConfigured(setupMethodKey, true);
+      }
+    }
+    setShowSetupModal(false);
   };
 
   return (
     <>
-      <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal && !showNoReaderModal && !showACHSetupModal} onOpenChange={onClose}>
+      <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal && !showNoReaderModal && !showSetupModal} onOpenChange={onClose}>
         <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden [&>div]:p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">
             Service Pro 911 - Payment
@@ -265,31 +301,31 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
                 <div className="grid grid-cols-2 gap-4 sm:gap-5 w-full box-border">
                   {paymentOptions.map((option) => {
                     const Icon = option.icon;
-                    const isACHAndNotConfigured = option.id === "ach" && !achConfigured;
+                    const isDisabled = isMethodDisabled(option.methodKey);
                     
                     return (
                       <div
                         key={option.id}
                         className={`flex flex-col items-center justify-center p-4 sm:p-6 bg-white border-2 border-gray-200 rounded-xl transition-all touch-target min-h-[100px] sm:min-h-[120px] ${
-                          isACHAndNotConfigured
-                            ? ""
+                          isDisabled
+                            ? "opacity-60 cursor-not-allowed"
                             : "hover:border-orange-500 hover:bg-orange-50 active:scale-95 cursor-pointer"
                         }`}
-                        onClick={() => !isACHAndNotConfigured && handlePaymentMethodClick(option.id)}
+                        onClick={() => !isDisabled && handlePaymentMethodClick(option.id)}
+                        aria-disabled={isDisabled}
                       >
-                        <Icon className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 sm:mb-3 ${isACHAndNotConfigured ? "text-gray-400" : "text-orange-500"}`} />
-                        <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${isACHAndNotConfigured ? "text-gray-500" : "text-gray-900"}`}>{option.label}</span>
+                        <Icon className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 sm:mb-3 ${isDisabled ? "text-gray-400" : "text-orange-500"}`} />
+                        <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${isDisabled ? "text-gray-500" : "text-gray-900"}`}>{option.label}</span>
                         
-                        {/* Helper text for ACH when not configured - clickable link */}
-                        {isACHAndNotConfigured && (
+                        {isDisabled && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              setShowACHSetupModal(true);
+                              handleSetupClick(option.methodKey);
                             }}
                             className="mt-1 text-xs text-orange-500 underline font-medium hover:text-orange-600 active:scale-95"
                           >
-                            Setup ACH first
+                            {option.setupLabel}
                           </button>
                         )}
                       </div>
@@ -367,9 +403,42 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
 
       {/* ACH Setup Slider Modal */}
       <ACHSetupSliderModal
-        isOpen={showACHSetupModal}
-        onClose={handleACHSetupClose}
-        onBack={handleACHSetupBack}
+        isOpen={showSetupModal && setupMethodKey === "ach"}
+        onClose={handleSetupClose}
+        onBack={handleSetupBack}
+        onSetupComplete={handleSetupComplete}
+        setupType="ach"
+      />
+
+      {/* Card Setup Slider Modal */}
+      <ACHSetupSliderModal
+        isOpen={showSetupModal && (setupMethodKey === "cardManual" || setupMethodKey === "tapToPay")}
+        onClose={handleSetupClose}
+        onBack={handleSetupBack}
+        onSetupComplete={handleSetupComplete}
+        setupType="card"
+      />
+
+      {/* Cash Setup Slider Modal */}
+      <ACHSetupSliderModal
+        isOpen={showSetupModal && setupMethodKey === "cash"}
+        onClose={handleSetupClose}
+        onBack={handleSetupBack}
+        onSetupComplete={handleSetupComplete}
+        setupType="cash"
+      />
+
+      {/* Payment Method Setup Modal (fallback for any other methods) */}
+      <PaymentMethodSetupModal
+        isOpen={showSetupModal && setupMethodKey !== "ach" && setupMethodKey !== "cardManual" && setupMethodKey !== "tapToPay" && setupMethodKey !== "cash"}
+        onClose={handleSetupClose}
+        onBack={handleSetupBack}
+        methodLabel={
+          setupMethodKey
+            ? paymentOptions.find((option) => option.methodKey === setupMethodKey)?.label || "Payment Method"
+            : "Payment Method"
+        }
+        onSetupComplete={handleSetupComplete}
       />
     </>
   );
