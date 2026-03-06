@@ -69,7 +69,6 @@ const paymentMethodIcons: Record<string, React.ElementType> = {
 
 const differentPaymentMethods: { id: PaymentMethodType; label: string; icon: React.ElementType }[] = [
   { id: "cash", label: "Cash", icon: DollarSign },
-  { id: "bank_transfer", label: "Bank Transfer", icon: Building2 },
   { id: "card", label: "Card", icon: CreditCard },
   { id: "check", label: "Check", icon: Banknote },
 ];
@@ -77,6 +76,14 @@ const differentPaymentMethods: { id: PaymentMethodType; label: string; icon: Rea
 const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "invoice", jobId, allInvoices = [] }: RefundModalProps) => {
   // Step management
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
+  
+  // Filter invoices to show only paid ones for refund
+  const paidInvoices = useMemo(() => {
+    if (source === "job") {
+      return allInvoices.filter(inv => inv.status === "Paid" || inv.status === "paid");
+    }
+    return allInvoices;
+  }, [source, allInvoices]);
   
   // For job source: selected invoice state
   const [selectedInvoice, setSelectedInvoice] = useState<RefundInvoiceData | null>(null);
@@ -91,11 +98,6 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
   // Step 2 - Refund Method
   const [refundMethodOption, setRefundMethodOption] = useState<RefundMethodOption>("original");
   const [selectedDifferentMethod, setSelectedDifferentMethod] = useState<PaymentMethodType | null>(null);
-  
-  // Bank transfer details (when different method is bank_transfer)
-  const [bankAccountName, setBankAccountName] = useState("");
-  const [bankAccountNumber, setBankAccountNumber] = useState("");
-  const [bankRoutingNumber, setBankRoutingNumber] = useState("");
   
   // Card details (when different method is card)
   const [cardNumber, setCardNumber] = useState("");
@@ -164,18 +166,19 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
       setReasonError("");
       setRefundMethodOption("original");
       setSelectedDifferentMethod(null);
-      setBankAccountName("");
-      setBankAccountNumber("");
-      setBankRoutingNumber("");
+      setCardNumber("");
+      setCardHolderName("");
+      setExpiryDate("");
+      setCvv("");
       setIsProcessing(false);
       setShowSuccess(false);
       
-      // For job source: pre-select first invoice from the list
-      if (source === "job" && allInvoices && allInvoices.length > 0) {
-        setSelectedInvoice(allInvoices[0]);
+      // For job source: pre-select first paid invoice from the list
+      if (source === "job" && paidInvoices && paidInvoices.length > 0) {
+        setSelectedInvoice(paidInvoices[0]);
       }
     }
-  }, [isOpen, source, allInvoices]);
+  }, [isOpen, source, paidInvoices]);
 
   // Check if step 1 is valid to proceed
   const isStep1Valid = useMemo(() => {
@@ -205,9 +208,6 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
   const isStep2Valid = useMemo(() => {
     if (refundMethodOption === "original") return true;
     if (!selectedDifferentMethod) return false;
-    if (selectedDifferentMethod === "bank_transfer") {
-      return bankAccountName.trim() !== "" && bankAccountNumber.trim() !== "";
-    }
     if (selectedDifferentMethod === "card") {
       return cardNumber.replace(/\s/g, "").length === 16 && 
              cardHolderName.trim() !== "" && 
@@ -215,7 +215,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
              cvv.length >= 3;
     }
     return true;
-  }, [refundMethodOption, selectedDifferentMethod, bankAccountName, bankAccountNumber, cardNumber, cardHolderName, expiryDate, cvv]);
+  }, [refundMethodOption, selectedDifferentMethod, cardNumber, cardHolderName, expiryDate, cvv]);
 
   // Get payment method icon
   const getPaymentMethodIcon = (method: string | undefined) => {
@@ -251,8 +251,8 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
       }
     } else if (currentStep === 2) {
       if (isStep2Valid) {
-        // Show confirmation before processing
-        setCurrentStep(3);
+        // Process refund directly
+        processRefund();
       }
     }
   };
@@ -284,13 +284,6 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
         referenceId: refundMethodOption === "original" && activeInvoice.transactionId 
           ? `REF-${activeInvoice.transactionId}` 
           : `REF-${Date.now()}`,
-        ...(selectedDifferentMethod === "bank_transfer" && {
-          bankDetails: {
-            accountName: bankAccountName,
-            accountNumber: bankAccountNumber,
-            routingNumber: bankRoutingNumber,
-          }
-        }),
       };
 
       // Log for development
@@ -384,7 +377,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
 
             {/* Info Message */}
             <p className="text-xs text-gray-600 mb-6">
-              A confirmation email has been sent to {activeInvoice.customerEmail || 'the customer'}
+              A confirmation email has been sent to {activeInvoice.customerName}
             </p>
 
             {/* Close Button */}
@@ -431,7 +424,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
         <div className="flex-1 overflow-y-auto bg-white pointer-events-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="px-5 py-5 pb-6 space-y-5 pointer-events-auto">
             {/* Invoice Selector - Show when source is "job" and multiple invoices */}
-          {source === "job" && allInvoices.length > 0 && (
+          {source === "job" && paidInvoices.length > 0 && (
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-gray-700">
                 Select Invoice to Refund <span className="text-red-500">*</span>
@@ -439,7 +432,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
               <select
                 value={selectedInvoice?.id || ""}
                 onChange={(e) => {
-                  const selected = allInvoices.find(inv => inv.id === e.target.value);
+                  const selected = paidInvoices.find(inv => inv.id === e.target.value);
                   setSelectedInvoice(selected || null);
                   setPartialAmount("");
                   setAmountError("");
@@ -448,7 +441,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
                 className="w-full px-3 py-3 text-sm border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="">-- Choose an invoice --</option>
-                {allInvoices.map((inv) => (
+                {paidInvoices.map((inv) => (
                   <option key={inv.id} value={inv.id}>
                     {inv.id} — ${inv.amount.toFixed(2)} — {inv.status}
                   </option>
@@ -775,45 +768,6 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
                     ))}
                   </div>
 
-                  {/* Bank Transfer Details */}
-                  {selectedDifferentMethod === "bank_transfer" && (
-                    <div className="space-y-3 mt-4 pt-4 border-t border-gray-200">
-                      <div>
-                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
-                          Account Name <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          value={bankAccountName}
-                          onChange={(e) => setBankAccountName(e.target.value)}
-                          placeholder="John Smith"
-                          className="h-11 rounded-xl border-gray-200 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
-                          Account Number <span className="text-red-500">*</span>
-                        </Label>
-                        <Input
-                          value={bankAccountNumber}
-                          onChange={(e) => setBankAccountNumber(e.target.value)}
-                          placeholder="****1234"
-                          className="h-11 rounded-xl border-gray-200 text-sm"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
-                          Routing Number (Optional)
-                        </Label>
-                        <Input
-                          value={bankRoutingNumber}
-                          onChange={(e) => setBankRoutingNumber(e.target.value)}
-                          placeholder="021000021"
-                          className="h-11 rounded-xl border-gray-200 text-sm"
-                        />
-                      </div>
-                    </div>
-                  )}
-
                   {/* Card Details */}
                   {selectedDifferentMethod === "card" && (
                     <div className="space-y-3 mt-4 pt-4 border-t border-gray-200">
@@ -932,63 +886,6 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
                       {newInvoiceStatus}
                     </span>
                   </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Confirmation */}
-          {currentStep === 3 && (
-            <div className="space-y-5">
-              <div className="text-center">
-                <h3 className="text-lg font-bold text-gray-900 mb-1">Confirm Refund</h3>
-                <p className="text-sm text-gray-600">Please review the details below</p>
-              </div>
-
-              {/* Refund Summary Card */}
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100/50 border border-orange-200 rounded-lg p-5 space-y-3">
-                <div className="text-center">
-                  <p className="text-xs text-orange-600 font-medium mb-1">Refund Amount</p>
-                  <p className="text-4xl font-bold text-orange-600">${refundAmount.toFixed(2)}</p>
-                </div>
-              </div>
-
-              {/* Confirmation Details */}
-              <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
-                <div className="space-y-2.5">
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">Invoice</span>
-                    <span className="font-mono font-semibold text-gray-900">{activeInvoice.id}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">Customer</span>
-                    <span className="font-medium text-gray-900 text-right">{activeInvoice.customerName}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm pt-2 border-t border-gray-200">
-                    <span className="text-gray-600">Refund Method</span>
-                    <span className="font-medium text-gray-900">
-                      {refundMethodOption === "original" 
-                        ? activeInvoice.paymentMethod || "Original" 
-                        : differentPaymentMethods.find(m => m.id === selectedDifferentMethod)?.label || "Select method"}
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-600">Reason</span>
-                    <span className="text-gray-700 text-right max-w-xs line-clamp-2">{refundReason}</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Impact Info */}
-              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 space-y-2">
-                <p className="text-xs font-semibold text-blue-900 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  After this refund:
-                </p>
-                <div className="text-xs text-blue-800 space-y-1 pl-6">
-                  <p>• Invoice status will change to "{newInvoiceStatus}"</p>
-                  <p>• Remaining balance: <span className="font-semibold">${(refundableAmount - refundAmount).toFixed(2)}</span></p>
-                  <p>• Refund will be processed immediately</p>
                 </div>
               </div>
             </div>

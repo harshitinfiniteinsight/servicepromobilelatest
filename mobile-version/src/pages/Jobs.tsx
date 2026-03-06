@@ -1133,32 +1133,25 @@ const Jobs = () => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return [];
 
-    // Check job's payment status first
-    if (job.paymentStatus !== "paid") return [];
+    // For jobs with partial or paid status, find all related invoices
+    if (job.paymentStatus === "paid" || job.paymentStatus === "partial") {
+      // First, try to find invoices linked via jobId field
+      const invoicesWithJobId = mockInvoices.filter(inv => (inv as any).jobId === jobId && inv.status === "Paid");
+      if (invoicesWithJobId.length > 0) {
+        return invoicesWithJobId;
+      }
 
-    // Get invoices associated with this job
-    let associatedInvoice: any = null;
+      // Fallback: Check by sourceId reference (most common for single-invoice jobs)
+      if ((job as any)?.sourceId) {
+        const bySourceId = mockInvoices.find(inv => inv.id === (job as any)?.sourceId && inv.status === "Paid");
+        if (bySourceId) return [bySourceId];
+      }
 
-    // Check by sourceId reference (most common)
-    if ((job as any)?.sourceId) {
-      const bySourceId = mockInvoices.find(inv => inv.id === (job as any)?.sourceId);
-      if (bySourceId) associatedInvoice = bySourceId;
-    }
-
-    // Also check by job ID matching for direct invoice jobs
-    if (!associatedInvoice && job.id.startsWith("INV")) {
-      const directInvoice = mockInvoices.find(inv => inv.id === job.id);
-      if (directInvoice) associatedInvoice = directInvoice;
-    }
-
-    // Return the associated invoice (if found and payment received)
-    // Accept statuses that indicate payment received: "Paid", "Overdue" (means payment was made)
-    if (associatedInvoice && (
-      associatedInvoice.status === "Paid" || 
-      associatedInvoice.status === "Overdue" ||
-      associatedInvoice.status === "Converted to Invoice"
-    )) {
-      return [associatedInvoice];
+      // Also check by job ID matching for direct invoice jobs
+      if (job.id.startsWith("INV")) {
+        const directInvoice = mockInvoices.find(inv => inv.id === job.id && inv.status === "Paid");
+        if (directInvoice) return [directInvoice];
+      }
     }
 
     return [];

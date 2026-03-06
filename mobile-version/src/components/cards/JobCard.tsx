@@ -542,13 +542,25 @@ const JobCard = ({
         <div className="flex items-center justify-between gap-2">
           <h3 className="font-semibold text-base flex-1 min-w-0">{job.customerName}</h3>
           <div className="flex items-center gap-1.5 flex-shrink-0 flex-wrap justify-end">
-            {/* Payment Status Badge - Only show "Paid" badge, Pay button indicates unpaid status */}
+            {/* Payment Status Badge - Show Paid, Partially Paid, Pay button indicates unpaid */}
             {(paymentStatus === "Paid" || job.paymentStatus === "paid") && (
               <Badge 
                 className="text-[10px] px-1.5 py-0 h-4 rounded-full whitespace-nowrap bg-green-100 text-green-700 border-green-200"
               >
                 Paid
               </Badge>
+            )}
+            {job.paymentStatus === "partial" && (
+              <div className="flex items-center gap-1">
+                <Badge 
+                  className="text-[10px] px-1.5 py-0 h-4 rounded-full whitespace-nowrap bg-orange-100 text-orange-700 border-orange-200"
+                >
+                  Partially Paid
+                </Badge>
+                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                  ${job.paidAmount} / ${job.totalAmount}
+                </span>
+              </div>
             )}
             {jobType && (
               <Badge 
