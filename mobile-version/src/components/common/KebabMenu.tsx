@@ -35,9 +35,20 @@ const KebabMenu = ({
   menuWidth = "w-48",
 }: KebabMenuProps) => {
   const [open, setOpen] = React.useState(false);
+  const [pendingAction, setPendingAction] = React.useState<(() => void) | null>(null);
+
+  React.useEffect(() => {
+    if (!open && pendingAction) {
+      const action = pendingAction;
+      setPendingAction(null);
+      setTimeout(() => {
+        action();
+      }, 0);
+    }
+  }, [open, pendingAction]);
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
+    <DropdownMenu modal={false} open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -71,12 +82,9 @@ const KebabMenu = ({
             <DropdownMenuItem
               key={index}
               onSelect={(event) => {
-                event.preventDefault();
                 if (!item.disabled) {
+                  setPendingAction(() => item.action);
                   setOpen(false);
-                  requestAnimationFrame(() => {
-                    item.action();
-                  });
                 }
               }}
               disabled={item.disabled}

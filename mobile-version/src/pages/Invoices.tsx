@@ -1047,6 +1047,7 @@ const Invoices = () => {
             setShowRefundModal(false);
             setRefundInvoice(null);
           }}
+          mode="invoice"
           invoice={refundInvoice}
           onRefundComplete={(invoiceId, refundAmount, newStatus) => {
             // Update the invoice status in the local state

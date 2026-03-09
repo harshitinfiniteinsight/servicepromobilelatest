@@ -1817,6 +1817,7 @@ const Jobs = () => {
             setCurrentRefundJobId(null);
             setPaidInvoicesForSelector([]);
           }}
+          mode={currentRefundJobId ? "job" : "invoice"}
           invoice={refundInvoice}
           onRefundComplete={handleRefundComplete}
           source={currentRefundJobId ? "job" : "invoice"}

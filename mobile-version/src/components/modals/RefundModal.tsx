@@ -37,6 +37,7 @@ interface RefundModalProps {
   onClose: () => void;
   invoice: RefundInvoiceData;
   onRefundComplete?: (invoiceId: string, refundAmount: number, newStatus: string) => void;
+  mode?: "job" | "invoice";
   source?: "job" | "invoice";
   jobId?: string;
   allInvoices?: RefundInvoiceData[];
@@ -80,17 +81,19 @@ const differentPaymentMethods: { id: PaymentMethodType; label: string; icon: Rea
   { id: "check", label: "Check", icon: Banknote },
 ];
 
-const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "invoice", jobId, allInvoices = [] }: RefundModalProps) => {
+const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source = "invoice", jobId, allInvoices = [] }: RefundModalProps) => {
+  const effectiveMode = mode ?? source;
+
   // Step management
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   
   // Filter invoices to show only paid ones for refund
   const paidInvoices = useMemo(() => {
-    if (source === "job") {
+    if (effectiveMode === "job") {
       return allInvoices.filter(inv => inv.status === "Paid" || inv.status === "paid");
     }
     return allInvoices;
-  }, [source, allInvoices]);
+  }, [effectiveMode, allInvoices]);
   
   // For job source: selected invoice state
   const [selectedInvoice, setSelectedInvoice] = useState<RefundInvoiceData | null>(null);
@@ -121,7 +124,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Determine active invoice (either selected from job list or passed directly)
-  const activeInvoice = source === "job" && selectedInvoice ? selectedInvoice : invoice;
+  const activeInvoice = effectiveMode === "job" && selectedInvoice ? selectedInvoice : invoice;
 
   // Calculate refundable amount
   const paidAmount = activeInvoice.paidAmount ?? activeInvoice.amount;
@@ -195,22 +198,28 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
       setShowSuccess(false);
       
       // For job source: pre-select first paid invoice from the list
-      if (source === "job" && paidInvoices && paidInvoices.length > 0) {
-        setSelectedInvoice(paidInvoices[0]);
+      if (effectiveMode === "job") {
+        if (paidInvoices && paidInvoices.length > 0) {
+          setSelectedInvoice(paidInvoices[0]);
+        } else if (invoice) {
+          // Fallback to the provided invoice so validation doesn't block
+          // when paidInvoices filtering returns an empty list.
+          setSelectedInvoice(invoice);
+        }
       }
     }
-  }, [isOpen, source, paidInvoices]);
+  }, [isOpen, effectiveMode, paidInvoices]);
 
   // Check if step 1 is valid to proceed
   const isStep1Valid = useMemo(() => {
-    // For job source: must select an invoice first
-    if (source === "job" && !selectedInvoice) return false;
+    // For job source: require invoice selection only when selector is visible/populated
+    if (effectiveMode === "job" && paidInvoices.length > 0 && !selectedInvoice) return false;
     
     if (!refundReason.trim()) return false;
     if (refundType === "full") return true;
     const parsed = parseFloat(partialAmount);
     return !isNaN(parsed) && parsed > 0 && parsed <= refundableAmount;
-  }, [source, selectedInvoice, refundType, partialAmount, refundableAmount, refundReason]);
+  }, [effectiveMode, paidInvoices.length, selectedInvoice, refundType, partialAmount, refundableAmount, refundReason]);
 
   // Validate reason field
   useEffect(() => {
@@ -473,7 +482,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
             <ArrowLeft className="h-5 w-5 text-gray-600" />
           </button>
           <h2 className="text-base font-semibold text-gray-900">
-            {source === "job" ? `Refund for Job ID: ${jobId}` : "Refund Invoice"}
+            {effectiveMode === "job" ? `Refund for Job ID: ${jobId}` : "Refund Invoice"}
           </h2>
           <button 
             onClick={handleClose} 
@@ -488,7 +497,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
         <div className="flex-1 overflow-y-auto bg-white pointer-events-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="px-5 py-5 pb-6 space-y-5 pointer-events-auto">
             {/* Invoice Selector - Show when source is "job" and multiple invoices */}
-          {source === "job" && paidInvoices.length > 0 && (
+          {effectiveMode === "job" && paidInvoices.length > 0 && (
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-gray-700">
                 Select Invoice to Refund <span className="text-red-500">*</span>
