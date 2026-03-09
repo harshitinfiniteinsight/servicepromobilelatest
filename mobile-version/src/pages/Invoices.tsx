@@ -602,6 +602,7 @@ const Invoices = () => {
             icon: RotateCcw,
             action: () => handleMenuAction(invoice, "refund"),
             separator: true,
+            variant: "destructive",
           }
         );
       }
@@ -720,6 +721,7 @@ const Invoices = () => {
         icon: RotateCcw,
         action: () => handleMenuAction(invoice, "refund"),
         separator: true,
+        variant: "destructive",
       },
     ];
     return <KebabMenu items={items} menuWidth="w-48" />;

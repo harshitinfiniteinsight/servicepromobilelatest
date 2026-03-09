@@ -34,8 +34,10 @@ const KebabMenu = ({
   triggerClassName,
   menuWidth = "w-48",
 }: KebabMenuProps) => {
+  const [open, setOpen] = React.useState(false);
+
   return (
-    <DropdownMenu>
+    <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <Button
           variant="ghost"
@@ -71,7 +73,10 @@ const KebabMenu = ({
               onSelect={(event) => {
                 event.preventDefault();
                 if (!item.disabled) {
-                  item.action();
+                  setOpen(false);
+                  requestAnimationFrame(() => {
+                    item.action();
+                  });
                 }
               }}
               disabled={item.disabled}
