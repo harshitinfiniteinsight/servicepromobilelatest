@@ -250,6 +250,9 @@ const Jobs = () => {
   const [showInvoiceSelectorSheet, setShowInvoiceSelectorSheet] = useState(false);
   const [paidInvoicesForSelector, setPaidInvoicesForSelector] = useState<any[]>([]);
   const [currentRefundJobId, setCurrentRefundJobId] = useState<string | null>(null);
+  const [refundPendingByJob, setRefundPendingByJob] = useState<Record<string, boolean>>({});
+  const [autoRefundOpenedOnCancelByJob, setAutoRefundOpenedOnCancelByJob] = useState<Record<string, boolean>>({});
+  const [refundCompletedForCurrentSession, setRefundCompletedForCurrentSession] = useState(false);
 
   // Metrics carousel state
   const [metricsGroupIndex, setMetricsGroupIndex] = useState(0);
@@ -460,6 +463,48 @@ const Jobs = () => {
     feedbackReceived: filteredJobs.filter(j => j.status === "Feedback Received").length,
   }), [filteredJobs]);
 
+  // Helper: Check if payment status is refund-eligible
+  const isRefundEligiblePaymentStatus = (status?: string) => {
+    if (!status) return false;
+    const normalized = status.trim().toLowerCase();
+    return normalized === "paid" || normalized === "partial" || normalized === "partially paid";
+  };
+
+  // Helper: Resolve all invoices associated with a job
+  const getAllInvoicesForJob = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return [];
+
+    const byJobId = mockInvoices.filter(inv => (inv as any).jobId === jobId);
+    const bySourceId = (job as any)?.sourceId
+      ? mockInvoices.filter(inv => inv.id === (job as any).sourceId)
+      : [];
+    const directInvoice = job.id.startsWith("INV")
+      ? mockInvoices.filter(inv => inv.id === job.id)
+      : [];
+
+    const merged = [...byJobId, ...bySourceId, ...directInvoice];
+    const unique = new Map<string, any>();
+    merged.forEach(inv => unique.set(inv.id, inv));
+    return Array.from(unique.values());
+  };
+
+  // Helper: Get all paid/partially paid invoices for a job
+  const getPaidInvoicesForJob = (jobId: string) => {
+    const isRefundableInvoiceStatus = (invoiceStatus?: string) => {
+      if (!invoiceStatus) return false;
+      const normalized = invoiceStatus.trim().toLowerCase();
+      return normalized === "paid" || normalized === "partially paid" || normalized === "partially refunded";
+    };
+
+    return getAllInvoicesForJob(jobId).filter((inv: any) => {
+      if (!isRefundableInvoiceStatus(inv.status)) return false;
+      const paidBase = Number(inv.paidAmount ?? inv.amount ?? 0);
+      const refunded = Number(inv.refundedAmount || 0);
+      return paidBase - refunded > 0;
+    });
+  };
+
   // Handle status change
   // Auto-send feedback form email (without showing modal)
   const autoSendFeedbackFormEmail = async (jobId: string) => {
@@ -488,8 +533,15 @@ const Jobs = () => {
   };
 
   const handleStatusChange = (jobId: string, newStatus: string) => {
+    // Defensive check
+    if (!jobId || !newStatus) {
+      return;
+    }
+
     const oldJob = jobs.find(j => j.id === jobId);
     const oldStatus = oldJob?.status;
+    const isCancelling = newStatus === "Cancel" && oldStatus !== "Cancel";
+    const hasPayment = isRefundEligiblePaymentStatus((oldJob as any)?.paymentStatus);
 
     setJobs(prevJobs =>
       prevJobs.map(job =>
@@ -497,7 +549,21 @@ const Jobs = () => {
       )
     );
 
-    // Check if status changed to Cancel - deactivate the underlying document
+    // Show toast only after status is actually updated
+    toast.success(`Job status updated to ${newStatus}`);
+
+    // Auto-open refund flow once when a paid/partially-paid job is cancelled
+    if (isCancelling && hasPayment) {
+      setRefundPendingByJob(prev => ({ ...prev, [jobId]: true }));
+
+      if (!autoRefundOpenedOnCancelByJob[jobId]) {
+        setAutoRefundOpenedOnCancelByJob(prev => ({ ...prev, [jobId]: true }));
+        setTimeout(() => {
+          handleRefundJob(jobId);
+        }, 0);
+      }
+    }
+
     if (newStatus === "Cancel" && oldStatus !== "Cancel") {
       const jobIdUpper = jobId.toUpperCase();
 
@@ -543,6 +609,9 @@ const Jobs = () => {
 
     // Check if status changed from Cancel to something else - reactivate the document
     if (oldStatus === "Cancel" && newStatus !== "Cancel" && !isEmployee) {
+      setAutoRefundOpenedOnCancelByJob(prev => ({ ...prev, [jobId]: false }));
+      setRefundPendingByJob(prev => ({ ...prev, [jobId]: false }));
+
       const jobIdUpper = jobId.toUpperCase();
 
       // Reactivate invoice
@@ -590,7 +659,6 @@ const Jobs = () => {
       }
     }
 
-    toast.success(`Job status updated to ${newStatus}`);
   };
 
   // Handle feedback form send (shows modal)
@@ -1128,68 +1196,40 @@ const Jobs = () => {
     }
   };
 
-  // Helper: Check if payment status is refund-eligible
-  const isRefundEligiblePaymentStatus = (status?: string) => {
-    if (!status) return false;
-    const normalized = status.trim().toLowerCase();
-    return normalized === "paid" || normalized === "partial" || normalized === "partially paid";
-  };
-
-  // Helper: Get all paid/partially paid invoices for a job
-  const getPaidInvoicesForJob = (jobId: string) => {
-    const job = jobs.find(j => j.id === jobId);
-    if (!job) return [];
-
-    // For jobs with partial or paid status, find all related invoices
-    if (isRefundEligiblePaymentStatus((job as any).paymentStatus)) {
-      const isRefundableInvoiceStatus = (invoiceStatus?: string) => {
-        if (!invoiceStatus) return false;
-        const normalized = invoiceStatus.trim().toLowerCase();
-        return normalized === "paid" || normalized === "partially paid";
-      };
-
-      // First, try to find invoices linked via jobId field
-      const invoicesWithJobId = mockInvoices.filter(inv => (inv as any).jobId === jobId && isRefundableInvoiceStatus(inv.status));
-      if (invoicesWithJobId.length > 0) {
-        return invoicesWithJobId;
-      }
-
-      // Fallback: Check by sourceId reference (most common for single-invoice jobs)
-      if ((job as any)?.sourceId) {
-        const bySourceId = mockInvoices.find(inv => inv.id === (job as any)?.sourceId && isRefundableInvoiceStatus(inv.status));
-        if (bySourceId) return [bySourceId];
-      }
-
-      // Also check by job ID matching for direct invoice jobs
-      if (job.id.startsWith("INV")) {
-        const directInvoice = mockInvoices.find(inv => inv.id === job.id && isRefundableInvoiceStatus(inv.status));
-        if (directInvoice) return [directInvoice];
-      }
-    }
-
-    return [];
-  };
-
   // Helper: Check if a job is eligible for refund
   const canRefundJob = (jobId: string): boolean => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return false;
 
-    // Do not allow refund for scheduled/draft jobs
-    const normalizedStatus = (job.status || "").trim().toLowerCase();
-    if (normalizedStatus === "scheduled" || normalizedStatus === "draft") return false;
-
-    // Must be paid or partially paid
-    if (!isRefundEligiblePaymentStatus((job as any).paymentStatus)) return false;
-
-    // Must have at least one paid/partially paid invoice
-    const paidInvoices = getPaidInvoicesForJob(jobId);
-    return paidInvoices.length > 0;
+    // Visibility is based on payment status only (independent of job status)
+    return isRefundEligiblePaymentStatus((job as any).paymentStatus);
   };
 
   // Handler: Open refund flow for job
   const handleRefundJob = (jobId: string) => {
-    const paidInvoices = getPaidInvoicesForJob(jobId);
+    let paidInvoices = getPaidInvoicesForJob(jobId);
+
+    // Fallback: if job is eligible but paid invoices were not resolved by status,
+    // try linked invoices regardless of invoice status.
+    if (paidInvoices.length === 0) {
+      const job = jobs.find(j => j.id === jobId);
+      if (job) {
+        const linkedByJobId = mockInvoices.filter(inv => (inv as any).jobId === jobId);
+        if (linkedByJobId.length > 0) {
+          paidInvoices = linkedByJobId;
+        } else if ((job as any)?.sourceId) {
+          const bySourceId = mockInvoices.find(inv => inv.id === (job as any).sourceId);
+          if (bySourceId) {
+            paidInvoices = [bySourceId];
+          }
+        } else if (job.id.startsWith("INV")) {
+          const directInvoice = mockInvoices.find(inv => inv.id === job.id);
+          if (directInvoice) {
+            paidInvoices = [directInvoice];
+          }
+        }
+      }
+    }
 
     if (paidInvoices.length === 0) {
       toast.error("No paid invoices found for this job");
@@ -1199,6 +1239,7 @@ const Jobs = () => {
     // Store the current job ID and all invoices for the refund modal
     setCurrentRefundJobId(jobId);
     setPaidInvoicesForSelector(paidInvoices);
+    setRefundCompletedForCurrentSession(false);
 
     // Always open refund modal with job context and all invoices
     // The modal will handle showing the invoice selector
@@ -1222,10 +1263,58 @@ const Jobs = () => {
 
   // Handler: Process refund completion
   const handleRefundComplete = (invoiceId: string, refundAmount: number, newStatus: string) => {
+    // Update invoice in local mock store
+    const invoice = mockInvoices.find(inv => inv.id === invoiceId) as any;
+    if (invoice) {
+      const currentRefunded = Number(invoice.refundedAmount || 0);
+      invoice.refundedAmount = currentRefunded + refundAmount;
+      invoice.status = newStatus;
+    }
+
+    // Recalculate payment summary for the current refund job
+    if (currentRefundJobId) {
+      const refundJobId = currentRefundJobId;
+      const linkedInvoices = getAllInvoicesForJob(refundJobId) as any[];
+      const totalInvoiced = linkedInvoices.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
+      const netPaid = linkedInvoices.reduce((sum, inv) => {
+        const paidBase = Number(inv.paidAmount ?? inv.amount ?? 0);
+        const refunded = Number(inv.refundedAmount || 0);
+        return sum + Math.max(paidBase - refunded, 0);
+      }, 0);
+      const hasRemainingRefundable = linkedInvoices.some((inv: any) => {
+        const paidBase = Number(inv.paidAmount ?? inv.amount ?? 0);
+        const refunded = Number(inv.refundedAmount || 0);
+        return paidBase - refunded > 0;
+      });
+
+      const nextPaymentStatus = netPaid <= 0
+        ? "unpaid"
+        : netPaid < totalInvoiced
+          ? "partial"
+          : "paid";
+
+      setJobs(prevJobs =>
+        prevJobs.map(job =>
+          job.id === refundJobId
+            ? {
+                ...job,
+                paymentStatus: nextPaymentStatus as any,
+                paidAmount: Math.round(netPaid * 100) / 100,
+                totalAmount: totalInvoiced > 0 ? totalInvoiced : job.totalAmount,
+              }
+            : job
+        )
+      );
+
+      setRefundPendingByJob(prev => ({ ...prev, [refundJobId]: hasRemainingRefundable }));
+    }
+
+    setRefundCompletedForCurrentSession(true);
     setShowRefundModal(false);
     setRefundInvoice(null);
+    setCurrentRefundJobId(null);
+    setPaidInvoicesForSelector([]);
     toast.success("Refund processed successfully");
-    // TODO: Update invoice status in backend
   };
 
   return (
@@ -1482,7 +1571,7 @@ const Jobs = () => {
                   sourceId: (job as any).sourceId,
                   paymentStatus: (job as any).paymentStatus,
                 }}
-                onStatusChange={handleStatusChange}
+                onStatusChange={(newStatus) => handleStatusChange(job.id, newStatus)}
                 index={index}
                 showAnimation={true}
                 userRole={userRole as "merchant" | "employee"}
@@ -1720,9 +1809,13 @@ const Jobs = () => {
         <RefundModal
           isOpen={showRefundModal}
           onClose={() => {
+            if (currentRefundJobId && !refundCompletedForCurrentSession) {
+              setRefundPendingByJob(prev => ({ ...prev, [currentRefundJobId]: true }));
+            }
             setShowRefundModal(false);
             setRefundInvoice(null);
             setCurrentRefundJobId(null);
+            setPaidInvoicesForSelector([]);
           }}
           invoice={refundInvoice}
           onRefundComplete={handleRefundComplete}

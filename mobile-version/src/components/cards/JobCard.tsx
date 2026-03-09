@@ -402,15 +402,26 @@ const JobCard = ({
       }
       
     } else if (jobStatus === "Cancel" || jobStatus === "Canceled") {
-      // Cancel/Canceled: Preview only
+      // Cancel/Canceled: Preview + Refund (if refundable)
       
-      // Preview - only option
+      // Preview
       items.push({
         label: "Preview",
         icon: Eye,
         action: handlePreview,
         separator: false,
       });
+
+      // Refund (when payment exists and refund is possible)
+      if (canRefund && onRefund) {
+        items.push({
+          label: "Refund",
+          icon: RotateCcw,
+          action: onRefund,
+          separator: true,
+          variant: "destructive",
+        });
+      }
       
     } else {
       // Fallback for any other status: Show Preview at minimum
