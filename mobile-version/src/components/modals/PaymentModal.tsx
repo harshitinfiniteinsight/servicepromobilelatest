@@ -97,7 +97,6 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         id: "cash",
         methodKey: "cash" as const,
         label: "Pay by Cash",
-        setupLabel: "Setup Cash",
         icon: DollarSign,
       },
     ],
@@ -105,11 +104,22 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
   );
 
   const isMethodDisabled = (methodKey: PaymentMethodKey) => {
+    if (methodKey === "cash") {
+      return false;
+    }
     const methodState = getMethodState(methodKey);
     return !methodState.enabled || !methodState.configured;
   };
 
   const handleSetupClick = (methodKey: PaymentMethodKey) => {
+    // For Tap to Pay, navigate to Payment Methods settings page
+    if (methodKey === "tapToPay") {
+      onClose();
+      navigate("/settings/payment-methods");
+      return;
+    }
+    
+    // For other methods, show the setup modal
     setSetupMethodKey(methodKey);
     setShowSetupModal(true);
   };
@@ -317,7 +327,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
                         <Icon className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 sm:mb-3 ${isDisabled ? "text-gray-400" : "text-orange-500"}`} />
                         <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${isDisabled ? "text-gray-500" : "text-gray-900"}`}>{option.label}</span>
                         
-                        {isDisabled && (
+                        {isDisabled && option.methodKey !== "cash" && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
@@ -419,18 +429,9 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         setupType="card"
       />
 
-      {/* Cash Setup Slider Modal */}
-      <ACHSetupSliderModal
-        isOpen={showSetupModal && setupMethodKey === "cash"}
-        onClose={handleSetupClose}
-        onBack={handleSetupBack}
-        onSetupComplete={handleSetupComplete}
-        setupType="cash"
-      />
-
       {/* Payment Method Setup Modal (fallback for any other methods) */}
       <PaymentMethodSetupModal
-        isOpen={showSetupModal && setupMethodKey !== "ach" && setupMethodKey !== "cardManual" && setupMethodKey !== "tapToPay" && setupMethodKey !== "cash"}
+        isOpen={showSetupModal && setupMethodKey !== "ach" && setupMethodKey !== "cardManual" && setupMethodKey !== "tapToPay"}
         onClose={handleSetupClose}
         onBack={handleSetupBack}
         methodLabel={

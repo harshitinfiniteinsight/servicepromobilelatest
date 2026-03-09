@@ -462,8 +462,8 @@ const JobCard = ({
         });
       }
 
-      // Add Refund option for eligible jobs (Completed + has paid invoices)
-      if (canRefund && onRefund && jobStatus === "Completed") {
+      // Add Refund option for eligible jobs (paid/partially paid + refund-capable)
+      if (canRefund && onRefund) {
         items.push({
           label: "Refund",
           icon: RotateCcw,

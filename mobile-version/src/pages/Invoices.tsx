@@ -389,6 +389,8 @@ const Invoices = () => {
           amount: invoice.amount,
           paidAmount: invoice.amount,
           paymentMethod: invoice.paymentMethod,
+          cardBrand: (invoice as any).cardBrand,
+          cardLast4: (invoice as any).cardLast4,
           status: invoice.status,
           refundedAmount: (invoice as any).refundedAmount || 0,
           transactionId: (invoice as any).transactionId,

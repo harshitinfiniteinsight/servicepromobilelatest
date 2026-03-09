@@ -11,6 +11,8 @@ export function invoiceToRefundData(invoice: any): RefundInvoiceData {
     amount: invoice.amount,
     paidAmount: invoice.amount,
     paymentMethod: invoice.paymentMethod,
+    cardBrand: invoice.cardBrand,
+    cardLast4: invoice.cardLast4,
     status: invoice.status,
     refundedAmount: invoice.refundedAmount || 0,
     transactionId: invoice.transactionId,

@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { 
   ArrowLeft, 
   X, 
@@ -24,6 +25,8 @@ export interface RefundInvoiceData {
   amount: number;
   paidAmount?: number;
   paymentMethod?: string;
+  cardBrand?: string;
+  cardLast4?: string;
   transactionId?: string;
   status: string;
   refundedAmount?: number;
@@ -55,6 +58,10 @@ interface RefundRecord {
     accountName?: string;
     accountNumber?: string;
     routingNumber?: string;
+  };
+  checkDetails?: {
+    checkNumber: string;
+    comment?: string;
   };
 }
 
@@ -105,6 +112,10 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
   const [expiryDate, setExpiryDate] = useState("");
   const [cvv, setCvv] = useState("");
   
+  // Check details (when different method is check)
+  const [checkNumber, setCheckNumber] = useState("");
+  const [checkComment, setCheckComment] = useState("");
+  
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -134,6 +145,14 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
     }
     return "Partially Refunded";
   }, [refundAmount, alreadyRefunded, paidAmount]);
+
+  // Check if refund method is Check (for both original and different method)
+  const isCheckRefund = useMemo(() => {
+    const originalMethod = (activeInvoice.paymentMethod || "").toLowerCase();
+    const isOriginalCheck = refundMethodOption === "original" && originalMethod.includes("check");
+    const isDifferentCheck = refundMethodOption === "different" && selectedDifferentMethod === "check";
+    return isOriginalCheck || isDifferentCheck;
+  }, [refundMethodOption, selectedDifferentMethod, activeInvoice.paymentMethod]);
 
   // Validate partial amount
   useEffect(() => {
@@ -170,6 +189,8 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
       setCardHolderName("");
       setExpiryDate("");
       setCvv("");
+      setCheckNumber("");
+      setCheckComment("");
       setIsProcessing(false);
       setShowSuccess(false);
       
@@ -206,6 +227,11 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
 
   // Check if step 2 is valid to proceed
   const isStep2Valid = useMemo(() => {
+    // Check fields validation (for both original and different method)
+    if (isCheckRefund) {
+      return checkNumber.trim() !== "";
+    }
+    
     if (refundMethodOption === "original") return true;
     if (!selectedDifferentMethod) return false;
     if (selectedDifferentMethod === "card") {
@@ -215,12 +241,42 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
              cvv.length >= 3;
     }
     return true;
-  }, [refundMethodOption, selectedDifferentMethod, cardNumber, cardHolderName, expiryDate, cvv]);
+  }, [refundMethodOption, selectedDifferentMethod, cardNumber, cardHolderName, expiryDate, cvv, checkNumber, isCheckRefund]);
 
   // Get payment method icon
   const getPaymentMethodIcon = (method: string | undefined) => {
     if (!method) return Wallet;
     return paymentMethodIcons[method] || Wallet;
+  };
+
+  const getInvoicePaymentSummaryLabel = (invoiceData: RefundInvoiceData) => {
+    const method = (invoiceData.paymentMethod || "").trim();
+    const normalizedMethod = method.toLowerCase();
+
+    const extractedLast4FromMethod = method.match(/\((\d{4})\)/)?.[1]
+      || method.match(/\b(\d{4})\b/)?.[1];
+    const last4 = invoiceData.cardLast4 || extractedLast4FromMethod;
+
+    const extractedBrandFromMethod =
+      /visa/i.test(method) ? "Visa" :
+      /master\s*card|mastercard/i.test(method) ? "Mastercard" :
+      /amex|american\s*express/i.test(method) ? "Amex" :
+      /discover/i.test(method) ? "Discover" :
+      "";
+
+    const hasCardSignal = Boolean(
+      invoiceData.cardBrand ||
+      invoiceData.cardLast4 ||
+      extractedBrandFromMethod ||
+      normalizedMethod.includes("card")
+    );
+
+    if (hasCardSignal) {
+      const brand = invoiceData.cardBrand || extractedBrandFromMethod || "Card";
+      return `${brand} (${last4 || "last4"})`;
+    }
+
+    return method || "Payment pending";
   };
 
   const handleClose = () => {
@@ -285,6 +341,14 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
           ? `REF-${activeInvoice.transactionId}` 
           : `REF-${Date.now()}`,
       };
+      
+      // Add check details if refund method is check (for both original and different method)
+      if (isCheckRefund) {
+        refundRecord.checkDetails = {
+          checkNumber: checkNumber.trim(),
+          comment: checkComment.trim() || undefined,
+        };
+      }
 
       // Log for development
       console.log("Processing refund:", refundRecord);
@@ -464,7 +528,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
             <div className="flex items-center justify-between">
               <p className="text-xs text-gray-600">{activeInvoice.customerName}</p>
               <p className="text-xs text-gray-500">
-                {activeInvoice.paymentMethod || "Payment pending"}
+                {getInvoicePaymentSummaryLabel(activeInvoice)}
               </p>
             </div>
           </div>
@@ -848,6 +912,72 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, source = "inv
                       </div>
                     </div>
                   )}
+                  
+                  {/* Check Details - for Different Method */}
+                  {selectedDifferentMethod === "check" && (
+                    <div className="space-y-3 mt-4 pt-4 border-t border-gray-200">
+                      <div>
+                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
+                          Check Number <span className="text-red-500">*</span>
+                        </Label>
+                        <Input
+                          type="text"
+                          value={checkNumber}
+                          onChange={(e) => setCheckNumber(e.target.value)}
+                          placeholder="Enter check number"
+                          className="h-11 rounded-xl border-gray-200 text-sm"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
+                          Comment
+                        </Label>
+                        <Textarea
+                          value={checkComment}
+                          onChange={(e) => setCheckComment(e.target.value)}
+                          placeholder="Add a comment"
+                          className="min-h-[80px] rounded-xl border-gray-200 text-sm resize-none"
+                          rows={3}
+                        />
+                        <p className="text-xs text-gray-500 mt-1.5">
+                          This will be saved as notes for future reference.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Check Details - for Original Payment Method when it's Check */}
+              {refundMethodOption === "original" && isCheckRefund && (
+                <div className="p-4 bg-white border border-gray-200 rounded-lg space-y-3 mt-4">
+                  <div>
+                    <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
+                      Check Number <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      type="text"
+                      value={checkNumber}
+                      onChange={(e) => setCheckNumber(e.target.value)}
+                      placeholder="Enter check number"
+                      className="h-11 rounded-xl border-gray-200 text-sm"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
+                      Comment
+                    </Label>
+                    <Textarea
+                      value={checkComment}
+                      onChange={(e) => setCheckComment(e.target.value)}
+                      placeholder="Add a comment"
+                      className="min-h-[80px] rounded-xl border-gray-200 text-sm resize-none"
+                      rows={3}
+                    />
+                    <p className="text-xs text-gray-500 mt-1.5">
+                      This will be saved as notes for future reference.
+                    </p>
+                  </div>
                 </div>
               )}
 

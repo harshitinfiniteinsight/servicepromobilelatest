@@ -1128,28 +1128,41 @@ const Jobs = () => {
     }
   };
 
-  // Helper: Get all paid invoices for a job
+  // Helper: Check if payment status is refund-eligible
+  const isRefundEligiblePaymentStatus = (status?: string) => {
+    if (!status) return false;
+    const normalized = status.trim().toLowerCase();
+    return normalized === "paid" || normalized === "partial" || normalized === "partially paid";
+  };
+
+  // Helper: Get all paid/partially paid invoices for a job
   const getPaidInvoicesForJob = (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return [];
 
     // For jobs with partial or paid status, find all related invoices
-    if (job.paymentStatus === "paid" || job.paymentStatus === "partial") {
+    if (isRefundEligiblePaymentStatus((job as any).paymentStatus)) {
+      const isRefundableInvoiceStatus = (invoiceStatus?: string) => {
+        if (!invoiceStatus) return false;
+        const normalized = invoiceStatus.trim().toLowerCase();
+        return normalized === "paid" || normalized === "partially paid";
+      };
+
       // First, try to find invoices linked via jobId field
-      const invoicesWithJobId = mockInvoices.filter(inv => (inv as any).jobId === jobId && inv.status === "Paid");
+      const invoicesWithJobId = mockInvoices.filter(inv => (inv as any).jobId === jobId && isRefundableInvoiceStatus(inv.status));
       if (invoicesWithJobId.length > 0) {
         return invoicesWithJobId;
       }
 
       // Fallback: Check by sourceId reference (most common for single-invoice jobs)
       if ((job as any)?.sourceId) {
-        const bySourceId = mockInvoices.find(inv => inv.id === (job as any)?.sourceId && inv.status === "Paid");
+        const bySourceId = mockInvoices.find(inv => inv.id === (job as any)?.sourceId && isRefundableInvoiceStatus(inv.status));
         if (bySourceId) return [bySourceId];
       }
 
       // Also check by job ID matching for direct invoice jobs
       if (job.id.startsWith("INV")) {
-        const directInvoice = mockInvoices.find(inv => inv.id === job.id && inv.status === "Paid");
+        const directInvoice = mockInvoices.find(inv => inv.id === job.id && isRefundableInvoiceStatus(inv.status));
         if (directInvoice) return [directInvoice];
       }
     }
@@ -1162,10 +1175,14 @@ const Jobs = () => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return false;
 
-    // Job must be Completed or equivalent closed status
-    if (job.status !== "Completed") return false;
+    // Do not allow refund for scheduled/draft jobs
+    const normalizedStatus = (job.status || "").trim().toLowerCase();
+    if (normalizedStatus === "scheduled" || normalizedStatus === "draft") return false;
 
-    // Must have at least one paid invoice
+    // Must be paid or partially paid
+    if (!isRefundEligiblePaymentStatus((job as any).paymentStatus)) return false;
+
+    // Must have at least one paid/partially paid invoice
     const paidInvoices = getPaidInvoicesForJob(jobId);
     return paidInvoices.length > 0;
   };
