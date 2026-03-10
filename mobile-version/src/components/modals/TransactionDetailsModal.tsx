@@ -51,7 +51,7 @@ interface TransactionDetailsModalProps {
 const DetailRow = ({ label, value, isLongText }: { label: string; value: string; isLongText?: boolean }) => (
   <div className={cn("flex items-start justify-between gap-2 py-2 border-b border-gray-100 last:border-b-0", isLongText && "flex-col")}>
     <span className="text-[13px] text-gray-500 flex-shrink-0">{label}</span>
-    <span className={cn("text-[13px] font-semibold text-gray-900 text-right break-words", isLongText && "text-left w-full mt-0.5")}>
+    <span className={cn("text-[13px] font-semibold text-gray-900 text-right break-words", isLongText && "text-left w-full mt-0.5 whitespace-pre-wrap")}>
       {value}
     </span>
   </div>

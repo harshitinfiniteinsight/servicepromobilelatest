@@ -25,6 +25,31 @@ export interface RefundInvoiceData {
   amount: number;
   paidAmount?: number;
   paymentMethod?: string;
+  payment_method?: string;
+  payment?: {
+    method?: string;
+    payment_method?: string;
+    method_details?: {
+      card?: {
+        last4?: string;
+      };
+    };
+    payment_method_details?: {
+      card?: {
+        last4?: string;
+      };
+    };
+  };
+  payment_method_details?: {
+    card?: {
+      last4?: string;
+    };
+  };
+  paymentMethodDetails?: {
+    card?: {
+      last4?: string;
+    };
+  };
   cardBrand?: string;
   cardLast4?: string;
   transactionId?: string;
@@ -55,6 +80,7 @@ interface RefundRecord {
   processedBy: string;
   timestamp: string;
   referenceId?: string;
+  transactionNotes?: string;
   bankDetails?: {
     accountName?: string;
     accountNumber?: string;
@@ -80,6 +106,8 @@ const differentPaymentMethods: { id: PaymentMethodType; label: string; icon: Rea
   { id: "card", label: "Card", icon: CreditCard },
   { id: "check", label: "Check", icon: Banknote },
 ];
+
+const DEMO_CARD_LAST4 = "2345";
 
 const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source = "invoice", jobId, allInvoices = [] }: RefundModalProps) => {
   const effectiveMode = mode ?? source;
@@ -259,12 +287,23 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
   };
 
   const getInvoicePaymentSummaryLabel = (invoiceData: RefundInvoiceData) => {
-    const method = (invoiceData.paymentMethod || "").trim();
+    const method = (invoiceData.paymentMethod || invoiceData.payment?.method || "").trim();
     const normalizedMethod = method.toLowerCase();
+    const paymentMethodCode = (invoiceData.payment_method || invoiceData.payment?.payment_method || "").trim().toLowerCase();
 
     const extractedLast4FromMethod = method.match(/\((\d{4})\)/)?.[1]
       || method.match(/\b(\d{4})\b/)?.[1];
-    const last4 = invoiceData.cardLast4 || extractedLast4FromMethod;
+    const last4FromDetails =
+      invoiceData.payment?.method_details?.card?.last4 ||
+      invoiceData.payment?.payment_method_details?.card?.last4 ||
+      invoiceData.payment_method_details?.card?.last4 ||
+      invoiceData.paymentMethodDetails?.card?.last4;
+    const last4 = last4FromDetails || invoiceData.cardLast4 || extractedLast4FromMethod;
+    const effectiveLast4 = last4 || DEMO_CARD_LAST4;
+
+    if (paymentMethodCode === "card") {
+      return `Card (${effectiveLast4})`;
+    }
 
     const extractedBrandFromMethod =
       /visa/i.test(method) ? "Visa" :
@@ -282,7 +321,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
 
     if (hasCardSignal) {
       const brand = invoiceData.cardBrand || extractedBrandFromMethod || "Card";
-      return `${brand} (${last4 || "last4"})`;
+      return `${brand} (${effectiveLast4})`;
     }
 
     return method || "Payment pending";
@@ -338,6 +377,16 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
         refundMethodString = methodLabel || selectedDifferentMethod;
       }
 
+      // Build transaction notes
+      let transactionNotes = refundReason.trim();
+      
+      // Add check details if refund method is check
+      if (isCheckRefund && checkNumber.trim()) {
+        const checkDetailsText = `\n\nRefund Method: Check\nCheck Number: ${checkNumber.trim()}`;
+        const commentText = checkComment.trim() ? `\nComment: ${checkComment.trim()}` : "";
+        transactionNotes += checkDetailsText + commentText;
+      }
+
       // Create refund record (would be sent to backend)
       const refundRecord: RefundRecord = {
         invoiceId: activeInvoice.id,
@@ -349,6 +398,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
         referenceId: refundMethodOption === "original" && activeInvoice.transactionId 
           ? `REF-${activeInvoice.transactionId}` 
           : `REF-${Date.now()}`,
+        transactionNotes: transactionNotes,
       };
       
       // Add check details if refund method is check (for both original and different method)
@@ -753,7 +803,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                     <div>
                       <p className="text-sm font-semibold text-gray-900">Original Payment Method</p>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {activeInvoice.paymentMethod || "Payment method"}
+                        {getInvoicePaymentSummaryLabel(activeInvoice)}
                       </p>
                     </div>
                   </div>
