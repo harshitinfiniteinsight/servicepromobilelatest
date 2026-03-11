@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Calendar, Edit, Eye, Share2, FileText, MessageSquare, UserCog, MapPin, Image as ImageIcon, RefreshCw, CreditCard, Link } from "lucide-react";
+import { Calendar, Edit, Eye, Share2, FileText, MessageSquare, UserCog, MapPin, Image as ImageIcon, RefreshCw, CreditCard, Link, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
@@ -25,7 +26,7 @@ interface JobCardProps {
     customerId?: string;
   };
   jobType?: "Agreement" | "Estimate" | "Invoice";
-  paymentStatus?: "Paid" | "Open";
+  paymentStatus?: "Paid" | "Open" | "Partially Paid";
   customerEmail?: string;
   customerPhone?: string;
   hasFeedback?: boolean;
@@ -42,6 +43,8 @@ interface JobCardProps {
   onAddPictures?: () => void;
   onViewPictures?: () => void;
   onPay?: () => void;
+  onRefund?: () => void;
+  canRefund?: boolean;
   onAssociate?: (documentType: "Invoice" | "Estimate" | "Agreement") => void;
   // Additional props used in Jobs.tsx
   index?: number;
@@ -76,6 +79,8 @@ const JobCard = ({
   onAddPictures,
   onViewPictures,
   onPay,
+  onRefund,
+  canRefund = false,
   onAssociate,
   // Additional props from Jobs.tsx
   index,
@@ -96,14 +101,23 @@ const JobCard = ({
   
   const techInitials = job.technicianName.split(" ").map(n => n[0]).join("");
 
-  // Derive payment status from job if not provided
-  const effectivePaymentStatus = paymentStatus || (() => {
-    // Check completed/feedback received status means paid
-    if (job.status === "Completed" || job.status === "Feedback Received") {
-      return "Paid";
-    }
-    return "Open";
-  })();
+  const normalizedPaymentStatus = String(
+    paymentStatus || (job as any).paymentStatus || ""
+  )
+    .trim()
+    .toLowerCase();
+
+  const isUnpaidPayment =
+    normalizedPaymentStatus === "open" ||
+    normalizedPaymentStatus === "unpaid" ||
+    normalizedPaymentStatus === "";
+  const isPaidPayment = normalizedPaymentStatus === "paid";
+  const isPartiallyPaidPayment =
+    normalizedPaymentStatus === "partial" ||
+    normalizedPaymentStatus === "partially paid" ||
+    normalizedPaymentStatus === "partially_paid";
+  const isRefundEligiblePaymentStatus = isPaidPayment || isPartiallyPaidPayment;
+  const canShowRefund = isRefundEligiblePaymentStatus && canRefund && !!onRefund;
   
   // Derive source type from job ID if not provided
   const effectiveSourceType: SourceDocumentType = job.sourceType || (() => {
@@ -200,7 +214,7 @@ const JobCard = ({
       : false;
     
     const jobStatus = job.status;
-    const isUnpaid = effectivePaymentStatus === "Open";
+    const isUnpaid = isUnpaidPayment;
     const sourceType = effectiveSourceType;
     const hasImages = hasPictures || (job.images && job.images.length > 0);
     
@@ -293,17 +307,7 @@ const JobCard = ({
         });
       }
       
-      // 7. Pay
-      if (onPay) {
-        items.push({
-          label: "Pay",
-          icon: CreditCard,
-          action: () => onPay(),
-          separator: false,
-        });
-      }
-      
-      // 8. Associate {Source Document}
+      // 7. Associate {Source Document}
       if (onAssociate) {
         if (sourceType) {
           // If job has a source type, show only that associate option
@@ -348,7 +352,7 @@ const JobCard = ({
     //        Associate New {Source Document}, Associate {Source Document}
     // =========================================================
     
-    if (!isUnpaid && effectivePaymentStatus === "Paid") {
+    if (!isUnpaid && (isPaidPayment || isPartiallyPaidPayment)) {
       // 1. Preview - always first
       items.push({
         label: "Preview",
@@ -414,6 +418,16 @@ const JobCard = ({
           // No specific "Associate {Source}" option when sourceType is null
         }
       }
+
+      if (canShowRefund) {
+        items.push({
+          label: "Refund",
+          icon: RotateCcw,
+          action: () => onRefund?.(),
+          separator: true,
+          variant: "destructive",
+        });
+      }
       
       return items;
     }
@@ -435,7 +449,7 @@ const JobCard = ({
       });
       
       // Edit - only if payment status is Open AND user is NOT an employee
-      if (effectivePaymentStatus === "Open" && onQuickAction && !effectiveIsEmployee) {
+      if (isUnpaidPayment && onQuickAction && !effectiveIsEmployee) {
         items.push({
           label: "Edit",
           icon: Edit,
@@ -733,16 +747,14 @@ const JobCard = ({
             
             {/* Badges */}
             <div className="flex items-center gap-1 flex-shrink-0">
-              {paymentStatus && (
-                <Badge 
-                  className={cn(
-                    "text-[10px] px-1.5 py-0 h-4 rounded-full whitespace-nowrap",
-                    paymentStatus === "Paid" 
-                      ? "bg-green-100 text-green-700 border-green-200" 
-                      : "bg-orange-100 text-orange-700 border-orange-200"
-                  )}
-                >
-                  {paymentStatus}
+              {isPaidPayment && (
+                <Badge className="text-[10px] px-1.5 py-0 h-4 rounded-full whitespace-nowrap bg-green-100 text-green-700 border-green-200">
+                  Paid
+                </Badge>
+              )}
+              {isPartiallyPaidPayment && (
+                <Badge className="text-[10px] px-1.5 py-0 h-4 rounded-full whitespace-nowrap bg-orange-100 text-orange-700 border-orange-200">
+                  Partially Paid
                 </Badge>
               )}
               {jobType && (
@@ -752,6 +764,19 @@ const JobCard = ({
                 >
                   {jobType}
                 </Badge>
+              )}
+              {(isUnpaidPayment || isPartiallyPaidPayment) && onPay && job.status !== "Cancel" && job.status !== "Canceled" && (
+                <Button
+                  size="sm"
+                  variant="default"
+                  className="h-auto min-h-0 px-2 py-1 text-xs font-semibold whitespace-nowrap bg-primary hover:bg-primary/90 rounded-xl shadow-sm hover:shadow-md transition-all leading-tight"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onPay();
+                  }}
+                >
+                  Pay
+                </Button>
               )}
             </div>
           </div>

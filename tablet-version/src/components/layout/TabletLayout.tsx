@@ -63,7 +63,7 @@ const merchantNavItems: NavItem[] = [
     children: [
       { title: "Inventory List", path: "/inventory", icon: Package },
       { title: "Inventory Stock In/Out", path: "/inventory/stock", icon: Package },
-      { title: "Inventory Refund", path: "/inventory/refund", icon: Package },
+      { title: "Inventory Refund", path: "/inventory/refunds", icon: Package },
     ]
   },
   {
