@@ -241,83 +241,95 @@ const InvoiceReport = () => {
               </div>
             </div>
 
-            {/* Invoice List */}
-            <div className="space-y-2">
-          {filteredInvoices.length === 0 ? (
-            <div className="text-center py-8 text-gray-500">
-              <p className="text-sm">No invoices found</p>
-            </div>
-          ) : (
-            filteredInvoices.map((invoice) => (
-              <div
-                key={invoice.id}
-                onClick={() => handleOrderClick(invoice.id)}
-                className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
-              >
-                {/* Compact Grid Layout */}
-                <div className="grid grid-cols-12 gap-4 items-center">
-                  {/* Left Column: Invoice ID & Date */}
-                  <div className="col-span-2">
-                    <p className="text-sm font-semibold text-teal-600 hover:text-teal-700">
-                      {invoice.id}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-0.5">{invoice.issueDate}</p>
-                  </div>
-
-                  {/* Center Column: Customer, Service & SKU */}
-                  <div className="col-span-5">
-                    <p className="text-sm font-medium text-gray-900 mb-0.5">
-                      {invoice.customerName}
-                    </p>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {invoice.itemName && (
-                        <span className="text-xs text-gray-600">{invoice.itemName}</span>
-                      )}
-                      {invoice.sku && (
-                        <Badge
-                          variant="outline"
-                          className="text-[10px] px-1.5 py-0 h-4 bg-gray-50 text-gray-600 border-gray-300"
-                        >
-                          {invoice.sku}
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Center-Right: Employee */}
-                  <div className="col-span-2">
-                    {invoice.employeeName && (
-                      <p className="text-xs text-gray-500 truncate" title={invoice.employeeName}>
-                        {invoice.employeeName}
-                      </p>
-                    )}
-                  </div>
-
-                  {/* Right Column: Amount & Status */}
-                  <div className="col-span-3 flex items-center justify-end gap-3">
-                    <div className="text-right">
-                      <p className="text-base font-semibold text-green-600">
-                        ${invoice.amount.toFixed(2)}
-                      </p>
-                      <p className="text-[10px] text-gray-500">
-                        {invoice.type === "recurring" ? "Recurring" : "Single"}
-                      </p>
-                    </div>
-                    <Badge
-                      className={`text-xs px-2.5 py-1 h-6 flex-shrink-0 ${
-                        getInvoiceDisplayStatus(invoice.status) === "Paid"
-                          ? "bg-green-100 text-green-700 border-green-200"
-                          : "bg-orange-100 text-orange-700 border-orange-200"
-                      }`}
-                    >
-                      {getInvoiceDisplayStatus(invoice.status)}
-                    </Badge>
-                  </div>
+            {/* Invoice Cards */}
+            {filteredInvoices.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                  <Search className="w-6 h-6 text-gray-300" />
                 </div>
+                <p className="text-sm font-medium text-gray-500">No invoices found</p>
+                <p className="text-xs text-gray-400 mt-1">Try adjusting your search or filters</p>
               </div>
-            ))
-          )}
-            </div>
+            ) : (
+              <div className="flex flex-col gap-3.5">
+                {filteredInvoices.map((invoice) => {
+                  const displayStatus = getInvoiceDisplayStatus(invoice.status);
+                  return (
+                    <div
+                      key={invoice.id}
+                      onClick={() => handleOrderClick(invoice.id)}
+                      className="bg-white rounded-xl p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]"
+                      style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)", border: "1px solid #f0f0f0" }}
+                    >
+                      {/* HEADER: Invoice ID (left) | Date (right) */}
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full tracking-wide">
+                          {invoice.id}
+                        </span>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          <span>{invoice.issueDate}</span>
+                        </div>
+                      </div>
+
+                      {/* Divider */}
+                      <div className="border-t border-gray-100 mb-3" />
+
+                      {/* DETAIL ROW: Customer (left) | Service Type (right) */}
+                      <div className="flex items-start gap-4 mb-2.5">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-gray-400 mb-0.5">Customer</p>
+                          <p className="text-sm font-semibold text-gray-900 truncate">{invoice.customerName}</p>
+                        </div>
+                        <div className="flex-1 min-w-0 text-right">
+                          <p className="text-xs text-gray-400 mb-0.5">Service</p>
+                          <p className="text-sm text-gray-700 truncate">{invoice.itemName || "—"}</p>
+                        </div>
+                      </div>
+
+                      {/* SUB DETAILS: Employee (left) | SKU (right) */}
+                      <div className="flex items-start gap-4 mb-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-gray-400 mb-0.5">Employee</p>
+                          <p className="text-sm text-gray-600 truncate">{invoice.employeeName || "—"}</p>
+                        </div>
+                        <div className="flex-1 min-w-0 text-right">
+                          <p className="text-xs text-gray-400 mb-0.5">SKU</p>
+                          <p className="text-sm text-gray-500 font-mono truncate">{invoice.sku || "—"}</p>
+                        </div>
+                      </div>
+
+                      {/* FOOTER: Amount (left) | Status badge (right) */}
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <div>
+                          <span
+                            className="text-base font-bold"
+                            style={{ color: "#16a34a" }}
+                          >
+                            ${invoice.amount.toFixed(2)}
+                          </span>
+                          {invoice.type && (
+                            <span className="ml-2 text-xs text-gray-400">
+                              {invoice.type === "recurring" ? "Recurring" : "Single"}
+                            </span>
+                          )}
+                        </div>
+                        <Badge
+                          className="text-xs px-3 py-1 font-semibold rounded-full border-0"
+                          style={
+                            displayStatus === "Paid"
+                              ? { background: "#e6f7ec", color: "#16a34a" }
+                              : { background: "#fff3e0", color: "#ef6c00" }
+                          }
+                        >
+                          {displayStatus}
+                        </Badge>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

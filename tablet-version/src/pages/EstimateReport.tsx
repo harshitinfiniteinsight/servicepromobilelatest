@@ -204,76 +204,87 @@ const EstimateReport = () => {
               </div>
             </div>
 
-            {/* Estimate List */}
-            <div className="space-y-2">
-              {filteredEstimates.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p className="text-sm">No estimates found</p>
+            {/* Estimate Cards Grid */}
+            {filteredEstimates.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <div className="w-14 h-14 rounded-full bg-gray-100 flex items-center justify-center mb-3">
+                  <Search className="w-6 h-6 text-gray-300" />
                 </div>
-              ) : (
-                filteredEstimates.map((estimate) => (
-                  <div
-                    key={estimate.id}
-                    onClick={() => handleEstimateClick(estimate.id)}
-                    className="bg-white border border-gray-200 rounded-lg p-3 shadow-sm hover:shadow-md hover:border-gray-300 transition-all cursor-pointer"
-                  >
-                    {/* Compact Grid Layout */}
-                    <div className="grid grid-cols-12 gap-4 items-center">
-                      {/* Date Column */}
-                      <div className="col-span-2">
-                        <p className="text-xs text-gray-500">Date</p>
-                        <p className="text-sm font-medium text-gray-900 mt-0.5">{estimate.date}</p>
-                      </div>
-
-                      {/* Order ID Column */}
-                      <div className="col-span-2">
-                        <p className="text-xs text-gray-500">Order ID</p>
-                        <p className="text-sm font-semibold text-teal-600 hover:text-teal-700 mt-0.5">
+                <p className="text-sm font-medium text-gray-500">No estimates found</p>
+                <p className="text-xs text-gray-400 mt-1">Try adjusting your search or filters</p>
+              </div>
+            ) : (
+              <div
+                className="grid gap-4"
+                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))" }}
+              >
+                {filteredEstimates.map((estimate) => {
+                  const displayStatus = getEstimateDisplayStatus(estimate.status);
+                  return (
+                    <div
+                      key={estimate.id}
+                      onClick={() => handleEstimateClick(estimate.id)}
+                      className="bg-white rounded-xl p-4 cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]"
+                      style={{ boxShadow: "0 2px 8px rgba(0,0,0,0.06)", border: "1px solid #f0f0f0" }}
+                    >
+                      {/* Card Header: Estimate ID (left) + Date (right) */}
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-bold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full tracking-wide">
                           {estimate.id}
-                        </p>
-                      </div>
-
-                      {/* Customer Name Column */}
-                      <div className="col-span-3">
-                        <p className="text-xs text-gray-500">Customer</p>
-                        <p className="text-sm font-medium text-gray-900 mt-0.5 truncate" title={estimate.customerName}>
-                          {estimate.customerName}
-                        </p>
-                      </div>
-
-                      {/* Employee Name Column */}
-                      <div className="col-span-2">
-                        <p className="text-xs text-gray-500">Employee</p>
-                        <p className="text-sm text-gray-700 mt-0.5 truncate" title={estimate.employeeName}>
-                          {estimate.employeeName || "-"}
-                        </p>
-                      </div>
-
-                      {/* Amount + Status (combined, prevents overlap) */}
-                      <div className="col-span-3 flex items-center justify-end gap-3">
-                        <div className="text-right whitespace-nowrap">
-                          <p className="text-xs text-gray-500">Amount</p>
-                          <p className="text-base font-semibold text-green-600 mt-0.5">
-                            ${estimate.amount.toFixed(2)}
-                          </p>
+                        </span>
+                        <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                          <span>{estimate.date}</span>
                         </div>
-                        <Badge
-                          className={`text-xs px-2.5 py-1 h-6 flex-shrink-0 ${
-                            getEstimateDisplayStatus(estimate.status) === "Paid"
-                              ? "bg-green-100 text-green-700 border-green-200"
-                              : getEstimateDisplayStatus(estimate.status) === "Converted to Invoice"
-                              ? "bg-blue-100 text-blue-700 border-blue-200"
-                              : "bg-orange-100 text-orange-700 border-orange-200"
-                          }`}
+                      </div>
+
+                      {/* Divider */}
+                      <div className="border-t border-gray-100 mb-3" />
+
+                      {/* Card Body: Customer + Employee on same row */}
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-gray-400 mb-0.5">Customer</p>
+                          <p className="text-sm font-semibold text-gray-900 truncate">{estimate.customerName}</p>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-xs text-gray-400 mb-0.5">Employee</p>
+                          <p className="text-sm text-gray-600 truncate">{estimate.employeeName || "—"}</p>
+                        </div>
+                      </div>
+
+                      {/* Card Footer: Amount + Status */}
+                      <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                        <span
+                          className="text-base font-bold"
+                          style={{ color: "#16a34a" }}
                         >
-                          {getEstimateDisplayStatus(estimate.status)}
+                          ${estimate.amount.toFixed(2)}
+                        </span>
+                        <Badge
+                          className={`text-xs px-3 py-1 font-semibold rounded-full border-0 ${
+                            displayStatus === "Converted to Invoice"
+                              ? "text-blue-700 hover:bg-blue-100"
+                              : displayStatus === "Paid"
+                              ? "text-green-700 hover:bg-green-100"
+                              : "text-orange-700 hover:bg-orange-100"
+                          }`}
+                          style={
+                            displayStatus === "Converted to Invoice"
+                              ? { background: "#e3f2fd", color: "#1976d2" }
+                              : displayStatus === "Paid"
+                              ? { background: "#e8f5e9", color: "#2e7d32" }
+                              : { background: "#fff3e0", color: "#ef6c00" }
+                          }
+                        >
+                          {displayStatus}
                         </Badge>
                       </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>

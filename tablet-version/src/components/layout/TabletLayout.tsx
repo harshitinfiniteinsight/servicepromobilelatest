@@ -83,6 +83,7 @@ const merchantNavItems: NavItem[] = [
     children: [
       { title: "Invoice Report", path: "/reports/invoice", icon: FileText },
       { title: "Estimate Report", path: "/reports/estimate", icon: TrendingUp },
+      { title: "Payment Details", path: "/reports/payment-details", icon: CreditCard },
     ]
   },
   {

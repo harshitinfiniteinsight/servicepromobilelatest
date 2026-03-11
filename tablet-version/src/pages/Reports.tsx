@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
-import { FileText, TrendingUp, Users, Package, DollarSign, Calendar, Download } from "lucide-react";
+import { FileText, TrendingUp, Users, Package, DollarSign, Calendar, Download, CreditCard } from "lucide-react";
 
 const Reports = () => {
   const navigate = useNavigate();
@@ -22,6 +22,14 @@ const Reports = () => {
       icon: TrendingUp,
       color: "success",
       route: "/reports/estimate",
+    },
+    {
+      id: "payment-details",
+      title: "Payment Details",
+      description: "View payments and refund transactions",
+      icon: CreditCard,
+      color: "primary",
+      route: "/reports/payment-details",
     },
     {
       id: "revenue",
