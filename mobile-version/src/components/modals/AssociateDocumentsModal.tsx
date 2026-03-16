@@ -34,6 +34,8 @@ interface DocumentItem {
   amount: number;
   status: string;
   type?: string;
+  jobId?: string;
+  job_id?: string;
 }
 
 const statusColors: Record<string, string> = {
@@ -50,9 +52,9 @@ const statusColors: Record<string, string> = {
 };
 
 const tabConfig: { key: DocumentTab; label: string; icon: React.ElementType }[] = [
-  { key: "invoice", label: "Invoices", icon: Receipt },
-  { key: "estimate", label: "Estimates", icon: FileText },
-  { key: "agreement", label: "Agreements", icon: FileCheck },
+  { key: "invoice", label: "Invoice", icon: Receipt },
+  { key: "estimate", label: "Estimate", icon: FileText },
+  { key: "agreement", label: "Agreement", icon: FileCheck },
 ];
 
 const AssociateDocumentsModal = ({
@@ -62,11 +64,7 @@ const AssociateDocumentsModal = ({
   customerId,
   onDocumentAssociated,
   initialTab,
-  jobSourceType,
 }: AssociateDocumentsModalProps) => {
-  // Determine if we should restrict to a single document type
-  const isSourceTypeRestricted = jobSourceType && jobSourceType !== "none";
-  const restrictedSourceType = isSourceTypeRestricted ? jobSourceType : undefined;
   const [activeTab, setActiveTab] = useState<DocumentTab>("invoice");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
@@ -76,14 +74,13 @@ const AssociateDocumentsModal = ({
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
-      // Set initial tab based on job source type or initialTab prop
-      const defaultTab = restrictedSourceType || initialTab || "invoice";
-      setActiveTab(defaultTab as DocumentTab);
+      // Default to invoice when no initial tab is provided
+      setActiveTab((initialTab || "invoice") as DocumentTab);
       setSearchQuery("");
       setSelectedDocumentId(null);
       setShowAllCustomers(false);
     }
-  }, [isOpen, initialTab, restrictedSourceType]);
+  }, [isOpen, initialTab]);
 
   // Track analytics on open
   useEffect(() => {
@@ -113,6 +110,8 @@ const AssociateDocumentsModal = ({
           amount: inv.amount,
           status: inv.status,
           type: inv.type,
+          jobId: inv.jobId,
+          job_id: (inv as any).job_id,
         }));
         break;
       case "estimate":
@@ -123,6 +122,8 @@ const AssociateDocumentsModal = ({
           date: est.date,
           amount: est.amount,
           status: est.status,
+          jobId: (est as any).jobId,
+          job_id: (est as any).job_id,
         }));
         break;
       case "agreement":
@@ -134,6 +135,8 @@ const AssociateDocumentsModal = ({
           amount: agr.monthlyAmount,
           status: agr.status,
           type: agr.type,
+          jobId: (agr as any).jobId,
+          job_id: (agr as any).job_id,
         }));
         break;
     }
@@ -144,6 +147,13 @@ const AssociateDocumentsModal = ({
   // Filter and sort documents
   const filteredDocuments = useMemo(() => {
     let result = documents;
+
+    // Show only records that are not linked to any job
+    result = result.filter((doc) => {
+      const linkedJobId = getJobForDocument(activeTab, doc.id);
+      const legacyLinkedJobId = doc.jobId || doc.job_id;
+      return !linkedJobId && !legacyLinkedJobId;
+    });
 
     // Filter by customer if not showing all
     if (!showAllCustomers && customerId) {
@@ -275,19 +285,24 @@ const AssociateDocumentsModal = ({
     }
   };
 
+  const getSearchPlaceholder = () => {
+    switch (activeTab) {
+      case "invoice":
+        return "Search invoices...";
+      case "estimate":
+        return "Search estimates...";
+      case "agreement":
+        return "Search agreements...";
+      default:
+        return "Search...";
+    }
+  };
+
   // Get modal title based on job source type
   const getModalTitle = () => {
     // Always display "Link to Job" regardless of entity type (invoice/estimate/agreement)
     return "Link to Job";
   };
-
-  // Get allowed tabs based on job source type
-  const allowedTabs = useMemo(() => {
-    if (!isSourceTypeRestricted) {
-      return tabConfig;
-    }
-    return tabConfig.filter(tab => tab.key === restrictedSourceType);
-  }, [isSourceTypeRestricted, restrictedSourceType]);
 
   const sameCustomerCount = useMemo(() => {
     if (!customerId) return 0;
@@ -323,36 +338,9 @@ const AssociateDocumentsModal = ({
           {/* Job Context */}
           <div className="px-4 pt-4">
             <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 text-sm text-blue-800">
-              <p className="font-medium">Associating to: {jobId}</p>
+              <p className="font-medium">Job ID: {jobId}</p>
             </div>
           </div>
-
-          {/* Document Type Tabs - Only show if multiple types allowed */}
-          {allowedTabs.length > 1 && (
-            <div className="px-4 pt-4">
-              <div className="flex rounded-lg bg-gray-100 p-1">
-                {allowedTabs.map(({ key, label, icon: Icon }) => (
-                  <button
-                    key={key}
-                    onClick={() => {
-                      setActiveTab(key);
-                      setSelectedDocumentId(null);
-                      setSearchQuery("");
-                    }}
-                    className={cn(
-                      "flex-1 flex items-center justify-center gap-1.5 py-2 px-3 rounded-md text-sm font-medium transition-all",
-                      activeTab === key
-                        ? "bg-white text-orange-600 shadow-sm"
-                        : "text-gray-600 hover:text-gray-900"
-                    )}
-                  >
-                    <Icon className="h-4 w-4" />
-                    <span className="hidden sm:inline">{label}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
 
           {/* Customer Filter Toggle */}
           {customerId && (
@@ -374,16 +362,34 @@ const AssociateDocumentsModal = ({
             </div>
           )}
 
-          {/* Search */}
+          {/* Entity Selector + Search */}
           <div className="px-4 py-3">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder={`Search ${getTabLabel().toLowerCase()}s...`}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10 h-11"
-              />
+            <div className="flex items-center gap-2">
+              <div className="w-[42%]">
+                <select
+                  value={activeTab}
+                  onChange={(e) => {
+                    setActiveTab(e.target.value as DocumentTab);
+                    setSelectedDocumentId(null);
+                  }}
+                  className="w-full h-11 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  {tabConfig.map((tab) => (
+                    <option key={tab.key} value={tab.key}>
+                      {tab.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder={getSearchPlaceholder()}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-10 h-11"
+                />
+              </div>
             </div>
           </div>
 
@@ -398,7 +404,7 @@ const AssociateDocumentsModal = ({
                     {searchQuery
                       ? "Try adjusting your search"
                       : showAllCustomers
-                      ? `No ${getTabLabel().toLowerCase()}s available`
+                      ? `No unlinked ${getTabLabel().toLowerCase()}s available`
                       : "Try enabling 'Show all customers'"}
                   </p>
                 </div>
@@ -502,7 +508,7 @@ const AssociateDocumentsModal = ({
               className="flex-1 h-11 bg-orange-500 hover:bg-orange-600 text-white"
               disabled={!selectedDocumentId || isAssociating}
             >
-              {isAssociating ? "Associating..." : "Associate"}
+              {isAssociating ? "Associating..." : "Link to Job"}
             </Button>
           </div>
         </div>

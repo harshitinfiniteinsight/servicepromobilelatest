@@ -510,7 +510,7 @@ const AssociateDocumentsModal = ({
               className="flex-1 h-11 bg-orange-500 hover:bg-orange-600 text-white"
               disabled={!selectedDocumentId || isAssociating}
             >
-              {isAssociating ? "Associating..." : "Associate"}
+              {isAssociating ? "Associating..." : "Link to Job"}
             </Button>
           </div>
         </div>
