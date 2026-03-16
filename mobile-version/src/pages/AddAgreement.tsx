@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +17,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { showSuccessToast } from "@/utils/toast";
+import { assignToJob } from "@/services/jobAssignmentService";
 
 const BASE_SERVICE_CATALOG = [
   { id: "svc-1", name: "Service Call Fee", price: 95 },
@@ -31,9 +32,11 @@ const BASE_SERVICE_CATALOG = [
 const AddAgreement = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { id } = useParams<{ id?: string }>();
   const isEditMode = !!id;
   const agreement = isEditMode ? mockAgreements.find(ag => ag.id === id) : null;
+  const jobIdFromQuery = searchParams.get("job_id")?.trim() || "";
   
   const [step, setStep] = useState(1);
   const [customerList, setCustomerList] = useState(() => [...mockCustomers]);
@@ -344,8 +347,82 @@ const AddAgreement = () => {
         console.error("Error updating agreement:", error);
       }
     } else {
-      // Create new agreement (existing logic)
-      navigate("/agreements");
+      // Create new agreement
+      if (!selectedCustomer) {
+        toast.error("Please select a customer");
+        return;
+      }
+
+      const selectedCustomerData = customerList.find(c => c.id === selectedCustomer);
+      if (!selectedCustomerData) {
+        toast.error("Customer not found");
+        return;
+      }
+
+      try {
+        const storedAgreements = JSON.parse(localStorage.getItem("servicepro_agreements") || "[]");
+        const allAgreementIds = [
+          ...mockAgreements.map(ag => ag.id),
+          ...storedAgreements.map((ag: any) => ag.id),
+        ];
+        const maxNum = allAgreementIds.reduce((max: number, agreementId: string) => {
+          const match = agreementId.match(/AGR-(\d+)/);
+          if (match) {
+            return Math.max(max, parseInt(match[1], 10));
+          }
+          return max;
+        }, 0);
+
+        const newAgreementId = `AGR-${String(maxNum + 1).padStart(3, "0")}`;
+
+        const newAgreement = {
+          id: newAgreementId,
+          customerId: selectedCustomer,
+          customerName: selectedCustomerData.name,
+          type: agreementType,
+          startDate: startDate || new Date().toISOString().split("T")[0],
+          endDate: endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+          monthlyAmount: monthlyAmount || selectedServicesList.reduce((sum, item) => sum + (item.price || 0), 0),
+          status: agreementStatus,
+          renewalStatus: "Manual",
+          billingCycle,
+          description: workDescription || undefined,
+          services: selectedServicesList,
+          serviceRequirement,
+          agreementTerms: agreementTerms || undefined,
+          cancellationPolicy: cancellationPolicy || undefined,
+          employeeId: selectedEmployee || currentEmployeeId,
+          employeeName: selectedEmployee ? mockEmployees.find(e => e.id === selectedEmployee)?.name : undefined,
+          createdAt: new Date().toISOString(),
+        };
+
+        storedAgreements.push(newAgreement);
+        localStorage.setItem("servicepro_agreements", JSON.stringify(storedAgreements));
+
+        if (jobIdFromQuery) {
+          const assignResult = assignToJob("agreement", newAgreementId, jobIdFromQuery);
+          if (!assignResult.success) {
+            toast.error(assignResult.error || "Agreement created, but linking to job failed");
+          }
+
+          showSuccessToast("Agreement created successfully");
+          navigate("/jobs", {
+            state: {
+              linkedEntityCreated: true,
+              jobId: jobIdFromQuery,
+              documentType: "agreement",
+              documentId: newAgreementId,
+            },
+          });
+          return;
+        }
+
+        showSuccessToast("Agreement created successfully");
+        navigate("/agreements");
+      } catch (error) {
+        console.error("Error creating agreement:", error);
+        toast.error("Failed to create agreement");
+      }
     }
   };
 

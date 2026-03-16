@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { X, Search, FileText, Receipt, FileCheck, Calendar, User, CheckCircle, Link, DollarSign } from "lucide-react";
+import { X, Search, FileText, Receipt, FileCheck, Calendar, User, CheckCircle, Link, DollarSign, Plus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +66,7 @@ const AssociateDocumentsModal = ({
   onDocumentAssociated,
   initialTab,
 }: AssociateDocumentsModalProps) => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<DocumentTab>("invoice");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null);
@@ -102,47 +104,89 @@ const AssociateDocumentsModal = ({
 
     switch (activeTab) {
       case "invoice":
-        rawDocs = mockInvoices.map(inv => ({
-          id: inv.id,
-          customerId: inv.customerId,
-          customerName: inv.customerName,
-          date: inv.issueDate,
-          amount: inv.amount,
-          status: inv.status,
-          type: inv.type,
-          jobId: inv.jobId,
-          job_id: (inv as any).job_id,
-        }));
+        {
+          const storedInvoices = JSON.parse(localStorage.getItem("servicepro_invoices") || "[]");
+          const mergedInvoices = [...mockInvoices, ...storedInvoices];
+          const uniqueInvoices = Array.from(new Map(mergedInvoices.map((inv: any) => [inv.id, inv])).values());
+
+          rawDocs = uniqueInvoices.map((inv: any) => ({
+            id: inv.id,
+            customerId: inv.customerId,
+            customerName: inv.customerName,
+            date: inv.issueDate,
+            amount: inv.amount,
+            status: inv.status,
+            type: inv.type,
+            jobId: inv.jobId,
+            job_id: inv.job_id,
+          }));
+        }
         break;
       case "estimate":
-        rawDocs = mockEstimates.map(est => ({
-          id: est.id,
-          customerId: est.customerId,
-          customerName: est.customerName,
-          date: est.date,
-          amount: est.amount,
-          status: est.status,
-          jobId: (est as any).jobId,
-          job_id: (est as any).job_id,
-        }));
+        {
+          const storedEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+          const mergedEstimates = [...mockEstimates, ...storedEstimates];
+          const uniqueEstimates = Array.from(new Map(mergedEstimates.map((est: any) => [est.id, est])).values());
+
+          rawDocs = uniqueEstimates.map((est: any) => ({
+            id: est.id,
+            customerId: est.customerId,
+            customerName: est.customerName,
+            date: est.date || est.issueDate,
+            amount: est.amount,
+            status: est.status,
+            jobId: est.jobId,
+            job_id: est.job_id,
+          }));
+        }
         break;
       case "agreement":
-        rawDocs = mockAgreements.map(agr => ({
-          id: agr.id,
-          customerId: agr.customerId,
-          customerName: agr.customerName,
-          date: agr.startDate,
-          amount: agr.monthlyAmount,
-          status: agr.status,
-          type: agr.type,
-          jobId: (agr as any).jobId,
-          job_id: (agr as any).job_id,
-        }));
+        {
+          const storedAgreements = JSON.parse(localStorage.getItem("servicepro_agreements") || "[]");
+          const mergedAgreements = [...mockAgreements, ...storedAgreements];
+          const uniqueAgreements = Array.from(new Map(mergedAgreements.map((agr: any) => [agr.id, agr])).values());
+
+          rawDocs = uniqueAgreements.map((agr: any) => ({
+            id: agr.id,
+            customerId: agr.customerId,
+            customerName: agr.customerName,
+            date: agr.startDate,
+            amount: agr.monthlyAmount || agr.amount || 0,
+            status: agr.status,
+            type: agr.type,
+            jobId: agr.jobId,
+            job_id: agr.job_id,
+          }));
+        }
         break;
     }
 
     return rawDocs;
   }, [activeTab]);
+
+  const handleAddNew = () => {
+    const basePath =
+      activeTab === "invoice"
+        ? "/invoices/new"
+        : activeTab === "estimate"
+        ? "/estimates/new"
+        : "/agreements/new";
+
+    const params = new URLSearchParams();
+    params.set("job_id", jobId);
+    if (customerId) {
+      params.set("customer", customerId);
+    }
+
+    navigate(`${basePath}?${params.toString()}`, {
+      state: {
+        fromLinkToJobModal: true,
+        prefill: customerId ? { customerId } : undefined,
+      },
+    });
+
+    onClose();
+  };
 
   // Filter and sort documents
   const filteredDocuments = useMemo(() => {
@@ -365,7 +409,7 @@ const AssociateDocumentsModal = ({
           {/* Entity Selector + Search */}
           <div className="px-4 py-3">
             <div className="flex items-center gap-2">
-              <div className="w-[42%]">
+              <div className="w-[35%]">
                 <select
                   value={activeTab}
                   onChange={(e) => {
@@ -390,6 +434,15 @@ const AssociateDocumentsModal = ({
                   className="pl-10 h-11"
                 />
               </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleAddNew}
+                className="h-11 px-3 shrink-0"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                Add
+              </Button>
             </div>
           </div>
 

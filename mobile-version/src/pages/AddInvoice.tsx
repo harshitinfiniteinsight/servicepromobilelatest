@@ -1,5 +1,5 @@
 import { useState, ChangeEvent, useEffect, useRef } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,12 +18,15 @@ import { toast } from "sonner";
 import { showSuccessToast } from "@/utils/toast";
 import { createInvoice, updateInvoice } from "@/services/invoiceService";
 import { addNotes } from "@/services/noteService";
+import { assignToJob } from "@/services/jobAssignmentService";
 
 const AddInvoice = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { id } = useParams<{ id?: string }>();
   const isEditMode = !!id;
+  const jobIdFromQuery = searchParams.get("job_id")?.trim() || "";
   const invoice = isEditMode ? mockInvoices.find(inv => inv.id === id) : null;
   const [step, setStep] = useState(1);
   const [customerList, setCustomerList] = useState(() => [...mockCustomers]);
@@ -2216,6 +2219,24 @@ const AddInvoice = () => {
                       const estimateToInvoiceMap = JSON.parse(localStorage.getItem("estimateToInvoiceMap") || "{}");
                       estimateToInvoiceMap[prefill.estimateId] = newInvoice.id;
                       localStorage.setItem("estimateToInvoiceMap", JSON.stringify(estimateToInvoiceMap));
+                    }
+
+                    // Auto-link to job when opened from Link to Job flow
+                    if (jobIdFromQuery) {
+                      const assignResult = assignToJob("invoice", newInvoice.id, jobIdFromQuery);
+                      if (!assignResult.success) {
+                        toast.error(assignResult.error || "Invoice created, but linking to job failed");
+                      }
+
+                      navigate("/jobs", {
+                        state: {
+                          linkedEntityCreated: true,
+                          jobId: jobIdFromQuery,
+                          documentType: "invoice",
+                          documentId: newInvoice.id,
+                        },
+                      });
+                      return;
                     }
                     
                     navigate("/invoices", { 

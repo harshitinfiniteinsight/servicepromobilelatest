@@ -1,5 +1,5 @@
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import JobCard from "@/components/cards/JobCard";
 import EmptyState from "@/components/cards/EmptyState";
@@ -54,6 +54,7 @@ const MAX_IMAGES_PER_SECTION = 10;
 
 const Jobs = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [filtersExpanded, setFiltersExpanded] = useState(false);
@@ -79,6 +80,7 @@ const Jobs = () => {
 
   // State to trigger job list refresh when new jobs are created
   const [jobListRefreshTrigger, setJobListRefreshTrigger] = useState(0);
+  const processedLinkedCreationKeyRef = useRef<string | null>(null);
 
   // Transform invoices, estimates, and agreements into job format
   const transformDocumentsToJobs = useMemo(() => {
@@ -172,6 +174,26 @@ const Jobs = () => {
       window.removeEventListener("jobCreated", handleJobCreated);
     };
   }, []);
+
+  // Refresh job data after returning from "Add new document" flow inside Link to Job modal
+  useEffect(() => {
+    const state = location.state as
+      | {
+          linkedEntityCreated?: boolean;
+          jobId?: string;
+          documentType?: "invoice" | "estimate" | "agreement";
+          documentId?: string;
+        }
+      | undefined;
+
+    if (!state?.linkedEntityCreated) return;
+
+    const key = `${location.key}-${state.documentType || "doc"}-${state.documentId || "id"}`;
+    if (processedLinkedCreationKeyRef.current === key) return;
+    processedLinkedCreationKeyRef.current = key;
+
+    setJobListRefreshTrigger(prev => prev + 1);
+  }, [location]);
 
   // Track feedback status for completed jobs
   // Load from localStorage if available (for persistence across page reloads)

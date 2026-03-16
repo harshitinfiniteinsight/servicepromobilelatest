@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { useNavigate, useParams, useLocation, useSearchParams } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { showSuccessToast } from "@/utils/toast";
 import { addNotes } from "@/services/noteService";
+import { assignToJob } from "@/services/jobAssignmentService";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
@@ -21,7 +22,9 @@ const AddEstimate = () => {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const isEditMode = id && location.pathname.includes('/edit');
+  const jobIdFromQuery = searchParams.get("job_id")?.trim() || "";
   const [step, setStep] = useState(1);
   const [customerOpen, setCustomerOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null);
@@ -1571,6 +1574,24 @@ const AddEstimate = () => {
                     text: notes.trim() || "", // Empty text if only attachments
                     attachments: attachments.length > 0 ? attachments : undefined,
                   }]);
+                }
+
+                if (jobIdFromQuery) {
+                  const assignResult = assignToJob("estimate", newEstimateId, jobIdFromQuery);
+                  if (!assignResult.success) {
+                    toast.error(assignResult.error || "Estimate created, but linking to job failed");
+                  }
+
+                  showSuccessToast("Estimate created successfully");
+                  navigate("/jobs", {
+                    state: {
+                      linkedEntityCreated: true,
+                      jobId: jobIdFromQuery,
+                      documentType: "estimate",
+                      documentId: newEstimateId,
+                    },
+                  });
+                  return;
                 }
                 
                 showSuccessToast("Estimate created successfully");
