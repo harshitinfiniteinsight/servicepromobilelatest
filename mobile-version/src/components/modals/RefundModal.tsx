@@ -185,6 +185,11 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
     return isOriginalCheck || isDifferentCheck;
   }, [refundMethodOption, selectedDifferentMethod, activeInvoice.paymentMethod]);
 
+  // Check if refund method is Cash (different method only)
+  const isCashRefund = useMemo(() => {
+    return refundMethodOption === "different" && selectedDifferentMethod === "cash";
+  }, [refundMethodOption, selectedDifferentMethod]);
+
   // Validate partial amount
   useEffect(() => {
     if (refundType === "partial") {
@@ -385,6 +390,11 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
         const checkDetailsText = `\n\nRefund Method: Check\nCheck Number: ${checkNumber.trim()}`;
         const commentText = checkComment.trim() ? `\nComment: ${checkComment.trim()}` : "";
         transactionNotes += checkDetailsText + commentText;
+      }
+
+      // Add cash comment if refund method is cash
+      if (isCashRefund && checkComment.trim()) {
+        transactionNotes += `\n\nRefund Method: Cash\nComment: ${checkComment.trim()}`;
       }
 
       // Create refund record (would be sent to backend)
@@ -995,6 +1005,27 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                           value={checkComment}
                           onChange={(e) => setCheckComment(e.target.value)}
                           placeholder="Add a comment"
+                          className="min-h-[80px] rounded-xl border-gray-200 text-sm resize-none"
+                          rows={3}
+                        />
+                        <p className="text-xs text-gray-500 mt-1.5">
+                          This will be saved as notes for future reference.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cash Comment - for Different Method */}
+                  {selectedDifferentMethod === "cash" && (
+                    <div className="space-y-3 mt-4 pt-4 border-t border-gray-200">
+                      <div>
+                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
+                          Comment
+                        </Label>
+                        <Textarea
+                          value={checkComment}
+                          onChange={(e) => setCheckComment(e.target.value)}
+                          placeholder="Add a comment (e.g., Customer returned item)"
                           className="min-h-[80px] rounded-xl border-gray-200 text-sm resize-none"
                           rows={3}
                         />

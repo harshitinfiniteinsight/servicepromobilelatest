@@ -277,16 +277,8 @@ const AssociateDocumentsModal = ({
 
   // Get modal title based on job source type
   const getModalTitle = () => {
-    switch (jobSourceType) {
-      case "invoice":
-        return "Associate Invoice";
-      case "estimate":
-        return "Associate Estimate";
-      case "agreement":
-        return "Associate Agreement";
-      default:
-        return "Associate Document";
-    }
+    // Always display "Link to Job" regardless of entity type (invoice/estimate/agreement)
+    return "Link to Job";
   };
 
   // Get allowed tabs based on job source type

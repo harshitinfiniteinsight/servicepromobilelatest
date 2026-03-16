@@ -164,7 +164,8 @@ export async function syncPaymentStatus(
   sourceType: JobSourceType,
   sourceId: string | undefined,
   paymentMethod: string,
-  isFullPayment: boolean = true
+  isFullPayment: boolean = true,
+  invoiceIds?: string[]
 ): Promise<PaymentSyncResult> {
   const transactionId = generateTransactionId();
   const jobPaymentStatus: JobPaymentStatus = isFullPayment ? "paid" : "partial";
@@ -185,7 +186,28 @@ export async function syncPaymentStatus(
     
     // Step 2: Update source document payment status (if exists)
     let sourceDocumentUpdated = false;
-    if (sourceType !== "none" && sourceId) {
+    if (invoiceIds && invoiceIds.length > 0) {
+      sourceDocumentUpdated = invoiceIds.every((invoiceId) =>
+        updateSourceDocumentPaymentStatus(
+          "invoice",
+          invoiceId,
+          documentPaymentStatus as "Paid" | "Open" | "Partial",
+          transactionId,
+          paymentMethod
+        )
+      );
+
+      if (!sourceDocumentUpdated) {
+        // Rollback job payment status on failure
+        updateJobPaymentStatus(jobId, "unpaid");
+        return {
+          success: false,
+          jobUpdated: false,
+          sourceDocumentUpdated: false,
+          error: "Failed to update one or more selected invoices. Payment rolled back.",
+        };
+      }
+    } else if (sourceType !== "none" && sourceId) {
       sourceDocumentUpdated = updateSourceDocumentPaymentStatus(
         sourceType,
         sourceId,
@@ -193,7 +215,7 @@ export async function syncPaymentStatus(
         transactionId,
         paymentMethod
       );
-      
+
       if (!sourceDocumentUpdated) {
         // Rollback job payment status on failure
         updateJobPaymentStatus(jobId, "unpaid");
@@ -215,6 +237,8 @@ export async function syncPaymentStatus(
       jobId,
       sourceType,
       sourceId: sourceId || null,
+      invoiceIds: invoiceIds && invoiceIds.length > 0 ? invoiceIds : undefined,
+      invoice_ids: invoiceIds && invoiceIds.length > 0 ? invoiceIds : undefined,
       paymentMethod,
       isFullPayment,
       timestamp: new Date().toISOString(),
@@ -226,6 +250,8 @@ export async function syncPaymentStatus(
         jobId,
         sourceType,
         sourceId,
+        invoiceIds,
+        invoice_ids: invoiceIds,
         paymentStatus: jobPaymentStatus,
         transactionId,
       }
@@ -257,6 +283,8 @@ function storePaymentTransaction(transaction: {
   jobId: string;
   sourceType: JobSourceType;
   sourceId: string | null;
+  invoiceIds?: string[];
+  invoice_ids?: string[];
   paymentMethod: string;
   isFullPayment: boolean;
   timestamp: string;

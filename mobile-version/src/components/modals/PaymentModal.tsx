@@ -1,8 +1,10 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign } from "lucide-react";
+import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, ChevronDown } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import EnterCardDetailsModal from "./EnterCardDetailsModal";
 import EnterACHPaymentDetailsModal from "./EnterACHPaymentDetailsModal";
 import CashPaymentModal from "./CashPaymentModal";
@@ -10,12 +12,20 @@ import TapToPayModal from "./TapToPayModal";
 import ACHSetupSliderModal from "./ACHSetupSliderModal";
 import PaymentMethodSetupModal from "./PaymentMethodSetupModal";
 import { usePaymentConfiguration, type PaymentMethodKey } from "@/hooks/usePaymentConfiguration";
+import type { Invoice } from "@/services/invoiceService";
+
+export interface PaymentMethodSelectionPayload {
+  invoiceIds?: string[];
+  amount: number;
+}
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   amount: number;
-  onPaymentMethodSelect?: (method: string) => void;
+  onPaymentMethodSelect?: (method: string, payload?: PaymentMethodSelectionPayload) => void;
+  linkedInvoices?: Invoice[];
+  defaultSelectedInvoiceIds?: string[];
   entityType?: "agreement" | "estimate" | "invoice";
   agreement?: {
     id?: string;
@@ -25,7 +35,7 @@ interface PaymentModalProps {
   };
 }
 
-const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityType, agreement }: PaymentModalProps) => {
+const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, linkedInvoices, defaultSelectedInvoiceIds, entityType, agreement }: PaymentModalProps) => {
   const navigate = useNavigate();
   const { getMethodState, setMethodConfigured } = usePaymentConfiguration();
   const [showCardDetailsModal, setShowCardDetailsModal] = useState(false);
@@ -35,6 +45,80 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
   const [showNoReaderModal, setShowNoReaderModal] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupMethodKey, setSetupMethodKey] = useState<PaymentMethodKey | null>(null);
+  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+  const [invoiceDropdownOpen, setInvoiceDropdownOpen] = useState(false);
+
+  const isJobInvoiceSelectionFlow = Array.isArray(linkedInvoices);
+  const unpaidLinkedInvoices = useMemo(
+    () => (linkedInvoices || []).filter((invoice) => (invoice.status || "").toLowerCase() !== "paid"),
+    [linkedInvoices]
+  );
+
+  const getInvoiceRemainingBalance = (invoice: Invoice) => {
+    const paidAmount = Number(invoice.paidAmount || 0);
+    const invoiceAmount = Number(invoice.amount || 0);
+    return Math.max(invoiceAmount - paidAmount, 0);
+  };
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    if (unpaidLinkedInvoices.length === 0) {
+      setSelectedInvoiceIds([]);
+      return;
+    }
+
+    const validDefault = (defaultSelectedInvoiceIds || []).filter((id) =>
+      unpaidLinkedInvoices.some((invoice) => invoice.id === id)
+    );
+
+    setSelectedInvoiceIds(validDefault.length > 0 ? validDefault : unpaidLinkedInvoices.map((invoice) => invoice.id));
+  }, [isOpen, unpaidLinkedInvoices, defaultSelectedInvoiceIds]);
+
+  const selectedInvoiceTotal = useMemo(() => {
+    if (!isJobInvoiceSelectionFlow) {
+      return amount;
+    }
+
+    return unpaidLinkedInvoices
+      .filter((invoice) => selectedInvoiceIds.includes(invoice.id))
+      .reduce((sum, invoice) => sum + getInvoiceRemainingBalance(invoice), 0);
+  }, [isJobInvoiceSelectionFlow, amount, unpaidLinkedInvoices, selectedInvoiceIds]);
+
+  const paymentAmount = selectedInvoiceTotal;
+
+  const invoiceDropdownLabel = useMemo(() => {
+    if (!isJobInvoiceSelectionFlow) {
+      return "Select Invoice(s)";
+    }
+
+    if (unpaidLinkedInvoices.length === 0) {
+      return "No unpaid invoices";
+    }
+
+    if (selectedInvoiceIds.length === unpaidLinkedInvoices.length) {
+      return `All selected (${selectedInvoiceIds.length})`;
+    }
+
+    if (selectedInvoiceIds.length === 0) {
+      return "Select Invoice(s)";
+    }
+
+    return `${selectedInvoiceIds.length} selected`;
+  }, [isJobInvoiceSelectionFlow, unpaidLinkedInvoices.length, selectedInvoiceIds.length]);
+
+  const selectionPayload: PaymentMethodSelectionPayload = {
+    invoiceIds: isJobInvoiceSelectionFlow ? selectedInvoiceIds : undefined,
+    amount: paymentAmount,
+  };
+
+  const toggleInvoiceSelection = (invoiceId: string, checked: boolean) => {
+    if (checked) {
+      setSelectedInvoiceIds((prev) => Array.from(new Set([...prev, invoiceId])));
+      return;
+    }
+    setSelectedInvoiceIds((prev) => prev.filter((id) => id !== invoiceId));
+  };
 
   // Calculate minimum amount payable for agreements
   const minimumAmountPayable = (() => {
@@ -130,6 +214,10 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
       return;
     }
 
+    if (isJobInvoiceSelectionFlow && selectedInvoiceIds.length === 0) {
+      return;
+    }
+
     if (methodId === "tap-to-pay") {
       // Check if card reader is connected
       const currentConnectedReaderId = localStorage.getItem("currentConnectedReaderId");
@@ -151,7 +239,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
       setShowCashPaymentModal(true);
     } else {
       if (onPaymentMethodSelect) {
-        onPaymentMethodSelect(methodId);
+        onPaymentMethodSelect(methodId, selectionPayload);
       }
       onClose();
     }
@@ -170,7 +258,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     setShowCardDetailsModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("enter-card");
+      onPaymentMethodSelect("enter-card", selectionPayload);
     }
   };
 
@@ -187,7 +275,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     setShowACHPaymentDetailsModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("ach");
+      onPaymentMethodSelect("ach", selectionPayload);
     }
   };
 
@@ -204,7 +292,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     setShowCashPaymentModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("cash");
+      onPaymentMethodSelect("cash", selectionPayload);
     }
   };
 
@@ -221,7 +309,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     setShowTapToPayModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("tap-to-pay");
+      onPaymentMethodSelect("tap-to-pay", selectionPayload);
     }
   };
 
@@ -287,6 +375,51 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
 
           {/* Content */}
           <div className="bg-white py-5 sm:py-7 space-y-4 sm:space-y-6 overflow-y-auto safe-bottom overflow-x-hidden">
+            {/* Invoice Selection Section (Job dashboard payment flow) */}
+            {isJobInvoiceSelectionFlow && (
+              <div className="invoice-selection-section px-4 sm:px-6 space-y-3 mb-5 sm:mb-6">
+                <label className="text-sm font-medium text-gray-700">Select Invoice(s)</label>
+
+                {unpaidLinkedInvoices.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">All invoices for this job are already paid.</p>
+                ) : (
+                  <Popover open={invoiceDropdownOpen} onOpenChange={setInvoiceDropdownOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full min-h-11 h-auto justify-between px-4 py-3 rounded-xl"
+                      >
+                        <span className="truncate">{invoiceDropdownLabel}</span>
+                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl" align="start">
+                      <div className="max-h-64 overflow-y-auto py-1">
+                        {unpaidLinkedInvoices.map((invoice) => {
+                          const remainingBalance = getInvoiceRemainingBalance(invoice);
+                          return (
+                            <label
+                              key={invoice.id}
+                              className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer"
+                            >
+                              <Checkbox
+                                checked={selectedInvoiceIds.includes(invoice.id)}
+                                onCheckedChange={(checked) => toggleInvoiceSelection(invoice.id, checked === true)}
+                              />
+                              <span className="text-sm text-gray-900 truncate">
+                                {invoice.id} — ${remainingBalance.toFixed(2)}
+                              </span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
+                )}
+              </div>
+            )}
+
             {/* Total Amount Section */}
             <div className="flex flex-col items-center space-y-2 sm:space-y-3 px-6 sm:px-8 mt-2 sm:mt-4">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-orange-100 flex items-center justify-center">
@@ -294,7 +427,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
               </div>
               <div className="text-center">
                 <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Amount</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900">${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">${paymentAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 {/* Minimum Amount Payable - Only for Agreements */}
                 {minimumAmountPayable !== null && (
                   <p className="text-xs sm:text-sm text-gray-600 mt-2">
@@ -311,7 +444,8 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
                 <div className="grid grid-cols-2 gap-4 sm:gap-5 w-full box-border">
                   {paymentOptions.map((option) => {
                     const Icon = option.icon;
-                    const isDisabled = isMethodDisabled(option.methodKey);
+                    const isSelectionDisabled = isJobInvoiceSelectionFlow && selectedInvoiceIds.length === 0;
+                    const isDisabled = isMethodDisabled(option.methodKey) || isSelectionDisabled;
                     
                     return (
                       <div
@@ -353,7 +487,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         isOpen={showCardDetailsModal}
         onClose={handleCardDetailsClose}
         onBack={handleCardDetailsBack}
-        amount={amount}
+        amount={paymentAmount}
         onPaymentComplete={handleCardPaymentComplete}
       />
 
@@ -362,7 +496,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         isOpen={showACHPaymentDetailsModal}
         onClose={handleACHPaymentDetailsClose}
         onBack={handleACHPaymentDetailsBack}
-        amount={amount}
+        amount={paymentAmount}
         onPaymentComplete={handleACHPaymentComplete}
       />
 
@@ -371,7 +505,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         isOpen={showCashPaymentModal}
         onClose={handleCashPaymentClose}
         onBack={handleCashPaymentBack}
-        amount={amount}
+        amount={paymentAmount}
         onPaymentComplete={handleCashPaymentComplete}
       />
 
@@ -380,7 +514,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         isOpen={showTapToPayModal}
         onClose={handleTapToPayClose}
         onBack={handleTapToPayBack}
-        amount={amount}
+        amount={paymentAmount}
         onPaymentComplete={handleTapToPayComplete}
       />
 

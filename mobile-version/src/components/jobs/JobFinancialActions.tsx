@@ -5,7 +5,6 @@ import {
   FileCheck,
   ScrollText,
   Edit,
-  PlusCircle
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LucideIcon } from "lucide-react";
@@ -91,7 +90,8 @@ export function getFinancialActions(
           visible: true,
         });
       }
-      // For unpaid: Edit Estimate; For paid: Associate New Estimate
+      // For unpaid only: Edit Estimate
+      // Paid jobs do NOT show "Associate New Estimate" (hidden per policy)
       if (!isPaid && handlers.onEditEstimate) {
         actions.push({
           label: "Edit Estimate",
@@ -100,16 +100,9 @@ export function getFinancialActions(
           variant: "default",
           visible: true,
         });
-      } else if (isPaid && handlers.onAssociateNewEstimate) {
-        actions.push({
-          label: "Associate New Estimate",
-          icon: PlusCircle,
-          action: handlers.onAssociateNewEstimate,
-          variant: "default",
-          visible: true,
-        });
       }
-      // For unpaid: Create Invoice (if no invoice exists); For paid: Associate New Invoice
+      // For unpaid only: Create Invoice
+      // Paid jobs do NOT show "Associate New Invoice" (hidden per policy)
       if (!isPaid && handlers.onCreateInvoice) {
         actions.push({
           label: "Create Associated Invoice",
@@ -118,33 +111,18 @@ export function getFinancialActions(
           variant: "default",
           visible: true,
         });
-      } else if (isPaid && handlers.onAssociateNewInvoice) {
-        actions.push({
-          label: "Associate New Invoice",
-          icon: PlusCircle,
-          action: handlers.onAssociateNewInvoice,
-          variant: "default",
-          visible: true,
-        });
       }
       break;
 
     case "invoice":
       // Job was converted from an Invoice
-      // For unpaid: Edit Invoice; For paid: Associate New Invoice
+      // For unpaid only: Edit Invoice
+      // Paid jobs do NOT show "Associate New Invoice" (hidden per policy)
       if (!isPaid && handlers.onEditInvoice) {
         actions.push({
           label: "Edit Invoice",
           icon: Edit,
           action: handlers.onEditInvoice,
-          variant: "default",
-          visible: true,
-        });
-      } else if (isPaid && handlers.onAssociateNewInvoice) {
-        actions.push({
-          label: "Associate New Invoice",
-          icon: PlusCircle,
-          action: handlers.onAssociateNewInvoice,
           variant: "default",
           visible: true,
         });
@@ -162,7 +140,8 @@ export function getFinancialActions(
           visible: true,
         });
       }
-      // For unpaid: Edit Agreement; For paid: Associate New Agreement
+      // For unpaid only: Edit Agreement
+      // Paid jobs do NOT show "Associate New Agreement" (hidden per policy)
       if (!isPaid && handlers.onEditAgreement) {
         actions.push({
           label: "Edit Agreement",
@@ -171,16 +150,9 @@ export function getFinancialActions(
           variant: "default",
           visible: true,
         });
-      } else if (isPaid && handlers.onAssociateNewAgreement) {
-        actions.push({
-          label: "Associate New Agreement",
-          icon: PlusCircle,
-          action: handlers.onAssociateNewAgreement,
-          variant: "default",
-          visible: true,
-        });
       }
-      // Invoice actions for agreement-sourced jobs
+      // For unpaid only: Create Invoice for agreement-sourced jobs
+      // Paid jobs do NOT show "Associate New Invoice" (hidden per policy)
       if (!isPaid && handlers.onCreateInvoice) {
         actions.push({
           label: "Create Associated Invoice",
@@ -189,21 +161,14 @@ export function getFinancialActions(
           variant: "default",
           visible: true,
         });
-      } else if (isPaid && handlers.onAssociateNewInvoice) {
-        actions.push({
-          label: "Associate New Invoice",
-          icon: PlusCircle,
-          action: handlers.onAssociateNewInvoice,
-          variant: "default",
-          visible: true,
-        });
       }
       break;
 
     case "none":
     default:
-      // No associated financial document - show create options
-      if (handlers.onCreateInvoice) {
+      // No associated financial document - show create options for unpaid jobs only
+      // Paid jobs do NOT show create options (hidden per policy)
+      if (!isPaid && handlers.onCreateInvoice) {
         actions.push({
           label: "Create Associated Invoice",
           icon: Receipt,
@@ -212,7 +177,7 @@ export function getFinancialActions(
           visible: true,
         });
       }
-      if (handlers.onCreateEstimate) {
+      if (!isPaid && handlers.onCreateEstimate) {
         actions.push({
           label: "Create Associated Estimate",
           icon: FileCheck,

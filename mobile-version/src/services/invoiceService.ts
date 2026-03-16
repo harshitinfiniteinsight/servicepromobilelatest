@@ -23,9 +23,11 @@ export interface Invoice {
   id: string;
   customerId: string;
   customerName: string;
+  jobId?: string;
   issueDate: string;
   dueDate: string;
   amount: number;
+  paidAmount?: number;
   status: "Open" | "Paid" | "Overdue" | "Deactivated" | "Refunded" | "Partially Refunded";
   paymentMethod?: string;
   type: "single" | "recurring" | "deactivated";
@@ -187,6 +189,27 @@ export const getInvoiceById = async (invoiceId: string): Promise<Invoice | null>
 export const getCustomerInvoices = async (customerId: string): Promise<Invoice[]> => {
   const invoices = getInvoices();
   return invoices.filter(invoice => invoice.customerId === customerId);
+};
+
+/**
+ * Get all invoices associated with a specific job
+ * Merges invoices from service storage and legacy mockInvoices storage.
+ */
+export const getInvoicesByJobId = async (jobId: string): Promise<Invoice[]> => {
+  const serviceInvoices = getInvoices();
+
+  const storedLegacyInvoices = localStorage.getItem("mockInvoices");
+  const legacyInvoices: Invoice[] = storedLegacyInvoices
+    ? JSON.parse(storedLegacyInvoices)
+    : (mockInvoices as Invoice[]);
+
+  const merged = [...legacyInvoices, ...serviceInvoices];
+  const uniqueById = new Map<string, Invoice>();
+  merged.forEach((invoice) => {
+    uniqueById.set(invoice.id, invoice);
+  });
+
+  return Array.from(uniqueById.values()).filter((invoice) => invoice.jobId === jobId);
 };
 
 /**

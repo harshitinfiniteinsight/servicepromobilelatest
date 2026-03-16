@@ -186,16 +186,8 @@ const JobCard = ({
 
   // Get context-aware label for associate document action based on job source type
   const getAssociateDocumentLabel = () => {
-    switch (jobSourceType) {
-      case "invoice":
-        return "Associate Invoice";
-      case "estimate":
-        return "Associate Estimate";
-      case "agreement":
-        return "Associate Agreement";
-      default:
-        return "Associate Document";
-    }
+    // Always display "Link to Job" regardless of entity type (invoice/estimate/agreement)
+    return "Link to Job";
   };
 
   // Build menu items for three-dot menu based on job status

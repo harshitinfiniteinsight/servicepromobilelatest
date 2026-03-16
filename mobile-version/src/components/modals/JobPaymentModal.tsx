@@ -10,14 +10,17 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import PaymentModal from "./PaymentModal";
+import PaymentModal, { type PaymentMethodSelectionPayload } from "./PaymentModal";
 import EstimateToInvoiceInfoModal from "./EstimateToInvoiceInfoModal";
 import { syncPaymentStatus, getSourceDocumentAmount } from "@/utils/paymentSync";
 import type { JobSourceType } from "@/data/mobileMockData";
+import type { Invoice } from "@/services/invoiceService";
 
 interface JobPaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
+  invoiceIds?: string[];
+  linkedInvoices?: Invoice[];
   job: {
     id: string;
     title: string;
@@ -33,7 +36,9 @@ const JobPaymentModal = ({
   isOpen, 
   onClose, 
   job,
-  onPaymentComplete 
+  onPaymentComplete,
+  invoiceIds,
+  linkedInvoices,
 }: JobPaymentModalProps) => {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -47,7 +52,7 @@ const JobPaymentModal = ({
     if (isOpen && job) {
       const sourceType = job.sourceType || "none";
       const sourceId = job.sourceId || "";
-      
+
       if (sourceType !== "none" && sourceId) {
         const amount = getSourceDocumentAmount(sourceType, sourceId);
         setPaymentAmount(amount);
@@ -71,13 +76,16 @@ const JobPaymentModal = ({
     }
   }, [isOpen, job]);
 
-  const handlePaymentMethodSelect = async (method: string) => {
+  const handlePaymentMethodSelect = async (method: string, payload?: PaymentMethodSelectionPayload) => {
     try {
       // The actual payment processing happens in the sub-modals (CashPaymentModal, etc.)
       // This callback is triggered after successful payment processing
       
       const sourceType = (job.sourceType || "none") as JobSourceType;
       const sourceId = job.sourceId;
+      const selectedInvoiceIds = payload?.invoiceIds && payload.invoiceIds.length > 0
+        ? payload.invoiceIds
+        : invoiceIds;
       
       // Sync payment status between Job and source document
       const syncResult = await syncPaymentStatus(
@@ -85,12 +93,13 @@ const JobPaymentModal = ({
         sourceType,
         sourceId,
         method,
-        true // Full payment
+        true, // Full payment
+        selectedInvoiceIds
       );
       
       if (syncResult.success) {
         toast.success(
-          `Payment successful! ${sourceType !== "none" ? `${sourceType.charAt(0).toUpperCase() + sourceType.slice(1)} marked as paid.` : "Job marked as paid."}`
+          `Payment successful! ${selectedInvoiceIds && selectedInvoiceIds.length > 1 ? `${selectedInvoiceIds.length} invoices marked as paid.` : sourceType !== "none" ? `${sourceType.charAt(0).toUpperCase() + sourceType.slice(1)} marked as paid.` : "Job marked as paid."}`
         );
         
         // Notify parent component
@@ -100,7 +109,7 @@ const JobPaymentModal = ({
       } else {
         toast.error(syncResult.error || "Payment sync failed. Please try again.");
       }
-      
+
     } catch (error) {
       console.error("Payment processing error:", error);
       toast.error("An error occurred during payment processing.");
@@ -147,6 +156,8 @@ const JobPaymentModal = ({
         isOpen={showPaymentModal}
         onClose={handleClose}
         amount={paymentAmount}
+        linkedInvoices={linkedInvoices}
+        defaultSelectedInvoiceIds={invoiceIds}
         onPaymentMethodSelect={handlePaymentMethodSelect}
         entityType={getEntityType()}
       />

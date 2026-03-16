@@ -27,6 +27,7 @@ import JobPaymentModal from "@/components/modals/JobPaymentModal";
 import AssociateDocumentsModal from "@/components/modals/AssociateDocumentsModal";
 import RefundModal, { type RefundInvoiceData } from "@/components/modals/RefundModal";
 import { invoiceToRefundData, openRefundByInvoiceId } from "@/utils/refundUtils";
+import { getInvoicesByJobId, type Invoice } from "@/services/invoiceService";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -238,6 +239,8 @@ const Jobs = () => {
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedJobForPayment, setSelectedJobForPayment] = useState<typeof jobs[0] | null>(null);
+  const [linkedInvoicesForPayment, setLinkedInvoicesForPayment] = useState<Invoice[]>([]);
+  const [selectedPaymentInvoiceIds, setSelectedPaymentInvoiceIds] = useState<string[]>([]);
 
   // Associate Documents modal state
   const [showAssociateDocumentsModal, setShowAssociateDocumentsModal] = useState(false);
@@ -475,18 +478,49 @@ const Jobs = () => {
     const job = jobs.find(j => j.id === jobId);
     if (!job) return [];
 
-    const byJobId = mockInvoices.filter(inv => (inv as any).jobId === jobId);
+    const storedLegacyInvoices = localStorage.getItem("mockInvoices");
+    const legacyInvoices = storedLegacyInvoices ? JSON.parse(storedLegacyInvoices) : mockInvoices;
+
+    const storedServiceInvoices = localStorage.getItem("servicepro_invoices");
+    const serviceInvoices = storedServiceInvoices ? JSON.parse(storedServiceInvoices) : [];
+
+    const invoices = [...legacyInvoices, ...serviceInvoices];
+
+    const byJobId = invoices.filter((inv: any) => (inv as any).jobId === jobId);
     const bySourceId = (job as any)?.sourceId
-      ? mockInvoices.filter(inv => inv.id === (job as any).sourceId)
+      ? invoices.filter((inv: any) => inv.id === (job as any).sourceId)
       : [];
     const directInvoice = job.id.startsWith("INV")
-      ? mockInvoices.filter(inv => inv.id === job.id)
+      ? invoices.filter((inv: any) => inv.id === job.id)
       : [];
 
     const merged = [...byJobId, ...bySourceId, ...directInvoice];
     const unique = new Map<string, any>();
     merged.forEach(inv => unique.set(inv.id, inv));
     return Array.from(unique.values());
+  };
+
+  // Helper: Resolve all invoices associated with a job for payment flow
+  const getLinkedInvoicesForJob = async (jobId: string): Promise<Invoice[]> => {
+    const linkedByJobId = await getInvoicesByJobId(jobId);
+    const fallbackInvoices = getAllInvoicesForJob(jobId) as Invoice[];
+
+    const unique = new Map<string, Invoice>();
+    [...fallbackInvoices, ...linkedByJobId].forEach((invoice) => {
+      unique.set(invoice.id, invoice);
+    });
+
+    return Array.from(unique.values());
+  };
+
+  const canPayJob = (jobId: string, paymentStatus?: string) => {
+    const linkedInvoices = getAllInvoicesForJob(jobId);
+
+    if (linkedInvoices.length === 0) {
+      return (paymentStatus || "").toLowerCase() !== "paid";
+    }
+
+    return linkedInvoices.some((invoice: any) => (invoice?.status || "").toLowerCase() !== "paid");
   };
 
   // Helper: Get all paid/partially paid invoices for a job
@@ -1085,21 +1119,54 @@ const Jobs = () => {
     }
   };
 
-  const handlePayJob = (jobId: string) => {
+  const handlePayJob = async (jobId: string) => {
     const job = jobs.find(j => j.id === jobId);
-    if (job) {
-      setSelectedJobForPayment(job);
-      setShowPaymentModal(true);
+    if (!job) {
+      return;
     }
+
+    const linkedInvoices = await getLinkedInvoicesForJob(jobId);
+    if (linkedInvoices.length === 0) {
+      toast.info("No invoices linked to this job.");
+      return;
+    }
+
+    const unpaidInvoices = linkedInvoices.filter((invoice) => (invoice.status || "").toLowerCase() !== "paid");
+
+    if (unpaidInvoices.length === 0) {
+      toast.info("All linked invoices are already paid.");
+      return;
+    }
+
+    // Open payment modal directly and render invoice selection at the top
+    // Default selection is all unpaid invoices
+    setLinkedInvoicesForPayment(unpaidInvoices);
+    setSelectedPaymentInvoiceIds(unpaidInvoices.map((invoice) => invoice.id));
+    setSelectedJobForPayment(job);
+    setShowPaymentModal(true);
+  };
+
+  const closePaymentFlow = () => {
+    setShowPaymentModal(false);
+    setSelectedJobForPayment(null);
+    setLinkedInvoicesForPayment([]);
+    setSelectedPaymentInvoiceIds([]);
   };
 
   // Handle payment completion - update job list state
   const handlePaymentComplete = (jobId: string, transactionId: string) => {
+    const remainingUnpaidInvoices = getAllInvoicesForJob(jobId).filter((invoice: any) => {
+      const normalizedStatus = (invoice.status || "").toLowerCase();
+      return normalizedStatus !== "paid";
+    });
+
+    const nextPaymentStatus = remainingUnpaidInvoices.length === 0 ? "paid" : "partial";
+
     // Update local state to reflect payment
     setJobs(prevJobs => 
       prevJobs.map(job => 
         job.id === jobId 
-          ? { ...job, paymentStatus: "paid" as const }
+          ? { ...job, paymentStatus: nextPaymentStatus as const, lastTransactionId: transactionId }
           : job
       )
     );
@@ -1108,8 +1175,7 @@ const Jobs = () => {
     setJobListRefreshTrigger(prev => prev + 1);
     
     // Close the modal
-    setShowPaymentModal(false);
-    setSelectedJobForPayment(null);
+    closePaymentFlow();
   };
 
   // Handle Associate Document action - opens modal to associate existing documents to job
@@ -1593,7 +1659,7 @@ const Jobs = () => {
                 onCreateEstimate={() => handleCreateEstimate(job.id)}
                 onViewEstimate={() => handleViewJobEstimate(job.id)}
                 onViewAgreement={() => handleViewJobAgreement(job.id)}
-                onPay={() => handlePayJob(job.id)}
+                onPay={canPayJob(job.id, (job as any).paymentStatus) ? () => handlePayJob(job.id) : undefined}
                 // Edit handlers (for unpaid jobs)
                 onEditInvoice={() => handleEditInvoice(job.id)}
                 onEditEstimate={() => handleEditEstimate(job.id)}
@@ -1771,10 +1837,9 @@ const Jobs = () => {
       {selectedJobForPayment && (
         <JobPaymentModal
           isOpen={showPaymentModal}
-          onClose={() => {
-            setShowPaymentModal(false);
-            setSelectedJobForPayment(null);
-          }}
+          onClose={closePaymentFlow}
+          invoiceIds={selectedPaymentInvoiceIds.length > 0 ? selectedPaymentInvoiceIds : undefined}
+          linkedInvoices={linkedInvoicesForPayment}
           job={{
             id: selectedJobForPayment.id,
             title: selectedJobForPayment.title,
