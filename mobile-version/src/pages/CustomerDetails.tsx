@@ -147,6 +147,26 @@ const CustomerDetails = () => {
     fetchServicePictures();
   }, [id]);
 
+  // Seed mock multi-image demo state for JOB-001 (10 before + 15 after)
+  useEffect(() => {
+    const stored = localStorage.getItem("jobPictures");
+    const jobPictures = stored ? JSON.parse(stored) : {};
+    // Only inject once — skip if demo arrays are already present
+    if (!jobPictures["JOB-001"]?.beforeImages) {
+      jobPictures["JOB-001"] = {
+        beforeImage: null,
+        afterImage: null,
+        beforeImages: Array.from({ length: 10 }, (_, i) =>
+          `https://picsum.photos/seed/before${i + 1}/300/300`
+        ),
+        afterImages: Array.from({ length: 15 }, (_, i) =>
+          `https://picsum.photos/seed/after${i + 1}/300/300`
+        ),
+      };
+      localStorage.setItem("jobPictures", JSON.stringify(jobPictures));
+    }
+  }, []); // Run once on mount
+
   const handleChange = (field: keyof typeof formState) => (value: string) => {
     setFormState(prev => ({
       ...prev,
@@ -662,12 +682,16 @@ const CustomerDetails = () => {
                     type="single"
                     collapsible
                     className="w-full"
-                    defaultValue={servicePictures.length > 0 ? servicePictures[0].jobId : undefined}
                   >
                     {servicePictures.map((picture) => {
-                      const images: string[] = [];
-                      if (picture.beforeImageUrl) images.push(picture.beforeImageUrl);
-                      if (picture.afterImageUrl) images.push(picture.afterImageUrl);
+                      const allImages: string[] = [
+                        ...(picture.beforeImages ?? (picture.beforeImageUrl ? [picture.beforeImageUrl] : [])),
+                        ...(picture.afterImages ?? (picture.afterImageUrl ? [picture.afterImageUrl] : [])),
+                      ];
+
+                      const beforeImgs = picture.beforeImages ?? (picture.beforeImageUrl ? [picture.beforeImageUrl] : []);
+                      const afterImgs = picture.afterImages ?? (picture.afterImageUrl ? [picture.afterImageUrl] : []);
+                      const isMulti = beforeImgs.length > 1 || afterImgs.length > 1;
 
                       return (
                         <AccordionItem
@@ -676,128 +700,219 @@ const CustomerDetails = () => {
                           className="border border-gray-200 rounded-lg mb-3 bg-white px-3"
                         >
                           <AccordionTrigger className="text-sm font-semibold text-gray-800 hover:no-underline py-3">
-                            {picture.orderId ? `Order ID: ${picture.orderId}` : `Job ID: ${picture.jobId}`}
+                            <span>
+                              {picture.orderId ? `Order ID: ${picture.orderId}` : `Job ID: ${picture.jobId}`}
+                              {isMulti && (
+                                <span className="ml-2 text-xs font-normal text-gray-400">
+                                  ({beforeImgs.length} before · {afterImgs.length} after)
+                                </span>
+                              )}
+                            </span>
                           </AccordionTrigger>
                           <AccordionContent className="pb-4">
-                            <div className="grid grid-cols-2 gap-3 mt-2">
-                              {/* Before Service */}
-                              <div>
-                                <p className="text-xs font-medium text-gray-600 mb-2">Before Service</p>
-                                {picture.beforeImageUrl ? (
-                                  <div
-                                    className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={() => {
-                                      const imgIndex = images.indexOf(picture.beforeImageUrl!);
-                                      handleViewImage(images, imgIndex);
-                                    }}
-                                  >
-                                    <img
-                                      src={picture.beforeImageUrl}
-                                      alt="Before service"
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                        const parent = target.parentElement;
-                                        if (parent) {
-                                          parent.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-xs text-gray-400">Image unavailable</p></div>';
-                                        }
-                                      }}
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="space-y-2">
-                                    <div className="relative aspect-square rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center">
-                                      <Camera className="h-8 w-8 text-gray-400 mb-2" />
-                                      <p className="text-xs text-gray-400 text-center px-2">No picture</p>
+                            {isMulti ? (
+                              /* ── Multi-image layout ──────────────────────────── */
+                              <div className="space-y-4 mt-2">
+                                {/* Before Service */}
+                                {beforeImgs.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <p className="text-xs font-semibold text-gray-700">Before Service</p>
+                                      <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                                        {beforeImgs.length} photos
+                                      </span>
                                     </div>
-                                    <input
-                                      id={`before-input-${picture.jobId}`}
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                          handleServicePictureUpload(picture.jobId, "before", file);
-                                        }
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="w-full text-xs h-8"
-                                      onClick={() => {
-                                        const input = document.getElementById(`before-input-${picture.jobId}`) as HTMLInputElement;
-                                        input?.click();
-                                      }}
-                                    >
-                                      <Upload className="h-3 w-3 mr-1" />
-                                      Upload
-                                    </Button>
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                                      {beforeImgs.map((url, idx) => (
+                                        <div
+                                          key={`before-${idx}`}
+                                          className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+                                          onClick={() => {
+                                            const globalIdx = allImages.indexOf(url);
+                                            handleViewImage(allImages, globalIdx >= 0 ? globalIdx : 0);
+                                          }}
+                                        >
+                                          <img
+                                            src={url}
+                                            alt={`Before service ${idx + 1}`}
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                            onError={(e) => {
+                                              const target = e.target as HTMLImageElement;
+                                              target.style.display = 'none';
+                                              const parent = target.parentElement;
+                                              if (parent) {
+                                                parent.innerHTML = `<div class="flex items-center justify-center h-full"><p class="text-[10px] text-gray-400 text-center px-1">B-${idx + 1}</p></div>`;
+                                              }
+                                            }}
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
                                 )}
-                              </div>
 
-                              {/* After Service */}
-                              <div>
-                                <p className="text-xs font-medium text-gray-600 mb-2">After Service</p>
-                                {picture.afterImageUrl ? (
-                                  <div
-                                    className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer hover:opacity-90 transition-opacity"
-                                    onClick={() => {
-                                      const imgIndex = images.indexOf(picture.afterImageUrl!);
-                                      handleViewImage(images, imgIndex);
-                                    }}
-                                  >
-                                    <img
-                                      src={picture.afterImageUrl}
-                                      alt="After service"
-                                      className="w-full h-full object-cover"
-                                      onError={(e) => {
-                                        const target = e.target as HTMLImageElement;
-                                        target.style.display = 'none';
-                                        const parent = target.parentElement;
-                                        if (parent) {
-                                          parent.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-xs text-gray-400">Image unavailable</p></div>';
-                                        }
-                                      }}
-                                    />
-                                  </div>
-                                ) : (
-                                  <div className="space-y-2">
-                                    <div className="relative aspect-square rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center">
-                                      <Camera className="h-8 w-8 text-gray-400 mb-2" />
-                                      <p className="text-xs text-gray-400 text-center px-2">No picture</p>
+                                {/* After Service */}
+                                {afterImgs.length > 0 && (
+                                  <div>
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <p className="text-xs font-semibold text-gray-700">After Service</p>
+                                      <span className="text-[10px] bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">
+                                        {afterImgs.length} photos
+                                      </span>
                                     </div>
-                                    <input
-                                      id={`after-input-${picture.jobId}`}
-                                      type="file"
-                                      accept="image/*"
-                                      className="hidden"
-                                      onChange={(e) => {
-                                        const file = e.target.files?.[0];
-                                        if (file) {
-                                          handleServicePictureUpload(picture.jobId, "after", file);
-                                        }
-                                      }}
-                                    />
-                                    <Button
-                                      size="sm"
-                                      variant="outline"
-                                      className="w-full text-xs h-8"
-                                      onClick={() => {
-                                        const input = document.getElementById(`after-input-${picture.jobId}`) as HTMLInputElement;
-                                        input?.click();
-                                      }}
-                                    >
-                                      <Upload className="h-3 w-3 mr-1" />
-                                      Upload
-                                    </Button>
+                                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-1.5">
+                                      {afterImgs.map((url, idx) => (
+                                        <div
+                                          key={`after-${idx}`}
+                                          className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-100 cursor-pointer hover:opacity-90 transition-opacity"
+                                          onClick={() => {
+                                            const globalIdx = allImages.indexOf(url);
+                                            handleViewImage(allImages, globalIdx >= 0 ? globalIdx : 0);
+                                          }}
+                                        >
+                                          <img
+                                            src={url}
+                                            alt={`After service ${idx + 1}`}
+                                            className="w-full h-full object-cover"
+                                            loading="lazy"
+                                            onError={(e) => {
+                                              const target = e.target as HTMLImageElement;
+                                              target.style.display = 'none';
+                                              const parent = target.parentElement;
+                                              if (parent) {
+                                                parent.innerHTML = `<div class="flex items-center justify-center h-full"><p class="text-[10px] text-gray-400 text-center px-1">A-${idx + 1}</p></div>`;
+                                              }
+                                            }}
+                                          />
+                                        </div>
+                                      ))}
+                                    </div>
                                   </div>
                                 )}
                               </div>
-                            </div>
+                            ) : (
+                              /* ── Single-image layout (original) ─────────────── */
+                              <div className="grid grid-cols-2 gap-3 mt-2">
+                                {/* Before Service */}
+                                <div>
+                                  <p className="text-xs font-medium text-gray-600 mb-2">Before Service</p>
+                                  {picture.beforeImageUrl ? (
+                                    <div
+                                      className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer hover:opacity-90 transition-opacity"
+                                      onClick={() => {
+                                        const imgIndex = allImages.indexOf(picture.beforeImageUrl!);
+                                        handleViewImage(allImages, imgIndex);
+                                      }}
+                                    >
+                                      <img
+                                        src={picture.beforeImageUrl}
+                                        alt="Before service"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.style.display = 'none';
+                                          const parent = target.parentElement;
+                                          if (parent) {
+                                            parent.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-xs text-gray-400">Image unavailable</p></div>';
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-2">
+                                      <div className="relative aspect-square rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center">
+                                        <Camera className="h-8 w-8 text-gray-400 mb-2" />
+                                        <p className="text-xs text-gray-400 text-center px-2">No picture</p>
+                                      </div>
+                                      <input
+                                        id={`before-input-${picture.jobId}`}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            handleServicePictureUpload(picture.jobId, "before", file);
+                                          }
+                                        }}
+                                      />
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-full text-xs h-8"
+                                        onClick={() => {
+                                          const input = document.getElementById(`before-input-${picture.jobId}`) as HTMLInputElement;
+                                          input?.click();
+                                        }}
+                                      >
+                                        <Upload className="h-3 w-3 mr-1" />
+                                        Upload
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* After Service */}
+                                <div>
+                                  <p className="text-xs font-medium text-gray-600 mb-2">After Service</p>
+                                  {picture.afterImageUrl ? (
+                                    <div
+                                      className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer hover:opacity-90 transition-opacity"
+                                      onClick={() => {
+                                        const imgIndex = allImages.indexOf(picture.afterImageUrl!);
+                                        handleViewImage(allImages, imgIndex);
+                                      }}
+                                    >
+                                      <img
+                                        src={picture.afterImageUrl}
+                                        alt="After service"
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => {
+                                          const target = e.target as HTMLImageElement;
+                                          target.style.display = 'none';
+                                          const parent = target.parentElement;
+                                          if (parent) {
+                                            parent.innerHTML = '<div class="flex items-center justify-center h-full"><p class="text-xs text-gray-400">Image unavailable</p></div>';
+                                          }
+                                        }}
+                                      />
+                                    </div>
+                                  ) : (
+                                    <div className="space-y-2">
+                                      <div className="relative aspect-square rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 flex flex-col items-center justify-center">
+                                        <Camera className="h-8 w-8 text-gray-400 mb-2" />
+                                        <p className="text-xs text-gray-400 text-center px-2">No picture</p>
+                                      </div>
+                                      <input
+                                        id={`after-input-${picture.jobId}`}
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                          const file = e.target.files?.[0];
+                                          if (file) {
+                                            handleServicePictureUpload(picture.jobId, "after", file);
+                                          }
+                                        }}
+                                      />
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="w-full text-xs h-8"
+                                        onClick={() => {
+                                          const input = document.getElementById(`after-input-${picture.jobId}`) as HTMLInputElement;
+                                          input?.click();
+                                        }}
+                                      >
+                                        <Upload className="h-3 w-3 mr-1" />
+                                        Upload
+                                      </Button>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
                           </AccordionContent>
                         </AccordionItem>
                       );

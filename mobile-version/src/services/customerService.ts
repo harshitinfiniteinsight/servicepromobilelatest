@@ -153,6 +153,10 @@ export interface CustomerServicePicture {
   orderId?: string;
   beforeImageUrl: string | null;
   afterImageUrl: string | null;
+  /** Multiple before-service images (used when a job has more than one image per phase) */
+  beforeImages?: string[];
+  /** Multiple after-service images (used when a job has more than one image per phase) */
+  afterImages?: string[];
   createdAt: string;
   customerId: string;
 }
@@ -176,8 +180,12 @@ export const loadCustomerServicePictures = async (
   const jobPicturesStorage = localStorage.getItem("jobPictures");
   if (!jobPicturesStorage) return [];
 
-  const jobPictures: Record<string, { beforeImage: string | null; afterImage: string | null }> = 
-    JSON.parse(jobPicturesStorage);
+  const jobPictures: Record<string, {
+    beforeImage: string | null;
+    afterImage: string | null;
+    beforeImages?: string[];
+    afterImages?: string[];
+  }> = JSON.parse(jobPicturesStorage);
 
   // If jobs not provided, try to get from localStorage or use empty array
   // In a real app, this would be an API call
@@ -220,8 +228,12 @@ export const loadCustomerServicePictures = async (
       afterImage = null;
     }
     
-    // Only include if there's at least one valid image
-    if (!beforeImage && !afterImage) continue;
+    // Read multi-image arrays (filter out invalid blob URLs)
+    const beforeImagesArr: string[] = (pictures.beforeImages ?? []).filter(u => !isBlobUrl(u));
+    const afterImagesArr: string[] = (pictures.afterImages ?? []).filter(u => !isBlobUrl(u));
+
+    // Only include if there's at least one valid image (single or array)
+    if (!beforeImage && !afterImage && beforeImagesArr.length === 0 && afterImagesArr.length === 0) continue;
 
     // Get job info to verify customerId
     const job = jobsMap.get(jobId);
@@ -237,6 +249,8 @@ export const loadCustomerServicePictures = async (
         orderId,
         beforeImageUrl: beforeImage,
         afterImageUrl: afterImage,
+        beforeImages: beforeImagesArr.length > 0 ? beforeImagesArr : (beforeImage ? [beforeImage] : []),
+        afterImages: afterImagesArr.length > 0 ? afterImagesArr : (afterImage ? [afterImage] : []),
         createdAt: job?.createdAt || job?.scheduledDate || job?.date || new Date().toISOString(),
         customerId: job.customerId,
       });
