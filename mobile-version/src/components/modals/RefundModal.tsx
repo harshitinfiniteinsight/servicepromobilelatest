@@ -1139,7 +1139,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                   : "bg-gray-200 text-gray-400 cursor-not-allowed"
               )}
             >
-              Review Refund
+              Issue Refund
             </Button>
           ) : (
             <Button
