@@ -4,6 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   ArrowLeft, 
   X, 
@@ -14,13 +17,15 @@ import {
   Check,
   AlertCircle,
   Banknote,
-  Wallet
+  Wallet,
+  ChevronDown
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
 
-export interface RefundInvoiceData {
+export interface RefundDocumentData {
   id: string;
+  type: "invoice" | "agreement";
   customerName: string;
   amount: number;
   paidAmount?: number;
@@ -57,15 +62,25 @@ export interface RefundInvoiceData {
   refundedAmount?: number;
 }
 
+export type RefundInvoiceData = RefundDocumentData;
+
+export interface RefundProcessedDocument {
+  id: string;
+  type: "invoice" | "agreement";
+  refundAmount: number;
+  newStatus: string;
+}
+
 interface RefundModalProps {
   isOpen: boolean;
   onClose: () => void;
-  invoice: RefundInvoiceData;
-  onRefundComplete?: (invoiceId: string, refundAmount: number, newStatus: string) => void;
+  invoice: RefundDocumentData;
+  onRefundComplete?: (documents: RefundProcessedDocument[], totalRefundAmount: number) => void;
   mode?: "job" | "invoice";
   source?: "job" | "invoice";
   jobId?: string;
-  allInvoices?: RefundInvoiceData[];
+  allInvoices?: RefundDocumentData[];
+  allDocuments?: RefundDocumentData[];
 }
 
 type RefundType = "full" | "partial";
@@ -73,7 +88,9 @@ type RefundMethodOption = "original" | "different";
 type PaymentMethodType = "cash" | "bank_transfer" | "card" | "check";
 
 interface RefundRecord {
-  invoiceId: string;
+  invoiceId?: string;
+  documentIds: string[];
+  documents: RefundProcessedDocument[];
   refundAmount: number;
   refundMethod: string;
   refundMethodType: RefundMethodOption;
@@ -109,26 +126,76 @@ const differentPaymentMethods: { id: PaymentMethodType; label: string; icon: Rea
 
 const DEMO_CARD_LAST4 = "2345";
 
-const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source = "invoice", jobId, allInvoices = [] }: RefundModalProps) => {
+const toCents = (value: number) => Math.round(value * 100);
+const fromCents = (valueInCents: number) => valueInCents / 100;
+const parseCurrencyInput = (value: string) => {
+  const parsed = parseFloat(value);
+  return isNaN(parsed) ? 0 : parsed;
+};
+
+const RefundModal = ({
+  isOpen,
+  onClose,
+  invoice,
+  onRefundComplete,
+  mode,
+  source = "invoice",
+  jobId,
+  allInvoices = [],
+  allDocuments = [],
+}: RefundModalProps) => {
   const effectiveMode = mode ?? source;
+  const [documentDropdownOpen, setDocumentDropdownOpen] = useState(false);
+
+  const getDocumentKey = (document: RefundDocumentData) => `${document.type}:${document.id}`;
+
+  const getRefundableAmountForDocument = (document: RefundDocumentData) => {
+    const paid = Number(document.paidAmount ?? document.amount ?? 0);
+    const refunded = Number(document.refundedAmount || 0);
+    return Math.max(paid - refunded, 0);
+  };
+
+  const isRefundableDocument = (document: RefundDocumentData) => {
+    const normalizedStatus = (document.status || "").trim().toLowerCase();
+    return (normalizedStatus === "paid" || normalizedStatus === "partially refunded" || normalizedStatus === "partial")
+      && getRefundableAmountForDocument(document) > 0;
+  };
+
+  const getDocumentTypeLabel = (type: RefundDocumentData["type"]) =>
+    type === "agreement" ? "Agreement" : "Invoice";
 
   // Step management
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
   
-  // Filter invoices to show only paid ones for refund
-  const paidInvoices = useMemo(() => {
-    if (effectiveMode === "job") {
-      return allInvoices.filter(inv => inv.status === "Paid" || inv.status === "paid");
-    }
-    return allInvoices;
-  }, [effectiveMode, allInvoices]);
-  
-  // For job source: selected invoice state
-  const [selectedInvoice, setSelectedInvoice] = useState<RefundInvoiceData | null>(null);
+  const mergedDocuments = useMemo(() => {
+    const sourceDocuments = effectiveMode === "job"
+      ? (allDocuments.length > 0 ? allDocuments : allInvoices)
+      : [invoice];
+
+    const uniqueDocuments = new Map<string, RefundDocumentData>();
+    sourceDocuments.forEach((document) => {
+      if (!document?.id) return;
+      uniqueDocuments.set(getDocumentKey(document), {
+        ...document,
+        type: document.type || "invoice",
+      });
+    });
+
+    return Array.from(uniqueDocuments.values());
+  }, [effectiveMode, allDocuments, allInvoices, invoice]);
+
+  const refundableDocuments = useMemo(
+    () => mergedDocuments.filter(isRefundableDocument),
+    [mergedDocuments]
+  );
+
+  const [selectedDocumentKeys, setSelectedDocumentKeys] = useState<string[]>([]);
   
   // Step 1 - Refund Type
   const [refundType, setRefundType] = useState<RefundType>("full");
   const [partialAmount, setPartialAmount] = useState("");
+  const [partialAmountByDocument, setPartialAmountByDocument] = useState<Record<string, string>>({});
+  const [partialAmountErrorsByDocument, setPartialAmountErrorsByDocument] = useState<Record<string, string>>({});
   const [amountError, setAmountError] = useState("");
   const [refundReason, setRefundReason] = useState("");
   const [reasonError, setReasonError] = useState("");
@@ -151,64 +218,226 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Determine active invoice (either selected from job list or passed directly)
-  const activeInvoice = effectiveMode === "job" && selectedInvoice ? selectedInvoice : invoice;
+  const selectedDocuments = useMemo(() => {
+    if (selectedDocumentKeys.length === 0 && effectiveMode !== "job") {
+      return [invoice];
+    }
 
-  // Calculate refundable amount
-  const paidAmount = activeInvoice.paidAmount ?? activeInvoice.amount;
-  const alreadyRefunded = activeInvoice.refundedAmount ?? 0;
-  const refundableAmount = paidAmount - alreadyRefunded;
+    const selected = refundableDocuments.filter((document) => selectedDocumentKeys.includes(getDocumentKey(document)));
+    return selected.length > 0 ? selected : (effectiveMode === "job" ? [] : [invoice]);
+  }, [selectedDocumentKeys, effectiveMode, refundableDocuments, invoice]);
 
-  // Computed refund amount based on type
-  const refundAmount = useMemo(() => {
+  const activeInvoice = selectedDocuments[0] || invoice;
+
+  const totalSelectedAmount = useMemo(
+    () => selectedDocuments.reduce((sum, document) => sum + getRefundableAmountForDocument(document), 0),
+    [selectedDocuments]
+  );
+
+  const totalAvailableRefund = totalSelectedAmount;
+
+  const enteredRefundTotal = useMemo(() => {
     if (refundType === "full") {
-      return refundableAmount;
+      return totalAvailableRefund;
     }
-    const parsed = parseFloat(partialAmount);
+
+    if (selectedDocuments.length > 1) {
+      return selectedDocuments.reduce((sum, document) => {
+        const documentKey = getDocumentKey(document);
+        const parsed = parseCurrencyInput(partialAmountByDocument[documentKey] || "");
+        return sum + (isNaN(parsed) ? 0 : parsed);
+      }, 0);
+    }
+
+    const parsed = parseCurrencyInput(partialAmount);
     return isNaN(parsed) ? 0 : parsed;
-  }, [refundType, partialAmount, refundableAmount]);
+  }, [refundType, partialAmount, partialAmountByDocument, selectedDocuments, totalAvailableRefund]);
 
-  // Determine new invoice status after refund
-  const newInvoiceStatus = useMemo(() => {
-    const totalRefundedAfter = alreadyRefunded + refundAmount;
-    if (totalRefundedAfter >= paidAmount) {
-      return "Refunded";
+  // Computed refund amount used by allocations/payload (capped at available amount)
+  const refundAmount = useMemo(() => {
+    const cappedInCents = Math.min(toCents(enteredRefundTotal), toCents(totalAvailableRefund));
+    return fromCents(cappedInCents);
+  }, [enteredRefundTotal, totalAvailableRefund]);
+
+  // Remaining = total available - entered refund total (never below zero)
+  const remainingAmount = useMemo(() => {
+    const remainingInCents = Math.max(toCents(totalAvailableRefund) - toCents(enteredRefundTotal), 0);
+    return fromCents(remainingInCents);
+  }, [totalAvailableRefund, enteredRefundTotal]);
+
+  const refundAllocations = useMemo<RefundProcessedDocument[]>(() => {
+    return selectedDocuments
+      .map((document) => {
+        const refundableAmount = getRefundableAmountForDocument(document);
+        const documentKey = getDocumentKey(document);
+
+        let allocatedAmount = 0;
+        if (refundType === "full") {
+          allocatedAmount = refundableAmount;
+        } else if (selectedDocuments.length > 1) {
+          const parsed = parseFloat(partialAmountByDocument[documentKey] || "");
+          allocatedAmount = isNaN(parsed) ? 0 : Math.min(parsed, refundableAmount);
+        } else {
+          allocatedAmount = Math.min(refundAmount, refundableAmount);
+        }
+
+        const paidAmount = Number(document.paidAmount ?? document.amount ?? 0);
+        const alreadyRefunded = Number(document.refundedAmount || 0);
+        const totalRefundedAfter = alreadyRefunded + allocatedAmount;
+
+        return {
+          id: document.id,
+          type: document.type,
+          refundAmount: allocatedAmount,
+          newStatus: totalRefundedAfter >= paidAmount ? "Refunded" : "Partially Refunded",
+        };
+      })
+      .filter((allocation) => allocation.refundAmount > 0);
+  }, [selectedDocuments, partialAmountByDocument, refundAmount, refundType]);
+
+  const selectedStatusSummary = useMemo(() => {
+    if (refundAllocations.length === 0) return "Pending";
+    const allRefunded = refundAllocations.every((allocation) => allocation.newStatus === "Refunded");
+    return allRefunded ? "Refunded" : "Partially Refunded";
+  }, [refundAllocations]);
+
+  const documentDropdownLabel = useMemo(() => {
+    if (refundableDocuments.length === 0) {
+      return "No refundable documents";
     }
-    return "Partially Refunded";
-  }, [refundAmount, alreadyRefunded, paidAmount]);
 
-  // Check if refund method is Check (for both original and different method)
+    if (selectedDocumentKeys.length === refundableDocuments.length) {
+      return `All selected (${selectedDocumentKeys.length})`;
+    }
+
+    if (selectedDocumentKeys.length === 0) {
+      return "Select Invoice/Agreement to Refund";
+    }
+
+    return `${selectedDocumentKeys.length} selected`;
+  }, [refundableDocuments.length, selectedDocumentKeys.length]);
+
+  const allDocumentsSelected = refundableDocuments.length > 0 && selectedDocumentKeys.length === refundableDocuments.length;
+
+  // Check if refund method is Check (for both original and different method).
+  // For "original": check if ANY selected document was paid by check.
   const isCheckRefund = useMemo(() => {
-    const originalMethod = (activeInvoice.paymentMethod || "").toLowerCase();
-    const isOriginalCheck = refundMethodOption === "original" && originalMethod.includes("check");
-    const isDifferentCheck = refundMethodOption === "different" && selectedDifferentMethod === "check";
-    return isOriginalCheck || isDifferentCheck;
-  }, [refundMethodOption, selectedDifferentMethod, activeInvoice.paymentMethod]);
+    if (refundMethodOption === "different") {
+      return selectedDifferentMethod === "check";
+    }
+    if (refundMethodOption === "original") {
+      return selectedDocuments.some(doc =>
+        (doc.paymentMethod || doc.payment?.method || "").toLowerCase().includes("check")
+      );
+    }
+    return false;
+  }, [refundMethodOption, selectedDifferentMethod, selectedDocuments]);
 
   // Check if refund method is Cash (different method only)
   const isCashRefund = useMemo(() => {
     return refundMethodOption === "different" && selectedDifferentMethod === "cash";
   }, [refundMethodOption, selectedDifferentMethod]);
 
+  // Keep per-document partial map in sync with currently selected documents
+  useEffect(() => {
+    if (refundType !== "partial") {
+      setPartialAmountErrorsByDocument({});
+      return;
+    }
+
+    setPartialAmountByDocument((prev) => {
+      const next: Record<string, string> = {};
+
+      selectedDocuments.forEach((document) => {
+        const documentKey = getDocumentKey(document);
+        const refundableAmount = getRefundableAmountForDocument(document);
+        const existing = prev[documentKey] ?? "";
+        const parsed = parseFloat(existing);
+
+        if (existing === "" || isNaN(parsed)) {
+          next[documentKey] = existing;
+        } else {
+          next[documentKey] = String(Math.min(parsed, refundableAmount));
+        }
+      });
+
+      return next;
+    });
+  }, [refundType, selectedDocuments]);
+
   // Validate partial amount
   useEffect(() => {
     if (refundType === "partial") {
-      const parsed = parseFloat(partialAmount);
+      if (selectedDocuments.length > 1) {
+        const nextErrors: Record<string, string> = {};
+        let hasInvalidValue = false;
+        let sumInCents = 0;
+
+        selectedDocuments.forEach((document) => {
+          const documentKey = getDocumentKey(document);
+          const rawValue = partialAmountByDocument[documentKey] || "";
+          const refundableAmount = getRefundableAmountForDocument(document);
+
+          if (!rawValue) {
+            return;
+          }
+
+          const parsed = parseCurrencyInput(rawValue);
+          if (isNaN(parsed)) {
+            nextErrors[documentKey] = "Enter a valid amount";
+            hasInvalidValue = true;
+            return;
+          }
+
+          if (parsed < 0) {
+            nextErrors[documentKey] = "Amount cannot be negative";
+            hasInvalidValue = true;
+            return;
+          }
+
+          if (parsed > refundableAmount) {
+            nextErrors[documentKey] = `Cannot exceed $${refundableAmount.toFixed(2)}`;
+            hasInvalidValue = true;
+            return;
+          }
+
+          sumInCents += toCents(parsed);
+        });
+
+        setPartialAmountErrorsByDocument(nextErrors);
+
+        const totalSelectedInCents = toCents(totalSelectedAmount);
+
+        if (hasInvalidValue) {
+          setAmountError("Please fix per-invoice refund amounts");
+        } else if (sumInCents <= 0) {
+          setAmountError("Enter at least one invoice refund amount greater than $0");
+        } else if (sumInCents > totalSelectedInCents) {
+          setAmountError(`Cannot exceed selected total of $${totalSelectedAmount.toFixed(2)}`);
+        } else {
+          setAmountError("");
+        }
+
+        return;
+      }
+
+      const parsed = parseCurrencyInput(partialAmount);
       if (!partialAmount) {
         setAmountError("");
       } else if (isNaN(parsed)) {
         setAmountError("Please enter a valid amount");
       } else if (parsed <= 0) {
         setAmountError("Amount must be greater than $0");
-      } else if (parsed > refundableAmount) {
-        setAmountError(`Cannot exceed $${refundableAmount.toFixed(2)}`);
+      } else if (toCents(parsed) > toCents(totalSelectedAmount)) {
+        setAmountError(`Cannot exceed $${totalSelectedAmount.toFixed(2)}`);
       } else {
         setAmountError("");
       }
     } else {
       setAmountError("");
+      setPartialAmountErrorsByDocument({});
     }
-  }, [partialAmount, refundType, refundableAmount]);
+  }, [partialAmount, partialAmountByDocument, refundType, selectedDocuments, totalSelectedAmount]);
 
   // Reset state when modal opens
   useEffect(() => {
@@ -216,6 +445,8 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
       setCurrentStep(1);
       setRefundType("full");
       setPartialAmount("");
+      setPartialAmountByDocument({});
+      setPartialAmountErrorsByDocument({});
       setAmountError("");
       setRefundReason("");
       setReasonError("");
@@ -229,30 +460,30 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
       setCheckComment("");
       setIsProcessing(false);
       setShowSuccess(false);
-      
-      // For job source: pre-select first paid invoice from the list
+
       if (effectiveMode === "job") {
-        if (paidInvoices && paidInvoices.length > 0) {
-          setSelectedInvoice(paidInvoices[0]);
-        } else if (invoice) {
-          // Fallback to the provided invoice so validation doesn't block
-          // when paidInvoices filtering returns an empty list.
-          setSelectedInvoice(invoice);
-        }
+        setSelectedDocumentKeys(refundableDocuments.map((document) => getDocumentKey(document)));
+      } else {
+        setSelectedDocumentKeys([getDocumentKey(invoice)]);
       }
     }
-  }, [isOpen, effectiveMode, paidInvoices]);
+  }, [isOpen, effectiveMode, refundableDocuments, invoice]);
 
   // Check if step 1 is valid to proceed
   const isStep1Valid = useMemo(() => {
-    // For job source: require invoice selection only when selector is visible/populated
-    if (effectiveMode === "job" && paidInvoices.length > 0 && !selectedInvoice) return false;
+    if (selectedDocuments.length === 0) return false;
     
     if (!refundReason.trim()) return false;
     if (refundType === "full") return true;
-    const parsed = parseFloat(partialAmount);
-    return !isNaN(parsed) && parsed > 0 && parsed <= refundableAmount;
-  }, [effectiveMode, paidInvoices.length, selectedInvoice, refundType, partialAmount, refundableAmount, refundReason]);
+
+    if (selectedDocuments.length > 1) {
+      if (Object.keys(partialAmountErrorsByDocument).length > 0) return false;
+      return amountError === "" && enteredRefundTotal > 0 && toCents(enteredRefundTotal) <= toCents(totalSelectedAmount);
+    }
+
+    const parsed = parseCurrencyInput(partialAmount);
+    return !isNaN(parsed) && parsed > 0 && parsed <= totalSelectedAmount;
+  }, [selectedDocuments.length, refundType, partialAmount, totalSelectedAmount, refundReason, partialAmountErrorsByDocument, amountError, enteredRefundTotal]);
 
   // Validate reason field
   useEffect(() => {
@@ -332,6 +563,34 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
     return method || "Payment pending";
   };
 
+  // Get original payment method for a document
+  const getDocumentOriginalPaymentMethod = (document: RefundDocumentData): string => {
+    return (document.paymentMethod || document.payment?.method || "Unknown").trim();
+  };
+
+  // Get unique original payment methods from selected documents
+  const selectedDocumentsMethods = useMemo(() => {
+    return selectedDocuments.map((doc) => getDocumentOriginalPaymentMethod(doc));
+  }, [selectedDocuments]);
+
+  // Check if all selected documents have the same original payment method
+  const allDocumentsSameMethod = useMemo(() => {
+    if (selectedDocumentsMethods.length === 0) return true;
+    const firstMethod = selectedDocumentsMethods[0].toLowerCase();
+    return selectedDocumentsMethods.every((method) => method.toLowerCase() === firstMethod);
+  }, [selectedDocumentsMethods]);
+
+  // Get unique payment methods for summary
+  const uniqueSelectedMethods = useMemo(() => {
+    return Array.from(new Set(selectedDocumentsMethods.map((m) => m.toLowerCase())));
+  }, [selectedDocumentsMethods]);
+
+  // hasMixedMethods: true when selected documents have different original payment methods.
+  // When true, "Original Payment Method" still works — each invoice is refunded to its own method.
+  const hasMixedMethods = useMemo(() => {
+    return !allDocumentsSameMethod && selectedDocuments.length > 1;
+  }, [allDocumentsSameMethod, selectedDocuments.length]);
+
   const handleClose = () => {
     if (isProcessing) return;
     onClose();
@@ -375,11 +634,44 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
       // Simulate API call delay
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // Determine refund method string
-      let refundMethodString = activeInvoice.paymentMethod || "Unknown";
+      // Build refund method information per document
+      interface DocumentRefundInfo {
+        document: RefundDocumentData;
+        allocation: RefundProcessedDocument;
+        originalPaymentMethod: string;
+        effectiveRefundMethod: RefundMethodOption;
+      }
+
+      const documentRefundInfos: DocumentRefundInfo[] = refundAllocations.map((allocation) => {
+        const document = selectedDocuments.find((d) => d.id === allocation.id && d.type === allocation.type);
+        if (!document) {
+          throw new Error(`Document not found for allocation: ${allocation.id}`);
+        }
+
+        // Determine effective refund method for this document
+        let effectiveRefundMethod: RefundMethodOption = refundMethodOption;
+        let originalPaymentMethod = getDocumentOriginalPaymentMethod(document);
+
+        return {
+          document,
+          allocation,
+          originalPaymentMethod,
+          effectiveRefundMethod,
+        };
+      });
+
+      // Determine refund method string for logging
+      let refundMethodString: string;
       if (refundMethodOption === "different" && selectedDifferentMethod) {
         const methodLabel = differentPaymentMethods.find(m => m.id === selectedDifferentMethod)?.label;
         refundMethodString = methodLabel || selectedDifferentMethod;
+      } else if (refundMethodOption === "original") {
+        // For original method, show all methods used
+        refundMethodString = uniqueSelectedMethods.length > 1
+          ? `Multiple methods: ${uniqueSelectedMethods.join(", ")}`
+          : (activeInvoice.paymentMethod || "Unknown");
+      } else {
+        refundMethodString = "Unknown";
       }
 
       // Build transaction notes
@@ -397,9 +689,19 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
         transactionNotes += `\n\nRefund Method: Cash\nComment: ${checkComment.trim()}`;
       }
 
+      // Add per-document method information to notes if mixed methods
+      if (refundMethodOption === "original" && documentRefundInfos.length > 1) {
+        transactionNotes += "\n\nPer-Document Refund Methods:\n";
+        documentRefundInfos.forEach((info) => {
+          transactionNotes += `- ${info.document.id}: ${info.originalPaymentMethod} (Refund: $${info.allocation.refundAmount.toFixed(2)})\n`;
+        });
+      }
+
       // Create refund record (would be sent to backend)
       const refundRecord: RefundRecord = {
         invoiceId: activeInvoice.id,
+        documentIds: refundAllocations.map((allocation) => allocation.id),
+        documents: refundAllocations,
         refundAmount: refundAmount,
         refundMethod: refundMethodString,
         refundMethodType: refundMethodOption,
@@ -419,8 +721,16 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
         };
       }
 
-      // Log for development
-      console.log("Processing refund:", refundRecord);
+      // Log for development - show per-document routing
+      console.log("Processing refund with per-document methods:", {
+        refundRecord,
+        documentMethods: documentRefundInfos.map((info) => ({
+          documentId: info.document.id,
+          type: info.document.type,
+          originalMethod: info.originalPaymentMethod,
+          refundAmount: info.allocation.refundAmount,
+        })),
+      });
 
       // Store refund record in localStorage (simulating backend)
       const existingRefunds = JSON.parse(localStorage.getItem("refunds") || "[]");
@@ -433,7 +743,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
       // After brief delay, close and notify
       setTimeout(() => {
         showSuccessToast(`Refund of $${refundAmount.toFixed(2)} processed successfully`);
-        onRefundComplete?.(activeInvoice.id, refundAmount, newInvoiceStatus);
+        onRefundComplete?.(refundAllocations, refundAmount);
         handleClose();
       }, 1500);
 
@@ -475,7 +785,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                 ${refundAmount.toFixed(2)}
               </p>
               <p className="text-xs text-green-700">
-                <span className="font-medium">{activeInvoice.customerName}</span> • Invoice {activeInvoice.id}
+                <span className="font-medium">{selectedDocuments.length}</span> selected {selectedDocuments.length === 1 ? "document" : "documents"}
               </p>
             </div>
 
@@ -490,19 +800,19 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                 <span className="text-xs text-gray-700">{processingTime}</span>
               </div>
               <div className="flex items-start justify-between">
-                <span className="text-xs text-gray-600 font-medium">Invoice Status</span>
+                <span className="text-xs text-gray-600 font-medium">Refund Status</span>
                 <span className={cn(
                   "text-xs font-semibold",
-                  newInvoiceStatus === "Refunded" ? "text-red-600" : "text-orange-600"
+                  selectedStatusSummary === "Refunded" ? "text-red-600" : "text-orange-600"
                 )}>
-                  {newInvoiceStatus}
+                  {selectedStatusSummary}
                 </span>
               </div>
-              {refundableAmount > refundAmount && (
+              {remainingAmount > 0 && (
                 <div className="flex items-start justify-between pt-2 border-t border-gray-200">
                   <span className="text-xs text-gray-600 font-medium">Remaining Refundable</span>
                   <span className="text-xs font-semibold text-green-600">
-                    ${(refundableAmount - refundAmount).toFixed(2)}
+                    ${remainingAmount.toFixed(2)}
                   </span>
                 </div>
               )}
@@ -512,6 +822,34 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
             <p className="text-xs text-gray-600 mb-6">
               A confirmation email has been sent to {activeInvoice.customerName}
             </p>
+
+            {/* Per-Document Refund Details (if original method with multiple docs) */}
+            {refundMethodOption === "original" && selectedDocuments.length > 1 && (
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6 space-y-2">
+                <p className="text-xs font-semibold text-blue-900 mb-3">Per-Document Refund Details</p>
+                {refundAllocations.map((allocation) => {
+                  const doc = selectedDocuments.find((d) => d.id === allocation.id && d.type === allocation.type);
+                  const method = doc ? getDocumentOriginalPaymentMethod(doc) : "Unknown";
+                  return (
+                    <div key={`${allocation.type}-${allocation.id}`} className="flex justify-between text-xs bg-white p-2 rounded border border-blue-100">
+                      <div>
+                        <p className="font-medium text-gray-900">{allocation.id}</p>
+                        <p className="text-gray-500">{method}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-semibold text-blue-600">${allocation.refundAmount.toFixed(2)}</p>
+                        <p className={cn(
+                          "text-xs",
+                          allocation.newStatus === "Refunded" ? "text-red-600" : "text-orange-600"
+                        )}>
+                          {allocation.newStatus}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Close Button */}
             <Button
@@ -529,8 +867,8 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent className="max-w-[390px] w-[calc(100%-1.5rem)] mx-auto p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden !flex !flex-col [&>button]:hidden">
-        <DialogTitle className="sr-only">Refund Invoice</DialogTitle>
-        <DialogDescription className="sr-only">Process refund for invoice {invoice.id}</DialogDescription>
+        <DialogTitle className="sr-only">Refund Documents</DialogTitle>
+        <DialogDescription className="sr-only">Process refund for selected documents</DialogDescription>
         
         {/* Header */}
         <div className="flex justify-between items-center bg-white border-b border-gray-200 px-4 py-3 shrink-0">
@@ -542,7 +880,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
             <ArrowLeft className="h-5 w-5 text-gray-600" />
           </button>
           <h2 className="text-base font-semibold text-gray-900">
-            {effectiveMode === "job" ? `Refund for Job ID: ${jobId}` : "Refund Invoice"}
+            {effectiveMode === "job" ? `Refund for Job ID: ${jobId}` : "Refund Document"}
           </h2>
           <button 
             onClick={handleClose} 
@@ -556,50 +894,99 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto bg-white pointer-events-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="px-5 py-5 pb-6 space-y-5 pointer-events-auto">
-            {/* Invoice Selector - Show when source is "job" and multiple invoices */}
-          {effectiveMode === "job" && paidInvoices.length > 0 && (
+            {/* Document Selector - Multi-select for job refunds */}
+          {effectiveMode === "job" && (
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-gray-700">
-                Select Invoice to Refund <span className="text-red-500">*</span>
+                Select Invoice/Agreement to Refund <span className="text-red-500">*</span>
               </Label>
-              <select
-                value={selectedInvoice?.id || ""}
-                onChange={(e) => {
-                  const selected = paidInvoices.find(inv => inv.id === e.target.value);
-                  setSelectedInvoice(selected || null);
-                  setPartialAmount("");
-                  setAmountError("");
-                }}
-                disabled={isProcessing}
-                className="w-full px-3 py-3 text-sm border border-gray-300 rounded-lg bg-white hover:border-gray-400 focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="">-- Choose an invoice --</option>
-                {paidInvoices.map((inv) => (
-                  <option key={inv.id} value={inv.id}>
-                    {inv.id} — ${inv.amount.toFixed(2)} — {inv.status}
-                  </option>
-                ))}
-              </select>
-              {!selectedInvoice && (
-                <p className="text-xs text-red-500 font-medium">Please select an invoice to proceed</p>
+              {refundableDocuments.length === 0 ? (
+                <p className="text-xs text-gray-500">No refundable documents available.</p>
+              ) : (
+                <Popover open={documentDropdownOpen} onOpenChange={setDocumentDropdownOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full min-h-11 h-auto justify-between px-4 py-3 rounded-xl"
+                    >
+                      <span className="truncate">{documentDropdownLabel}</span>
+                      <ChevronDown className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl" align="start">
+                    <div className="max-h-64 overflow-y-auto py-1">
+                      <label className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b">
+                        <Checkbox
+                          checked={allDocumentsSelected}
+                          onCheckedChange={(checked) => {
+                            const nextChecked = checked === true;
+                            setSelectedDocumentKeys(nextChecked ? refundableDocuments.map((document) => getDocumentKey(document)) : []);
+                            setPartialAmount("");
+                            setPartialAmountByDocument({});
+                            setPartialAmountErrorsByDocument({});
+                            setAmountError("");
+                          }}
+                        />
+                        <span className="text-sm font-medium text-gray-900">Select All</span>
+                      </label>
+                      {refundableDocuments.map((document) => {
+                        const documentKey = getDocumentKey(document);
+                        return (
+                          <label key={documentKey} className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer">
+                            <Checkbox
+                              checked={selectedDocumentKeys.includes(documentKey)}
+                              onCheckedChange={(checked) => {
+                                const nextChecked = checked === true;
+                                setSelectedDocumentKeys((prev) => nextChecked
+                                  ? Array.from(new Set([...prev, documentKey]))
+                                  : prev.filter((key) => key !== documentKey));
+                                setPartialAmount("");
+                                setPartialAmountByDocument({});
+                                setPartialAmountErrorsByDocument({});
+                                setAmountError("");
+                              }}
+                            />
+                            <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
+                              <span className="text-sm text-gray-900 truncate">
+                                {document.id} — ${getRefundableAmountForDocument(document).toFixed(2)}
+                              </span>
+                              <Badge variant="outline" className="text-[10px] h-5 px-2 shrink-0">
+                                {getDocumentTypeLabel(document.type)}
+                              </Badge>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
+              {selectedDocuments.length === 0 && refundableDocuments.length > 0 && (
+                <p className="text-xs text-red-500 font-medium">Please select at least one document to proceed</p>
               )}
             </div>
           )}
 
-          {/* Invoice Info Card - Compact 2-Row Layout */}
-          <div className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-1.5">
-            {/* Row 1: Invoice ID | Amount */}
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium text-gray-700">{activeInvoice.id}</p>
-              <p className="text-sm font-bold text-gray-900">${paidAmount.toFixed(2)}</p>
-            </div>
-            {/* Row 2: Customer Name | Payment Method */}
-            <div className="flex items-center justify-between">
-              <p className="text-xs text-gray-600">{activeInvoice.customerName}</p>
-              <p className="text-xs text-gray-500">
-                {getInvoicePaymentSummaryLabel(activeInvoice)}
-              </p>
-            </div>
+          {/* Selected Document Cards */}
+          <div className="space-y-2">
+            {selectedDocuments.map((document) => (
+              <div key={getDocumentKey(document)} className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-1.5">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-gray-700">{document.id}</p>
+                  <div className="flex items-center gap-2">
+                    <Badge variant="outline" className="text-[10px] h-5 px-2">
+                      {getDocumentTypeLabel(document.type)}
+                    </Badge>
+                    <p className="text-sm font-bold text-gray-900">${getRefundableAmountForDocument(document).toFixed(2)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs text-gray-600 truncate">{document.customerName}</p>
+                  <p className="text-xs text-gray-500 truncate">{getInvoicePaymentSummaryLabel(document)}</p>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Step 1: Refund Amount */}
@@ -613,6 +1000,8 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                 onClick={() => {
                   setRefundType("full");
                   setPartialAmount("");
+                  setPartialAmountByDocument({});
+                  setPartialAmountErrorsByDocument({});
                   setAmountError("");
                 }}
                 className={cn(
@@ -626,7 +1015,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                   <div>
                     <p className="text-sm font-semibold text-gray-900">Full Refund</p>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Full invoice amount will be refunded
+                      Full selected amount will be refunded
                     </p>
                   </div>
                   <div className={cn(
@@ -643,7 +1032,10 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
               {/* Partial Refund Option */}
               <button
                 type="button"
-                onClick={() => setRefundType("partial")}
+                onClick={() => {
+                  setRefundType("partial");
+                  setAmountError("");
+                }}
                 className={cn(
                   "w-full p-4 rounded-lg border text-left transition-all",
                   refundType === "partial"
@@ -672,26 +1064,89 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
               {/* Partial Amount Input */}
               {refundType === "partial" && (
                 <div className="space-y-3">
-                  <Label className="text-xs font-medium text-gray-700">
-                    Refund Amount <span className="text-red-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
-                    <Input
-                      type="number"
-                      step="0.01"
-                      min="0.01"
-                      max={refundableAmount}
-                      value={partialAmount}
-                      onChange={(e) => setPartialAmount(e.target.value)}
-                      placeholder="0.00"
-                      autoFocus
-                      className={cn(
-                        "pl-7 h-10 rounded-lg border-gray-200 text-sm",
-                        amountError && "border-red-500 focus:ring-red-500"
-                      )}
-                    />
-                  </div>
+                  {selectedDocuments.length > 1 ? (
+                    <>
+                      <Label className="text-xs font-medium text-gray-700">
+                        Enter Refund Amount per Invoice <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="space-y-2">
+                        {selectedDocuments.map((document) => {
+                          const documentKey = getDocumentKey(document);
+                          const refundableAmount = getRefundableAmountForDocument(document);
+                          const fieldError = partialAmountErrorsByDocument[documentKey];
+
+                          return (
+                            <div
+                              key={documentKey}
+                              className={cn(
+                                "p-3 border rounded-lg bg-white",
+                                fieldError ? "border-red-300" : "border-gray-200"
+                              )}
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-2">
+                                <p className="text-xs font-medium text-gray-800 truncate">{document.id}</p>
+                                <p className="text-xs text-gray-500">Max ${refundableAmount.toFixed(2)}</p>
+                              </div>
+                              <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                                <Input
+                                  type="number"
+                                  step="0.01"
+                                  min="0"
+                                  max={refundableAmount}
+                                  value={partialAmountByDocument[documentKey] || ""}
+                                  onChange={(e) => {
+                                    const nextValue = e.target.value;
+                                    setPartialAmountByDocument((prev) => ({ ...prev, [documentKey]: nextValue }));
+                                    setPartialAmountErrorsByDocument((prev) => {
+                                      if (!prev[documentKey]) return prev;
+                                      const next = { ...prev };
+                                      delete next[documentKey];
+                                      return next;
+                                    });
+                                  }}
+                                  placeholder="0.00"
+                                  className={cn(
+                                    "pl-7 h-10 rounded-lg text-sm",
+                                    fieldError ? "border-red-500 focus:ring-red-500" : "border-gray-200"
+                                  )}
+                                />
+                              </div>
+                              {fieldError && (
+                                <p className="text-xs text-red-500 flex items-center gap-1 mt-1.5">
+                                  <AlertCircle className="h-3 w-3" />
+                                  {fieldError}
+                                </p>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Label className="text-xs font-medium text-gray-700">
+                        Refund Amount <span className="text-red-500">*</span>
+                      </Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0.01"
+                          max={totalSelectedAmount}
+                          value={partialAmount}
+                          onChange={(e) => setPartialAmount(e.target.value)}
+                          placeholder="0.00"
+                          autoFocus
+                          className={cn(
+                            "pl-7 h-10 rounded-lg border-gray-200 text-sm",
+                            amountError && "border-red-500 focus:ring-red-500"
+                          )}
+                        />
+                      </div>
+                    </>
+                  )}
                   {amountError && (
                     <p className="text-xs text-red-500 flex items-center gap-1">
                       <AlertCircle className="h-3 w-3" />
@@ -707,7 +1162,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Remaining Amount</span>
                     <span className="text-base font-bold text-gray-900">
-                      ${(paidAmount - refundAmount).toFixed(2)}
+                      ${remainingAmount.toFixed(2)}
                     </span>
                   </div>
                 </div>
@@ -782,6 +1237,20 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
             <div className="space-y-4">
               <h3 className="text-sm font-semibold text-gray-900">Select Refund Method</h3>
               
+              {/* Mixed Methods Warning */}
+              {hasMixedMethods && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-2">
+                  <AlertCircle className="h-4 w-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-xs font-medium text-amber-900">Mixed Payment Methods Detected</p>
+                    <p className="text-xs text-amber-700 mt-0.5">
+                      Selected documents were paid with different methods: {uniqueSelectedMethods.join(", ")}.
+                      Choosing "Original Payment Method" will refund each invoice back to its own original method.
+                    </p>
+                  </div>
+                </div>
+              )}
+              
               {/* Original Payment Method Option */}
               <button
                 type="button"
@@ -813,7 +1282,9 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                     <div>
                       <p className="text-sm font-semibold text-gray-900">Original Payment Method</p>
                       <p className="text-xs text-gray-500 mt-0.5">
-                        {getInvoicePaymentSummaryLabel(activeInvoice)}
+                        {hasMixedMethods
+                          ? "Each invoice refunded to its original method"
+                          : getInvoicePaymentSummaryLabel(activeInvoice)}
                       </p>
                     </div>
                   </div>
@@ -1078,12 +1549,12 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                 </h4>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Invoice</span>
-                    <span className="font-medium text-gray-900">{activeInvoice.id}</span>
+                    <span className="text-gray-600">Documents</span>
+                    <span className="font-medium text-gray-900">{selectedDocuments.length}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Customer</span>
-                    <span className="font-medium text-gray-900">{activeInvoice.customerName}</span>
+                    <span className="text-gray-600">Selected Total</span>
+                    <span className="font-medium text-gray-900">${totalSelectedAmount.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Refund Amount</span>
@@ -1093,17 +1564,30 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                     <span className="text-gray-600">Refund Method</span>
                     <span className="font-medium text-gray-900">
                       {refundMethodOption === "original" 
-                        ? activeInvoice.paymentMethod || "Original" 
+                        ? hasMixedMethods
+                          ? "Per-document methods"
+                          : activeInvoice.paymentMethod || "Original"
                         : differentPaymentMethods.find(m => m.id === selectedDifferentMethod)?.label || "Select method"}
                     </span>
                   </div>
+                  
+                  {/* Mixed Methods Breakdown */}
+                  {refundMethodOption === "original" && hasMixedMethods && (
+                    <div className="flex justify-between text-sm pt-2 border-t border-gray-300 mt-2">
+                      <span className="text-gray-600">Methods Used</span>
+                      <span className="font-medium text-gray-900 text-right text-xs max-w-[140px]">
+                        {uniqueSelectedMethods.join(", ")}
+                      </span>
+                    </div>
+                  )}
+                  
                   <div className="flex justify-between text-sm pt-2 border-t border-gray-200 mt-2">
-                    <span className="text-gray-600">New Status</span>
+                    <span className="text-gray-600">Refund Status</span>
                     <span className={cn(
                       "font-medium",
-                      newInvoiceStatus === "Refunded" ? "text-red-600" : "text-orange-600"
+                      selectedStatusSummary === "Refunded" ? "text-red-600" : "text-orange-600"
                     )}>
-                      {newInvoiceStatus}
+                      {selectedStatusSummary}
                     </span>
                   </div>
                 </div>
