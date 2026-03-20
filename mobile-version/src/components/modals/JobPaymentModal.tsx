@@ -10,7 +10,7 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import PaymentModal, { type PaymentMethodSelectionPayload } from "./PaymentModal";
+import PaymentModal, { type PaymentLinkedDocument, type PaymentMethodSelectionPayload } from "./PaymentModal";
 import EstimateToInvoiceInfoModal from "./EstimateToInvoiceInfoModal";
 import { syncPaymentStatus, getSourceDocumentAmount } from "@/utils/paymentSync";
 import type { JobSourceType } from "@/data/mobileMockData";
@@ -21,6 +21,8 @@ interface JobPaymentModalProps {
   onClose: () => void;
   invoiceIds?: string[];
   linkedInvoices?: Invoice[];
+  linkedDocuments?: PaymentLinkedDocument[];
+  defaultSelectedDocumentKeys?: string[];
   job: {
     id: string;
     title: string;
@@ -39,6 +41,8 @@ const JobPaymentModal = ({
   onPaymentComplete,
   invoiceIds,
   linkedInvoices,
+  linkedDocuments,
+  defaultSelectedDocumentKeys,
 }: JobPaymentModalProps) => {
   const [paymentAmount, setPaymentAmount] = useState(0);
   const [showInfoModal, setShowInfoModal] = useState(false);
@@ -83,6 +87,9 @@ const JobPaymentModal = ({
       
       const sourceType = (job.sourceType || "none") as JobSourceType;
       const sourceId = job.sourceId;
+      const selectedDocuments = payload?.selectedDocuments && payload.selectedDocuments.length > 0
+        ? payload.selectedDocuments
+        : linkedDocuments;
       const selectedInvoiceIds = payload?.invoiceIds && payload.invoiceIds.length > 0
         ? payload.invoiceIds
         : invoiceIds;
@@ -94,12 +101,13 @@ const JobPaymentModal = ({
         sourceId,
         method,
         true, // Full payment
-        selectedInvoiceIds
+        selectedInvoiceIds,
+        selectedDocuments
       );
       
       if (syncResult.success) {
         toast.success(
-          `Payment successful! ${selectedInvoiceIds && selectedInvoiceIds.length > 1 ? `${selectedInvoiceIds.length} invoices marked as paid.` : sourceType !== "none" ? `${sourceType.charAt(0).toUpperCase() + sourceType.slice(1)} marked as paid.` : "Job marked as paid."}`
+          `Payment successful! ${selectedDocuments && selectedDocuments.length > 1 ? `${selectedDocuments.length} documents marked as paid.` : sourceType !== "none" ? `${sourceType.charAt(0).toUpperCase() + sourceType.slice(1)} marked as paid.` : "Job marked as paid."}`
         );
         
         // Notify parent component
@@ -156,6 +164,8 @@ const JobPaymentModal = ({
         isOpen={showPaymentModal}
         onClose={handleClose}
         amount={paymentAmount}
+        linkedDocuments={linkedDocuments}
+        defaultSelectedDocumentKeys={defaultSelectedDocumentKeys}
         linkedInvoices={linkedInvoices}
         defaultSelectedInvoiceIds={invoiceIds}
         onPaymentMethodSelect={handlePaymentMethodSelect}

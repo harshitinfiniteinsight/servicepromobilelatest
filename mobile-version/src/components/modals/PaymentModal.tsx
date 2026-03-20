@@ -4,6 +4,7 @@ import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, ChevronDown } fro
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import EnterCardDetailsModal from "./EnterCardDetailsModal";
 import EnterACHPaymentDetailsModal from "./EnterACHPaymentDetailsModal";
@@ -14,8 +15,20 @@ import PaymentMethodSetupModal from "./PaymentMethodSetupModal";
 import { usePaymentConfiguration, type PaymentMethodKey } from "@/hooks/usePaymentConfiguration";
 import type { Invoice } from "@/services/invoiceService";
 
+export type PaymentDocumentType = "invoice" | "estimate" | "agreement";
+
+export interface PaymentLinkedDocument {
+  id: string;
+  type: PaymentDocumentType;
+  amount: number;
+  status?: string;
+  paidAmount?: number;
+  displayId?: string;
+}
+
 export interface PaymentMethodSelectionPayload {
   invoiceIds?: string[];
+  selectedDocuments?: PaymentLinkedDocument[];
   amount: number;
 }
 
@@ -24,6 +37,8 @@ interface PaymentModalProps {
   onClose: () => void;
   amount: number;
   onPaymentMethodSelect?: (method: string, payload?: PaymentMethodSelectionPayload) => void;
+  linkedDocuments?: PaymentLinkedDocument[];
+  defaultSelectedDocumentKeys?: string[];
   linkedInvoices?: Invoice[];
   defaultSelectedInvoiceIds?: string[];
   entityType?: "agreement" | "estimate" | "invoice";
@@ -35,7 +50,18 @@ interface PaymentModalProps {
   };
 }
 
-const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, linkedInvoices, defaultSelectedInvoiceIds, entityType, agreement }: PaymentModalProps) => {
+const PaymentModal = ({
+  isOpen,
+  onClose,
+  amount,
+  onPaymentMethodSelect,
+  linkedDocuments,
+  defaultSelectedDocumentKeys,
+  linkedInvoices,
+  defaultSelectedInvoiceIds,
+  entityType,
+  agreement,
+}: PaymentModalProps) => {
   const navigate = useNavigate();
   const { getMethodState, setMethodConfigured } = usePaymentConfiguration();
   const [showCardDetailsModal, setShowCardDetailsModal] = useState(false);
@@ -45,79 +71,161 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, linkedIn
   const [showNoReaderModal, setShowNoReaderModal] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [setupMethodKey, setSetupMethodKey] = useState<PaymentMethodKey | null>(null);
-  const [selectedInvoiceIds, setSelectedInvoiceIds] = useState<string[]>([]);
+  const [selectedDocumentKeys, setSelectedDocumentKeys] = useState<string[]>([]);
   const [invoiceDropdownOpen, setInvoiceDropdownOpen] = useState(false);
 
-  const isJobInvoiceSelectionFlow = Array.isArray(linkedInvoices);
-  const unpaidLinkedInvoices = useMemo(
-    () => (linkedInvoices || []).filter((invoice) => (invoice.status || "").toLowerCase() !== "paid"),
+  const getDocumentSelectionKey = (document: PaymentLinkedDocument) => `${document.type}:${document.id}`;
+
+  const isDocumentPaid = (document: PaymentLinkedDocument) => {
+    const normalizedStatus = (document.status || "").trim().toLowerCase();
+    if (document.type === "invoice") {
+      return normalizedStatus === "paid";
+    }
+    if (document.type === "estimate") {
+      return normalizedStatus === "paid" || normalizedStatus === "converted to invoice";
+    }
+    return normalizedStatus === "paid";
+  };
+
+  const getDocumentRemainingBalance = (document: PaymentLinkedDocument) => {
+    if (document.type !== "invoice") {
+      return Number(document.amount || 0);
+    }
+    const paidAmount = Number(document.paidAmount || 0);
+    const invoiceAmount = Number(document.amount || 0);
+    return Math.max(invoiceAmount - paidAmount, 0);
+  };
+
+  const getDocumentTypeLabel = (type: PaymentDocumentType) => {
+    if (type === "invoice") return "Invoice";
+    if (type === "estimate") return "Estimate";
+    return "Agreement";
+  };
+
+  const mappedLinkedInvoices = useMemo<PaymentLinkedDocument[]>(
+    () =>
+      (linkedInvoices || []).map((invoice) => ({
+        id: invoice.id,
+        type: "invoice",
+        amount: Number(invoice.amount || 0),
+        status: invoice.status,
+        paidAmount: Number(invoice.paidAmount || 0),
+        displayId: invoice.id,
+      })),
     [linkedInvoices]
   );
 
-  const getInvoiceRemainingBalance = (invoice: Invoice) => {
-    const paidAmount = Number(invoice.paidAmount || 0);
-    const invoiceAmount = Number(invoice.amount || 0);
-    return Math.max(invoiceAmount - paidAmount, 0);
-  };
+  const isJobDocumentSelectionFlow = Array.isArray(linkedDocuments) || Array.isArray(linkedInvoices);
+  const payableLinkedDocuments = useMemo(() => {
+    const uniqueDocuments = new Map<string, PaymentLinkedDocument>();
+
+    (linkedDocuments || []).forEach((document) => {
+      uniqueDocuments.set(getDocumentSelectionKey(document), {
+        ...document,
+        amount: Number(document.amount || 0),
+        paidAmount: Number(document.paidAmount || 0),
+        displayId: document.displayId || document.id,
+      });
+    });
+
+    mappedLinkedInvoices.forEach((document) => {
+      const key = getDocumentSelectionKey(document);
+      if (!uniqueDocuments.has(key)) {
+        uniqueDocuments.set(key, document);
+      }
+    });
+
+    return Array.from(uniqueDocuments.values());
+  }, [linkedDocuments, mappedLinkedInvoices]);
+
+  const selectableLinkedDocuments = useMemo(
+    () => payableLinkedDocuments.filter((document) => !isDocumentPaid(document)),
+    [payableLinkedDocuments]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
 
-    if (unpaidLinkedInvoices.length === 0) {
-      setSelectedInvoiceIds([]);
+    if (payableLinkedDocuments.length === 0) {
+      setSelectedDocumentKeys([]);
       return;
     }
 
-    const validDefault = (defaultSelectedInvoiceIds || []).filter((id) =>
-      unpaidLinkedInvoices.some((invoice) => invoice.id === id)
-    );
+    const keysByDocument = selectableLinkedDocuments.map((document) => getDocumentSelectionKey(document));
+    const defaultKeysFromInvoiceIds = (defaultSelectedInvoiceIds || []).map((invoiceId) => `invoice:${invoiceId}`);
+    const mergedDefaultKeys = [
+      ...(defaultSelectedDocumentKeys || []),
+      ...defaultKeysFromInvoiceIds,
+    ];
+    const validDefault = mergedDefaultKeys.filter((key) => keysByDocument.includes(key));
 
-    setSelectedInvoiceIds(validDefault.length > 0 ? validDefault : unpaidLinkedInvoices.map((invoice) => invoice.id));
-  }, [isOpen, unpaidLinkedInvoices, defaultSelectedInvoiceIds]);
+    setSelectedDocumentKeys(validDefault.length > 0 ? Array.from(new Set(validDefault)) : keysByDocument);
+  }, [isOpen, payableLinkedDocuments, selectableLinkedDocuments, defaultSelectedDocumentKeys, defaultSelectedInvoiceIds]);
 
-  const selectedInvoiceTotal = useMemo(() => {
-    if (!isJobInvoiceSelectionFlow) {
+  const selectedDocumentTotal = useMemo(() => {
+    if (!isJobDocumentSelectionFlow) {
       return amount;
     }
 
-    return unpaidLinkedInvoices
-      .filter((invoice) => selectedInvoiceIds.includes(invoice.id))
-      .reduce((sum, invoice) => sum + getInvoiceRemainingBalance(invoice), 0);
-  }, [isJobInvoiceSelectionFlow, amount, unpaidLinkedInvoices, selectedInvoiceIds]);
+    return payableLinkedDocuments
+      .filter((document) => selectedDocumentKeys.includes(getDocumentSelectionKey(document)))
+      .reduce((sum, document) => sum + getDocumentRemainingBalance(document), 0);
+  }, [isJobDocumentSelectionFlow, amount, payableLinkedDocuments, selectedDocumentKeys]);
 
-  const paymentAmount = selectedInvoiceTotal;
+  const paymentAmount = selectedDocumentTotal;
 
   const invoiceDropdownLabel = useMemo(() => {
-    if (!isJobInvoiceSelectionFlow) {
-      return "Select Invoice(s)";
+    if (!isJobDocumentSelectionFlow) {
+      return "Select Invoice/Estimate/Agreement";
     }
 
-    if (unpaidLinkedInvoices.length === 0) {
-      return "No unpaid invoices";
+    if (payableLinkedDocuments.length === 0) {
+      return "No linked documents";
     }
 
-    if (selectedInvoiceIds.length === unpaidLinkedInvoices.length) {
-      return `All selected (${selectedInvoiceIds.length})`;
+    if (selectableLinkedDocuments.length > 0 && selectedDocumentKeys.length === selectableLinkedDocuments.length) {
+      return `All selected (${selectedDocumentKeys.length})`;
     }
 
-    if (selectedInvoiceIds.length === 0) {
-      return "Select Invoice(s)";
+    if (selectedDocumentKeys.length === 0) {
+      return "Select Invoice/Estimate/Agreement";
     }
 
-    return `${selectedInvoiceIds.length} selected`;
-  }, [isJobInvoiceSelectionFlow, unpaidLinkedInvoices.length, selectedInvoiceIds.length]);
+    return `${selectedDocumentKeys.length} selected`;
+  }, [isJobDocumentSelectionFlow, payableLinkedDocuments.length, selectableLinkedDocuments.length, selectedDocumentKeys.length]);
+
+  const selectedDocuments = useMemo(
+    () =>
+      payableLinkedDocuments.filter((document) => selectedDocumentKeys.includes(getDocumentSelectionKey(document))),
+    [payableLinkedDocuments, selectedDocumentKeys]
+  );
+
+  const allSelected = selectableLinkedDocuments.length > 0 && selectedDocumentKeys.length === selectableLinkedDocuments.length;
 
   const selectionPayload: PaymentMethodSelectionPayload = {
-    invoiceIds: isJobInvoiceSelectionFlow ? selectedInvoiceIds : undefined,
+    invoiceIds: isJobDocumentSelectionFlow
+      ? selectedDocuments
+          .filter((document) => document.type === "invoice")
+          .map((document) => document.id)
+      : undefined,
+    selectedDocuments: isJobDocumentSelectionFlow ? selectedDocuments : undefined,
     amount: paymentAmount,
   };
 
-  const toggleInvoiceSelection = (invoiceId: string, checked: boolean) => {
+  const toggleDocumentSelection = (documentKey: string, checked: boolean) => {
     if (checked) {
-      setSelectedInvoiceIds((prev) => Array.from(new Set([...prev, invoiceId])));
+      setSelectedDocumentKeys((prev) => Array.from(new Set([...prev, documentKey])));
       return;
     }
-    setSelectedInvoiceIds((prev) => prev.filter((id) => id !== invoiceId));
+    setSelectedDocumentKeys((prev) => prev.filter((key) => key !== documentKey));
+  };
+
+  const toggleSelectAllDocuments = (checked: boolean) => {
+    if (!checked) {
+      setSelectedDocumentKeys([]);
+      return;
+    }
+    setSelectedDocumentKeys(selectableLinkedDocuments.map((document) => getDocumentSelectionKey(document)));
   };
 
   // Calculate minimum amount payable for agreements
@@ -214,7 +322,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, linkedIn
       return;
     }
 
-    if (isJobInvoiceSelectionFlow && selectedInvoiceIds.length === 0) {
+    if (isJobDocumentSelectionFlow && selectedDocumentKeys.length === 0) {
       return;
     }
 
@@ -375,13 +483,13 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, linkedIn
 
           {/* Content */}
           <div className="bg-white py-5 sm:py-7 space-y-4 sm:space-y-6 overflow-y-auto safe-bottom overflow-x-hidden">
-            {/* Invoice Selection Section (Job dashboard payment flow) */}
-            {isJobInvoiceSelectionFlow && (
+            {/* Document Selection Section (Job dashboard payment flow) */}
+            {isJobDocumentSelectionFlow && (
               <div className="invoice-selection-section px-4 sm:px-6 space-y-3 mb-5 sm:mb-6">
-                <label className="text-sm font-medium text-gray-700">Select Invoice(s)</label>
+                <label className="text-sm font-medium text-gray-700">Select Invoice/Estimate/Agreement</label>
 
-                {unpaidLinkedInvoices.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">All invoices for this job are already paid.</p>
+                {payableLinkedDocuments.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">No linked documents available for payment.</p>
                 ) : (
                   <Popover open={invoiceDropdownOpen} onOpenChange={setInvoiceDropdownOpen}>
                     <PopoverTrigger asChild>
@@ -396,26 +504,76 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, linkedIn
                     </PopoverTrigger>
                     <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl" align="start">
                       <div className="max-h-64 overflow-y-auto py-1">
-                        {unpaidLinkedInvoices.map((invoice) => {
-                          const remainingBalance = getInvoiceRemainingBalance(invoice);
+                        <label className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b">
+                          <Checkbox
+                            disabled={selectableLinkedDocuments.length === 0}
+                            checked={allSelected}
+                            onCheckedChange={(checked) => toggleSelectAllDocuments(checked === true)}
+                          />
+                          <span className="text-sm font-medium text-gray-900">Select All</span>
+                        </label>
+
+                        {payableLinkedDocuments.map((document) => {
+                          const documentKey = getDocumentSelectionKey(document);
+                          const remainingBalance = getDocumentRemainingBalance(document);
+                          const isPaidDocument = isDocumentPaid(document);
                           return (
                             <label
-                              key={invoice.id}
+                              key={documentKey}
                               className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer"
                             >
                               <Checkbox
-                                checked={selectedInvoiceIds.includes(invoice.id)}
-                                onCheckedChange={(checked) => toggleInvoiceSelection(invoice.id, checked === true)}
+                                disabled={isPaidDocument}
+                                checked={selectedDocumentKeys.includes(documentKey)}
+                                onCheckedChange={(checked) => toggleDocumentSelection(documentKey, checked === true)}
                               />
-                              <span className="text-sm text-gray-900 truncate">
-                                {invoice.id} — ${remainingBalance.toFixed(2)}
-                              </span>
+                              <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
+                                <span className="text-sm text-gray-900 truncate">
+                                  {document.displayId || document.id} — ${remainingBalance.toFixed(2)}
+                                </span>
+                                <div className="flex items-center gap-1 shrink-0">
+                                  {isPaidDocument && (
+                                    <Badge variant="secondary" className="text-[10px] h-5 px-2">Paid</Badge>
+                                  )}
+                                  <Badge variant="outline" className="text-[10px] h-5 px-2">
+                                    {getDocumentTypeLabel(document.type)}
+                                  </Badge>
+                                </div>
+                              </div>
                             </label>
                           );
                         })}
                       </div>
                     </PopoverContent>
                   </Popover>
+                )}
+
+                {payableLinkedDocuments.length > 0 && selectableLinkedDocuments.length === 0 && (
+                  <p className="text-xs text-muted-foreground">All linked documents are already paid.</p>
+                )}
+
+                {selectedDocuments.length > 0 && (
+                  <div className="space-y-2">
+                    {selectedDocuments.map((document) => {
+                      const documentKey = getDocumentSelectionKey(document);
+                      return (
+                        <div
+                          key={documentKey}
+                          className="border rounded-xl px-3 py-2.5 flex items-center justify-between gap-2"
+                        >
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-gray-900 truncate">{document.displayId || document.id}</p>
+                            <p className="text-xs text-gray-600">
+                              ${getDocumentRemainingBalance(document).toFixed(2)}
+                            </p>
+                          </div>
+                          <Badge variant="outline" className="text-[10px] h-5 px-2 shrink-0">
+                            {getDocumentTypeLabel(document.type)}
+                          </Badge>
+                        </div>
+                      );
+                    })}
+                  </div>
                 )}
               </div>
             )}
@@ -444,7 +602,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, linkedIn
                 <div className="grid grid-cols-2 gap-4 sm:gap-5 w-full box-border">
                   {paymentOptions.map((option) => {
                     const Icon = option.icon;
-                    const isSelectionDisabled = isJobInvoiceSelectionFlow && selectedInvoiceIds.length === 0;
+                    const isSelectionDisabled = isJobDocumentSelectionFlow && selectedDocumentKeys.length === 0;
                     const isDisabled = isMethodDisabled(option.methodKey) || isSelectionDisabled;
                     
                     return (

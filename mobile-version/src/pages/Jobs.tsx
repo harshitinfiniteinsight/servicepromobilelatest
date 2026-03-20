@@ -24,10 +24,12 @@ import ViewServicePicturesModal from "@/components/modals/ViewServicePicturesMod
 import CannotEditModal from "@/components/modals/CannotEditModal";
 import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
 import JobPaymentModal from "@/components/modals/JobPaymentModal";
+import type { PaymentLinkedDocument } from "@/components/modals/PaymentModal";
 import AssociateDocumentsModal from "@/components/modals/AssociateDocumentsModal";
-import RefundModal, { type RefundInvoiceData } from "@/components/modals/RefundModal";
+import RefundModal, { type RefundDocumentData, type RefundInvoiceData, type RefundProcessedDocument } from "@/components/modals/RefundModal";
 import { invoiceToRefundData, openRefundByInvoiceId } from "@/utils/refundUtils";
 import { getInvoicesByJobId, type Invoice } from "@/services/invoiceService";
+import { getLinkedDocuments as getJobLinkedDocuments } from "@/services/jobAssignmentService";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -261,8 +263,8 @@ const Jobs = () => {
   // Payment modal state
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedJobForPayment, setSelectedJobForPayment] = useState<typeof jobs[0] | null>(null);
-  const [linkedInvoicesForPayment, setLinkedInvoicesForPayment] = useState<Invoice[]>([]);
-  const [selectedPaymentInvoiceIds, setSelectedPaymentInvoiceIds] = useState<string[]>([]);
+  const [linkedDocumentsForPayment, setLinkedDocumentsForPayment] = useState<PaymentLinkedDocument[]>([]);
+  const [selectedPaymentDocumentKeys, setSelectedPaymentDocumentKeys] = useState<string[]>([]);
 
   // Associate Documents modal state
   const [showAssociateDocumentsModal, setShowAssociateDocumentsModal] = useState(false);
@@ -535,6 +537,104 @@ const Jobs = () => {
     return Array.from(unique.values());
   };
 
+  const isPaymentDocumentPaid = (document: PaymentLinkedDocument) => {
+    const normalizedStatus = (document.status || "").trim().toLowerCase();
+    if (document.type === "invoice") {
+      return normalizedStatus === "paid";
+    }
+    if (document.type === "estimate") {
+      return normalizedStatus === "paid" || normalizedStatus === "converted to invoice";
+    }
+    return normalizedStatus === "paid";
+  };
+
+  const getPaymentDocumentKey = (document: Pick<PaymentLinkedDocument, "type" | "id">) => `${document.type}:${document.id}`;
+
+  const getAllEstimates = () => {
+    const serviceEstimates = JSON.parse(localStorage.getItem("servicepro_estimates") || "[]");
+    const legacyEstimates = JSON.parse(localStorage.getItem("mockEstimates") || "[]");
+    const estimateMap = new Map<string, any>();
+
+    [...mockEstimates, ...legacyEstimates, ...serviceEstimates].forEach((estimate: any) => {
+      if (estimate?.id) {
+        estimateMap.set(estimate.id, estimate);
+      }
+    });
+
+    return Array.from(estimateMap.values());
+  };
+
+  const getAllAgreements = () => {
+    const serviceAgreements = JSON.parse(localStorage.getItem("servicepro_agreements") || "[]");
+    const legacyAgreements = JSON.parse(localStorage.getItem("mockAgreements") || "[]");
+    const agreementMap = new Map<string, any>();
+
+    [...mockAgreements, ...legacyAgreements, ...serviceAgreements].forEach((agreement: any) => {
+      if (agreement?.id) {
+        agreementMap.set(agreement.id, agreement);
+      }
+    });
+
+    return Array.from(agreementMap.values());
+  };
+
+  const getLinkedPaymentDocumentsForJob = async (jobId: string): Promise<PaymentLinkedDocument[]> => {
+    const linkedInvoices = await getLinkedInvoicesForJob(jobId);
+    const linkedDocumentRefs = getJobLinkedDocuments(jobId);
+    const allEstimates = getAllEstimates();
+    const allAgreements = getAllAgreements();
+
+    const estimateById = new Map<string, any>(allEstimates.map((estimate: any) => [estimate.id, estimate]));
+    const agreementById = new Map<string, any>(allAgreements.map((agreement: any) => [agreement.id, agreement]));
+    const linkedMap = new Map<string, PaymentLinkedDocument>();
+
+    linkedInvoices.forEach((invoice) => {
+      const document: PaymentLinkedDocument = {
+        id: invoice.id,
+        type: "invoice",
+        amount: Number(invoice.amount || 0),
+        paidAmount: Number(invoice.paidAmount || 0),
+        status: invoice.status,
+        displayId: invoice.id,
+      };
+      linkedMap.set(getPaymentDocumentKey(document), document);
+    });
+
+    linkedDocumentRefs
+      .filter((document) => document.type === "estimate")
+      .forEach((document) => {
+        const estimate = estimateById.get(document.id);
+        if (!estimate) return;
+
+        const linkedDocument: PaymentLinkedDocument = {
+          id: estimate.id,
+          type: "estimate",
+          amount: Number(estimate.amount || 0),
+          status: estimate.status,
+          displayId: estimate.id,
+        };
+        linkedMap.set(getPaymentDocumentKey(linkedDocument), linkedDocument);
+      });
+
+    linkedDocumentRefs
+      .filter((document) => document.type === "agreement")
+      .forEach((document) => {
+        const agreement = agreementById.get(document.id);
+        if (!agreement) return;
+
+        const linkedDocument: PaymentLinkedDocument = {
+          id: agreement.id,
+          type: "agreement",
+          amount: Number(agreement.monthlyAmount ?? agreement.amount ?? 0),
+          status: agreement.status,
+          displayId: agreement.id,
+        };
+        linkedMap.set(getPaymentDocumentKey(linkedDocument), linkedDocument);
+      });
+
+    return Array.from(linkedMap.values());
+  };
+
   const canPayJob = (jobId: string, paymentStatus?: string) => {
     const linkedInvoices = getAllInvoicesForJob(jobId);
 
@@ -559,6 +659,76 @@ const Jobs = () => {
       const refunded = Number(inv.refundedAmount || 0);
       return paidBase - refunded > 0;
     });
+  };
+
+  const getPaidAgreementsForJob = (jobId: string) => {
+    const job = jobs.find(j => j.id === jobId);
+    if (!job) return [] as any[];
+
+    const allAgreements = getAllAgreements();
+    const linkedDocumentRefs = getJobLinkedDocuments(jobId);
+    const linkedAgreementIds = new Set<string>();
+
+    if ((job as any)?.sourceType === "agreement" && (job as any)?.sourceId) {
+      linkedAgreementIds.add((job as any).sourceId);
+    }
+
+    linkedDocumentRefs
+      .filter((document) => document.type === "agreement")
+      .forEach((document) => linkedAgreementIds.add(document.id));
+
+    return allAgreements.filter((agreement: any) => {
+      if (!linkedAgreementIds.has(agreement.id)) return false;
+      const normalizedStatus = String(agreement.status || "").trim().toLowerCase();
+      const paidBase = Number(agreement.paidAmount ?? agreement.monthlyAmount ?? agreement.amount ?? 0);
+      const refunded = Number(agreement.refundedAmount || 0);
+      return (normalizedStatus === "paid" || normalizedStatus === "partially refunded") && paidBase - refunded > 0;
+    });
+  };
+
+  const getRefundableDocumentsForJob = (jobId: string): RefundDocumentData[] => {
+    const invoiceDocuments: RefundDocumentData[] = getPaidInvoicesForJob(jobId).map((invoice: any) => ({
+      id: invoice.id,
+      type: "invoice",
+      customerName: invoice.customerName,
+      amount: Number(invoice.amount || 0),
+      paidAmount: Number(invoice.paidAmount ?? invoice.amount ?? 0),
+      paymentMethod: invoice.paymentMethod,
+      payment_method: invoice.payment_method || invoice.payment?.payment_method,
+      payment: invoice.payment,
+      payment_method_details: invoice.payment_method_details || invoice.payment?.payment_method_details || invoice.payment?.method_details,
+      paymentMethodDetails: invoice.paymentMethodDetails,
+      cardBrand: invoice.cardBrand,
+      cardLast4: invoice.cardLast4 || invoice.payment?.payment_method_details?.card?.last4 || invoice.payment?.method_details?.card?.last4,
+      status: invoice.status,
+      refundedAmount: Number(invoice.refundedAmount || 0),
+      transactionId: invoice.transactionId,
+    }));
+
+    const agreementDocuments: RefundDocumentData[] = getPaidAgreementsForJob(jobId).map((agreement: any) => ({
+      id: agreement.id,
+      type: "agreement",
+      customerName: agreement.customerName,
+      amount: Number(agreement.monthlyAmount ?? agreement.amount ?? 0),
+      paidAmount: Number(agreement.paidAmount ?? agreement.monthlyAmount ?? agreement.amount ?? 0),
+      paymentMethod: agreement.paymentMethod || "Agreement",
+      payment_method: agreement.payment_method || agreement.payment?.payment_method,
+      payment: agreement.payment,
+      payment_method_details: agreement.payment_method_details || agreement.payment?.payment_method_details || agreement.payment?.method_details,
+      paymentMethodDetails: agreement.paymentMethodDetails,
+      cardBrand: agreement.cardBrand,
+      cardLast4: agreement.cardLast4 || agreement.payment?.payment_method_details?.card?.last4 || agreement.payment?.method_details?.card?.last4,
+      status: agreement.status,
+      refundedAmount: Number(agreement.refundedAmount || 0),
+      transactionId: agreement.transactionId,
+    }));
+
+    const uniqueDocuments = new Map<string, RefundDocumentData>();
+    [...invoiceDocuments, ...agreementDocuments].forEach((document) => {
+      uniqueDocuments.set(`${document.type}:${document.id}`, document);
+    });
+
+    return Array.from(uniqueDocuments.values());
   };
 
   // Handle status change
@@ -1147,23 +1317,23 @@ const Jobs = () => {
       return;
     }
 
-    const linkedInvoices = await getLinkedInvoicesForJob(jobId);
-    if (linkedInvoices.length === 0) {
-      toast.info("No invoices linked to this job.");
+    const linkedDocuments = await getLinkedPaymentDocumentsForJob(jobId);
+    if (linkedDocuments.length === 0) {
+      toast.info("No linked invoices/estimates/agreements found for this job.");
       return;
     }
 
-    const unpaidInvoices = linkedInvoices.filter((invoice) => (invoice.status || "").toLowerCase() !== "paid");
+    const payableDocuments = linkedDocuments.filter((document) => !isPaymentDocumentPaid(document));
 
-    if (unpaidInvoices.length === 0) {
-      toast.info("All linked invoices are already paid.");
+    if (payableDocuments.length === 0) {
+      toast.info("All linked documents are already paid.");
       return;
     }
 
-    // Open payment modal directly and render invoice selection at the top
-    // Default selection is all unpaid invoices
-    setLinkedInvoicesForPayment(unpaidInvoices);
-    setSelectedPaymentInvoiceIds(unpaidInvoices.map((invoice) => invoice.id));
+    // Open payment modal directly and render document selection at the top
+    // Default selection is all payable linked documents
+    setLinkedDocumentsForPayment(linkedDocuments);
+    setSelectedPaymentDocumentKeys(payableDocuments.map((document) => getPaymentDocumentKey(document)));
     setSelectedJobForPayment(job);
     setShowPaymentModal(true);
   };
@@ -1171,18 +1341,21 @@ const Jobs = () => {
   const closePaymentFlow = () => {
     setShowPaymentModal(false);
     setSelectedJobForPayment(null);
-    setLinkedInvoicesForPayment([]);
-    setSelectedPaymentInvoiceIds([]);
+    setLinkedDocumentsForPayment([]);
+    setSelectedPaymentDocumentKeys([]);
   };
 
   // Handle payment completion - update job list state
   const handlePaymentComplete = (jobId: string, transactionId: string) => {
-    const remainingUnpaidInvoices = getAllInvoicesForJob(jobId).filter((invoice: any) => {
-      const normalizedStatus = (invoice.status || "").toLowerCase();
-      return normalizedStatus !== "paid";
-    });
+    const selectableDocumentCount = linkedDocumentsForPayment.filter(
+      (document) => !isPaymentDocumentPaid(document)
+    ).length;
 
-    const nextPaymentStatus = remainingUnpaidInvoices.length === 0 ? "paid" : "partial";
+    const nextPaymentStatus =
+      selectableDocumentCount > 0 &&
+      selectedPaymentDocumentKeys.length >= selectableDocumentCount
+        ? "paid"
+        : "partial";
 
     // Update local state to reflect payment
     setJobs(prevJobs => 
@@ -1295,43 +1468,19 @@ const Jobs = () => {
 
   // Handler: Open refund flow for job
   const handleRefundJob = (jobId: string) => {
-    let paidInvoices = getPaidInvoicesForJob(jobId);
+    const refundableDocuments = getRefundableDocumentsForJob(jobId);
 
-    // Fallback: if job is eligible but paid invoices were not resolved by status,
-    // try linked invoices regardless of invoice status.
-    if (paidInvoices.length === 0) {
-      const job = jobs.find(j => j.id === jobId);
-      if (job) {
-        const linkedByJobId = mockInvoices.filter(inv => (inv as any).jobId === jobId);
-        if (linkedByJobId.length > 0) {
-          paidInvoices = linkedByJobId;
-        } else if ((job as any)?.sourceId) {
-          const bySourceId = mockInvoices.find(inv => inv.id === (job as any).sourceId);
-          if (bySourceId) {
-            paidInvoices = [bySourceId];
-          }
-        } else if (job.id.startsWith("INV")) {
-          const directInvoice = mockInvoices.find(inv => inv.id === job.id);
-          if (directInvoice) {
-            paidInvoices = [directInvoice];
-          }
-        }
-      }
-    }
-
-    if (paidInvoices.length === 0) {
-      toast.error("No paid invoices found for this job");
+    if (refundableDocuments.length === 0) {
+      toast.error("No paid invoices or agreements found for this job");
       return;
     }
 
-    // Store the current job ID and all invoices for the refund modal
+    // Store the current job ID and all refundable documents for the refund modal
     setCurrentRefundJobId(jobId);
-    setPaidInvoicesForSelector(paidInvoices);
+    setPaidInvoicesForSelector(refundableDocuments);
     setRefundCompletedForCurrentSession(false);
 
-    // Always open refund modal with job context and all invoices
-    // The modal will handle showing the invoice selector
-    setRefundInvoice(paidInvoices[0]); // Pre-select first invoice
+    setRefundInvoice(refundableDocuments[0]);
     setShowRefundModal(true);
   };
 
@@ -1350,29 +1499,55 @@ const Jobs = () => {
   };
 
   // Handler: Process refund completion
-  const handleRefundComplete = (invoiceId: string, refundAmount: number, newStatus: string) => {
-    // Update invoice in local mock store
-    const invoice = mockInvoices.find(inv => inv.id === invoiceId) as any;
-    if (invoice) {
-      const currentRefunded = Number(invoice.refundedAmount || 0);
-      invoice.refundedAmount = currentRefunded + refundAmount;
-      invoice.status = newStatus;
-    }
+  const handleRefundComplete = (documents: RefundProcessedDocument[], refundAmount: number) => {
+    documents.forEach((document) => {
+      if (document.type === "invoice") {
+        const invoice = mockInvoices.find(inv => inv.id === document.id) as any;
+        if (invoice) {
+          const currentRefunded = Number(invoice.refundedAmount || 0);
+          invoice.refundedAmount = currentRefunded + document.refundAmount;
+          invoice.status = document.newStatus;
+        }
+      }
+
+      if (document.type === "agreement") {
+        const agreementIndex = mockAgreements.findIndex((agreement: any) => agreement.id === document.id);
+        if (agreementIndex !== -1) {
+          const currentRefunded = Number((mockAgreements[agreementIndex] as any).refundedAmount || 0);
+          (mockAgreements[agreementIndex] as any).refundedAmount = currentRefunded + document.refundAmount;
+          (mockAgreements[agreementIndex] as any).status = document.newStatus;
+        }
+
+        const storedAgreements = JSON.parse(localStorage.getItem("servicepro_agreements") || "[]");
+        const updatedStoredAgreements = storedAgreements.map((agreement: any) =>
+          agreement.id === document.id
+            ? {
+                ...agreement,
+                refundedAmount: Number(agreement.refundedAmount || 0) + document.refundAmount,
+                status: document.newStatus,
+              }
+            : agreement
+        );
+        localStorage.setItem("servicepro_agreements", JSON.stringify(updatedStoredAgreements));
+      }
+    });
 
     // Recalculate payment summary for the current refund job
     if (currentRefundJobId) {
       const refundJobId = currentRefundJobId;
-      const linkedInvoices = getAllInvoicesForJob(refundJobId) as any[];
-      const totalInvoiced = linkedInvoices.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
-      const netPaid = linkedInvoices.reduce((sum, inv) => {
-        const paidBase = Number(inv.paidAmount ?? inv.amount ?? 0);
-        const refunded = Number(inv.refundedAmount || 0);
-        return sum + Math.max(paidBase - refunded, 0);
+      const linkedDocuments = getRefundableDocumentsForJob(refundJobId) as any[];
+      const totalInvoiced = linkedDocuments.reduce((sum, doc) => sum + Number(doc.paidAmount ?? doc.amount ?? 0), 0);
+      const netPaid = linkedDocuments.reduce((sum, doc) => {
+        const paidBase = Number(doc.paidAmount ?? doc.amount ?? 0);
+        const refunded = Number(doc.refundedAmount || 0);
+        const currentRefund = documents.find((item) => item.id === doc.id && item.type === doc.type)?.refundAmount || 0;
+        return sum + Math.max(paidBase - refunded - currentRefund, 0);
       }, 0);
-      const hasRemainingRefundable = linkedInvoices.some((inv: any) => {
-        const paidBase = Number(inv.paidAmount ?? inv.amount ?? 0);
-        const refunded = Number(inv.refundedAmount || 0);
-        return paidBase - refunded > 0;
+      const hasRemainingRefundable = linkedDocuments.some((doc: any) => {
+        const paidBase = Number(doc.paidAmount ?? doc.amount ?? 0);
+        const refunded = Number(doc.refundedAmount || 0);
+        const currentRefund = documents.find((item) => item.id === doc.id && item.type === doc.type)?.refundAmount || 0;
+        return paidBase - refunded - currentRefund > 0;
       });
 
       const nextPaymentStatus = netPaid <= 0
@@ -1860,8 +2035,13 @@ const Jobs = () => {
         <JobPaymentModal
           isOpen={showPaymentModal}
           onClose={closePaymentFlow}
-          invoiceIds={selectedPaymentInvoiceIds.length > 0 ? selectedPaymentInvoiceIds : undefined}
-          linkedInvoices={linkedInvoicesForPayment}
+          invoiceIds={
+            linkedDocumentsForPayment
+              .filter((document) => document.type === "invoice")
+              .map((document) => document.id)
+          }
+          linkedDocuments={linkedDocumentsForPayment}
+          defaultSelectedDocumentKeys={selectedPaymentDocumentKeys}
           job={{
             id: selectedJobForPayment.id,
             title: selectedJobForPayment.title,
@@ -1910,6 +2090,7 @@ const Jobs = () => {
           source={currentRefundJobId ? "job" : "invoice"}
           jobId={currentRefundJobId || undefined}
           allInvoices={currentRefundJobId ? paidInvoicesForSelector : undefined}
+          allDocuments={currentRefundJobId ? paidInvoicesForSelector : undefined}
         />
       )}
 
@@ -1919,7 +2100,7 @@ const Jobs = () => {
           <div className="w-full bg-white rounded-t-2xl p-4 max-h-[80vh] flex flex-col animate-in slide-in-from-bottom-3">
             {/* Header */}
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">Select Invoice to Refund</h2>
+              <h2 className="text-lg font-bold text-gray-900">Select Invoice/Agreement to Refund</h2>
               <button
                 onClick={() => setShowInvoiceSelectorSheet(false)}
                 className="p-1 hover:bg-gray-100 rounded-lg transition-colors"

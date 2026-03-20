@@ -299,7 +299,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
       invoiceData.payment_method_details?.card?.last4 ||
       invoiceData.paymentMethodDetails?.card?.last4;
     const last4 = last4FromDetails || invoiceData.cardLast4 || extractedLast4FromMethod;
-    const effectiveLast4 = last4 || DEMO_CARD_LAST4;
+    const effectiveLast4 = last4 || "2345";
 
     if (paymentMethodCode === "card") {
       return `Card (${effectiveLast4})`;
@@ -325,6 +325,11 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
     }
 
     return method || "Payment pending";
+  };
+
+  // Get original payment method for a document
+  const getDocumentOriginalPaymentMethod = (document: RefundInvoiceData): string => {
+    return (document.paymentMethod || document.payment?.method || "Unknown").trim();
   };
 
   const handleClose = () => {

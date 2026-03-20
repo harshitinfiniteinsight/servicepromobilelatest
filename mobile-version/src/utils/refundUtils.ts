@@ -7,6 +7,7 @@ import { RefundInvoiceData } from "@/components/modals/RefundModal";
 export function invoiceToRefundData(invoice: any): RefundInvoiceData {
   return {
     id: invoice.id,
+    type: "invoice",
     customerName: invoice.customerName,
     amount: invoice.amount,
     paidAmount: invoice.amount,

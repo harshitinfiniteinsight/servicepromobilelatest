@@ -385,6 +385,7 @@ const Invoices = () => {
         // Open refund modal with invoice data
         setRefundInvoice({
           id: invoice.id,
+          type: "invoice",
           customerName: invoice.customerName,
           amount: invoice.amount,
           paidAmount: invoice.amount,
@@ -1053,26 +1054,30 @@ const Invoices = () => {
           }}
           mode="invoice"
           invoice={refundInvoice}
-          onRefundComplete={(invoiceId, refundAmount, newStatus) => {
-            // Update the invoice status in the local state
+          onRefundComplete={(documents) => {
             const updatedInvoices = allInvoices.map(inv => {
-              if (inv.id === invoiceId) {
-                const currentRefunded = (inv as any).refundedAmount || 0;
-                return {
-                  ...inv,
-                  status: newStatus,
-                  refundedAmount: currentRefunded + refundAmount,
-                };
+              const refundDocument = documents.find((document) => document.type === "invoice" && document.id === inv.id);
+              if (!refundDocument) {
+                return inv;
               }
-              return inv;
+
+              const currentRefunded = (inv as any).refundedAmount || 0;
+              return {
+                ...inv,
+                status: refundDocument.newStatus,
+                refundedAmount: currentRefunded + refundDocument.refundAmount,
+              };
             });
             setAllInvoices(updatedInvoices as Invoice[]);
 
-            // Also update in localStorage via service
-            updateInvoice(invoiceId, { 
-              status: newStatus as any,
-              refundedAmount: ((allInvoices.find(inv => inv.id === invoiceId) as any)?.refundedAmount || 0) + refundAmount,
-            });
+            documents
+              .filter((document) => document.type === "invoice")
+              .forEach((document) => {
+                updateInvoice(document.id, {
+                  status: document.newStatus as any,
+                  refundedAmount: ((allInvoices.find(inv => inv.id === document.id) as any)?.refundedAmount || 0) + document.refundAmount,
+                });
+              });
 
             // Close modal
             setShowRefundModal(false);

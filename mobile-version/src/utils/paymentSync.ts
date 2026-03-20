@@ -25,6 +25,11 @@ export interface PaymentSyncResult {
   error?: string;
 }
 
+export interface PaymentSyncDocument {
+  id: string;
+  type: "invoice" | "estimate" | "agreement";
+}
+
 /**
  * Generate a unique transaction ID
  */
@@ -165,7 +170,8 @@ export async function syncPaymentStatus(
   sourceId: string | undefined,
   paymentMethod: string,
   isFullPayment: boolean = true,
-  invoiceIds?: string[]
+  invoiceIds?: string[],
+  selectedDocuments?: PaymentSyncDocument[]
 ): Promise<PaymentSyncResult> {
   const transactionId = generateTransactionId();
   const jobPaymentStatus: JobPaymentStatus = isFullPayment ? "paid" : "partial";
@@ -186,11 +192,15 @@ export async function syncPaymentStatus(
     
     // Step 2: Update source document payment status (if exists)
     let sourceDocumentUpdated = false;
-    if (invoiceIds && invoiceIds.length > 0) {
-      sourceDocumentUpdated = invoiceIds.every((invoiceId) =>
+    const normalizedSelectedDocuments: PaymentSyncDocument[] = selectedDocuments && selectedDocuments.length > 0
+      ? selectedDocuments.map((document) => ({ id: document.id, type: document.type }))
+      : (invoiceIds || []).map((invoiceId) => ({ id: invoiceId, type: "invoice" as const }));
+
+    if (normalizedSelectedDocuments.length > 0) {
+      sourceDocumentUpdated = normalizedSelectedDocuments.every((document) =>
         updateSourceDocumentPaymentStatus(
-          "invoice",
-          invoiceId,
+          document.type,
+          document.id,
           documentPaymentStatus as "Paid" | "Open" | "Partial",
           transactionId,
           paymentMethod
@@ -237,8 +247,13 @@ export async function syncPaymentStatus(
       jobId,
       sourceType,
       sourceId: sourceId || null,
-      invoiceIds: invoiceIds && invoiceIds.length > 0 ? invoiceIds : undefined,
-      invoice_ids: invoiceIds && invoiceIds.length > 0 ? invoiceIds : undefined,
+      invoiceIds: normalizedSelectedDocuments
+        .filter((document) => document.type === "invoice")
+        .map((document) => document.id),
+      invoice_ids: normalizedSelectedDocuments
+        .filter((document) => document.type === "invoice")
+        .map((document) => document.id),
+      selectedDocuments: normalizedSelectedDocuments.length > 0 ? normalizedSelectedDocuments : undefined,
       paymentMethod,
       isFullPayment,
       timestamp: new Date().toISOString(),
@@ -250,8 +265,13 @@ export async function syncPaymentStatus(
         jobId,
         sourceType,
         sourceId,
-        invoiceIds,
-        invoice_ids: invoiceIds,
+        invoiceIds: normalizedSelectedDocuments
+          .filter((document) => document.type === "invoice")
+          .map((document) => document.id),
+        invoice_ids: normalizedSelectedDocuments
+          .filter((document) => document.type === "invoice")
+          .map((document) => document.id),
+        selectedDocuments: normalizedSelectedDocuments,
         paymentStatus: jobPaymentStatus,
         transactionId,
       }
@@ -285,6 +305,7 @@ function storePaymentTransaction(transaction: {
   sourceId: string | null;
   invoiceIds?: string[];
   invoice_ids?: string[];
+  selectedDocuments?: PaymentSyncDocument[];
   paymentMethod: string;
   isFullPayment: boolean;
   timestamp: string;
