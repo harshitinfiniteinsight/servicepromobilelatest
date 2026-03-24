@@ -4,6 +4,7 @@ import MobileHeader from "@/components/layout/MobileHeader";
 import InvoiceCard from "@/components/cards/InvoiceCard";
 import EmptyState from "@/components/cards/EmptyState";
 import PaymentModal from "@/components/modals/PaymentModal";
+import InvoicePaymentModal from "@/components/modals/InvoicePaymentModal";
 import CashPaymentModal from "@/components/modals/CashPaymentModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
 import SendSMSModal from "@/components/modals/SendSMSModal";
@@ -47,7 +48,7 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { createPaymentNotification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
-import { getAllInvoices, updateInvoice, type Invoice as InvoiceType } from "@/services/invoiceService";
+import { applyPayment, getAllInvoices, updateInvoice, type Invoice as InvoiceType } from "@/services/invoiceService";
 
 type InvoiceTab = "single" | "recurring" | "deactivated";
 type InvoiceStatusFilter = "all" | "paid" | "open";
@@ -67,7 +68,7 @@ const Invoices = () => {
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
-  const [selectedInvoice, setSelectedInvoice] = useState<{ id: string; amount: number } | null>(null);
+  const [selectedInvoice, setSelectedInvoice] = useState<{ id: string; amount: number; paidAmount?: number } | null>(null);
   const [actionInvoice, setActionInvoice] = useState<(Invoice & { customerEmail?: string; customerPhone?: string }) | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [showSMSModal, setShowSMSModal] = useState(false);
@@ -91,43 +92,37 @@ const Invoices = () => {
   const userRole = localStorage.getItem("userType") || "merchant";
   const isEmployee = userRole === "employee";
 
+  const loadInvoices = async () => {
+    try {
+      const storedInvoices = await getAllInvoices();
+      const mergedInvoices: Invoice[] = [
+        ...storedInvoices.map(inv => ({
+          ...inv,
+          issueDate: inv.issueDate || new Date().toISOString().split("T")[0],
+          dueDate: inv.dueDate || new Date().toISOString().split("T")[0],
+          status: inv.status || "Open",
+          type: inv.type || "single",
+        })),
+        ...mockInvoices.filter(mockInv =>
+          !storedInvoices.some(storedInv => storedInv.id === mockInv.id)
+        ),
+      ];
+
+      mergedInvoices.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.issueDate).getTime();
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.issueDate).getTime();
+        return dateB - dateA;
+      });
+
+      setAllInvoices(mergedInvoices);
+    } catch (error) {
+      console.error("Error loading invoices:", error);
+      setAllInvoices(mockInvoices);
+    }
+  };
+
   // Load invoices from both localStorage and mockData
   useEffect(() => {
-    const loadInvoices = async () => {
-      try {
-        const storedInvoices = await getAllInvoices();
-        // Merge stored invoices with mock invoices, prioritizing stored ones
-        // Convert stored invoices to match mock invoice format
-        const mergedInvoices: Invoice[] = [
-          ...storedInvoices.map(inv => ({
-            ...inv,
-            // Ensure all required fields are present
-            issueDate: inv.issueDate || new Date().toISOString().split("T")[0],
-            dueDate: inv.dueDate || new Date().toISOString().split("T")[0],
-            status: inv.status || "Open",
-            type: inv.type || "single",
-          })),
-          // Add mock invoices that don't exist in stored invoices
-          ...mockInvoices.filter(mockInv =>
-            !storedInvoices.some(storedInv => storedInv.id === mockInv.id)
-          ),
-        ];
-
-        // Sort by newest first (by issueDate or createdAt)
-        mergedInvoices.sort((a, b) => {
-          const dateA = a.createdAt ? new Date(a.createdAt).getTime() : new Date(a.issueDate).getTime();
-          const dateB = b.createdAt ? new Date(b.createdAt).getTime() : new Date(b.issueDate).getTime();
-          return dateB - dateA;
-        });
-
-        setAllInvoices(mergedInvoices);
-      } catch (error) {
-        console.error("Error loading invoices:", error);
-        // Fallback to mock invoices only
-        setAllInvoices(mockInvoices);
-      }
-    };
-
     loadInvoices();
   }, []);
 
@@ -284,17 +279,39 @@ const Invoices = () => {
       toast.error("Invoice not found");
       return;
     }
-    setSelectedInvoice({ id: invoiceId, amount: invoice.amount });
+    setSelectedInvoice({
+      id: invoiceId,
+      amount: invoice.amount,
+      paidAmount: (invoice as any).paidAmount || 0,
+    });
     setShowPaymentModal(true);
   };
 
-  const handlePaymentMethodSelect = (method: string) => {
-    // Payment processing toast removed - only success toast shown after payment completes
-    // No processing toast for cash payments
-    if (selectedInvoice) {
-      // Create payment notification
+  const handleInvoicePaymentComplete = (method: string, amount: number) => {
+    if (!selectedInvoice) return;
+
+    void (async () => {
+      const updatedInvoice = await applyPayment(selectedInvoice.id, "invoice", amount, method);
+      if (!updatedInvoice) {
+        toast.error("Failed to apply payment");
+        return;
+      }
+
       createPaymentNotification("invoice", selectedInvoice.id);
-    }
+
+      const fullyPaid = Number(updatedInvoice.balance_due ?? 0) <= 0;
+      const remaining = Number(updatedInvoice.balance_due ?? Math.max(0, updatedInvoice.amount - (updatedInvoice.paidAmount || 0)));
+
+      setShowPaymentModal(false);
+      setSelectedInvoice(null);
+      await loadInvoices();
+
+      if (fullyPaid) {
+        toast.success("Invoice fully paid!");
+      } else {
+        toast.success(`Payment of $${amount.toFixed(2)} recorded. Balance remaining: $${remaining.toFixed(2)}`);
+      }
+    })();
   };
 
   const handlePaymentModalClose = () => {
@@ -882,11 +899,13 @@ const Invoices = () => {
 
       {selectedInvoice && (
         <>
-          <PaymentModal
+          <InvoicePaymentModal
             isOpen={showPaymentModal}
             onClose={handlePaymentModalClose}
-            amount={selectedInvoice.amount}
-            onPaymentMethodSelect={handlePaymentMethodSelect}
+            entityLabel="Invoice"
+            totalAmount={selectedInvoice.amount}
+            paidAmount={selectedInvoice.paidAmount || 0}
+            onPaymentComplete={handleInvoicePaymentComplete}
           />
           <CashPaymentModal
             isOpen={showCashPaymentModal}

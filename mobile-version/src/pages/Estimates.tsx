@@ -4,6 +4,7 @@ import MobileHeader from "@/components/layout/MobileHeader";
 import EstimateCard from "@/components/cards/EstimateCard";
 import EmptyState from "@/components/cards/EmptyState";
 import PaymentModal from "@/components/modals/PaymentModal";
+import PaymentMethodSelectorModal, { type PaymentMethodId } from "@/components/modals/PaymentMethodSelectorModal";
 import CashPaymentModal from "@/components/modals/CashPaymentModal";
 import PreviewEstimateModal from "@/components/modals/PreviewEstimateModal";
 import PreviewInvoiceModal from "@/components/modals/PreviewInvoiceModal";
@@ -35,6 +36,9 @@ const Estimates = () => {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("activate");
   const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showPaymentMethodSelector, setShowPaymentMethodSelector] = useState(false);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodId>("cash");
+  const [selectedPaymentAmount, setSelectedPaymentAmount] = useState(0);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [selectedEstimate, setSelectedEstimate] = useState<{ id: string; amount: number } | null>(null);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -224,7 +228,19 @@ const Estimates = () => {
   const handleContinueToPayment = () => {
     // Close info modal and show payment modal
     setShowEstimateToInvoiceInfoModal(false);
+    setShowPaymentMethodSelector(true);
+  };
+
+  const handleSelectPaymentMethod = (method: PaymentMethodId, amount: number) => {
+    setSelectedPaymentMethod(method);
+    setSelectedPaymentAmount(amount);
+    setShowPaymentMethodSelector(false);
     setShowPaymentModal(true);
+  };
+
+  const handlePaymentBackToMethodSelector = () => {
+    setShowPaymentModal(false);
+    setShowPaymentMethodSelector(true);
   };
 
   const handlePaymentMethodSelect = (method: string) => {
@@ -891,13 +907,28 @@ const Estimates = () => {
       {/* Payment Modal */}
       {selectedEstimate && (
         <>
+          <PaymentMethodSelectorModal
+            isOpen={showPaymentMethodSelector}
+            onClose={() => {
+              setShowPaymentMethodSelector(false);
+              setSelectedPaymentAmount(0);
+              setSelectedEstimate(null);
+            }}
+            onSelectMethod={handleSelectPaymentMethod}
+            totalAmount={selectedEstimate.amount}
+          />
+
           <PaymentModal
             isOpen={showPaymentModal}
             onClose={() => {
               setShowPaymentModal(false);
+              setShowPaymentMethodSelector(false);
+              setSelectedPaymentAmount(0);
               setSelectedEstimate(null);
             }}
-            amount={selectedEstimate.amount}
+            onBack={handlePaymentBackToMethodSelector}
+            amount={selectedPaymentAmount || selectedEstimate.amount}
+            paymentMethod={selectedPaymentMethod}
             onPaymentMethodSelect={handlePaymentMethodSelect}
           />
           <CashPaymentModal

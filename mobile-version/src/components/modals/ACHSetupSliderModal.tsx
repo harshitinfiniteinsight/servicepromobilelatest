@@ -143,15 +143,6 @@ const ACHSetupSliderModal = ({ isOpen, onClose, onBack, onSetupComplete, setupTy
     api?.scrollTo(index);
   }, [api]);
 
-  const handleContinue = () => {
-    if (currentStep < steps.length - 1) {
-      scrollNext();
-    } else {
-      onSetupComplete?.();
-      onClose();
-    }
-  };
-
   const handleBack = () => {
     if (currentStep === 0) {
       onBack();

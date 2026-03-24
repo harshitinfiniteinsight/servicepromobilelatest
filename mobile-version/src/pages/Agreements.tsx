@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import { Button } from "@/components/ui/button";
@@ -8,26 +8,41 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import MinimumDepositPercentageModal from "@/components/modals/MinimumDepositPercentageModal";
 import { DocumentVerificationModal } from "@/components/modals/DocumentVerificationModal";
-import PaymentModal from "@/components/modals/PaymentModal";
+import InvoicePaymentModal from "@/components/modals/InvoicePaymentModal";
 import SendSMSModal from "@/components/modals/SendSMSModal";
 import SendEmailModal from "@/components/modals/SendEmailModal";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import AssignToJobModal from "@/components/modals/AssignToJobModal";
 import { mockAgreements, mockCustomers, mockEmployees } from "@/data/mobileMockData";
-import { createJobLookupMap } from "@/utils/jobLookup";
-import { Plus, Calendar, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, Calendar as CalendarIcon, Link } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { statusColors } from "@/data/mobileMockData";
+import { createJobLookupMap } from "@/utils/jobLookup";
+import { Plus, Calendar, Percent, Eye, Mail, MessageSquare, Edit, CreditCard, FilePlus, Briefcase, Search, Calendar as CalendarIcon, Link, Receipt } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { createPaymentNotification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
+import { convertAgreementToInvoice } from "@/services/agreementToInvoiceService";
+import { applyPayment } from "@/services/invoiceService";
+
+type AgreementStatus = "open" | "converted_to_invoice";
+
+type Agreement = (typeof mockAgreements)[number] & {
+  status: AgreementStatus;
+  invoice_id?: string | null;
+  amount_paid?: number;
+  balance_due?: number;
+  workflow_status?: string;
+  paymentMethod?: string;
+};
+
+const AGREEMENT_STORAGE_KEY = "servicepro_agreements";
+const LEGACY_AGREEMENT_STORAGE_KEY = "mockAgreements";
 
 const Agreements = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "Paid" | "Open">("all");
+  const [statusFilter, setStatusFilter] = useState<"all" | AgreementStatus>("all");
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
@@ -40,14 +55,15 @@ const Agreements = () => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [selectedAgreementId, setSelectedAgreementId] = useState<string | null>(null);
   const [selectedAgreementAmount, setSelectedAgreementAmount] = useState<number>(0);
-  const [selectedAgreement, setSelectedAgreement] = useState<typeof mockAgreements[0] | null>(null);
+  const [selectedAgreement, setSelectedAgreement] = useState<Agreement | null>(null);
   const [selectedAgreementForSms, setSelectedAgreementForSms] = useState<{ id: string; customerId: string; customerPhone?: string; customerName?: string } | null>(null);
   const [selectedAgreementForEmail, setSelectedAgreementForEmail] = useState<{ id: string; customerId: string; customerEmail?: string; customerName?: string } | null>(null);
   const [showScheduleModal, setShowScheduleModal] = useState(false);
-  const [agreementToConvert, setAgreementToConvert] = useState<typeof mockAgreements[0] | null>(null);
+  const [agreementToConvert, setAgreementToConvert] = useState<Agreement | null>(null);
   const [showAssignToJobModal, setShowAssignToJobModal] = useState(false);
-  const [agreementForAssignJob, setAgreementForAssignJob] = useState<typeof mockAgreements[0] | null>(null);
+  const [agreementForAssignJob, setAgreementForAssignJob] = useState<Agreement | null>(null);
   const [jobLookupRefreshKey, setJobLookupRefreshKey] = useState(0);
+  const [allAgreements, setAllAgreements] = useState<Agreement[]>([]);
 
   // Get user role
   const userType = typeof window !== "undefined" ? localStorage.getItem("userType") || "merchant" : "merchant";
@@ -83,11 +99,88 @@ const Agreements = () => {
     setShowDateRangePicker(false);
   };
 
+  const normalizeAgreementStatus = (agreement: any): AgreementStatus => {
+    const normalizedStatus = String(agreement?.status || "").trim().toLowerCase();
+    const normalizedWorkflowStatus = String(agreement?.workflow_status || "").trim().toLowerCase();
+
+    if (
+      agreement?.invoice_id ||
+      normalizedStatus === "converted to invoice" ||
+      normalizedStatus === "converted_to_invoice" ||
+      normalizedStatus === "paid" ||
+      normalizedStatus === "partial" ||
+      normalizedWorkflowStatus === "converted_to_invoice"
+    ) {
+      return "converted_to_invoice";
+    }
+
+    return "open";
+  };
+
+  const hasExplicitConvertedMarker = (agreement: any) => {
+    const normalizedStatus = String(agreement?.status || "").trim().toLowerCase();
+    const normalizedWorkflowStatus = String(agreement?.workflow_status || "").trim().toLowerCase();
+    return (
+      normalizedStatus === "converted to invoice" ||
+      normalizedStatus === "converted_to_invoice" ||
+      normalizedWorkflowStatus === "converted_to_invoice"
+    );
+  };
+
+  const loadAgreements = () => {
+    const serviceAgreements = JSON.parse(localStorage.getItem(AGREEMENT_STORAGE_KEY) || "[]");
+    const legacyAgreements = JSON.parse(localStorage.getItem(LEGACY_AGREEMENT_STORAGE_KEY) || "[]");
+    const merged = [...mockAgreements, ...legacyAgreements, ...serviceAgreements];
+    const unique = new Map<string, Agreement>();
+
+    merged.forEach((agreement: Agreement) => {
+      const totalAmount = Math.max(0, Number((agreement as any).total_amount ?? agreement.monthlyAmount ?? (agreement as any).amount ?? 0));
+      const normalizedPaidAmount = Math.min(totalAmount, Math.max(0, Number(agreement.amount_paid ?? (agreement as any).paidAmount ?? 0)));
+      const normalizedStatus = normalizeAgreementStatus(agreement);
+      if (normalizedStatus === "converted_to_invoice" && !agreement.invoice_id && hasExplicitConvertedMarker(agreement)) {
+        console.error(`[Agreements] Converted agreement ${agreement.id} is missing invoice_id`);
+      }
+
+      unique.set(agreement.id, {
+        ...unique.get(agreement.id),
+        ...agreement,
+        status: normalizedStatus,
+        workflow_status: normalizedStatus,
+        amount_paid: normalizedPaidAmount,
+        balance_due: Math.max(0, totalAmount - normalizedPaidAmount),
+      });
+    });
+
+    setAllAgreements(Array.from(unique.values()));
+  };
+
+  useEffect(() => {
+    loadAgreements();
+  }, []);
+
+  const isAgreementConvertedToInvoice = (agreement: Agreement) => {
+    return normalizeAgreementStatus(agreement) === "converted_to_invoice";
+  };
+
+  const getAgreementDisplayStatus = (agreement: Agreement) => {
+    return agreement.status === "converted_to_invoice" ? "Converted to Invoice" : "Open";
+  };
+
+  const handleViewInvoice = async (agreement: Agreement) => {
+    const linkedInvoiceId = agreement.invoice_id;
+    if (!linkedInvoiceId) {
+      console.error(`[Agreements] Missing invoice_id for converted agreement ${agreement.id}`);
+      toast.error("Linked invoice not found");
+      return;
+    }
+    navigate(`/invoices/${linkedInvoiceId}`);
+  };
+
   // Create job lookup map for agreements (refreshes after job assignment)
   const agreementJobLookup = useMemo(() => createJobLookupMap("agreement"), [jobLookupRefreshKey]);
 
   // Filter agreements
-  const filteredAgreements = mockAgreements.filter(agreement => {
+  const filteredAgreements = allAgreements.filter(agreement => {
     // Search filter - by agreement ID or customer name
     const matchesSearch = search === "" || 
       agreement.id.toLowerCase().includes(search.toLowerCase()) ||
@@ -100,16 +193,27 @@ const Agreements = () => {
     const matchesDateRange = isWithinDateRange(agreement.startDate);
 
     return matchesSearch && matchesStatus && matchesDateRange;
+  }).sort((a, b) => {
+    if (a.status === "open" && b.status !== "open") return -1;
+    if (a.status !== "open" && b.status === "open") return 1;
+
+    const dateA = new Date((a as any).created_at || (a as any).createdAt || a.startDate || 0).getTime();
+    const dateB = new Date((b as any).created_at || (b as any).createdAt || b.startDate || 0).getTime();
+    return dateB - dateA;
   });
 
   const handlePayNow = (agreementId: string) => {
-    const agreement = mockAgreements.find(a => a.id === agreementId);
-    if (agreement) {
-      setSelectedAgreementId(agreementId);
-      setSelectedAgreementAmount(agreement.monthlyAmount || 0);
-      setSelectedAgreement(agreement);
-      setShowDocumentVerificationModal(true);
+    const agreement = allAgreements.find(a => a.id === agreementId);
+    if (!agreement) return;
+    if (isAgreementConvertedToInvoice(agreement)) {
+      void handleViewInvoice(agreement);
+      return;
     }
+
+    setSelectedAgreementId(agreementId);
+    setSelectedAgreementAmount(agreement.balance_due || agreement.monthlyAmount || 0);
+    setSelectedAgreement(agreement);
+    setShowDocumentVerificationModal(true);
   };
 
   const handleVerificationComplete = (data: {
@@ -131,16 +235,29 @@ const Agreements = () => {
     }, 100); // Small delay to ensure smooth modal transition
   };
 
-  const handlePaymentComplete = () => {
-    if (selectedAgreementId) {
-      // Create payment notification
-      createPaymentNotification("agreement", selectedAgreementId);
+  const handlePaymentComplete = async (method: string, amount: number) => {
+    if (!selectedAgreementId) return;
+
+    const conversionResult = await convertAgreementToInvoice(selectedAgreementId);
+    if (!conversionResult.success || !conversionResult.invoiceId) {
+      toast.error(conversionResult.error || "Failed to convert agreement to invoice");
+      return;
     }
+
+    const updatedInvoice = await applyPayment(conversionResult.invoiceId, "invoice", amount, method);
+    if (!updatedInvoice) {
+      toast.error("Failed to apply payment to invoice");
+      return;
+    }
+
+    createPaymentNotification("invoice", conversionResult.invoiceId);
+    loadAgreements();
     setShowPaymentModal(false);
     setSelectedAgreementId(null);
     setSelectedAgreementAmount(0);
     setSelectedAgreement(null);
-    toast.success("Payment processed successfully");
+    toast.success(`Agreement converted to invoice. Payment of $${amount.toFixed(2)} applied to ${conversionResult.invoiceId}`);
+    navigate(`/invoices/${conversionResult.invoiceId}`);
   };
 
   const handleMenuAction = (agreementId: string, action: string, event?: React.MouseEvent) => {
@@ -154,8 +271,14 @@ const Agreements = () => {
       case "preview":
         navigate(`/agreements/${agreementId}`);
         break;
+      case "view-invoice":
+        const agreementForInvoice = allAgreements.find(a => a.id === agreementId);
+        if (agreementForInvoice) {
+          void handleViewInvoice(agreementForInvoice);
+        }
+        break;
       case "send-email":
-        const agreementForEmail = mockAgreements.find(a => a.id === agreementId);
+        const agreementForEmail = allAgreements.find(a => a.id === agreementId);
         if (agreementForEmail) {
           const customer = mockCustomers.find(c => c.id === agreementForEmail.customerId);
           if (!customer?.email) {
@@ -172,7 +295,7 @@ const Agreements = () => {
         }
         break;
       case "send-sms":
-        const agreement = mockAgreements.find(a => a.id === agreementId);
+        const agreement = allAgreements.find(a => a.id === agreementId);
         if (agreement) {
           const customer = mockCustomers.find(c => c.id === agreement.customerId);
           if (!customer?.phone) {
@@ -196,7 +319,7 @@ const Agreements = () => {
         handlePayNow(agreementId);
         break;
       case "create-new-agreement":
-        const createAgreement = mockAgreements.find(ag => ag.id === agreementId);
+        const createAgreement = allAgreements.find(ag => ag.id === agreementId);
         if (createAgreement) {
           const customer = mockCustomers.find(c => c.id === createAgreement.customerId);
           // Find employee by name if employeeName exists, otherwise use first employee
@@ -216,14 +339,14 @@ const Agreements = () => {
         }
         break;
       case "convert-to-job":
-        const agreementForConversion = mockAgreements.find(a => a.id === agreementId);
+        const agreementForConversion = allAgreements.find(a => a.id === agreementId);
         if (agreementForConversion) {
           setAgreementToConvert(agreementForConversion);
           setShowScheduleModal(true);
         }
         break;
       case "assign-to-job":
-        const agreementForAssign = mockAgreements.find(a => a.id === agreementId);
+        const agreementForAssign = allAgreements.find(a => a.id === agreementId);
         if (agreementForAssign) {
           setAgreementForAssignJob(agreementForAssign);
           setShowAssignToJobModal(true);
@@ -295,14 +418,14 @@ const Agreements = () => {
           </div>
 
           <div className="flex-1 min-w-0">
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | "Paid" | "Open")}>
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as "all" | AgreementStatus)}>
               <SelectTrigger className="w-full h-9 text-xs py-2 px-3">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="Paid">Paid</SelectItem>
-                <SelectItem value="Open">Open</SelectItem>
+                    <SelectItem value="converted_to_invoice">Converted to Invoice</SelectItem>
+                    <SelectItem value="open">Open</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -311,8 +434,9 @@ const Agreements = () => {
         {/* Agreements List */}
         <div className="space-y-2">
           {filteredAgreements.map(agreement => {
-            // Check if agreement is paid (case-insensitive)
-            const isPaid = agreement.status?.toLowerCase() === "paid";
+            const displayStatus = getAgreementDisplayStatus(agreement);
+            const isConvertedToInvoice = isAgreementConvertedToInvoice(agreement);
+            const isOpenAgreement = agreement.status === "open";
 
             // Check if agreement has already been converted to job using lookup map
             const hasAssociatedJob = agreementJobLookup.has(agreement.id);
@@ -322,31 +446,25 @@ const Agreements = () => {
               agreement.status?.toLowerCase() === "converted";
 
             // Build menu items based on payment status and user role
-            const kebabMenuItems: KebabMenuItem[] = isPaid
+            const kebabMenuItems: KebabMenuItem[] = isConvertedToInvoice
               ? [
-                // Paid agreements: Preview, Convert to Job (if not converted), Assign to Job, and Create New Agreement
                 { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
-                // Only show "Convert to Job" if not already converted
+                ...(agreement.invoice_id ? [{ label: "View Invoice", icon: Receipt, action: () => handleMenuAction(agreement.id, "view-invoice") }] : []),
                 ...(!isConverted ? [{ label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") }] : []),
-                // Only show "Assign to Job" if not already associated with a job
                 ...(!hasAssociatedJob ? [{ label: "Assign to Job", icon: Link, action: () => handleMenuAction(agreement.id, "assign-to-job") }] : []),
                 { label: "Create New Agreement", icon: FilePlus, action: () => handleMenuAction(agreement.id, "create-new-agreement"), separator: true },
               ]
               : [
-                // Unpaid agreements: Preview, Convert to Job (if not converted), Assign to Job, Send Email, Send SMS, Edit Agreement
+                // Open agreements: Preview, Convert to Job, Assign to Job, Send Email/SMS, Edit
                 { label: "Preview", icon: Eye, action: () => handleMenuAction(agreement.id, "preview") },
-                // Add "Convert to Job" for unpaid agreements (same as paid)
                 ...(!isConverted ? [{ label: "Convert to Job", icon: Briefcase, action: () => handleMenuAction(agreement.id, "convert-to-job") }] : []),
-                // Only show "Assign to Job" if not already associated with a job
                 ...(!hasAssociatedJob ? [{ label: "Assign to Job", icon: Link, action: () => handleMenuAction(agreement.id, "assign-to-job") }] : []),
                 { label: "Send Email", icon: Mail, action: () => handleMenuAction(agreement.id, "send-email") },
                 { label: "Send SMS", icon: MessageSquare, action: () => handleMenuAction(agreement.id, "send-sms") },
-                // Edit Agreement: Only for merchants, not employees
                 ...(isEmployee ? [] : [{
                   label: "Edit Agreement",
                   icon: Edit,
                   action: () => {
-                    // Directly navigate to edit screen, skipping details screen
                     handleMenuAction(agreement.id, "edit");
                   }
                 }]),
@@ -355,7 +473,12 @@ const Agreements = () => {
             return (
               <div
                 key={agreement.id}
-                className="px-3 py-2 rounded-lg border bg-card active:scale-[0.98] transition-transform cursor-pointer"
+                className={cn(
+                  "px-3 py-2 rounded-lg border bg-card active:scale-[0.98] transition-transform cursor-pointer",
+                  isOpenAgreement
+                    ? "border-amber-200 shadow-sm"
+                    : "border-gray-200 opacity-90"
+                )}
                 onClick={(e) => {
                   // Don't navigate if clicking on kebab menu, pay button, or its dropdown
                   const target = e.target as HTMLElement;
@@ -365,18 +488,26 @@ const Agreements = () => {
                   navigate(`/agreements/${agreement.id}`);
                 }}
               >
-                {/* Row 1: Agreement ID + Status | Amount + Pay */}
+                {/* Row 1: Agreement ID + Status | Amount + Action */}
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 min-w-0">
-                    <span className="font-semibold text-sm">{agreement.id}</span>
-                    <Badge className={cn("text-[10px] px-1.5 py-0 h-4 leading-4", statusColors[agreement.status])}>
-                      {agreement.status}
+                  <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                    <span className="font-semibold text-sm shrink-0">{agreement.id}</span>
+                    <Badge
+                      variant="outline"
+                      className={agreement.status === "open"
+                        ? "text-[10px] px-1.5 py-0 h-4 leading-4 bg-amber-50 text-amber-700 border-amber-200 whitespace-nowrap overflow-hidden text-ellipsis max-w-[132px]"
+                        : "text-[10px] px-1.5 py-0 h-4 leading-4 bg-gray-50 text-gray-700 border-gray-300 whitespace-nowrap overflow-hidden text-ellipsis max-w-[132px]"
+                      }
+                    >
+                      {displayStatus}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-base font-bold whitespace-nowrap">${agreement.monthlyAmount.toFixed(2)}</span>
-                    <span className="text-[10px] text-muted-foreground">/mo</span>
-                    {!isPaid && (
+                  <div className="flex items-center gap-2 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                    <div className="text-right">
+                      <span className="text-base font-bold whitespace-nowrap">${agreement.monthlyAmount.toFixed(2)}</span>
+                      <span className="text-[10px] text-muted-foreground ml-1">/mo</span>
+                    </div>
+                    {isOpenAgreement ? (
                       <Button
                         size="sm"
                         variant="default"
@@ -388,7 +519,7 @@ const Agreements = () => {
                       >
                         Pay
                       </Button>
-                    )}
+                    ) : null}
                   </div>
                 </div>
 
@@ -443,7 +574,7 @@ const Agreements = () => {
             onVerificationComplete={handleVerificationComplete}
           />
 
-          <PaymentModal
+          <InvoicePaymentModal
             isOpen={showPaymentModal}
             onClose={() => {
               setShowPaymentModal(false);
@@ -451,14 +582,10 @@ const Agreements = () => {
               setSelectedAgreementAmount(0);
               setSelectedAgreement(null);
             }}
-            amount={selectedAgreementAmount}
-            onPaymentMethodSelect={handlePaymentComplete}
-            entityType="agreement"
-            agreement={selectedAgreement ? {
-              id: selectedAgreement.id,
-              totalPayable: selectedAgreement.monthlyAmount || selectedAgreementAmount,
-              minimumDepositFraction: (selectedAgreement as any).minimumDepositFraction,
-            } : undefined}
+            entityLabel="Agreement"
+            totalAmount={selectedAgreementAmount}
+            paidAmount={Math.min(selectedAgreementAmount, selectedAgreement?.amount_paid || 0)}
+            onPaymentComplete={handlePaymentComplete}
           />
         </>
       )}

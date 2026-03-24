@@ -107,8 +107,6 @@ const differentPaymentMethods: { id: PaymentMethodType; label: string; icon: Rea
   { id: "check", label: "Check", icon: Banknote },
 ];
 
-const DEMO_CARD_LAST4 = "2345";
-
 const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source = "invoice", jobId, allInvoices = [] }: RefundModalProps) => {
   const effectiveMode = mode ?? source;
 
@@ -325,11 +323,6 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
     }
 
     return method || "Payment pending";
-  };
-
-  // Get original payment method for a document
-  const getDocumentOriginalPaymentMethod = (document: RefundInvoiceData): string => {
-    return (document.paymentMethod || document.payment?.method || "Unknown").trim();
   };
 
   const handleClose = () => {

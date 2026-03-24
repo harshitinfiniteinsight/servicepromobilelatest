@@ -540,6 +540,10 @@ export const mockAgreements = [
   { id: "AGR-003", customerId: "9", customerName: "William Taylor", type: "Premium Plan", startDate: "2024-01-15", endDate: "2025-01-14", monthlyAmount: 199.99, status: "Paid", renewalStatus: "Auto-renew" },
   { id: "AGR-004", customerId: "13", customerName: "Daniel Lee", type: "Basic Coverage", startDate: "2023-07-01", endDate: "2024-06-30", monthlyAmount: 79.99, status: "Open", renewalStatus: "Pending" },
   { id: "AGR-005", customerId: "17", customerName: "Steven Lewis", type: "Commercial Plan", startDate: "2024-02-01", endDate: "2025-01-31", monthlyAmount: 399.99, status: "Open", renewalStatus: "Auto-renew" },
+  { id: "AGR-006", customerId: "6", customerName: "Jennifer Wilson", type: "Seasonal Tune-Up", startDate: "2024-03-01", endDate: "2025-02-28", monthlyAmount: 59.99, status: "Open", renewalStatus: "Manual" },
+  { id: "AGR-007", customerId: "10", customerName: "Jessica Martinez", type: "Home Comfort Plan", startDate: "2024-04-01", endDate: "2025-03-31", monthlyAmount: 89.99, status: "Open", renewalStatus: "Auto-renew" },
+  { id: "AGR-008", customerId: "15", customerName: "Kevin Harris", type: "Priority Service", startDate: "2024-05-01", endDate: "2025-04-30", monthlyAmount: 149.99, status: "Open", renewalStatus: "Pending" },
+  { id: "AGR-009", customerId: "19", customerName: "Thomas Young", type: "Essential Care", startDate: "2024-06-01", endDate: "2025-05-31", monthlyAmount: 69.99, status: "Open", renewalStatus: "Manual" },
 ];
 
 export const mockDiscounts = [

@@ -8,6 +8,8 @@
 import { mockInvoices, mockEstimates, mockAgreements } from "@/data/mobileMockData";
 import type { JobSourceType, JobPaymentStatus } from "@/data/mobileMockData";
 import { convertEstimateToInvoice } from "@/services/estimateToInvoiceService";
+import { convertAgreementToInvoice } from "@/services/agreementToInvoiceService";
+import { applyPayment } from "@/services/invoiceService";
 
 export interface PaymentTransaction {
   transactionId: string;
@@ -140,7 +142,8 @@ export function updateSourceDocumentPaymentStatus(
         
         const agreementIndex = agreements.findIndex((agr: any) => agr.id === sourceId);
         if (agreementIndex !== -1) {
-          agreements[agreementIndex].status = paymentStatus;
+          agreements[agreementIndex].status = paymentStatus === "Open" ? "open" : "converted_to_invoice";
+          agreements[agreementIndex].workflow_status = agreements[agreementIndex].status;
           if (transactionId) {
             agreements[agreementIndex].lastTransactionId = transactionId;
             agreements[agreementIndex].paidAt = new Date().toISOString();
@@ -218,13 +221,30 @@ export async function syncPaymentStatus(
         };
       }
     } else if (sourceType !== "none" && sourceId) {
-      sourceDocumentUpdated = updateSourceDocumentPaymentStatus(
-        sourceType,
-        sourceId,
-        documentPaymentStatus as "Paid" | "Open" | "Partial",
-        transactionId,
-        paymentMethod
-      );
+      if (sourceType === "agreement") {
+        const conversionResult = await convertAgreementToInvoice(sourceId);
+        if (!conversionResult.success || !conversionResult.invoiceId) {
+          updateJobPaymentStatus(jobId, "unpaid");
+          return {
+            success: false,
+            jobUpdated: false,
+            sourceDocumentUpdated: false,
+            error: conversionResult.error || "Failed to convert agreement to invoice.",
+          };
+        }
+
+        const paymentAmount = getSourceDocumentAmount("agreement", sourceId);
+        const paidInvoice = await applyPayment(conversionResult.invoiceId, "invoice", paymentAmount, paymentMethod);
+        sourceDocumentUpdated = Boolean(paidInvoice);
+      } else {
+        sourceDocumentUpdated = updateSourceDocumentPaymentStatus(
+          sourceType,
+          sourceId,
+          documentPaymentStatus as "Paid" | "Open" | "Partial",
+          transactionId,
+          paymentMethod
+        );
+      }
 
       if (!sourceDocumentUpdated) {
         // Rollback job payment status on failure
@@ -349,7 +369,10 @@ export function getSourceDocumentPaymentStatus(
         const storedAgreements = localStorage.getItem("mockAgreements");
         const agreements = storedAgreements ? JSON.parse(storedAgreements) : mockAgreements;
         const agreement = agreements.find((agr: any) => agr.id === sourceId);
-        return agreement?.status || "Unknown";
+        const normalizedStatus = String(agreement?.status || "").trim().toLowerCase();
+        return (normalizedStatus === "converted to invoice" || normalizedStatus === "converted_to_invoice")
+          ? "Paid"
+          : agreement?.status || "Unknown";
       }
       
       default:

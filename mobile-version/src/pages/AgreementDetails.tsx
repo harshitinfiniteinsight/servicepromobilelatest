@@ -1,5 +1,7 @@
-import { useParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { mockAgreements, mockCustomers } from "@/data/mobileMockData";
 import { Calendar, User, FileText, CreditCard } from "lucide-react";
@@ -7,8 +9,23 @@ import { cn } from "@/lib/utils";
 import { statusColors } from "@/data/mobileMockData";
 
 const AgreementDetails = () => {
+  const navigate = useNavigate();
   const { id } = useParams();
-  const agreement = mockAgreements.find(a => a.id === id);
+  const [agreement, setAgreement] = useState<any | null>(null);
+
+  const normalizedStatus = String(agreement?.status || "").trim().toLowerCase();
+  const displayStatus =
+    normalizedStatus === "converted_to_invoice" || normalizedStatus === "converted to invoice"
+      ? "Converted to Invoice"
+      : "Open";
+
+  useEffect(() => {
+    const serviceAgreements = JSON.parse(localStorage.getItem("servicepro_agreements") || "[]");
+    const legacyAgreements = JSON.parse(localStorage.getItem("mockAgreements") || "[]");
+    const merged = [...mockAgreements, ...legacyAgreements, ...serviceAgreements];
+    const foundAgreement = merged.find((item: any) => item.id === id) || null;
+    setAgreement(foundAgreement);
+  }, [id]);
 
   if (!agreement) {
     return (
@@ -30,9 +47,25 @@ const AgreementDetails = () => {
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
               <h2 className="text-2xl font-bold mb-2">{agreement.type}</h2>
-              <Badge className={cn("text-sm", statusColors[agreement.status])}>
-                {agreement.status}
+              <Badge
+                variant="outline"
+                className={displayStatus === "Converted to Invoice"
+                  ? "text-sm bg-gray-50 text-gray-700 border-gray-300"
+                  : "text-sm bg-amber-50 text-amber-700 border-amber-200"
+                }
+              >
+                {displayStatus}
               </Badge>
+              {agreement.invoice_id && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="mt-3"
+                  onClick={() => navigate(`/invoices/${agreement.invoice_id}`)}
+                >
+                  View Invoice
+                </Button>
+              )}
             </div>
             <div className="text-right">
               <p className="text-sm text-muted-foreground">Monthly</p>
@@ -151,15 +184,14 @@ const AgreementDetails = () => {
           <div className="p-4 rounded-xl border bg-card">
             <h3 className="font-semibold mb-3 flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-primary" />
-              Payment
+              Invoice Flow
             </h3>
             <div className="space-y-2 text-sm">
               <p>
-                <span className="text-muted-foreground">Method:</span>{" "}
-                {agreement.status === "Paid" ? (agreement as any).paymentMethod || "Credit Card" : "-"}
+                <span className="text-muted-foreground">Status:</span> {displayStatus}
               </p>
               <p>
-                <span className="text-muted-foreground">Status:</span> {agreement.status}
+                <span className="text-muted-foreground">Payments:</span> Managed on linked invoice
               </p>
             </div>
           </div>

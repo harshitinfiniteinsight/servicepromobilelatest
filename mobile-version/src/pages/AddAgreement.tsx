@@ -75,7 +75,7 @@ const AddAgreement = () => {
   const [serviceSearch, setServiceSearch] = useState("");
   const [serviceCatalog, setServiceCatalog] = useState(() => [...BASE_SERVICE_CATALOG]);
   const [selectedServices, setSelectedServices] = useState<Record<string, { id: string; name: string; price: number }>>({});
-  const [agreementStatus, setAgreementStatus] = useState<"Open" | "Paid">("Open");
+  const [agreementStatus, setAgreementStatus] = useState<"open" | "converted_to_invoice">("open");
   const [monthlyAmount, setMonthlyAmount] = useState(0);
   const [billingCycle, setBillingCycle] = useState("Monthly");
   const [agreementTerms, setAgreementTerms] = useState("");
@@ -143,7 +143,12 @@ const AddAgreement = () => {
 
       // Pre-fill status
       if (agreement.status) {
-        setAgreementStatus(agreement.status as "Open" | "Paid");
+        const normalizedStatus = String(agreement.status).trim().toLowerCase();
+        setAgreementStatus(
+          normalizedStatus === "converted_to_invoice" || normalizedStatus === "converted to invoice"
+            ? "converted_to_invoice"
+            : "open"
+        );
       }
 
       // Pre-fill work description (if available)
@@ -331,7 +336,7 @@ const AddAgreement = () => {
           endDate,
           monthlyAmount,
           billingCycle,
-          status: agreementStatus,
+          status: agreementStatus === "converted_to_invoice" ? "converted_to_invoice" : "open",
           description: workDescription,
           services: selectedServicesList,
           serviceRequirement,
@@ -383,7 +388,7 @@ const AddAgreement = () => {
           startDate: startDate || new Date().toISOString().split("T")[0],
           endDate: endDate || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
           monthlyAmount: monthlyAmount || selectedServicesList.reduce((sum, item) => sum + (item.price || 0), 0),
-          status: agreementStatus,
+          status: "open",
           renewalStatus: "Manual",
           billingCycle,
           description: workDescription || undefined,

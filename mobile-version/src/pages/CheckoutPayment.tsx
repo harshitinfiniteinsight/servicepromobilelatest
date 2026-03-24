@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import MobileHeader from "@/components/layout/MobileHeader";
 import PaymentModal from "@/components/modals/PaymentModal";
+import PaymentMethodSelectorModal, { type PaymentMethodId } from "@/components/modals/PaymentMethodSelectorModal";
 import { useCart } from "@/contexts/CartContext";
 import { createInvoice } from "@/services/invoiceService";
 import { toast } from "sonner";
@@ -20,7 +21,10 @@ const CheckoutPayment = () => {
     discountType?: "%" | "$";
     notes?: string;
   }) || {};
-  const [paymentModalOpen, setPaymentModalOpen] = useState(true);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [methodSelectorOpen, setMethodSelectorOpen] = useState(true);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<PaymentMethodId>("cash");
+  const [selectedPaymentAmount, setSelectedPaymentAmount] = useState(0);
   const [isPaymentComplete, setIsPaymentComplete] = useState(false);
 
   // Redirect if no customer or items - must be in useEffect
@@ -53,7 +57,9 @@ const CheckoutPayment = () => {
       // Use provided values or calculate defaults
       const calculatedSubtotal = subtotal ?? getSubtotal();
       const calculatedTax = tax ?? 0;
-      const calculatedTotal = total ?? calculatedSubtotal + calculatedTax;
+      const calculatedTotal = selectedPaymentAmount > 0
+        ? selectedPaymentAmount
+        : (total ?? calculatedSubtotal + calculatedTax);
 
       // Create invoice items from cart items
       const invoiceItems = items.map(item => ({
@@ -130,6 +136,21 @@ const CheckoutPayment = () => {
         />
       </div>
 
+      <PaymentMethodSelectorModal
+        isOpen={methodSelectorOpen}
+        onClose={() => {
+          setMethodSelectorOpen(false);
+          navigate("/checkout/summary", { state: { customer } });
+        }}
+        totalAmount={total || 0}
+        onSelectMethod={(method, amount) => {
+          setSelectedPaymentMethod(method);
+          setSelectedPaymentAmount(amount);
+          setMethodSelectorOpen(false);
+          setPaymentModalOpen(true);
+        }}
+      />
+
       {/* Payment Modal */}
       <PaymentModal
         isOpen={paymentModalOpen}
@@ -137,7 +158,12 @@ const CheckoutPayment = () => {
           setPaymentModalOpen(false);
           navigate("/checkout/summary", { state: { customer } });
         }}
-        amount={total || 0}
+        onBack={() => {
+          setPaymentModalOpen(false);
+          setMethodSelectorOpen(true);
+        }}
+        amount={selectedPaymentAmount || total || 0}
+        paymentMethod={selectedPaymentMethod}
         onPaymentMethodSelect={handlePaymentMethodSelect}
       />
 
