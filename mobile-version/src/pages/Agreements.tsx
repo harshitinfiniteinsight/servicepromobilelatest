@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import MinimumDepositPercentageModal from "@/components/modals/MinimumDepositPercentageModal";
+import EstimateToInvoiceInfoModal from "@/components/modals/EstimateToInvoiceInfoModal";
 import { DocumentVerificationModal } from "@/components/modals/DocumentVerificationModal";
 import InvoicePaymentModal from "@/components/modals/InvoicePaymentModal";
 import SendSMSModal from "@/components/modals/SendSMSModal";
@@ -50,6 +51,8 @@ const Agreements = () => {
   const [showDateRangePicker, setShowDateRangePicker] = useState(false);
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showDocumentVerificationModal, setShowDocumentVerificationModal] = useState(false);
+  const [showAgreementToInvoiceInfoModal, setShowAgreementToInvoiceInfoModal] = useState(false);
+  const [isStartingAgreementPayment, setIsStartingAgreementPayment] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSmsModal, setShowSmsModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -203,6 +206,8 @@ const Agreements = () => {
   });
 
   const handlePayNow = (agreementId: string) => {
+    if (isStartingAgreementPayment) return;
+
     const agreement = allAgreements.find(a => a.id === agreementId);
     if (!agreement) return;
     if (isAgreementConvertedToInvoice(agreement)) {
@@ -213,7 +218,16 @@ const Agreements = () => {
     setSelectedAgreementId(agreementId);
     setSelectedAgreementAmount(agreement.balance_due || agreement.monthlyAmount || 0);
     setSelectedAgreement(agreement);
+    setShowAgreementToInvoiceInfoModal(true);
+  };
+
+  const handleContinueToAgreementPayment = async () => {
+    if (isStartingAgreementPayment) return;
+
+    setIsStartingAgreementPayment(true);
+    setShowAgreementToInvoiceInfoModal(false);
     setShowDocumentVerificationModal(true);
+    setIsStartingAgreementPayment(false);
   };
 
   const handleVerificationComplete = (data: {
@@ -563,6 +577,22 @@ const Agreements = () => {
         onClose={() => setShowDateRangePicker(false)}
         dateRange={dateRange}
         onConfirm={handleDateRangeConfirm}
+      />
+
+      <EstimateToInvoiceInfoModal
+        isOpen={showAgreementToInvoiceInfoModal}
+        onClose={() => {
+          if (isStartingAgreementPayment) return;
+          setShowAgreementToInvoiceInfoModal(false);
+          setSelectedAgreementId(null);
+          setSelectedAgreementAmount(0);
+          setSelectedAgreement(null);
+        }}
+        onContinue={handleContinueToAgreementPayment}
+        sourceEntity="Agreement"
+        targetEntity="Invoice"
+        primaryCtaLabel="Continue to Pay"
+        isContinuing={isStartingAgreementPayment}
       />
 
       {selectedAgreementId && (

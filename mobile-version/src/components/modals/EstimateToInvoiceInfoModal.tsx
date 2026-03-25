@@ -12,24 +12,39 @@ import { FileText, ArrowRight, Receipt } from "lucide-react";
 interface EstimateToInvoiceInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onContinue: () => void;
+  onContinue: () => void | Promise<void>;
+  sourceEntity?: "Estimate" | "Agreement";
+  targetEntity?: "Invoice";
+  primaryCtaLabel?: string;
+  isContinuing?: boolean;
 }
 
 const EstimateToInvoiceInfoModal = ({
   isOpen,
   onClose,
   onContinue,
+  sourceEntity = "Estimate",
+  targetEntity = "Invoice",
+  primaryCtaLabel = "Continue to Pay",
+  isContinuing = false,
 }: EstimateToInvoiceInfoModalProps) => {
+  const title = `${sourceEntity} will convert to ${targetEntity}`;
+
+  const handleContinue = async () => {
+    if (isContinuing) return;
+    await onContinue();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !isContinuing) onClose(); }}>
       <DialogContent className="w-[90%] max-w-md rounded-2xl p-0 gap-0">
         <DialogDescription className="sr-only">
-          Review the estimate to invoice conversion notice before continuing to payment.
+          Review the {sourceEntity.toLowerCase()} to {targetEntity.toLowerCase()} conversion notice before continuing to payment.
         </DialogDescription>
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="text-lg font-semibold text-left">
-            Estimate will convert to Invoice
+            {title}
           </DialogTitle>
         </DialogHeader>
 
@@ -48,7 +63,7 @@ const EstimateToInvoiceInfoModal = ({
 
           {/* Message */}
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            After payment is completed, this estimate will be automatically converted to an Invoice. 
+            After payment is completed, this {sourceEntity.toLowerCase()} will be automatically converted to an {targetEntity}. 
             You can manage it from the <span className="font-semibold text-foreground">Invoices</span> section.
           </p>
         </div>
@@ -56,15 +71,17 @@ const EstimateToInvoiceInfoModal = ({
         {/* Footer */}
         <DialogFooter className="px-6 pb-6 flex-col gap-2 sm:flex-col">
           <Button
-            onClick={onContinue}
+            onClick={handleContinue}
             className="w-full h-11 text-sm font-semibold rounded-xl"
+            disabled={isContinuing}
           >
-            Continue to Payment
+            {isContinuing ? "Starting..." : primaryCtaLabel}
           </Button>
           <Button
             onClick={onClose}
             variant="outline"
             className="w-full h-11 text-sm font-semibold rounded-xl"
+            disabled={isContinuing}
           >
             Cancel
           </Button>

@@ -12,6 +12,7 @@ import {
   ChevronLeft,
   Loader2,
 } from "lucide-react";
+import ACHSetupSliderModal from "./ACHSetupSliderModal";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 export type InvoicePayMethodId = "tap-to-pay" | "enter-card" | "ach" | "cash";
@@ -83,6 +84,8 @@ export default function InvoicePaymentModal({
   const [selectedMethod, setMethod]   = useState<InvoicePayMethodId | null>(null);
   const [amount, setAmount]           = useState(balanceDue.toFixed(2));
   const [processing, setProcessing]   = useState(false);
+  const [showSetupModal, setShowSetupModal] = useState(false);
+  const [setupMethod, setSetupMethod] = useState<Exclude<InvoicePayMethodId, "cash"> | null>(null);
 
   // Card fields
   const [cardNumber, setCardNumber]   = useState("");
@@ -105,6 +108,8 @@ export default function InvoicePaymentModal({
     setMethod(null);
     setAmount(balanceDue.toFixed(2));
     setProcessing(false);
+    setShowSetupModal(false);
+    setSetupMethod(null);
     setCardNumber(""); setCardName(""); setExpiry(""); setCvv(""); setZip(""); setCardAuth(false);
     setRouting(""); setAccount(""); setAccountName(""); setAchZip(""); setAchAuth(false);
   };
@@ -115,6 +120,21 @@ export default function InvoicePaymentModal({
     setMethod(method);
     setAmount(balanceDue.toFixed(2));
     setStep("enter_details");
+  };
+
+  const handleSetupClick = (method: Exclude<InvoicePayMethodId, "cash">) => {
+    if (showSetupModal) return;
+    setSetupMethod(method);
+    setShowSetupModal(true);
+  };
+
+  const handleSetupBackOrClose = () => {
+    setShowSetupModal(false);
+    setSetupMethod(null);
+  };
+
+  const handleSetupComplete = () => {
+    handleSetupBackOrClose();
   };
 
   const formatCardNumber = (val: string) =>
@@ -173,7 +193,8 @@ export default function InvoicePaymentModal({
 
   // ── Render ───────────────────────────────────────────────────────────────────
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose(); }}>
+    <>
+    <Dialog open={isOpen && !showSetupModal} onOpenChange={(open) => { if (!open) handleClose(); }}>
       <DialogContent className="p-0 gap-0 rounded-2xl overflow-hidden max-h-[90vh] overflow-y-auto [&>button]:hidden">
         <DialogTitle className="sr-only">{accessibleTitle}</DialogTitle>
         <DialogDescription className="sr-only">{accessibleDescription}</DialogDescription>
@@ -244,7 +265,7 @@ export default function InvoicePaymentModal({
                               type="button"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleSelectMethod(id);
+                                handleSetupClick(id as Exclude<InvoicePayMethodId, "cash">);
                               }}
                               className="mt-1 text-xs text-orange-500 underline font-medium hover:text-orange-600 active:scale-95"
                             >
@@ -465,5 +486,13 @@ export default function InvoicePaymentModal({
         </div>
       </DialogContent>
     </Dialog>
+    <ACHSetupSliderModal
+      isOpen={isOpen && showSetupModal && setupMethod !== null}
+      onClose={handleSetupBackOrClose}
+      onBack={handleSetupBackOrClose}
+      onSetupComplete={handleSetupComplete}
+      setupType={setupMethod === "ach" ? "ach" : "card"}
+    />
+    </>
   );
 }

@@ -916,6 +916,7 @@ const Estimates = () => {
             }}
             onSelectMethod={handleSelectPaymentMethod}
             totalAmount={selectedEstimate.amount}
+            methodLayout="grid"
           />
 
           <PaymentModal
