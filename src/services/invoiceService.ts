@@ -23,10 +23,17 @@ export interface Invoice {
   id: string;
   customerId: string;
   customerName: string;
+  agreement_id?: string | null;
+  jobId?: string;
   issueDate: string;
   dueDate: string;
+  total_amount?: number;
+  amount_paid?: number;
+  balance_due?: number;
+  payment_status?: "unpaid" | "partial" | "paid";
   amount: number;
-  status: "Open" | "Paid" | "Overdue" | "Deactivated";
+  paidAmount?: number;
+  status: "Open" | "Paid" | "Partial Payment" | "Overdue" | "Deactivated" | "Refunded" | "Partially Refunded";
   paymentMethod?: string;
   type: "single" | "recurring" | "deactivated";
   source?: "sell_product" | "manual" | "estimate" | "agreement";
@@ -47,6 +54,44 @@ export interface Invoice {
 const STORAGE_KEY = "servicepro_invoices";
 const MIGRATION_KEY = "servicepro_invoices_migrated_v1";
 
+const normalizeInvoiceFinancials = (invoice: Invoice): Invoice => {
+  const totalAmount = Math.max(0, Number(invoice.total_amount ?? invoice.amount ?? 0));
+  const rawPaidAmount = Math.max(0, Number(invoice.amount_paid ?? invoice.paidAmount ?? 0));
+  const normalizedPaidAmount = Math.min(totalAmount, rawPaidAmount);
+  const balanceDue = Math.max(0, totalAmount - normalizedPaidAmount);
+  const paymentStatus: Invoice["payment_status"] = normalizedPaidAmount <= 0
+    ? "unpaid"
+    : normalizedPaidAmount >= totalAmount
+      ? "paid"
+      : "partial";
+
+  const status: Invoice["status"] =
+    paymentStatus === "paid"
+      ? "Paid"
+      : paymentStatus === "partial"
+        ? "Partial Payment"
+      : invoice.status === "Overdue"
+        ? "Overdue"
+        : invoice.status === "Deactivated"
+          ? "Deactivated"
+          : invoice.status === "Refunded"
+            ? "Refunded"
+            : invoice.status === "Partially Refunded"
+              ? "Partially Refunded"
+              : "Open";
+
+  return {
+    ...invoice,
+    amount: totalAmount,
+    total_amount: totalAmount,
+    amount_paid: normalizedPaidAmount,
+    paidAmount: normalizedPaidAmount,
+    balance_due: balanceDue,
+    payment_status: paymentStatus,
+    status,
+  };
+};
+
 // Migrate existing invoices to include invoiceVariant field
 const migrateInvoices = () => {
   // Check if migration already done
@@ -58,7 +103,7 @@ const migrateInvoices = () => {
   if (stored) {
     try {
       const invoices: Invoice[] = JSON.parse(stored);
-      const migrated = invoices.map(invoice => ({
+      const migrated = invoices.map(invoice => normalizeInvoiceFinancials({
         ...invoice,
         invoiceVariant: invoice.invoiceVariant || "standard"
       }));
@@ -87,12 +132,12 @@ const initializeStorage = () => {
 const getInvoices = (): Invoice[] => {
   initializeStorage();
   const stored = localStorage.getItem(STORAGE_KEY);
-  return stored ? JSON.parse(stored) : [];
+  return stored ? JSON.parse(stored).map((invoice: Invoice) => normalizeInvoiceFinancials(invoice)) : [];
 };
 
 // Save invoices to storage
 const saveInvoices = (invoices: Invoice[]): void => {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices));
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(invoices.map((invoice) => normalizeInvoiceFinancials(invoice))));
 };
 
 /**
@@ -146,7 +191,7 @@ export const createInvoice = async (invoiceData: Omit<Invoice, "id" | "createdAt
   // Generate sequential invoice ID
   const invoiceId = generateInvoiceId();
   
-  const newInvoice: Invoice = {
+  const newInvoice: Invoice = normalizeInvoiceFinancials({
     ...invoiceData,
     id: invoiceId,
     issueDate,
@@ -155,7 +200,7 @@ export const createInvoice = async (invoiceData: Omit<Invoice, "id" | "createdAt
     status: invoiceData.status || "Paid", // Default to Paid for product sales
     type: invoiceData.type || "single",
     source: invoiceData.source || "manual",
-  };
+  });
   
   invoices.unshift(newInvoice); // Add to beginning for newest first
   saveInvoices(invoices);
@@ -197,10 +242,68 @@ export const updateInvoice = async (invoiceId: string, updates: Partial<Invoice>
     return null;
   }
   
-  invoices[index] = { ...invoices[index], ...updates };
+  invoices[index] = normalizeInvoiceFinancials({ ...invoices[index], ...updates });
   saveInvoices(invoices);
   
   return invoices[index];
+};
+
+/**
+ * Apply a payment to an invoice.
+ * For legacy mock invoices not yet persisted in service storage, the invoice is seeded first.
+ */
+export const applyPayment = async (
+  referenceId: string,
+  referenceType: "invoice",
+  amount: number,
+  method: string,
+): Promise<Invoice | null> => {
+  if (referenceType !== "invoice") {
+    throw new Error("Only invoice payments are supported");
+  }
+
+  const normalizedAmount = Number(amount || 0);
+  if (normalizedAmount <= 0) {
+    throw new Error("Payment amount must be greater than 0");
+  }
+
+  const invoices = getInvoices();
+  let invoiceIndex = invoices.findIndex((invoice) => invoice.id === referenceId);
+
+  if (invoiceIndex === -1) {
+    const legacyInvoice = mockInvoices.find((invoice) => invoice.id === referenceId);
+    if (!legacyInvoice) {
+      return null;
+    }
+
+    invoices.unshift(normalizeInvoiceFinancials({
+      ...legacyInvoice,
+      total_amount: (legacyInvoice as any).total_amount ?? legacyInvoice.amount,
+      amount_paid: (legacyInvoice as any).amount_paid ?? (legacyInvoice as any).paidAmount ?? 0,
+      balance_due: (legacyInvoice as any).balance_due ?? Math.max(0, legacyInvoice.amount - ((legacyInvoice as any).paidAmount ?? 0)),
+      payment_status: (legacyInvoice as any).payment_status ?? (((legacyInvoice as any).paidAmount ?? 0) > 0 ? "partial" : "unpaid"),
+      paidAmount: (legacyInvoice as any).paidAmount ?? 0,
+    }));
+    invoiceIndex = 0;
+  }
+
+  const current = invoices[invoiceIndex];
+  const totalAmount = Number(current.total_amount ?? current.amount ?? 0);
+  const currentPaid = Math.min(totalAmount, Number(current.amount_paid ?? current.paidAmount ?? 0));
+  const remainingBalance = Math.max(0, totalAmount - currentPaid);
+  const appliedAmount = Math.min(normalizedAmount, remainingBalance);
+
+  invoices[invoiceIndex] = normalizeInvoiceFinancials({
+    ...current,
+    amount: totalAmount,
+    total_amount: totalAmount,
+    amount_paid: currentPaid + appliedAmount,
+    paidAmount: currentPaid + appliedAmount,
+    paymentMethod: method,
+  });
+
+  saveInvoices(invoices);
+  return invoices[invoiceIndex];
 };
 
 /**

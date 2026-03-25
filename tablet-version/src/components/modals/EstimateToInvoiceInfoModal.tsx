@@ -5,7 +5,7 @@
  * explaining that the estimate will be converted to an invoice after successful payment.
  */
 
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { FileText, ArrowRight, Receipt } from "lucide-react";
 
@@ -13,21 +13,32 @@ interface EstimateToInvoiceInfoModalProps {
   isOpen: boolean;
   onClose: () => void;
   onContinue: () => void;
+  sourceEntity?: "Estimate" | "Agreement";
+  targetEntity?: "Invoice";
+  primaryCtaLabel?: string;
 }
 
 const EstimateToInvoiceInfoModal = ({
   isOpen,
   onClose,
   onContinue,
+  sourceEntity = "Estimate",
+  targetEntity = "Invoice",
+  primaryCtaLabel = "Continue to Payment",
 }: EstimateToInvoiceInfoModalProps) => {
+  const title = `${sourceEntity} will convert to ${targetEntity}`;
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="w-[90%] max-w-md rounded-2xl p-0 gap-0">
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="text-lg font-semibold text-left">
-            Estimate will convert to Invoice
+            {title}
           </DialogTitle>
+          <DialogDescription className="sr-only">
+            Information about converting {sourceEntity.toLowerCase()} to {targetEntity.toLowerCase()} before payment.
+          </DialogDescription>
         </DialogHeader>
 
         {/* Content */}
@@ -45,7 +56,7 @@ const EstimateToInvoiceInfoModal = ({
 
           {/* Message */}
           <p className="text-sm text-muted-foreground text-center leading-relaxed">
-            After payment is completed, this estimate will be automatically converted to an Invoice. 
+            After payment is completed, this {sourceEntity.toLowerCase()} will be automatically converted to an {targetEntity}. 
             You can manage it from the <span className="font-semibold text-foreground">Invoices</span> section.
           </p>
         </div>
@@ -56,7 +67,7 @@ const EstimateToInvoiceInfoModal = ({
             onClick={onContinue}
             className="w-full h-11 text-sm font-semibold rounded-xl"
           >
-            Continue to Payment
+            {primaryCtaLabel}
           </Button>
           <Button
             onClick={onClose}

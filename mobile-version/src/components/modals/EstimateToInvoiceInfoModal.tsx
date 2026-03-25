@@ -38,9 +38,9 @@ const EstimateToInvoiceInfoModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open && !isContinuing) onClose(); }}>
       <DialogContent className="w-[90%] max-w-md rounded-2xl p-0 gap-0">
-        <DialogDescription className="sr-only">
-          Review the {sourceEntity.toLowerCase()} to {targetEntity.toLowerCase()} conversion notice before continuing to payment.
-        </DialogDescription>
+          <DialogDescription className="sr-only">
+            Review the {sourceEntity.toLowerCase()} to {targetEntity.toLowerCase()} conversion notice before continuing to payment.
+          </DialogDescription>
         {/* Header */}
         <DialogHeader className="px-6 pt-6 pb-4 border-b">
           <DialogTitle className="text-lg font-semibold text-left">

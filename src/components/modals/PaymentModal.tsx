@@ -1,8 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import EnterCardDetailsModal from "./EnterCardDetailsModal";
 import EnterACHPaymentDetailsModal from "./EnterACHPaymentDetailsModal";
 import CashPaymentModal from "./CashPaymentModal";
@@ -14,7 +15,7 @@ interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   amount: number;
-  onPaymentMethodSelect?: (method: string) => void;
+  onPaymentMethodSelect?: (method: string, amount?: number) => void;
   entityType?: "agreement" | "estimate" | "invoice";
   agreement?: {
     id?: string;
@@ -33,6 +34,12 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
   const [showTapToPayModal, setShowTapToPayModal] = useState(false);
   const [showNoReaderModal, setShowNoReaderModal] = useState(false);
   const [showACHSetupModal, setShowACHSetupModal] = useState(false);
+  const [paymentAmountInput, setPaymentAmountInput] = useState(amount.toFixed(2));
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setPaymentAmountInput(amount.toFixed(2));
+  }, [isOpen, amount]);
 
   // Calculate minimum amount payable for agreements
   const minimumAmountPayable = (() => {
@@ -68,6 +75,17 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     return minimumAmount;
   })();
 
+  const isPartialPaymentFlow = entityType === "agreement" || entityType === "invoice";
+  const maxPayableAmount = Math.max(0, amount);
+  const minPayableAmount = entityType === "agreement" ? Math.max(minimumAmountPayable ?? 0.01, 0.01) : 0.01;
+  const parsedPaymentAmount = parseFloat(paymentAmountInput);
+  const isPaymentAmountValid =
+    !isPartialPaymentFlow ||
+    (!Number.isNaN(parsedPaymentAmount) && parsedPaymentAmount >= minPayableAmount && parsedPaymentAmount <= maxPayableAmount);
+  const effectivePaymentAmount = isPartialPaymentFlow
+    ? (Number.isNaN(parsedPaymentAmount) ? maxPayableAmount : parsedPaymentAmount)
+    : amount;
+
   const paymentOptions = [
     {
       id: "tap-to-pay",
@@ -92,6 +110,10 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
   ];
 
   const handlePaymentMethodClick = (methodId: string) => {
+    if (!isPaymentAmountValid) {
+      return;
+    }
+
     if (methodId === "tap-to-pay") {
       // Check if card reader is connected
       const currentConnectedReaderId = localStorage.getItem("currentConnectedReaderId");
@@ -120,7 +142,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
       setShowCashPaymentModal(true);
     } else {
       if (onPaymentMethodSelect) {
-        onPaymentMethodSelect(methodId);
+        onPaymentMethodSelect(methodId, effectivePaymentAmount);
       }
       onClose();
     }
@@ -139,7 +161,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     setShowCardDetailsModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("enter-card");
+      onPaymentMethodSelect("enter-card", effectivePaymentAmount);
     }
   };
 
@@ -156,7 +178,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     setShowACHPaymentDetailsModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("ach");
+      onPaymentMethodSelect("ach", effectivePaymentAmount);
     }
   };
 
@@ -173,7 +195,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     setShowCashPaymentModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("cash");
+      onPaymentMethodSelect("cash", effectivePaymentAmount);
     }
   };
 
@@ -190,7 +212,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     setShowTapToPayModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("tap-to-pay");
+      onPaymentMethodSelect("tap-to-pay", effectivePaymentAmount);
     }
   };
 
@@ -218,7 +240,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
             Service Pro911 - Payment
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Payment modal for amount ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            Payment modal for amount ${effectivePaymentAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </DialogDescription>
           {/* Orange Header */}
           <div className="bg-orange-500 px-3 py-3 sm:px-4 sm:py-4 flex items-center justify-between safe-top">
@@ -258,6 +280,39 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
               </div>
             </div>
 
+            {isPartialPaymentFlow && (
+              <div className="px-6 sm:px-8 space-y-1.5">
+                <p className="text-xs sm:text-sm text-gray-600 leading-snug">
+                  {entityType === "agreement" && minimumAmountPayable !== null
+                    ? (
+                      <>
+                        Amount <span className="text-gray-500">(Minimum Payable: ${minimumAmountPayable.toFixed(2)})</span>
+                      </>
+                    )
+                    : "Payment Amount"}
+                </p>
+                <Input
+                  type="number"
+                  min={minPayableAmount}
+                  max={maxPayableAmount}
+                  step="0.01"
+                  value={paymentAmountInput}
+                  onChange={(e) => setPaymentAmountInput(e.target.value)}
+                  className="h-9"
+                  placeholder="0.00"
+                />
+                {!isPaymentAmountValid ? (
+                  <p className="text-xs text-red-500">
+                    Enter an amount between ${minPayableAmount.toFixed(2)} and ${maxPayableAmount.toFixed(2)}.
+                  </p>
+                ) : parsedPaymentAmount > 0 && parsedPaymentAmount < maxPayableAmount ? (
+                  <p className="text-xs text-amber-600">
+                    Partial payment selected. Remaining balance: ${(maxPayableAmount - parsedPaymentAmount).toFixed(2)}
+                  </p>
+                ) : null}
+              </div>
+            )}
+
             {/* Payment Options */}
             <div className="space-y-3 sm:space-y-4 w-full">
               <h3 className="text-base sm:text-lg font-bold text-gray-900 text-center px-6 sm:px-8">Payment Options</h3>
@@ -266,19 +321,20 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
                   {paymentOptions.map((option) => {
                     const Icon = option.icon;
                     const isACHAndNotConfigured = option.id === "ach" && !achConfigured;
+                    const isDisabled = !isPaymentAmountValid;
                     
                     return (
                       <div
                         key={option.id}
                         className={`flex flex-col items-center justify-center p-4 sm:p-6 bg-white border-2 border-gray-200 rounded-xl transition-all touch-target min-h-[100px] sm:min-h-[120px] ${
-                          isACHAndNotConfigured
+                          isACHAndNotConfigured || isDisabled
                             ? ""
                             : "hover:border-orange-500 hover:bg-orange-50 active:scale-95 cursor-pointer"
                         }`}
-                        onClick={() => !isACHAndNotConfigured && handlePaymentMethodClick(option.id)}
+                        onClick={() => !isACHAndNotConfigured && !isDisabled && handlePaymentMethodClick(option.id)}
                       >
-                        <Icon className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 sm:mb-3 ${isACHAndNotConfigured ? "text-gray-400" : "text-orange-500"}`} />
-                        <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${isACHAndNotConfigured ? "text-gray-500" : "text-gray-900"}`}>{option.label}</span>
+                        <Icon className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 sm:mb-3 ${isACHAndNotConfigured || isDisabled ? "text-gray-400" : "text-orange-500"}`} />
+                        <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${isACHAndNotConfigured || isDisabled ? "text-gray-500" : "text-gray-900"}`}>{option.label}</span>
                         
                         {/* Helper text for ACH when not configured - clickable link */}
                         {isACHAndNotConfigured && (
@@ -307,7 +363,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         isOpen={showCardDetailsModal}
         onClose={handleCardDetailsClose}
         onBack={handleCardDetailsBack}
-        amount={amount}
+        amount={effectivePaymentAmount}
         onPaymentComplete={handleCardPaymentComplete}
       />
 
@@ -316,7 +372,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         isOpen={showACHPaymentDetailsModal}
         onClose={handleACHPaymentDetailsClose}
         onBack={handleACHPaymentDetailsBack}
-        amount={amount}
+        amount={effectivePaymentAmount}
         onPaymentComplete={handleACHPaymentComplete}
       />
 
@@ -325,7 +381,9 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         isOpen={showCashPaymentModal}
         onClose={handleCashPaymentClose}
         onBack={handleCashPaymentBack}
-        amount={amount}
+        amount={effectivePaymentAmount}
+        showMinimumPayable={entityType === "agreement"}
+        minimumAmount={entityType === "agreement" && minimumAmountPayable !== null ? minimumAmountPayable : undefined}
         onPaymentComplete={handleCashPaymentComplete}
       />
 
@@ -334,7 +392,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         isOpen={showTapToPayModal}
         onClose={handleTapToPayClose}
         onBack={handleTapToPayBack}
-        amount={amount}
+        amount={effectivePaymentAmount}
         onPaymentComplete={handleTapToPayComplete}
       />
 

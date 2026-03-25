@@ -11,7 +11,9 @@ interface CashPaymentModalProps {
   onClose: () => void;
   onBack: () => void;
   amount: number;
-  onPaymentComplete?: () => void;
+  showMinimumPayable?: boolean;
+  minimumAmount?: number;
+  onPaymentComplete?: (paidAmount?: number) => void;
 }
 
 const CashPaymentModal = ({ 
@@ -19,12 +21,18 @@ const CashPaymentModal = ({
   onClose, 
   onBack, 
   amount,
+  showMinimumPayable = false,
+  minimumAmount,
   onPaymentComplete 
 }: CashPaymentModalProps) => {
   const [amountReceived, setAmountReceived] = useState("");
   const [changeDue, setChangeDue] = useState<number | null>(null);
   const [error, setError] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const receivedAmount = parseFloat(amountReceived);
+  const remainingBalance = !isNaN(receivedAmount) && receivedAmount > 0
+    ? Math.max(amount - receivedAmount, 0)
+    : null;
 
   const handleAmountChange = (value: string) => {
     // Remove any non-numeric characters except decimal point
@@ -54,9 +62,9 @@ const CashPaymentModal = ({
       return;
     }
 
-    if (received < amount) {
-      setError("Amount received cannot be less than order amount");
-      showErrorToast("Amount received cannot be less than order amount");
+    if (received <= 0) {
+      setError("Amount received must be greater than 0");
+      showErrorToast("Amount received must be greater than 0");
       return;
     }
 
@@ -76,7 +84,7 @@ const CashPaymentModal = ({
         
         // Close modal and reset form
         handleClose();
-        onPaymentComplete?.();
+        onPaymentComplete?.(received);
       } else {
         // Handle payment failure
         showErrorToast("Payment failed. Please try again.");
@@ -159,7 +167,13 @@ const CashPaymentModal = ({
           <div className="space-y-3 pb-4">
             <div>
               <Label htmlFor="amountReceived" className="block text-xs font-medium text-gray-600 mb-0.5 ml-2">
-                Amount Received
+                {showMinimumPayable && typeof minimumAmount === "number"
+                  ? (
+                    <>
+                      Amount <span className="text-gray-500">(Minimum Payable: ${minimumAmount.toFixed(2)})</span>
+                    </>
+                  )
+                  : "Amount Received"}
               </Label>
               <div className="relative w-[92%] mx-auto">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm">$</span>
@@ -185,6 +199,15 @@ const CashPaymentModal = ({
                 </p>
               </div>
             )}
+
+            {remainingBalance !== null && remainingBalance > 0 && (
+              <div className="w-[92%] mx-auto bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <p className="text-xs font-medium text-amber-700 mb-1">Remaining Balance</p>
+                <p className="text-2xl font-bold text-amber-700">
+                  ${remainingBalance.toFixed(2)}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Pay Cash Button */}
@@ -192,7 +215,7 @@ const CashPaymentModal = ({
             <Button
               className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-xl font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={handlePayCash}
-              disabled={!amountReceived || parseFloat(amountReceived) < amount || isProcessing}
+              disabled={!amountReceived || parseFloat(amountReceived) <= 0 || isProcessing}
             >
               {isProcessing ? (
                 <span className="flex items-center justify-center gap-2">

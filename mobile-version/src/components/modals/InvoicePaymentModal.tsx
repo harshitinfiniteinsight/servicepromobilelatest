@@ -26,6 +26,7 @@ export interface InvoicePaymentModalProps {
   totalAmount: number;
   /** Already-paid amount; defaults to 0 */
   paidAmount?: number;
+  minimumAmountPayable?: number;
   onPaymentComplete: (method: string, amount: number) => void;
 }
 
@@ -76,6 +77,7 @@ export default function InvoicePaymentModal({
   entityLabel = "Invoice",
   totalAmount,
   paidAmount = 0,
+  minimumAmountPayable,
   onPaymentComplete,
 }: InvoicePaymentModalProps) {
   const balanceDue = Math.max(0, totalAmount - paidAmount);
@@ -288,7 +290,13 @@ export default function InvoicePaymentModal({
               {/* Amount input */}
               <div className="space-y-1.5">
                 <Label htmlFor="pay-amount" className="text-sm font-medium">
-                  Payment Amount
+                  {entityLabel === "Agreement" && typeof minimumAmountPayable === "number"
+                    ? (
+                      <>
+                        Amount <span className="text-muted-foreground font-normal">(Minimum Payable: ${minimumAmountPayable.toFixed(2)})</span>
+                      </>
+                    )
+                    : "Payment Amount"}
                 </Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">

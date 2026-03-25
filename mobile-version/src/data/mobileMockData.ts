@@ -601,6 +601,7 @@ export const statusColors: Record<string, string> = {
   Paid: "bg-success/10 text-success border-success/20",  // For invoices only
   Unpaid: "bg-warning/10 text-warning border-warning/20",
   Open: "bg-warning/10 text-warning border-warning/20",
+  "Partial Payment": "bg-blue-100 text-blue-700 border-blue-300",
   Overdue: "bg-destructive/10 text-destructive border-destructive/20",
   Deactivated: "bg-muted text-muted-foreground border-muted",
   Draft: "bg-muted text-muted-foreground border-muted",

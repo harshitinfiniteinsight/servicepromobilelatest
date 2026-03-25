@@ -33,7 +33,7 @@ export interface Invoice {
   payment_status?: "unpaid" | "partial" | "paid";
   amount: number;
   paidAmount?: number;
-  status: "Open" | "Paid" | "Overdue" | "Deactivated" | "Refunded" | "Partially Refunded";
+  status: "Open" | "Paid" | "Partial Payment" | "Overdue" | "Deactivated" | "Refunded" | "Partially Refunded";
   paymentMethod?: string;
   type: "single" | "recurring" | "deactivated";
   source?: "sell_product" | "manual" | "estimate" | "agreement";
@@ -71,6 +71,8 @@ const normalizeInvoiceFinancials = (invoice: Invoice): Invoice => {
   const status: Invoice["status"] =
     paymentStatus === "paid"
       ? "Paid"
+      : paymentStatus === "partial"
+        ? "Partial Payment"
       : invoice.status === "Overdue"
         ? "Overdue"
         : invoice.status === "Deactivated"

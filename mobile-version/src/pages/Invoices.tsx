@@ -51,7 +51,7 @@ import { convertToJob } from "@/services/jobConversionService";
 import { applyPayment, getAllInvoices, updateInvoice, type Invoice as InvoiceType } from "@/services/invoiceService";
 
 type InvoiceTab = "single" | "recurring" | "deactivated";
-type InvoiceStatusFilter = "all" | "paid" | "open";
+type InvoiceStatusFilter = "all" | "paid" | "open" | "partial";
 type Invoice = (typeof mockInvoices)[number] | InvoiceType;
 
 const Invoices = () => {
@@ -252,7 +252,7 @@ const Invoices = () => {
           inv.customerName.toLowerCase().includes(search.toLowerCase());
 
         const matchesAllowedStatus =
-          type === "deactivated" ? true : ["Paid", "Open", "Overdue"].includes(inv.status);
+          type === "deactivated" ? true : ["Paid", "Open", "Partial Payment", "Overdue"].includes(inv.status);
 
         if (!matchesAllowedStatus) {
           return false;
@@ -265,7 +265,9 @@ const Invoices = () => {
               ? true
               : statusFilter === "paid"
                 ? inv.status === "Paid"
-                : inv.status === "Open";
+                : statusFilter === "partial"
+                  ? inv.status === "Partial Payment"
+                  : inv.status === "Open";
 
         const matchesDate = isWithinDateRange(inv.issueDate);
 
@@ -640,7 +642,7 @@ const Invoices = () => {
       return <KebabMenu items={items} menuWidth="w-48" />;
     }
 
-    if (invoice.status === "Open" || invoice.status === "Unpaid") {
+    if (invoice.status === "Open" || invoice.status === "Unpaid" || invoice.status === "Partial Payment") {
       // For employees on unpaid invoices, remove Edit, Reassign, and Deactivate
       const isUnpaidInvoice = invoice.status === "Open" || invoice.status === "Unpaid";
       const shouldRestrictActions = isEmployee && isUnpaidInvoice;
@@ -658,6 +660,18 @@ const Invoices = () => {
           icon: Eye,
           action: () => handleMenuAction(invoice, "preview"),
         },
+        {
+          label: "Pay now",
+          icon: CreditCard,
+          action: () => handleMenuAction(invoice, "pay-now"),
+        },
+        ...(invoice.status === "Partial Payment" && !isEmployee ? [{
+          label: "Refund",
+          icon: RotateCcw,
+          action: () => handleMenuAction(invoice, "refund"),
+          separator: true,
+          variant: "destructive" as const,
+        }] : []),
         // Add "Convert to Job" for unpaid invoices (same as paid)
         ...(!isSellProduct && !isConverted ? [{
           label: "Convert to Job",
@@ -785,6 +799,7 @@ const Invoices = () => {
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="partial">Partial Payment</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -801,7 +816,7 @@ const Invoices = () => {
                 className={newInvoiceId === invoice.id ? "ring-2 ring-primary ring-offset-2 bg-primary/5 border-primary" : ""}
                 jobId={invoiceJobLookup.get(invoice.id)}
                 payButton={
-                  invoice.status === "Open" ? (
+                  invoice.status === "Open" || invoice.status === "Partial Payment" ? (
                     <Button
                       size="sm"
                       variant="default"

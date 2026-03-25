@@ -11,6 +11,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
 import MinimumDepositPercentageModal from "@/components/modals/MinimumDepositPercentageModal";
+import EstimateToInvoiceInfoModal from "@/components/modals/EstimateToInvoiceInfoModal";
 import { DocumentVerificationModal } from "@/components/modals/DocumentVerificationModal";
 import PaymentModal from "@/components/modals/PaymentModal";
 import SendSMSModal from "@/components/modals/SendSMSModal";
@@ -25,12 +26,16 @@ import { statusColors } from "@/data/mobileMockData";
 import { toast } from "sonner";
 import { createPaymentNotification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
+import { convertAgreementToInvoice } from "@/services/agreementToInvoiceService";
+import { applyPayment } from "@/services/invoiceService";
 
 const Agreements = () => {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [showDocumentVerificationModal, setShowDocumentVerificationModal] = useState(false);
+  const [showAgreementToInvoiceInfoModal, setShowAgreementToInvoiceInfoModal] = useState(false);
+  const [isStartingAgreementPayment, setIsStartingAgreementPayment] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showSmsModal, setShowSmsModal] = useState(false);
   const [showEmailModal, setShowEmailModal] = useState(false);
@@ -229,13 +234,24 @@ const Agreements = () => {
   };
 
   const handlePayNow = (agreementId: string) => {
-    const agreement = mockAgreements.find(a => a.id === agreementId);
+    if (isStartingAgreementPayment) return;
+
+    const agreement = allAgreements.find(a => a.id === agreementId) || mockAgreements.find(a => a.id === agreementId);
     if (agreement) {
       setSelectedAgreementId(agreementId);
       setSelectedAgreementAmount(agreement.monthlyAmount || 0);
       setSelectedAgreement(agreement);
-      setShowDocumentVerificationModal(true);
+      setShowAgreementToInvoiceInfoModal(true);
     }
+  };
+
+  const handleContinueToAgreementPayment = async () => {
+    if (isStartingAgreementPayment) return;
+
+    setIsStartingAgreementPayment(true);
+    setShowAgreementToInvoiceInfoModal(false);
+    setShowDocumentVerificationModal(true);
+    setIsStartingAgreementPayment(false);
   };
 
   const handleVerificationComplete = (data: {
@@ -257,16 +273,34 @@ const Agreements = () => {
     }, 100); // Small delay to ensure smooth modal transition
   };
 
-  const handlePaymentComplete = () => {
-    if (selectedAgreementId) {
-      // Create payment notification
-      createPaymentNotification("agreement", selectedAgreementId);
+  const handlePaymentComplete = async (method: string, amount?: number) => {
+    if (!selectedAgreementId) return;
+
+    const paymentAmount = Number(amount ?? selectedAgreementAmount ?? 0);
+    if (paymentAmount <= 0) {
+      toast.error("Payment amount must be greater than 0");
+      return;
     }
+
+    const conversionResult = await convertAgreementToInvoice(selectedAgreementId);
+    if (!conversionResult.success || !conversionResult.invoiceId) {
+      toast.error(conversionResult.error || "Failed to convert agreement to invoice");
+      return;
+    }
+
+    const updatedInvoice = await applyPayment(conversionResult.invoiceId, "invoice", paymentAmount, method);
+    if (!updatedInvoice) {
+      toast.error("Failed to apply payment to invoice");
+      return;
+    }
+
+    createPaymentNotification("invoice", conversionResult.invoiceId);
     setShowPaymentModal(false);
     setSelectedAgreementId(null);
     setSelectedAgreementAmount(0);
     setSelectedAgreement(null);
-    toast.success("Payment processed successfully");
+    toast.success(`Agreement converted to invoice. Payment of $${paymentAmount.toFixed(2)} applied to ${conversionResult.invoiceId}`);
+    navigate(`/invoices/${conversionResult.invoiceId}`);
   };
 
   const handleMenuAction = (agreementId: string, action: string, event?: React.MouseEvent) => {
@@ -1120,6 +1154,20 @@ const Agreements = () => {
       <MinimumDepositPercentageModal
         isOpen={showDepositModal}
         onClose={() => setShowDepositModal(false)}
+      />
+
+      <EstimateToInvoiceInfoModal
+        isOpen={showAgreementToInvoiceInfoModal}
+        onClose={() => {
+          setShowAgreementToInvoiceInfoModal(false);
+          setSelectedAgreementId(null);
+          setSelectedAgreementAmount(0);
+          setSelectedAgreement(null);
+        }}
+        onContinue={handleContinueToAgreementPayment}
+        sourceEntity="Agreement"
+        targetEntity="Invoice"
+        primaryCtaLabel="Continue to Pay"
       />
 
       {selectedAgreementId && (

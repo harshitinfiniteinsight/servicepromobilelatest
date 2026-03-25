@@ -205,6 +205,28 @@ const Agreements = () => {
     return dateB - dateA;
   });
 
+  const agreementMinimumPayable = useMemo(() => {
+    if (!selectedAgreement || selectedAgreementAmount <= 0) return undefined;
+
+    let minimumDepositFraction = (selectedAgreement as any).minimumDepositFraction;
+
+    if (minimumDepositFraction === undefined) {
+      const storedPercentage = localStorage.getItem("minimumDepositPercentage");
+      if (storedPercentage) {
+        const parsed = parseFloat(storedPercentage);
+        if (!Number.isNaN(parsed)) {
+          minimumDepositFraction = parsed / 100;
+        }
+      }
+    }
+
+    if (minimumDepositFraction === undefined || minimumDepositFraction <= 0) {
+      return undefined;
+    }
+
+    return selectedAgreementAmount * minimumDepositFraction;
+  }, [selectedAgreement, selectedAgreementAmount]);
+
   const handlePayNow = (agreementId: string) => {
     if (isStartingAgreementPayment) return;
 
@@ -615,6 +637,7 @@ const Agreements = () => {
             entityLabel="Agreement"
             totalAmount={selectedAgreementAmount}
             paidAmount={Math.min(selectedAgreementAmount, selectedAgreement?.amount_paid || 0)}
+            minimumAmountPayable={agreementMinimumPayable}
             onPaymentComplete={handlePaymentComplete}
           />
         </>

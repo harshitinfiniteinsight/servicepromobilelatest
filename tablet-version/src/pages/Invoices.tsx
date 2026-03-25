@@ -54,10 +54,10 @@ import { toast } from "sonner";
 import { format } from "date-fns";
 import { createPaymentNotification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
-import { getAllInvoices, updateInvoice, createInvoice as saveInvoice, type Invoice as InvoiceType } from "@/services/invoiceService";
+import { applyPayment, getAllInvoices, updateInvoice, createInvoice as saveInvoice, type Invoice as InvoiceType } from "@/services/invoiceService";
 
 type InvoiceTab = "single" | "recurring" | "deactivated";
-type InvoiceStatusFilter = "all" | "paid" | "open";
+type InvoiceStatusFilter = "all" | "paid" | "open" | "partial";
 type Invoice = (typeof mockInvoices)[number] | InvoiceType;
 
 const Invoices = () => {
@@ -571,7 +571,7 @@ const Invoices = () => {
           inv.customerName.toLowerCase().includes(search.toLowerCase());
 
         const matchesAllowedStatus =
-          type === "deactivated" ? true : ["Paid", "Open"].includes(inv.status);
+          type === "deactivated" ? true : ["Paid", "Open", "Partial Payment"].includes(inv.status);
 
         if (!matchesAllowedStatus) {
           return false;
@@ -584,7 +584,9 @@ const Invoices = () => {
               ? true
               : statusFilter === "paid"
                 ? inv.status === "Paid"
-                : inv.status === "Open";
+                : statusFilter === "partial"
+                  ? inv.status === "Partial Payment"
+                  : inv.status === "Open";
 
         const matchesDate = isWithinDateRange(inv.issueDate);
 
@@ -598,17 +600,54 @@ const Invoices = () => {
       toast.error("Invoice not found");
       return;
     }
-    setSelectedInvoice({ id: invoiceId, amount: invoice.amount });
+    const totalAmount = Number((invoice as any).total_amount ?? invoice.amount ?? 0);
+    const paidAmount = Number((invoice as any).amount_paid ?? (invoice as any).paidAmount ?? 0);
+    const remainingAmount = Math.max(0, totalAmount - paidAmount);
+    setSelectedInvoice({ id: invoiceId, amount: remainingAmount > 0 ? remainingAmount : totalAmount });
     setShowPaymentModal(true);
   };
 
-  const handlePaymentMethodSelect = (method: string) => {
-    // Payment processing toast removed - only success toast shown after payment completes
-    // No processing toast for cash payments
-    if (selectedInvoice) {
-      // Create payment notification
-      createPaymentNotification("invoice", selectedInvoice.id);
-    }
+  const handlePaymentMethodSelect = (method: string, amount?: number) => {
+    if (!selectedInvoice) return;
+
+    void (async () => {
+      try {
+        const paymentAmount = Number(amount ?? selectedInvoice.amount ?? 0);
+        if (paymentAmount <= 0) {
+          toast.error("Payment amount must be greater than 0");
+          return;
+        }
+
+        const updatedInvoice = await applyPayment(selectedInvoice.id, "invoice", paymentAmount, method);
+        if (!updatedInvoice) {
+          toast.error("Failed to apply payment");
+          return;
+        }
+
+        createPaymentNotification("invoice", selectedInvoice.id);
+
+        setAllInvoices((prev) =>
+          prev.map((inv) =>
+            inv.id === updatedInvoice.id
+              ? ({ ...inv, ...updatedInvoice } as Invoice)
+              : inv
+          )
+        );
+
+        const remaining = Number(updatedInvoice.balance_due ?? 0);
+
+        setShowPaymentModal(false);
+        setSelectedInvoice(null);
+
+        if (remaining <= 0) {
+          toast.success("Invoice fully paid!");
+        } else {
+          toast.success(`Payment of $${paymentAmount.toFixed(2)} recorded. Balance remaining: $${remaining.toFixed(2)}`);
+        }
+      } catch (error: any) {
+        toast.error(error?.message || "Payment failed");
+      }
+    })();
   };
 
   const handlePaymentModalClose = () => {
@@ -622,18 +661,54 @@ const Invoices = () => {
       toast.error("Invoice not found");
       return;
     }
-    setSelectedInvoice({ id: invoiceId, amount: invoice.amount });
+    const totalAmount = Number((invoice as any).total_amount ?? invoice.amount ?? 0);
+    const paidAmount = Number((invoice as any).amount_paid ?? (invoice as any).paidAmount ?? 0);
+    const remainingAmount = Math.max(0, totalAmount - paidAmount);
+    setSelectedInvoice({ id: invoiceId, amount: remainingAmount > 0 ? remainingAmount : totalAmount });
     setShowCashPaymentModal(true);
   };
 
-  const handleCashPaymentComplete = () => {
-    if (selectedInvoice) {
-      // Create payment notification
-      createPaymentNotification("invoice", selectedInvoice.id);
-    }
-    setShowCashPaymentModal(false);
-    setSelectedInvoice(null);
-    toast.success("Payment completed");
+  const handleCashPaymentComplete = (paidAmount?: number) => {
+    if (!selectedInvoice) return;
+
+    void (async () => {
+      try {
+        const paymentAmount = Number(paidAmount ?? selectedInvoice.amount ?? 0);
+        if (paymentAmount <= 0) {
+          toast.error("Payment amount must be greater than 0");
+          return;
+        }
+
+        const updatedInvoice = await applyPayment(selectedInvoice.id, "invoice", paymentAmount, "cash");
+        if (!updatedInvoice) {
+          toast.error("Failed to apply payment");
+          return;
+        }
+
+        createPaymentNotification("invoice", selectedInvoice.id);
+
+        setAllInvoices((prev) =>
+          prev.map((inv) =>
+            inv.id === updatedInvoice.id
+              ? ({ ...inv, ...updatedInvoice } as Invoice)
+              : inv
+          )
+        );
+
+        const remaining = Number(updatedInvoice.balance_due ?? 0);
+
+        setShowCashPaymentModal(false);
+        setSelectedInvoice(null);
+
+        if (remaining <= 0) {
+          toast.success("Invoice fully paid!");
+        } else {
+          toast.success(`Payment of $${paymentAmount.toFixed(2)} recorded. Balance remaining: $${remaining.toFixed(2)}`);
+        }
+      } catch (error: any) {
+        toast.error(error?.message || "Payment failed");
+      }
+    })();
   };
 
   const handleCashPaymentClose = () => {
@@ -996,7 +1071,7 @@ const Invoices = () => {
       return <KebabMenu items={items} menuWidth="w-48" />;
     }
 
-    if (invoice.status === "Open" || invoice.status === "Unpaid") {
+    if (invoice.status === "Open" || invoice.status === "Unpaid" || invoice.status === "Partial Payment") {
       // For employees on unpaid invoices, remove Edit, Reassign, and Deactivate
       const isUnpaidInvoice = invoice.status === "Open" || invoice.status === "Unpaid";
       const shouldRestrictActions = isEmployee && isUnpaidInvoice;
@@ -1018,6 +1093,13 @@ const Invoices = () => {
           icon: CreditCard,
           action: () => handleMenuAction(invoice, "pay-now"),
         },
+        ...(invoice.status === "Partial Payment" && !isEmployee ? [{
+          label: "Refund",
+          icon: RotateCcw,
+          action: () => handleMenuAction(invoice, "refund"),
+          separator: true,
+          variant: "destructive" as const,
+        }] : []),
         {
           label: "Pay Cash",
           icon: DollarSign,
@@ -1149,6 +1231,7 @@ const Invoices = () => {
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="paid">Paid</SelectItem>
                   <SelectItem value="open">Open</SelectItem>
+                  <SelectItem value="partial">Partial Payment</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -1165,7 +1248,7 @@ const Invoices = () => {
                 className={newInvoiceId === invoice.id ? "ring-2 ring-primary ring-offset-2 bg-primary/5 border-primary" : ""}
                 jobId={linkedJobs[invoice.id]}
                 payButton={
-                  invoice.status === "Open" ? (
+                  invoice.status === "Open" || invoice.status === "Partial Payment" ? (
                     <Button
                       size="sm"
                       variant="default"
@@ -1922,6 +2005,7 @@ const Invoices = () => {
             isOpen={showPaymentModal}
             onClose={handlePaymentModalClose}
             amount={selectedInvoice.amount}
+            entityType="invoice"
             onPaymentMethodSelect={handlePaymentMethodSelect}
           />
           <CashPaymentModal
