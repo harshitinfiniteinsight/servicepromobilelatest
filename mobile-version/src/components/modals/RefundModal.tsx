@@ -81,6 +81,22 @@ interface RefundModalProps {
   jobId?: string;
   allInvoices?: RefundDocumentData[];
   allDocuments?: RefundDocumentData[];
+  onInvoiceSelected?: (invoice: RefundDocumentData) => void;
+  selectedRefundState?: RefundFlowState;
+  onRefundStateChange?: (state: RefundFlowState) => void;
+}
+
+interface SelectedRefundItem {
+  itemId: string;
+  quantity: number;
+  unitPrice: number;
+  total: number;
+}
+
+export interface RefundFlowState {
+  selectedInvoice: RefundDocumentData | null;
+  selectedItems: SelectedRefundItem[];
+  refundAmount: number;
 }
 
 type RefundType = "full" | "partial";
@@ -143,6 +159,9 @@ const RefundModal = ({
   jobId,
   allInvoices = [],
   allDocuments = [],
+  onInvoiceSelected,
+  selectedRefundState,
+  onRefundStateChange,
 }: RefundModalProps) => {
   const effectiveMode = mode ?? source;
   const [documentDropdownOpen, setDocumentDropdownOpen] = useState(false);
@@ -345,7 +364,7 @@ const RefundModal = ({
     }
 
     if (selectedDocumentKeys.length === 0) {
-      return "Select Invoices to Refund";
+      return "Select an invoice to refund";
     }
 
     const selectedSelectableCount = refundableDocuments.filter((d) => {
@@ -930,9 +949,8 @@ const RefundModal = ({
           {effectiveMode === "job" && (
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-gray-700">
-                Select Invoices to Refund <span className="text-red-500">*</span>
+                Select an invoice to refund <span className="text-red-500">*</span>
               </Label>
-              <p className="text-xs text-gray-500">Invoices paid via the same method can be selected.</p>
               {refundableDocuments.length === 0 ? (
                 <p className="text-xs text-gray-500">No refundable documents available.</p>
               ) : (
@@ -1005,9 +1023,6 @@ const RefundModal = ({
                     </div>
                   </PopoverContent>
                 </Popover>
-              )}
-              {selectedDocuments.length === 0 && refundableDocuments.length > 0 && (
-                <p className="text-xs text-red-500 font-medium">Please select at least one document to proceed</p>
               )}
             </div>
           )}
