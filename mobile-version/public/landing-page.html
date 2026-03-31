@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Service Pro 911 — Run Your Service Business Smarter</title>
+  <meta name="description" content="Service Pro 911 helps service-based businesses manage jobs, customers, scheduling, estimates, invoices, payments, and refunds from one connected platform." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <style>
+    /* ─── CSS Variables (matches app palette) ─────────────────────────── */
+    :root {
+      --primary:       #f85520;   /* HSL 12 95% 58% */
+      --primary-dark:  #d94010;
+      --primary-light: #fce9e3;
+      --accent:        #ff7340;
+      --dark:          #141414;
+      --dark-2:        #1e1e1e;
+      --dark-3:        #2a2a2a;
+      --gray-1:        #f7f7f7;
+      --gray-2:        #ebebeb;
+      --gray-3:        #c2c2c2;
+      --gray-4:        #737373;
+      --text:          #1a1a1a;
+      --text-muted:    #6b6b6b;
+      --white:         #ffffff;
+      --success:       #16a34a;
+      --warning:       #d97706;
+      --blue:          #2563eb;
+      --purple:        #7c3aed;
+      --teal:          #0d9488;
+      --radius:        12px;
+      --radius-lg:     20px;
+      --shadow-sm:     0 1px 3px rgba(0,0,0,.08), 0 1px 2px rgba(0,0,0,.06);
+      --shadow:        0 4px 16px rgba(0,0,0,.10);
+      --shadow-lg:     0 12px 40px rgba(0,0,0,.15);
+      --shadow-xl:     0 24px 64px rgba(0,0,0,.18);
+    }
+
+    /* ─── Reset & Base ─────────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      color: var(--text);
+      background: var(--white);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+    ul { list-style: none; }
+
+    /* ─── Layout Utilities ─────────────────────────────────────────────── */
+    .container { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
+    .section { padding: 96px 0; }
+    .section--sm { padding: 64px 0; }
+    .section--dark { background: var(--dark); color: var(--white); }
+    .section--gray { background: var(--gray-1); }
+    .section--orange { background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%); color: var(--white); }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: center; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
+    .grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 24px; }
+    .grid-auto { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 28px; }
+
+    /* ─── Typography ───────────────────────────────────────────────────── */
+    .eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      font-size: 12px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+      color: var(--primary); margin-bottom: 16px;
+    }
+    .eyebrow-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--primary); flex-shrink: 0; }
+
+    h1 { font-size: clamp(40px, 5.5vw, 68px); font-weight: 900; line-height: 1.08; letter-spacing: -.03em; }
+    h2 { font-size: clamp(28px, 3.5vw, 44px); font-weight: 800; line-height: 1.15; letter-spacing: -.02em; }
+    h3 { font-size: 20px; font-weight: 700; line-height: 1.3; }
+    h4 { font-size: 16px; font-weight: 600; line-height: 1.4; }
+    .lead { font-size: clamp(16px, 1.8vw, 20px); color: var(--text-muted); line-height: 1.7; }
+    .text-center { text-align: center; }
+
+    /* ─── Buttons ──────────────────────────────────────────────────────── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 14px 28px; border-radius: 10px; font-size: 15px; font-weight: 600;
+      cursor: pointer; border: none; transition: all .2s ease;
+    }
+    .btn-primary {
+      background: var(--primary); color: var(--white);
+    }
+    .btn-primary:hover { background: var(--primary-dark); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(248,85,32,.35); }
+    .btn-outline {
+      background: transparent; color: var(--white);
+      border: 2px solid rgba(255,255,255,.4);
+    }
+    .btn-outline:hover { background: rgba(255,255,255,.1); border-color: rgba(255,255,255,.7); }
+    .btn-dark {
+      background: var(--dark); color: var(--white);
+    }
+    .btn-dark:hover { background: var(--dark-3); transform: translateY(-1px); }
+    .btn-lg { padding: 18px 36px; font-size: 17px; border-radius: 12px; }
+    .btn-sm { padding: 10px 20px; font-size: 13px; border-radius: 8px; }
+
+    /* ─── Navigation ───────────────────────────────────────────────────── */
+    .nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      background: rgba(255,255,255,.92); backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(0,0,0,.06);
+      transition: all .3s ease;
+    }
+    .nav.scrolled { box-shadow: 0 4px 20px rgba(0,0,0,.08); }
+    .nav-inner {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 68px; max-width: 1160px; margin: 0 auto; padding: 0 24px;
+    }
+    .logo {
+      display: flex; align-items: center; gap: 12px;
+    }
+    .logo-icon {
+      width: 40px; height: 40px;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(248,85,32,.3);
+    }
+    .logo-text { font-size: 18px; font-weight: 800; letter-spacing: -.02em; color: var(--dark); }
+    .logo-text span { color: var(--primary); }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { font-size: 14px; font-weight: 500; color: var(--gray-4); transition: color .2s; }
+    .nav-links a:hover { color: var(--primary); }
+    .nav-cta { display: flex; align-items: center; gap: 12px; }
+    .nav-cta .btn-demo {
+      padding: 10px 22px; background: var(--primary); color: var(--white);
+      border-radius: 8px; font-size: 14px; font-weight: 600; border: none; cursor: pointer;
+      transition: all .2s;
+    }
+    .nav-cta .btn-demo:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+    /* ─── Hero ─────────────────────────────────────────────────────────── */
+    .hero {
+      min-height: 100vh; display: flex; align-items: center;
+      background: linear-gradient(160deg, #fff 0%, var(--primary-light) 50%, #fff5f0 100%);
+      padding-top: 68px; overflow: hidden; position: relative;
+    }
+    .hero::before {
+      content: ''; position: absolute; top: -200px; right: -200px;
+      width: 700px; height: 700px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(248,85,32,.12) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero::after {
+      content: ''; position: absolute; bottom: -100px; left: -100px;
+      width: 500px; height: 500px; border-radius: 50%;
+      background: radial-gradient(circle, rgba(248,85,32,.08) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-content { padding: 60px 0; position: relative; z-index: 1; }
+    .hero-grid { display: grid; grid-template-columns: 1fr 1.1fr; gap: 64px; align-items: center; }
+    .hero-eyebrow {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(248,85,32,.1); border: 1px solid rgba(248,85,32,.2);
+      border-radius: 100px; padding: 6px 14px; font-size: 13px; font-weight: 600;
+      color: var(--primary); margin-bottom: 24px;
+    }
+    .hero h1 { margin-bottom: 20px; }
+    .hero h1 span { color: var(--primary); }
+    .hero .lead { margin-bottom: 36px; max-width: 520px; }
+    .hero-badges {
+      display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 40px;
+    }
+    .hero-badge {
+      display: flex; align-items: center; gap: 6px;
+      background: var(--white); border: 1px solid var(--gray-2);
+      border-radius: 8px; padding: 7px 14px; font-size: 13px; font-weight: 500;
+      color: var(--text-muted); box-shadow: var(--shadow-sm);
+    }
+    .hero-badge-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--success); }
+    .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+    .hero-visual { position: relative; display: flex; justify-content: center; }
+
+    /* ─── Phone Mockup ─────────────────────────────────────────────────── */
+    .phone-mockup-wrap {
+      position: relative;
+      width: 420px;
+      height: 580px;
+      margin: 0 auto;
+      flex-shrink: 0;
+    }
+    .phone-float-card {
+      position: absolute; background: var(--white); border-radius: 14px;
+      box-shadow: var(--shadow-lg); padding: 12px 16px;
+      font-size: 12px; font-weight: 500; animation: floatCard 3s ease-in-out infinite;
+    }
+    .phone-float-card:nth-child(2) { animation-delay: 1s; animation-name: floatCard2; }
+    .phone-float-card:nth-child(3) { animation-delay: 2s; animation-name: floatCard3; }
+    @keyframes floatCard  { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-8px)} }
+    @keyframes floatCard2 { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-10px)} }
+    @keyframes floatCard3 { 0%,100%{transform:translateY(0)}   50%{transform:translateY(-6px)} }
+
+    /* ─── App Phone SVG Mockup ─────────────────────────────────────────── */
+    .app-phone {
+      width: 250px;
+      position: absolute;
+      top: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      filter: drop-shadow(0 24px 48px rgba(0,0,0,.22));
+      z-index: 2;
+    }
+
+    /* ─── Section Header ────────────────────────────────────────────────  */
+    .section-header { text-align: center; margin-bottom: 64px; }
+    .section-header h2 { margin-bottom: 16px; }
+    .section-header .lead { max-width: 560px; margin: 0 auto; }
+
+    /* ─── Feature Cards ─────────────────────────────────────────────────── */
+    .feature-card {
+      background: var(--white); border: 1px solid var(--gray-2);
+      border-radius: var(--radius-lg); padding: 32px;
+      transition: all .3s ease;
+    }
+    .feature-card:hover {
+      transform: translateY(-4px); box-shadow: var(--shadow-lg);
+      border-color: rgba(248,85,32,.2);
+    }
+    .feature-icon {
+      width: 52px; height: 52px; border-radius: 14px; margin-bottom: 20px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .feature-card h3 { margin-bottom: 10px; }
+    .feature-card p { font-size: 14px; color: var(--text-muted); line-height: 1.65; }
+    .feature-card ul { margin-top: 14px; display: flex; flex-direction: column; gap: 8px; }
+    .feature-card li {
+      display: flex; align-items: flex-start; gap: 10px;
+      font-size: 13.5px; color: var(--text-muted);
+    }
+    .check-icon { color: var(--success); margin-top: 1px; flex-shrink: 0; font-size: 15px; }
+
+    /* ─── Stats Row ─────────────────────────────────────────────────────── */
+    .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
+    .stat-box {
+      background: var(--dark-2); padding: 40px 32px; text-align: center;
+      transition: background .3s;
+    }
+    .stat-box:first-child { border-radius: var(--radius) 0 0 var(--radius); }
+    .stat-box:last-child  { border-radius: 0 var(--radius) var(--radius) 0; }
+    .stat-box:hover { background: var(--dark-3); }
+    .stat-value { font-size: 48px; font-weight: 900; color: var(--primary); line-height: 1; margin-bottom: 8px; }
+    .stat-label { font-size: 14px; color: rgba(255,255,255,.55); font-weight: 500; }
+
+    /* ─── Workflow Steps ─────────────────────────────────────────────────── */
+      .workflow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px; }
+      .workflow::before { display: none; }
+    .step {
+        text-align: center; padding: 28px 20px; position: relative; z-index: 1;
+        background: var(--white); border: 1px solid var(--gray-2); border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+    }
+    .step-num {
+        width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 18px;
+      display: flex; align-items: center; justify-content: center;
+        font-size: 20px; font-weight: 900; color: var(--white);
+      background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+      box-shadow: 0 8px 20px rgba(248,85,32,.35);
+    }
+      .step h4 { margin-bottom: 8px; font-size: 18px; }
+      .step p { font-size: 14px; color: var(--text-muted); margin: 0; }
+
+    /* ─── Device Compatibility ──────────────────────────────────────────── */
+    .device-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 28px; }
+    .device-card {
+      background: var(--white); border: 1px solid var(--gray-2); border-radius: var(--radius-lg);
+      padding: 36px 28px; text-align: center; transition: all .3s;
+    }
+    .device-card:hover { box-shadow: var(--shadow-lg); border-color: rgba(248,85,32,.25); transform: translateY(-3px); }
+    .device-icon-wrap {
+      width: 80px; height: 80px; border-radius: 20px; margin: 0 auto 20px;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .device-card h3 { margin-bottom: 8px; }
+    .device-card p { font-size: 14px; color: var(--text-muted); }
+
+    /* ─── Maps Section ──────────────────────────────────────────────────── */
+    .maps-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 64px; align-items: center; }
+    .maps-visual {
+      background: linear-gradient(160deg, #e8f4e8 0%, #d1ecd1 100%);
+      border-radius: var(--radius-lg); overflow: hidden; position: relative;
+      height: 380px; box-shadow: var(--shadow-lg);
+    }
+
+    /* ─── Integration Section ───────────────────────────────────────────── */
+    .integration-card {
+      background: linear-gradient(135deg, var(--dark) 0%, var(--dark-3) 100%);
+      border-radius: 24px; padding: 64px; display: grid;
+      grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+    }
+    .integration-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(248,85,32,.15); border: 1px solid rgba(248,85,32,.3);
+      border-radius: 100px; padding: 6px 14px; font-size: 12px; font-weight: 700;
+      letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px;
+    }
+    .integration-card h2 { color: var(--white); margin-bottom: 16px; }
+    .integration-card .lead { color: rgba(255,255,255,.6); }
+    .integration-feature {
+      display: flex; align-items: center; gap: 14px; padding: 16px;
+      background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
+      border-radius: 12px; margin-top: 12px; transition: all .25s;
+    }
+    .integration-feature:hover { background: rgba(255,255,255,.08); }
+    .int-icon {
+      width: 40px; height: 40px; border-radius: 10px; background: rgba(248,85,32,.2);
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .integration-feature h4 { color: var(--white); margin-bottom: 2px; }
+    .integration-feature p { font-size: 13px; color: rgba(255,255,255,.5); }
+
+    /* ─── Benefits Grid ─────────────────────────────────────────────────── */
+    .benefit-card {
+      background: var(--white); border: 1px solid var(--gray-2); border-radius: var(--radius-lg);
+      padding: 28px; display: flex; align-items: flex-start; gap: 16px; transition: all .3s;
+    }
+    .benefit-card:hover { box-shadow: var(--shadow); border-color: rgba(248,85,32,.2); }
+    .benefit-icon {
+      width: 48px; height: 48px; border-radius: 12px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .benefit-card h3 { margin-bottom: 6px; font-size: 17px; }
+    .benefit-card p { font-size: 14px; color: var(--text-muted); }
+
+    /* ─── Ideal For Pills ───────────────────────────────────────────────── */
+    .pills-row { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .pill {
+      padding: 9px 18px; border-radius: 100px; font-size: 14px; font-weight: 500;
+      background: var(--white); border: 1.5px solid var(--gray-2); color: var(--text-muted);
+      transition: all .2s;
+    }
+    .pill:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+    /* ─── CTA Section ───────────────────────────────────────────────────── */
+    .cta-section {
+      background: linear-gradient(135deg, var(--primary) 0%, #ff6b35 50%, var(--accent) 100%);
+      position: relative; overflow: hidden;
+    }
+    .cta-section::before {
+      content: ''; position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .cta-section .container { position: relative; z-index: 1; text-align: center; }
+    .cta-section h2 { color: var(--white); margin-bottom: 16px; }
+    .cta-section .lead { color: rgba(255,255,255,.8); margin-bottom: 40px; }
+    .cta-buttons { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; }
+
+    /* ─── Footer ────────────────────────────────────────────────────────── */
+    .footer {
+      background: var(--dark); color: rgba(255,255,255,.6);
+      padding: 60px 0 32px;
+    }
+    .footer-grid { display: grid; grid-template-columns: 1.5fr 1fr 1fr 1fr; gap: 48px; margin-bottom: 48px; }
+    .footer h4 { color: var(--white); margin-bottom: 16px; font-size: 14px; }
+    .footer ul { display: flex; flex-direction: column; gap: 10px; }
+    .footer li a { font-size: 14px; color: rgba(255,255,255,.5); transition: color .2s; }
+    .footer li a:hover { color: var(--primary); }
+    .footer-bottom {
+      border-top: 1px solid rgba(255,255,255,.08); padding-top: 28px;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .footer-bottom p { font-size: 13px; }
+    .footer-brand p { font-size: 13px; color: rgba(255,255,255,.35); margin-top: 10px; }
+
+    /* ─── Animations ────────────────────────────────────────────────────── */
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fadeIn   { from { opacity: 0; } to { opacity: 1; } }
+    @keyframes pulse    { 0%,100%{opacity:1} 50%{opacity:.5} }
+    .animate-in { animation: fadeInUp .6s ease both; }
+    .delay-1 { animation-delay: .1s; }
+    .delay-2 { animation-delay: .2s; }
+    .delay-3 { animation-delay: .3s; }
+    .delay-4 { animation-delay: .4s; }
+
+    /* ─── Tag pills inside hero ─────────────────────────────────────────── */
+    .floating-tag {
+      position: absolute; background: var(--white); border-radius: 14px;
+      padding: 10px 14px; box-shadow: var(--shadow-lg);
+      display: flex; align-items: center; gap: 10px; white-space: nowrap;
+      animation: floatCard 3s ease-in-out infinite;
+    }
+    .floating-tag:nth-child(2) { animation-delay: 1s; animation-name: floatCard2; }
+    .floating-tag:nth-child(3) { animation-delay: 2s; animation-name: floatCard3; }
+    .tag-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+    .tag-title { font-size: 13px; font-weight: 600; color: var(--text); }
+    .tag-sub   { font-size: 11px; color: var(--text-muted); }
+
+    /* ─── Trust bar ─────────────────────────────────────────────────────── */
+    .trust-bar {
+      background: var(--gray-1); padding: 28px 0;
+      border-top: 1px solid var(--gray-2); border-bottom: 1px solid var(--gray-2);
+    }
+    .trust-bar-inner { display: flex; align-items: center; justify-content: center; gap: 48px; flex-wrap: wrap; }
+    .trust-item { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--gray-4); }
+    .trust-icon { font-size: 20px; }
+
+    /* ─── Mobile responsive ─────────────────────────────────────────────── */
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; text-align: center; gap: 40px; }
+      .hero .lead { margin-left: auto; }
+      .hero-badges { justify-content: center; }
+      .hero-actions { justify-content: center; }
+      .hero-visual { order: -1; }
+      .phone-mockup-wrap { width: 100%; max-width: 360px; height: 480px; }
+      .app-phone { width: 210px; }
+      .grid-2, .grid-3, .grid-4, .device-row, .maps-grid { grid-template-columns: 1fr; gap: 28px; }
+      .stats-row { grid-template-columns: 1fr 1fr; }
+      .stat-box:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+      .stat-box:last-child { border-radius: 0 0 var(--radius) var(--radius); }
+      .integration-card { grid-template-columns: 1fr; padding: 36px; }
+      .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
+      .workflow { grid-template-columns: 1fr 1fr; gap: 20px; }
+      .workflow::before { display: none; }
+      nav .nav-links { display: none; }
+      .trust-bar-inner { gap: 24px; }
+    }
+
+    @media (max-width: 560px) {
+      .section { padding: 60px 0; }
+      .stats-row { grid-template-columns: 1fr; }
+      .stat-box:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+      .stat-box:last-child  { border-radius: 0 0 var(--radius) var(--radius); }
+      .footer-grid { grid-template-columns: 1fr; }
+      .workflow { grid-template-columns: 1fr; }
+      .footer-bottom { flex-direction: column; gap: 12px; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ─── Navigation ─────────────────────────────────────────────────────── -->
+<nav class="nav" id="nav">
+  <div class="nav-inner">
+    <a href="#" class="logo">
+      <div class="logo-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7l-9-5z" fill="white" opacity=".9"/>
+          <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        </svg>
+      </div>
+      <span class="logo-text">Service<span>Pro</span> 911</span>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#how-it-works">How It Works</a>
+      <a href="#platforms">Platforms</a>
+      <a href="#maps">Maps</a>
+      <a href="#integration">Integration</a>
+    </div>
+    <div class="nav-cta">
+      <button class="btn-demo">Book a Demo</button>
+    </div>
+  </div>
+</nav>
+
+<!-- ─── Hero ────────────────────────────────────────────────────────────── -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-content hero-grid">
+      <!-- Left: Copy -->
+      <div class="animate-in">
+        <div class="hero-eyebrow">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><circle cx="6" cy="6" r="6"/></svg>
+          Built for Service Businesses
+        </div>
+        <h1>Run Your Service Business <span>Smarter</span> with Service Pro 911</h1>
+        <p class="lead" style="margin-top:16px;">
+          Manage jobs, customers, scheduling, estimates, invoices, payments, and refunds from one connected platform — built for field and office teams.
+        </p>
+        <div class="hero-badges">
+          <div class="hero-badge"><span class="hero-badge-dot"></span> Mobile &amp; Tablet Ready</div>
+          <div class="hero-badge"><span class="hero-badge-dot"></span> End-to-End Workflow</div>
+          <div class="hero-badge"><span class="hero-badge-dot"></span> Real-Time Field Access</div>
+        </div>
+        <div class="hero-actions">
+          <button class="btn btn-primary btn-lg">
+            Book a Demo
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </button>
+          <button class="btn btn-dark btn-lg">See How It Works</button>
+        </div>
+      </div>
+
+      <!-- Right: App Mockup -->
+      <div class="hero-visual animate-in delay-2">
+        <div class="phone-mockup-wrap">
+
+          <!-- Floating status tags -->
+          <div class="floating-tag animate-in delay-3" style="top:30px;left:0;z-index:10;">
+            <div class="tag-icon" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);">📅</div>
+            <div>
+              <div class="tag-title">Job Scheduled</div>
+              <div class="tag-sub">Tap &amp; dispatch</div>
+            </div>
+          </div>
+
+          <div class="floating-tag animate-in delay-4" style="top:200px;right:0;z-index:10;">
+            <div class="tag-icon" style="background:linear-gradient(135deg,#16a34a,#15803d);">✓</div>
+            <div>
+              <div class="tag-title">Payment Received</div>
+              <div class="tag-sub">$485.00 collected</div>
+            </div>
+          </div>
+
+          <div class="floating-tag animate-in delay-3" style="bottom:80px;left:0;z-index:10;">
+            <div class="tag-icon" style="background:linear-gradient(135deg,var(--primary),var(--accent));">📍</div>
+            <div>
+              <div class="tag-title">Route Opened</div>
+              <div class="tag-sub">ETA 12 min</div>
+            </div>
+          </div>
+
+          <!-- Phone SVG -->
+          <svg class="app-phone" viewBox="0 0 300 600" xmlns="http://www.w3.org/2000/svg">
+            <!-- Phone body -->
+            <rect x="2" y="2" width="296" height="596" rx="38" ry="38" fill="#1a1a1a" stroke="#333" stroke-width="2"/>
+            <rect x="8" y="8" width="284" height="584" rx="32" ry="32" fill="#f9f9f9"/>
+            <!-- Notch -->
+            <rect x="110" y="12" width="80" height="24" rx="12" fill="#1a1a1a"/>
+            <!-- Status bar -->
+            <rect x="20" y="44" width="260" height="2" rx="1" fill="#e5e5e5"/>
+
+            <!-- App Header Bar -->
+            <rect x="8" y="48" width="284" height="52" fill="white"/>
+            <text x="24" y="78" font-family="Inter,sans-serif" font-size="15" font-weight="800" fill="#1a1a1a">Service Pro 911</text>
+            <!-- Header right icons -->
+            <circle cx="252" cy="74" r="14" fill="#f5f5f5"/>
+            <text x="246" y="79" font-family="sans-serif" font-size="14">🔔</text>
+            <circle cx="280" cy="74" r="14" fill="#f5f5f5"/>
+            <text x="274" y="79" font-family="sans-serif" font-size="14">👤</text>
+
+            <!-- Today summary card -->
+            <rect x="16" y="112" width="268" height="76" rx="14" fill="url(#heroGrad)"/>
+            <text x="30" y="135" font-family="Inter,sans-serif" font-size="11" font-weight="600" fill="rgba(255,255,255,0.7)">TODAY'S OVERVIEW</text>
+            <text x="30" y="157" font-family="Inter,sans-serif" font-size="22" font-weight="900" fill="white">8 Jobs Active</text>
+            <text x="30" y="176" font-family="Inter,sans-serif" font-size="11" fill="rgba(255,255,255,0.75)">3 pending · 5 in progress</text>
+            <!-- mini bar chart -->
+            <rect x="218" y="128" width="8" height="40" rx="3" fill="rgba(255,255,255,0.2)"/>
+            <rect x="230" y="118" width="8" height="50" rx="3" fill="rgba(255,255,255,0.3)"/>
+            <rect x="242" y="125" width="8" height="43" rx="3" fill="rgba(255,255,255,0.25)"/>
+            <rect x="254" y="112" width="8" height="56" rx="3" fill="rgba(255,255,255,0.45)"/>
+
+            <!-- Job cards -->
+            <!-- Card 1 -->
+            <rect x="16" y="202" width="268" height="72" rx="12" fill="white" stroke="#f0f0f0" stroke-width="1"/>
+            <circle cx="36" cy="238" r="14" fill="#fff3ee"/>
+            <text x="29" y="243" font-family="sans-serif" font-size="14">🔧</text>
+            <text x="60" y="228" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">HVAC Repair - Johnson</text>
+            <text x="60" y="244" font-family="Inter,sans-serif" font-size="10" fill="#737373">142 Maple St · 9:00 AM</text>
+            <rect x="60" y="252" width="44" height="14" rx="7" fill="#dcfce7"/>
+            <text x="65" y="263" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#16a34a">Paid</text>
+            <rect x="112" y="252" width="52" height="14" rx="7" fill="#fff7ed"/>
+            <text x="117" y="263" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#f97316">In Progress</text>
+            <text x="252" y="243" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">$320</text>
+
+            <!-- Card 2 -->
+            <rect x="16" y="282" width="268" height="72" rx="12" fill="white" stroke="#f0f0f0" stroke-width="1"/>
+            <circle cx="36" cy="318" r="14" fill="#eff6ff"/>
+            <text x="29" y="323" font-family="sans-serif" font-size="14">💧</text>
+            <text x="60" y="308" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Plumbing - Williams</text>
+            <text x="60" y="324" font-family="Inter,sans-serif" font-size="10" fill="#737373">89 Oak Ave · 11:30 AM</text>
+            <rect x="60" y="332" width="48" height="14" rx="7" fill="#fef3c7"/>
+            <text x="65" y="343" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#d97706">Scheduled</text>
+            <text x="252" y="323" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">$195</text>
+
+            <!-- Card 3 -->
+            <rect x="16" y="362" width="268" height="72" rx="12" fill="white" stroke="#f0f0f0" stroke-width="1"/>
+            <circle cx="36" cy="398" r="14" fill="#f5f3ff"/>
+            <text x="29" y="403" font-family="sans-serif" font-size="14">⚡</text>
+            <text x="60" y="388" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Electrical - Rodriguez</text>
+            <text x="60" y="404" font-family="Inter,sans-serif" font-size="10" fill="#737373">33 Elm Blvd · 2:00 PM</text>
+            <rect x="60" y="412" width="48" height="14" rx="7" fill="#fee2e2"/>
+            <text x="65" y="423" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#dc2626">Unpaid</text>
+            <text x="248" y="403" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">$580</text>
+
+            <!-- Bottom Nav -->
+            <rect x="8" y="524" width="284" height="68" rx="0" fill="white"/>
+            <rect x="8" y="524" width="284" height="1" fill="#f0f0f0"/>
+            <!-- Nav icons -->
+            <text x="26" y="556" font-family="sans-serif" font-size="18">🏠</text>
+            <text x="22" y="568" font-family="Inter,sans-serif" font-size="8" font-weight="600" fill="#f85520">Home</text>
+            <text x="78" y="556" font-family="sans-serif" font-size="18">🔧</text>
+            <text x="76" y="568" font-family="Inter,sans-serif" font-size="8" font-weight="500" fill="#9ca3af">Jobs</text>
+            <text x="132" y="556" font-family="sans-serif" font-size="18">📋</text>
+            <text x="128" y="568" font-family="Inter,sans-serif" font-size="8" font-weight="500" fill="#9ca3af">Invoices</text>
+            <text x="188" y="556" font-family="sans-serif" font-size="18">👥</text>
+            <text x="185" y="568" font-family="Inter,sans-serif" font-size="8" font-weight="500" fill="#9ca3af">Customers</text>
+            <text x="244" y="556" font-family="sans-serif" font-size="18">⚙️</text>
+            <text x="242" y="568" font-family="Inter,sans-serif" font-size="8" font-weight="500" fill="#9ca3af">More</text>
+
+            <defs>
+              <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#f85520"/>
+                <stop offset="100%" stop-color="#ff7340"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Trust Bar ──────────────────────────────────────────────────────── -->
+<div class="trust-bar">
+  <div class="trust-bar-inner container">
+    <div class="trust-item"><span class="trust-icon">🛠️</span> HVAC &amp; Plumbing</div>
+    <div class="trust-item"><span class="trust-icon">⚡</span> Electrical Contractors</div>
+    <div class="trust-item"><span class="trust-icon">🏠</span> Home Service Providers</div>
+    <div class="trust-item"><span class="trust-icon">🔧</span> Appliance Repair</div>
+    <div class="trust-item"><span class="trust-icon">🚪</span> Garage Door Services</div>
+    <div class="trust-item"><span class="trust-icon">📡</span> Field Service Teams</div>
+  </div>
+</div>
+
+<!-- ─── Stats ──────────────────────────────────────────────────────────── -->
+<section class="section--dark">
+  <div class="container">
+    <div class="stats-row">
+      <div class="stat-box">
+        <div class="stat-value">1</div>
+        <div class="stat-label">Connected Platform</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value">360°</div>
+        <div class="stat-label">Business Visibility</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value">3×</div>
+        <div class="stat-label">Faster Invoicing</div>
+      </div>
+      <div class="stat-box">
+        <div class="stat-value">∞</div>
+        <div class="stat-label">Scalable Growth</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Why Choose ─────────────────────────────────────────────────────── -->
+<section class="section" id="features">
+  <div class="container">
+    <div class="section-header animate-in">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> Why Service Businesses Choose Us</div>
+      <h2>Everything Your Service Business Needs — In One Place</h2>
+      <p class="lead">Stop juggling multiple tools. Service Pro 911 brings scheduling, invoicing, payments, and team coordination into one seamless workflow.</p>
+    </div>
+
+    <div class="grid-auto">
+      <!-- Feature 1 -->
+      <div class="feature-card animate-in delay-1">
+        <div class="feature-icon" style="background:#fff3ee;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="18" rx="2" stroke="#f85520" stroke-width="2"/><path d="M16 2v4M8 2v4M3 10h18" stroke="#f85520" stroke-width="2" stroke-linecap="round"/><path d="M8 14h1M12 14h1M16 14h1M8 18h1M12 18h1M16 18h1" stroke="#f85520" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Smart Job Management</h3>
+        <p>Schedule, dispatch, and track every job from start to finish.</p>
+        <ul>
+          <li><span class="check-icon">✓</span> Schedule and dispatch jobs efficiently</li>
+          <li><span class="check-icon">✓</span> Track job status in real time</li>
+          <li><span class="check-icon">✓</span> Reassign and reschedule instantly</li>
+          <li><span class="check-icon">✓</span> Link jobs with invoices &amp; estimates</li>
+        </ul>
+      </div>
+
+      <!-- Feature 2 -->
+      <div class="feature-card animate-in delay-2">
+        <div class="feature-icon" style="background:#f0fdf4;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Faster Payments Workflow</h3>
+        <p>From estimate to paid invoice in the fewest steps possible.</p>
+        <ul>
+          <li><span class="check-icon">✓</span> Create estimates quickly</li>
+          <li><span class="check-icon">✓</span> Convert estimates to invoices</li>
+          <li><span class="check-icon">✓</span> Collect and track payments</li>
+          <li><span class="check-icon">✓</span> Handle partial &amp; full refunds</li>
+        </ul>
+      </div>
+
+      <!-- Feature 3 -->
+      <div class="feature-card animate-in delay-3">
+        <div class="feature-icon" style="background:#eff6ff;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="#2563eb" stroke-width="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Team Coordination</h3>
+        <p>Keep office staff and field technicians on the same page.</p>
+        <ul>
+          <li><span class="check-icon">✓</span> Office manages scheduling &amp; comms</li>
+          <li><span class="check-icon">✓</span> Field techs see job details on-site</li>
+          <li><span class="check-icon">✓</span> Single connected workflow</li>
+          <li><span class="check-icon">✓</span> Real-time status updates</li>
+        </ul>
+      </div>
+
+      <!-- Feature 4 -->
+      <div class="feature-card animate-in delay-1">
+        <div class="feature-icon" style="background:#faf5ff;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <h3>Estimates, Invoices &amp; Agreements</h3>
+        <p>Professional documents generated in seconds, not minutes.</p>
+        <ul>
+          <li><span class="check-icon">✓</span> Create professional estimates</li>
+          <li><span class="check-icon">✓</span> One-click invoice conversion</li>
+          <li><span class="check-icon">✓</span> Manage service agreements</li>
+          <li><span class="check-icon">✓</span> All documents tied to jobs</li>
+        </ul>
+      </div>
+
+      <!-- Feature 5 -->
+      <div class="feature-card animate-in delay-2">
+        <div class="feature-icon" style="background:#fff1f2;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" stroke="#e11d48" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke="#e11d48" stroke-width="2"/><path d="M6 12h.01M18 12h.01" stroke="#e11d48" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Customer Management</h3>
+        <p>Full customer history, notes, and service records always accessible.</p>
+        <ul>
+          <li><span class="check-icon">✓</span> Customer profiles &amp; history</li>
+          <li><span class="check-icon">✓</span> Notes &amp; service records</li>
+          <li><span class="check-icon">✓</span> Linked documents per customer</li>
+          <li><span class="check-icon">✓</span> Quick lookup in the field</li>
+        </ul>
+      </div>
+
+      <!-- Feature 6 -->
+      <div class="feature-card animate-in delay-3">
+        <div class="feature-icon" style="background:#f0fdfa;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke="#0d9488" stroke-width="2"/><path d="M3 9h18M9 21V9" stroke="#0d9488" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <h3>Business Visibility</h3>
+        <p>Dashboards and reports to see what's happening across your business.</p>
+        <ul>
+          <li><span class="check-icon">✓</span> Payment tracking dashboards</li>
+          <li><span class="check-icon">✓</span> Document status monitoring</li>
+          <li><span class="check-icon">✓</span> Revenue &amp; job reports</li>
+          <li><span class="check-icon">✓</span> Real-time operational view</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── How It Works ────────────────────────────────────────────────────── -->
+<section class="section section--gray" id="how-it-works">
+  <div class="container">
+    <div class="section-header">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> How It Works</div>
+      <h2>From Estimate to Completed Job in One Connected Flow</h2>
+      <p class="lead">Service Pro 911 guides your team from estimate or agreement creation through payment, dispatch, job completion, and customer feedback.</p>
+    </div>
+    <div class="workflow">
+      <div class="step">
+        <div class="step-num">1</div>
+        <h4>Create Estimate or Agreement</h4>
+        <p>Create an estimate or agreement for the customer and prepare the work for approval.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">2</div>
+        <h4>Collect Payment</h4>
+        <p>Accept payment from the customer once the estimate or agreement is approved.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">3</div>
+        <h4>Convert to Invoice</h4>
+        <p>Convert the approved estimate or agreement into an invoice with a single step.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">4</div>
+        <h4>Convert Invoice to Job</h4>
+        <p>Turn the invoice into a job so the work is ready for scheduling and field execution.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">5</div>
+        <h4>Assign Employee &amp; Schedule</h4>
+        <p>Assign the job to an employee and add the job date and time for the visit.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">6</div>
+        <h4>Enter Job Location</h4>
+        <p>Add the job location so it can be displayed directly on the map for easy routing.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">7</div>
+        <h4>Mark In Progress On Site</h4>
+        <p>When the employee arrives on site, update the job status to In Progress.</p>
+      </div>
+      <div class="step">
+        <div class="step-num">8</div>
+        <h4>Complete Job &amp; Send Feedback</h4>
+        <p>Mark the job as completed after the work is finished and send the feedback form.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Ideal For ──────────────────────────────────────────────────────── -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> Industries We Serve</div>
+      <h2>Built for the Service Industries That Keep Homes Running</h2>
+      <p class="lead">From solo technicians to growing service fleets, Service Pro 911 adapts to your business type and workflow.</p>
+    </div>
+    <div class="pills-row">
+      <div class="pill">🌬️ HVAC</div>
+      <div class="pill">💧 Plumbing</div>
+      <div class="pill">⚡ Electrical</div>
+      <div class="pill">🏠 Appliance Repair</div>
+      <div class="pill">🚪 Garage Door Service</div>
+      <div class="pill">🏡 Home Services</div>
+      <div class="pill">🔧 Maintenance Teams</div>
+      <div class="pill">📡 Field Service Ops</div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Device Compatibility ───────────────────────────────────────────── -->
+<section class="section section--gray" id="platforms">
+  <div class="container">
+    <div class="section-header">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> Works Everywhere Your Team Works</div>
+      <h2>Compatible Across Mobile, Tablet, and Desktop</h2>
+      <p class="lead">Service Pro 911 is built to support the way modern service businesses work — wherever your team is, the platform is ready.</p>
+    </div>
+
+    <div class="device-row">
+      <!-- Mobile -->
+      <div class="device-card">
+        <div class="device-icon-wrap" style="background:#fff3ee;">
+          <svg viewBox="0 0 80 80" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+            <rect x="22" y="8" width="36" height="64" rx="8" fill="#1a1a1a"/>
+            <rect x="26" y="14" width="28" height="46" rx="4" fill="#f9f9f9"/>
+            <circle cx="40" cy="67" r="3" fill="#444"/>
+            <rect x="36" y="11" width="8" height="2" rx="1" fill="#444"/>
+            <!-- Screen content -->
+            <rect x="28" y="16" width="24" height="4" rx="2" fill="#f85520" opacity=".7"/>
+            <rect x="28" y="23" width="24" height="3" rx="1.5" fill="#e5e5e5"/>
+            <rect x="28" y="28" width="16" height="3" rx="1.5" fill="#e5e5e5"/>
+            <rect x="28" y="35" width="24" height="12" rx="3" fill="#fff3ee" stroke="#f85520" stroke-width=".5"/>
+            <rect x="28" y="50" width="24" height="6" rx="3" fill="#f85520"/>
+          </svg>
+        </div>
+        <h3>📱 Mobile</h3>
+        <p>Perfect for technicians and field teams who need quick access while on the move. Optimized for speed and one-handed use.</p>
+      </div>
+
+      <!-- Tablet -->
+      <div class="device-card">
+        <div class="device-icon-wrap" style="background:#eff6ff;">
+          <svg viewBox="0 0 80 80" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="16" width="64" height="48" rx="6" fill="#1a1a1a"/>
+            <rect x="12" y="20" width="56" height="40" rx="3" fill="#f9f9f9"/>
+            <circle cx="72" cy="40" r="2" fill="#444"/>
+            <!-- Screen content -->
+            <rect x="14" y="22" width="52" height="5" rx="2" fill="#2563eb" opacity=".5"/>
+            <rect x="14" y="30" width="25" height="14" rx="2" fill="#eff6ff" stroke="#2563eb" stroke-width=".5"/>
+            <rect x="14" y="47" width="25" height="8" rx="2" fill="#e5e5e5"/>
+            <rect x="42" y="30" width="24" height="25" rx="2" fill="#fff3ee" stroke="#f85520" stroke-width=".5"/>
+          </svg>
+        </div>
+        <h3>📲 Tablet</h3>
+        <p>Ideal for teams that want a larger, more comfortable interface in the field or at the front desk. More screen, more context.</p>
+      </div>
+
+      <!-- Desktop -->
+      <div class="device-card">
+        <div class="device-icon-wrap" style="background:#f0fdfa;">
+          <svg viewBox="0 0 80 80" width="80" height="80" xmlns="http://www.w3.org/2000/svg">
+            <rect x="8" y="12" width="64" height="42" rx="4" fill="#1a1a1a"/>
+            <rect x="12" y="16" width="56" height="34" rx="2" fill="#f9f9f9"/>
+            <rect x="28" y="58" width="24" height="4" rx="2" fill="#333"/>
+            <rect x="20" y="62" width="40" height="3" rx="1.5" fill="#1a1a1a"/>
+            <!-- Screen content -->
+            <rect x="14" y="18" width="52" height="5" rx="1" fill="#0d9488" opacity=".5"/>
+            <rect x="14" y="25" width="14" height="20" rx="1" fill="#f0fdfa" stroke="#0d9488" stroke-width=".5"/>
+            <rect x="30" y="25" width="36" height="8" rx="1" fill="#e5e5e5"/>
+            <rect x="30" y="35" width="36" height="10" rx="1" fill="#e5e5e5" opacity=".5"/>
+          </svg>
+        </div>
+        <h3>💻 Desktop</h3>
+        <p>Best for office staff, dispatchers, and managers handling scheduling, reporting, financial workflows, and customer records.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Maps Section ───────────────────────────────────────────────────── -->
+<section class="section" id="maps">
+  <div class="container">
+    <div class="maps-grid">
+      <!-- Left: Copy -->
+      <div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Maps &amp; Route Visibility</div>
+        <h2>Get to Every Job Faster with Built-In Maps</h2>
+        <p class="lead" style="margin-top:16px;">
+          Service Pro 911 helps technicians and dispatchers quickly open job locations and view the route in seconds — directly from job details.
+        </p>
+        <ul style="margin-top:28px;display:flex;flex-direction:column;gap:14px;">
+          <li style="display:flex;align-items:flex-start;gap:14px;">
+            <span style="width:36px;height:36px;border-radius:10px;background:#fff3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">📍</span>
+            <div><strong style="display:block;margin-bottom:2px;">Open Addresses Directly</strong><span style="font-size:14px;color:var(--text-muted);">Open customer addresses in maps from job details with a single tap.</span></div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:14px;">
+            <span style="width:36px;height:36px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🗺️</span>
+            <div><strong style="display:block;margin-bottom:2px;">View Route Instantly</strong><span style="font-size:14px;color:var(--text-muted);">See the route immediately for faster travel decisions without leaving the app.</span></div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:14px;">
+            <span style="width:36px;height:36px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">⏱️</span>
+            <div><strong style="display:block;margin-bottom:2px;">Reduce Arrival Delays</strong><span style="font-size:14px;color:var(--text-muted);">Improve on-time arrivals and daily route efficiency for every technician.</span></div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:14px;">
+            <span style="width:36px;height:36px;border-radius:10px;background:#faf5ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🚗</span>
+            <div><strong style="display:block;margin-bottom:2px;">Faster Dispatch Decisions</strong><span style="font-size:14px;color:var(--text-muted);">Help dispatch teams make smarter daily routing decisions at a glance.</span></div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Right: Map Infographic -->
+      <div>
+        <svg viewBox="0 0 480 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,0.12);">
+          <!-- Map background -->
+          <rect width="480" height="380" fill="#e8f4e8"/>
+          <!-- Road grid -->
+          <line x1="0" y1="190" x2="480" y2="190" stroke="white" stroke-width="8" opacity=".8"/>
+          <line x1="240" y1="0" x2="240" y2="380" stroke="white" stroke-width="8" opacity=".8"/>
+          <line x1="0" y1="95"  x2="480" y2="95"  stroke="white" stroke-width="4" opacity=".5"/>
+          <line x1="0" y1="285" x2="480" y2="285" stroke="white" stroke-width="4" opacity=".5"/>
+          <line x1="120" y1="0" x2="120" y2="380" stroke="white" stroke-width="4" opacity=".5"/>
+          <line x1="360" y1="0" x2="360" y2="380" stroke="white" stroke-width="4" opacity=".5"/>
+          <!-- City blocks -->
+          <rect x="30"  y="30"  width="70"  height="50"  rx="4" fill="#d4ead4" opacity=".8"/>
+          <rect x="130" y="30"  width="90"  height="50"  rx="4" fill="#c8e3c8" opacity=".8"/>
+          <rect x="250" y="30"  width="80"  height="50"  rx="4" fill="#d4ead4" opacity=".8"/>
+          <rect x="350" y="30"  width="100" height="50"  rx="4" fill="#c8e3c8" opacity=".8"/>
+          <rect x="30"  y="115" width="70"  height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
+          <rect x="130" y="115" width="90"  height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
+          <rect x="250" y="115" width="80"  height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
+          <rect x="350" y="115" width="100" height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
+          <rect x="30"  y="210" width="70"  height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
+          <rect x="130" y="210" width="90"  height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
+          <rect x="250" y="210" width="80"  height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
+          <rect x="350" y="210" width="100" height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
+          <rect x="30"  y="300" width="70"  height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
+          <rect x="130" y="300" width="90"  height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
+          <rect x="250" y="300" width="80"  height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
+          <rect x="350" y="300" width="100" height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
+
+          <!-- Route line (animated dashes) -->
+          <path d="M 80 240 Q 80 190 120 190 Q 180 190 200 145 Q 220 100 280 80 Q 350 55 400 55"
+                fill="none" stroke="#f85520" stroke-width="4" stroke-dasharray="8 4"
+                stroke-linecap="round" opacity=".9"/>
+
+          <!-- Start pin (technician) -->
+          <circle cx="80" cy="240" r="18" fill="white" stroke="#f85520" stroke-width="3"/>
+          <text x="80" y="245" text-anchor="middle" font-family="sans-serif" font-size="16">🚗</text>
+
+          <!-- End pin (job site) -->
+          <ellipse cx="400" cy="72" rx="14" ry="5" fill="rgba(248,85,32,.2)"/>
+          <path d="M400 28 C400 28 414 42 414 54 C414 62.8 407.7 70 400 70 C392.3 70 386 62.8 386 54 C386 42 400 28 400 28Z" fill="#f85520"/>
+          <circle cx="400" cy="53" r="7" fill="white"/>
+          <text x="400" y="57" text-anchor="middle" font-family="sans-serif" font-size="10">🔧</text>
+
+          <!-- Midpoint -->
+          <circle cx="200" cy="145" r="8" fill="#f85520" opacity=".4"/>
+          <circle cx="280" cy="80"  r="8" fill="#f85520" opacity=".4"/>
+
+          <!-- Info card -->
+          <rect x="20" y="300" width="180" height="66" rx="12" fill="white" opacity=".95" style="filter:drop-shadow(0 4px 12px rgba(0,0,0,.12))"/>
+          <text x="36"  y="322" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#f85520">📍 HVAC Repair – Johnson</text>
+          <text x="36"  y="337" font-family="Inter,sans-serif" font-size="10" fill="#737373">142 Maple Street</text>
+          <rect x="36"  y="345" width="80" height="14" rx="7" fill="#f85520"/>
+          <text x="76" y="355" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="white">Open in Maps</text>
+
+          <!-- ETA badge -->
+          <rect x="300" y="300" width="160" height="50" rx="12" fill="white" opacity=".95" style="filter:drop-shadow(0 4px 12px rgba(0,0,0,.12))"/>
+          <text x="316" y="318" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#16a34a">✓ Route Ready</text>
+          <text x="316" y="334" font-family="Inter,sans-serif" font-size="24" font-weight="900" fill="#1a1a1a">12 min</text>
+          <text x="316" y="345" font-family="Inter,sans-serif" font-size="9" fill="#737373">ETA 9:42 AM · 4.2 mi</text>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Universell Integration ────────────────────────────────────────── -->
+<section class="section section--gray" id="integration">
+  <div class="container">
+    <div class="integration-card">
+      <!-- Left: Copy -->
+      <div>
+        <div class="integration-badge">
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 0L7.5 4.5H12L8.25 7.3 9.75 12 6 9.2 2.25 12 3.75 7.3 0 4.5H4.5z"/></svg>
+          Official Integration
+        </div>
+        <h2>Fully Integrated with Universell</h2>
+        <p class="lead" style="margin-top:12px;margin-bottom:28px;">
+          Service Pro 911 includes a dedicated integration experience with Universell, helping businesses connect their operations more efficiently within a unified workflow.
+        </p>
+        <div class="integration-feature">
+          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#ff7340" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div><h4>Unified Business Workflow</h4><p>Reduce friction between systems with connected data and processes</p></div>
+        </div>
+        <div class="integration-feature">
+          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#ff7340" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#ff7340" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div><h4>Eliminate Duplication</h4><p>Reduces duplicate entry across systems for faster team operations</p></div>
+        </div>
+        <div class="integration-feature">
+          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2V3zm20 0h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7V3z" stroke="#ff7340" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div><h4>Consistent Operations</h4><p>Improved operational consistency across service and financial activity</p></div>
+        </div>
+      </div>
+
+      <!-- Right: Integration Diagram SVG -->
+      <div style="display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 360 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:360px;">
+          <!-- Background circles -->
+          <circle cx="180" cy="150" r="130" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+          <circle cx="180" cy="150" r="90" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
+          <circle cx="180" cy="150" r="50" fill="rgba(248,85,32,.15)" stroke="rgba(248,85,32,.3)" stroke-width="1"/>
+
+          <!-- Center: Connect icon -->
+          <circle cx="180" cy="150" r="34" fill="url(#intGrad)"/>
+          <text x="180" y="156" text-anchor="middle" font-family="sans-serif" font-size="24">🔗</text>
+
+          <!-- ServicePro911 node -->
+          <circle cx="80" cy="80" r="36" fill="rgba(255,255,255,.07)" stroke="rgba(248,85,32,.4)" stroke-width="2"/>
+          <text x="80" y="76" text-anchor="middle" font-family="sans-serif" font-size="18">🛡️</text>
+          <text x="80" y="91" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,.7)">Service</text>
+          <text x="80" y="101" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,.7)">Pro 911</text>
+
+          <!-- Universell node -->
+          <circle cx="280" cy="80" r="36" fill="rgba(255,255,255,.07)" stroke="rgba(248,85,32,.4)" stroke-width="2"/>
+          <text x="280" y="76" text-anchor="middle" font-family="sans-serif" font-size="18">⚡</text>
+          <text x="280" y="91" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,.7)">Universell</text>
+
+          <!-- Jobs node -->
+          <circle cx="80" cy="230" r="28" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <text x="80" y="226" text-anchor="middle" font-family="sans-serif" font-size="16">📋</text>
+          <text x="80" y="240" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="rgba(255,255,255,.5)">Jobs</text>
+
+          <!-- Payments node -->
+          <circle cx="280" cy="230" r="28" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <text x="280" y="226" text-anchor="middle" font-family="sans-serif" font-size="16">💳</text>
+          <text x="280" y="240" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="rgba(255,255,255,.5)">Payments</text>
+
+          <!-- Customers node -->
+          <circle cx="180" cy="270" r="28" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
+          <text x="180" y="266" text-anchor="middle" font-family="sans-serif" font-size="16">👥</text>
+          <text x="180" y="280" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="rgba(255,255,255,.5)">Customers</text>
+
+          <!-- Connection lines -->
+          <line x1="110" y1="98"  x2="155" y2="135" stroke="rgba(248,85,32,.4)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <line x1="250" y1="98"  x2="205" y2="135" stroke="rgba(248,85,32,.4)" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <line x1="105" y1="215" x2="155" y2="165" stroke="rgba(255,255,255,.2)" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="255" y1="215" x2="205" y2="165" stroke="rgba(255,255,255,.2)" stroke-width="1" stroke-dasharray="4 3"/>
+          <line x1="180" y1="245" x2="180" y2="184" stroke="rgba(255,255,255,.2)" stroke-width="1" stroke-dasharray="4 3"/>
+
+          <defs>
+            <linearGradient id="intGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#f85520"/>
+              <stop offset="100%" stop-color="#ff7340"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Business Benefits ──────────────────────────────────────────────── -->
+<section class="section">
+  <div class="container">
+    <div class="section-header">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> Business Benefits</div>
+      <h2>Real Outcomes for Service Businesses</h2>
+      <p class="lead">Service Pro 911 delivers tangible improvements to how your business runs every day.</p>
+    </div>
+
+    <div class="grid-auto">
+      <div class="benefit-card">
+        <div class="benefit-icon" style="background:#fff3ee;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#f85520" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#f85520" stroke-width="2" stroke-linecap="round"/></svg>
+        </div>
+        <div>
+          <h3>Save Time</h3>
+          <p>Reduce manual processes and keep everything in one place. Less switching, more doing.</p>
+        </div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon" style="background:#f0fdf4;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M9 11l3 3L22 4" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h3>Stay Organized</h3>
+          <p>Keep jobs, customers, documents, and payments connected and always findable.</p>
+        </div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon" style="background:#eff6ff;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="9" cy="7" r="4" stroke="#2563eb" stroke-width="2"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" stroke="#2563eb" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h3>Improve Team Productivity</h3>
+          <p>Give office staff and field teams the tools they need to work faster and smarter.</p>
+        </div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon" style="background:#faf5ff;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 1.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h3>Better Customer Experience</h3>
+          <p>Respond faster, stay accurate, and provide a smoother service journey from first call to final invoice.</p>
+        </div>
+      </div>
+      <div class="benefit-card">
+        <div class="benefit-icon" style="background:#f0fdfa;">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M22 12h-4l-3 9L9 3l-3 9H2" stroke="#0d9488" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <div>
+          <h3>Support Growth</h3>
+          <p>Use a platform built to handle the complexity of running a growing service business at any scale.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Trust / Social Proof ───────────────────────────────────────────── -->
+<section class="section section--dark">
+  <div class="container" style="text-align:center;">
+    <div class="eyebrow" style="justify-content:center;color:rgba(248,85,32,.9);">
+      <span class="eyebrow-dot"></span> Who It's For
+    </div>
+    <h2 style="color:white;margin-bottom:16px;">Built for Service Businesses That Need More Than Basic Scheduling</h2>
+    <p class="lead" style="color:rgba(255,255,255,.55);max-width:620px;margin:0 auto 48px;">
+      Service Pro 911 is designed for businesses that need scheduling, dispatching, customer management, invoicing, payments, and refund handling in one connected experience.
+    </p>
+
+    <!-- Testimonial cards -->
+    <div class="grid-3" style="text-align:left;margin-bottom:0;">
+      <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px;">
+        <div style="display:flex;gap:4px;margin-bottom:16px;color:#f85520;font-size:18px;">★★★★★</div>
+        <p style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:20px;">"Our dispatch time dropped significantly after switching. Technicians always know exactly where to go and what to bring."</p>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#f85520,#ff7340);display:flex;align-items:center;justify-content:center;font-size:16px;">👷</div>
+          <div><div style="font-size:14px;font-weight:600;color:white;">Marcus T.</div><div style="font-size:12px;color:rgba(255,255,255,.4);">HVAC Business Owner</div></div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px;">
+        <div style="display:flex;gap:4px;margin-bottom:16px;color:#f85520;font-size:18px;">★★★★★</div>
+        <p style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:20px;">"Managing invoices, estimates and agreements in one place has completely changed how our office team operates."</p>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#1d4ed8);display:flex;align-items:center;justify-content:center;font-size:16px;">👩‍💼</div>
+          <div><div style="font-size:14px;font-weight:600;color:white;">Sarah L.</div><div style="font-size:12px;color:rgba(255,255,255,.4);">Office Manager, Plumbing Co.</div></div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px;">
+        <div style="display:flex;gap:4px;margin-bottom:16px;color:#f85520;font-size:18px;">★★★★★</div>
+        <p style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:20px;">"The mobile app is exactly what field techs need. Quick, simple, and everything is right there on the job card."</p>
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:16px;">🔧</div>
+          <div><div style="font-size:14px;font-weight:600;color:white;">David R.</div><div style="font-size:12px;color:rgba(255,255,255,.4);">Lead Tech, Electrical Contractor</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Final CTA ──────────────────────────────────────────────────────── -->
+<section class="section cta-section">
+  <div class="container">
+    <div style="max-width:640px;margin:0 auto;">
+      <div class="eyebrow" style="justify-content:center;color:rgba(255,255,255,.8);">
+        <span style="width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.8);display:inline-block;"></span>
+        Get Started Today
+      </div>
+      <h2>Ready to Simplify Your Service Business Operations?</h2>
+      <p class="lead">
+        From job scheduling to payments and refunds, Service Pro 911 helps service businesses run more efficiently across office, field, and management teams.
+      </p>
+      <div class="cta-buttons" style="margin-top:40px;">
+        <button class="btn btn-lg" style="background:white;color:var(--primary);font-weight:700;">
+          Request a Demo
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </button>
+        <button class="btn btn-outline btn-lg">Talk to Sales</button>
+        <button class="btn btn-outline btn-lg">Get Started</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Footer ─────────────────────────────────────────────────────────── -->
+<footer class="footer">
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a href="#" class="logo" style="margin-bottom:16px;display:inline-flex;">
+          <div class="logo-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+              <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7l-9-5z" fill="white" opacity=".9"/>
+              <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+          <span class="logo-text" style="color:white;">Service<span>Pro</span> 911</span>
+        </a>
+        <p>Run your service business smarter. One connected platform for jobs, customers, scheduling, invoicing, and payments.</p>
+      </div>
+
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how-it-works">How It Works</a></li>
+          <li><a href="#platforms">Platforms</a></li>
+          <li><a href="#maps">Maps Integration</a></li>
+          <li><a href="#integration">Universell Integration</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Use Cases</h4>
+        <ul>
+          <li><a href="#">HVAC Businesses</a></li>
+          <li><a href="#">Plumbing Companies</a></li>
+          <li><a href="#">Electrical Contractors</a></li>
+          <li><a href="#">Appliance Repair</a></li>
+          <li><a href="#">Field Service Teams</a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h4>Company</h4>
+        <ul>
+          <li><a href="#">About</a></li>
+          <li><a href="#">Contact Sales</a></li>
+          <li><a href="#">Book a Demo</a></li>
+          <li><a href="#">Privacy Policy</a></li>
+          <li><a href="#">Terms of Service</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="footer-bottom">
+      <p>© 2026 Service Pro 911. All rights reserved.</p>
+      <div style="display:flex;gap:16px;">
+        <a href="#" style="font-size:13px;color:rgba(255,255,255,.35);transition:color .2s;" onmouseover="this.style.color='#f85520'" onmouseout="this.style.color='rgba(255,255,255,.35)'">Privacy</a>
+        <a href="#" style="font-size:13px;color:rgba(255,255,255,.35);transition:color .2s;" onmouseover="this.style.color='#f85520'" onmouseout="this.style.color='rgba(255,255,255,.35)'">Terms</a>
+        <a href="#" style="font-size:13px;color:rgba(255,255,255,.35);transition:color .2s;" onmouseover="this.style.color='#f85520'" onmouseout="this.style.color='rgba(255,255,255,.35)'">Support</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ─── Scripts ────────────────────────────────────────────────────────── -->
+<script>
+  // Sticky nav shadow on scroll
+  const nav = document.getElementById('nav');
+  window.addEventListener('scroll', () => {
+    nav.classList.toggle('scrolled', window.scrollY > 20);
+  });
+
+  // Intersection Observer — animate-in elements
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.style.animationPlayState = 'running';
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.animate-in, .feature-card, .benefit-card, .device-card, .step').forEach(el => {
+    el.style.animationPlayState = 'paused';
+    el.classList.add('animate-in');
+    observer.observe(el);
+  });
+
+  // Smooth scroll for anchor links
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const target = document.querySelector(a.getAttribute('href'));
+      if (target) { e.preventDefault(); target.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
+    });
+  });
+</script>
+
+</body>
+</html>

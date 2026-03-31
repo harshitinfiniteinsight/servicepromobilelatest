@@ -1187,6 +1187,12 @@ const Invoices = () => {
           lineItems={refundLineItems}
           isLoading={refundItemsLoading}
           initialSelectedItemIds={refundFlowState?.selectedItems.map((item) => item.itemId) || []}
+          initialItemQtys={
+            refundFlowState?.selectedItems.reduce<Record<string, number>>((acc, item) => {
+              acc[item.itemId] = item.quantity;
+              return acc;
+            }, {}) ?? undefined
+          }
           onConfirm={handleRefundItemsConfirmed}
         />
       )}

@@ -11,7 +11,7 @@ export default defineConfig({
     extensions: ['.mjs', '.js', '.mts', '.ts', '.jsx', '.tsx', '.json'],
   },
   server: {
-    port: 8081,
+    port: 3333,
     host: true,
     strictPort: false,
     open: false,
