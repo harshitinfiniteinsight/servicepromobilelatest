@@ -642,6 +642,10 @@ const Jobs = () => {
   };
 
   const canPayJob = (jobId: string, paymentStatus?: string) => {
+    if ((paymentStatus || "").toLowerCase() === "refunded") {
+      return false;
+    }
+
     const linkedInvoices = getAllInvoicesForJob(jobId);
 
     if (linkedInvoices.length === 0) {
@@ -1595,26 +1599,32 @@ const Jobs = () => {
     // Recalculate payment summary for the current refund job
     if (currentRefundJobId) {
       const refundJobId = currentRefundJobId;
+      const currentJob = jobs.find((job) => job.id === refundJobId) as any;
+      const previousPaymentStatus = String(currentJob?.paymentStatus || "").toLowerCase();
       const linkedDocuments = getRefundableDocumentsForJob(refundJobId) as any[];
-      const totalInvoiced = linkedDocuments.reduce((sum, doc) => sum + Number(doc.paidAmount ?? doc.amount ?? 0), 0);
-      const netPaid = linkedDocuments.reduce((sum, doc) => {
+      const fallbackPaidBefore = linkedDocuments.reduce((sum, doc) => {
         const paidBase = Number(doc.paidAmount ?? doc.amount ?? 0);
         const refunded = Number(doc.refundedAmount || 0);
-        const currentRefund = documents.find((item) => item.id === doc.id && item.type === doc.type)?.refundAmount || 0;
-        return sum + Math.max(paidBase - refunded - currentRefund, 0);
+        return sum + Math.max(paidBase - refunded, 0);
       }, 0);
+
+      const previousPaidAmount = Number(
+        currentJob?.paidAmount ?? fallbackPaidBefore
+      );
+
+      const refundedNow = Math.max(Number(refundAmount || 0), 0);
+      const netPaid = Math.max(previousPaidAmount - refundedNow, 0);
+
       const hasRemainingRefundable = linkedDocuments.some((doc: any) => {
         const paidBase = Number(doc.paidAmount ?? doc.amount ?? 0);
         const refunded = Number(doc.refundedAmount || 0);
-        const currentRefund = documents.find((item) => item.id === doc.id && item.type === doc.type)?.refundAmount || 0;
-        return paidBase - refunded - currentRefund > 0;
+        return paidBase - refunded > 0;
       });
 
-      const nextPaymentStatus = netPaid <= 0
-        ? "unpaid"
-        : netPaid < totalInvoiced
-          ? "partial"
-          : "paid";
+      const isFullRefundOfPaidAmount = previousPaidAmount > 0 && netPaid <= 0;
+      const nextPaymentStatus = isFullRefundOfPaidAmount
+        ? (previousPaymentStatus === "paid" ? "refunded" : "unpaid")
+        : "partial";
 
       setJobs(prevJobs =>
         prevJobs.map(job =>
@@ -1623,7 +1633,6 @@ const Jobs = () => {
                 ...job,
                 paymentStatus: nextPaymentStatus as any,
                 paidAmount: Math.round(netPaid * 100) / 100,
-                totalAmount: totalInvoiced > 0 ? totalInvoiced : job.totalAmount,
               }
             : job
         )

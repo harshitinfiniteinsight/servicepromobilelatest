@@ -11,7 +11,7 @@ import { LucideIcon } from "lucide-react";
 
 // Types for job source and payment status
 export type JobSourceType = "estimate" | "invoice" | "agreement" | "none";
-export type JobPaymentStatus = "paid" | "unpaid" | "partial";
+export type JobPaymentStatus = "paid" | "unpaid" | "partial" | "refunded";
 
 export interface JobFinancialActionsProps {
   sourceType: JobSourceType;
@@ -190,7 +190,7 @@ export function getFinancialActions(
   }
 
   // Payment status handling - add Pay button if not fully paid
-  if (paymentStatus !== "paid" && handlers.onPay) {
+  if (paymentStatus !== "paid" && paymentStatus !== "refunded" && handlers.onPay) {
     actions.push({
       label: paymentStatus === "partial" ? "Complete Payment" : "Pay",
       icon: CreditCard,

@@ -71,6 +71,16 @@ const ItemSelectionModal = ({
     setSelectedItemIds(newSelected);
   };
 
+  const allSelected = refundableItems.length > 0 && refundableItems.every((item) => selectedItemIds.has(item.itemId));
+
+  const handleSelectAll = () => {
+    if (allSelected) {
+      setSelectedItemIds(new Set());
+    } else {
+      setSelectedItemIds(new Set(refundableItems.map((item) => item.itemId)));
+    }
+  };
+
   const handleConfirm = () => {
     if (selectedItems.length === 0) return;
     onConfirm(selectedItems, totalRefundAmount);
@@ -134,6 +144,22 @@ const ItemSelectionModal = ({
             {/* Items List */}
             {!isLoading && refundableItems.length > 0 && (
               <div className="space-y-2">
+                {/* Select All Row */}
+                <div className="flex items-center justify-between px-1 pb-1">
+                  <label className="flex items-center gap-2 cursor-pointer select-none" onClick={handleSelectAll}>
+                    <Checkbox
+                      checked={allSelected}
+                      onCheckedChange={handleSelectAll}
+                    />
+                    <span className="text-sm font-medium text-gray-700">
+                      {allSelected ? "Deselect All" : "Select All"}
+                    </span>
+                  </label>
+                  {selectedItems.length > 0 && (
+                    <span className="text-xs text-gray-500">{selectedItems.length} of {refundableItems.length} selected</span>
+                  )}
+                </div>
+
                 {refundableItems.map((item) => {
                   const isSelected = selectedItemIds.has(item.itemId);
                   const refunded = item.refundedAmount || 0;

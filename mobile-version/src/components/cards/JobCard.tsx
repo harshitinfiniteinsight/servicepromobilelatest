@@ -565,6 +565,13 @@ const JobCard = ({
                 </span>
               </div>
             )}
+            {job.paymentStatus === "refunded" && (
+              <Badge
+                className="text-[10px] px-1.5 py-0 h-4 rounded-full whitespace-nowrap bg-red-100 text-red-700 border-red-200"
+              >
+                Refunded
+              </Badge>
+            )}
             {jobType && (
               <Badge 
                 variant="outline" 
@@ -574,7 +581,7 @@ const JobCard = ({
               </Badge>
             )}
             {/* Compact Pay Button - matches Invoice/Estimate style */}
-            {jobPaymentStatusValue !== "paid" && onPay && job.status !== "Cancel" && job.status !== "Canceled" && (
+            {jobPaymentStatusValue !== "paid" && jobPaymentStatusValue !== "refunded" && onPay && job.status !== "Cancel" && job.status !== "Canceled" && (
               <Button
                 size="sm"
                 variant="default"

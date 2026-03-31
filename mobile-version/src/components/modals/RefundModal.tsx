@@ -149,6 +149,20 @@ const parseCurrencyInput = (value: string) => {
   return isNaN(parsed) ? 0 : parsed;
 };
 
+const areStringRecordsEqual = (
+  first: Record<string, string>,
+  second: Record<string, string>
+) => {
+  const firstKeys = Object.keys(first);
+  const secondKeys = Object.keys(second);
+
+  if (firstKeys.length !== secondKeys.length) {
+    return false;
+  }
+
+  return firstKeys.every((key) => first[key] === second[key]);
+};
+
 const RefundModal = ({
   isOpen,
   onClose,
@@ -235,6 +249,11 @@ const RefundModal = ({
 
   const hasItemSelection = Boolean(selectedRefundState?.selectedInvoice && selectedRefundState.selectedItems.length > 0);
   const selectedInvoiceFromFlow = selectedRefundState?.selectedInvoice ?? null;
+  const invoiceKey = useMemo(() => getDocumentKey(invoice), [invoice]);
+  const selectedInvoiceFromFlowKey = useMemo(
+    () => (selectedInvoiceFromFlow ? getDocumentKey(selectedInvoiceFromFlow) : null),
+    [selectedInvoiceFromFlow]
+  );
 
   const selectedDocuments = useMemo(() => {
     if (selectedInvoiceFromFlow) {
@@ -390,7 +409,9 @@ const RefundModal = ({
   // Keep per-document partial map in sync with currently selected documents
   useEffect(() => {
     if (refundType !== "partial") {
-      setPartialAmountErrorsByDocument({});
+      setPartialAmountErrorsByDocument((prev) => (
+        Object.keys(prev).length === 0 ? prev : {}
+      ));
       return;
     }
 
@@ -410,7 +431,7 @@ const RefundModal = ({
         }
       });
 
-      return next;
+      return areStringRecordsEqual(prev, next) ? prev : next;
     });
   }, [refundType, selectedDocuments]);
 
@@ -453,7 +474,9 @@ const RefundModal = ({
           sumInCents += toCents(parsed);
         });
 
-        setPartialAmountErrorsByDocument(nextErrors);
+        setPartialAmountErrorsByDocument((prev) => (
+          areStringRecordsEqual(prev, nextErrors) ? prev : nextErrors
+        ));
 
         const totalSelectedInCents = toCents(totalSelectedAmount);
 
@@ -484,7 +507,9 @@ const RefundModal = ({
       }
     } else {
       setAmountError("");
-      setPartialAmountErrorsByDocument({});
+      setPartialAmountErrorsByDocument((prev) => (
+        Object.keys(prev).length === 0 ? prev : {}
+      ));
     }
   }, [partialAmount, partialAmountByDocument, refundType, selectedDocuments, totalSelectedAmount]);
 
@@ -510,15 +535,19 @@ const RefundModal = ({
       setIsProcessing(false);
       setShowSuccess(false);
 
-      if (selectedInvoiceFromFlow) {
-        setSelectedDocumentKeys([getDocumentKey(selectedInvoiceFromFlow)]);
+      if (selectedInvoiceFromFlowKey) {
+        setSelectedDocumentKeys((prev) => (
+          prev.length === 1 && prev[0] === selectedInvoiceFromFlowKey ? prev : [selectedInvoiceFromFlowKey]
+        ));
       } else if (effectiveMode === "job") {
-        setSelectedDocumentKeys([]);
+        setSelectedDocumentKeys((prev) => (prev.length === 0 ? prev : []));
       } else {
-        setSelectedDocumentKeys([getDocumentKey(invoice)]);
+        setSelectedDocumentKeys((prev) => (
+          prev.length === 1 && prev[0] === invoiceKey ? prev : [invoiceKey]
+        ));
       }
     }
-  }, [isOpen, effectiveMode, refundableDocuments, invoice, selectedInvoiceFromFlow]);
+  }, [isOpen, effectiveMode, invoiceKey, selectedInvoiceFromFlowKey]);
 
   // Check if step 1 is valid to proceed
   const isStep1Valid = useMemo(() => {
@@ -943,7 +972,7 @@ const RefundModal = ({
           {effectiveMode === "job" && !hasItemSelection && (
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-gray-700">
-                Select an invoice to refund <span className="text-red-500">*</span>
+                Select an invoice to refund
               </Label>
               {refundableDocuments.length === 0 ? (
                 <p className="text-xs text-gray-500">No refundable documents available.</p>

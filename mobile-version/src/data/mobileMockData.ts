@@ -407,7 +407,7 @@ export const mockEstimates = [
 ];
 
 // Job payment status types
-export type JobPaymentStatus = "paid" | "unpaid" | "partial";
+export type JobPaymentStatus = "paid" | "unpaid" | "partial" | "refunded";
 export type JobSourceType = "estimate" | "invoice" | "agreement" | "none";
 
 export const mockJobs = [
