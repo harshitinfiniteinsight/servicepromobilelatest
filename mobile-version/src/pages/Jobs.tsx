@@ -26,10 +26,12 @@ import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
 import JobPaymentModal from "@/components/modals/JobPaymentModal";
 import type { PaymentLinkedDocument } from "@/components/modals/PaymentModal";
 import AssociateDocumentsModal from "@/components/modals/AssociateDocumentsModal";
-import RefundModal, { type RefundDocumentData, type RefundInvoiceData, type RefundProcessedDocument } from "@/components/modals/RefundModal";
+import RefundModal, { type RefundDocumentData, type RefundFlowState, type RefundInvoiceData, type RefundProcessedDocument } from "@/components/modals/RefundModal";
+import ItemSelectionModal, { type InvoiceLineItem } from "@/components/modals/ItemSelectionModal";
 import { invoiceToRefundData, openRefundByInvoiceId } from "@/utils/refundUtils";
 import { getInvoicesByJobId, type Invoice } from "@/services/invoiceService";
 import { getLinkedDocuments as getJobLinkedDocuments } from "@/services/jobAssignmentService";
+import { fetchInvoiceLineItems } from "@/services/invoiceItemsService";
 
 // Track job feedback status
 type JobFeedbackStatus = {
@@ -280,6 +282,10 @@ const Jobs = () => {
   const [refundPendingByJob, setRefundPendingByJob] = useState<Record<string, boolean>>({});
   const [autoRefundOpenedOnCancelByJob, setAutoRefundOpenedOnCancelByJob] = useState<Record<string, boolean>>({});
   const [refundCompletedForCurrentSession, setRefundCompletedForCurrentSession] = useState(false);
+  const [showRefundItemModal, setShowRefundItemModal] = useState(false);
+  const [refundLineItems, setRefundLineItems] = useState<InvoiceLineItem[]>([]);
+  const [refundItemsLoading, setRefundItemsLoading] = useState(false);
+  const [refundFlowState, setRefundFlowState] = useState<RefundFlowState | null>(null);
 
   // Metrics carousel state
   const [metricsGroupIndex, setMetricsGroupIndex] = useState(0);
@@ -1466,6 +1472,58 @@ const Jobs = () => {
     return isRefundEligiblePaymentStatus((job as any).paymentStatus);
   };
 
+  const resetRefundFlow = () => {
+    setShowRefundModal(false);
+    setShowRefundItemModal(false);
+    setRefundInvoice(null);
+    setRefundLineItems([]);
+    setRefundItemsLoading(false);
+    setRefundFlowState(null);
+    setCurrentRefundJobId(null);
+    setPaidInvoicesForSelector([]);
+  };
+
+  const openRefundItemSelection = async (selectedInvoice: RefundInvoiceData) => {
+    setRefundInvoice(selectedInvoice);
+    setShowRefundModal(false);
+    setShowRefundItemModal(true);
+    setRefundItemsLoading(true);
+
+    try {
+      const invoiceKey = `${selectedInvoice.type}:${selectedInvoice.id}`;
+      const items = await fetchInvoiceLineItems(invoiceKey);
+      setRefundLineItems(items);
+    } catch (error) {
+      console.error("Failed to load refund items:", error);
+      toast.error("Unable to load invoice items");
+      setShowRefundItemModal(false);
+      setShowRefundModal(true);
+    } finally {
+      setRefundItemsLoading(false);
+    }
+  };
+
+  const handleInvoiceSelectedForRefund = (selectedInvoice: RefundDocumentData) => {
+    void openRefundItemSelection(selectedInvoice as RefundInvoiceData);
+  };
+
+  const handleRefundItemsConfirmed = (selectedItems: InvoiceLineItem[], totalAmount: number) => {
+    if (!refundInvoice) return;
+
+    setRefundFlowState({
+      selectedInvoice: refundInvoice,
+      selectedItems: selectedItems.map((item) => ({
+        itemId: item.itemId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.total,
+      })),
+      refundAmount: totalAmount,
+    });
+    setShowRefundItemModal(false);
+    setShowRefundModal(true);
+  };
+
   // Handler: Open refund flow for job
   const handleRefundJob = (jobId: string) => {
     const refundableDocuments = getRefundableDocumentsForJob(jobId);
@@ -1479,6 +1537,8 @@ const Jobs = () => {
     setCurrentRefundJobId(jobId);
     setPaidInvoicesForSelector(refundableDocuments);
     setRefundCompletedForCurrentSession(false);
+    setRefundFlowState(null);
+    setRefundLineItems([]);
 
     setRefundInvoice(refundableDocuments[0]);
     setShowRefundModal(true);
@@ -1574,7 +1634,10 @@ const Jobs = () => {
 
     setRefundCompletedForCurrentSession(true);
     setShowRefundModal(false);
+    setShowRefundItemModal(false);
     setRefundInvoice(null);
+    setRefundFlowState(null);
+    setRefundLineItems([]);
     setCurrentRefundJobId(null);
     setPaidInvoicesForSelector([]);
     toast.success("Refund processed successfully");
@@ -2079,10 +2142,7 @@ const Jobs = () => {
             if (currentRefundJobId && !refundCompletedForCurrentSession) {
               setRefundPendingByJob(prev => ({ ...prev, [currentRefundJobId]: true }));
             }
-            setShowRefundModal(false);
-            setRefundInvoice(null);
-            setCurrentRefundJobId(null);
-            setPaidInvoicesForSelector([]);
+            resetRefundFlow();
           }}
           mode={currentRefundJobId ? "job" : "invoice"}
           invoice={refundInvoice}
@@ -2091,6 +2151,24 @@ const Jobs = () => {
           jobId={currentRefundJobId || undefined}
           allInvoices={currentRefundJobId ? paidInvoicesForSelector : undefined}
           allDocuments={currentRefundJobId ? paidInvoicesForSelector : undefined}
+          onInvoiceSelected={handleInvoiceSelectedForRefund}
+          selectedRefundState={refundFlowState}
+        />
+      )}
+
+      {refundInvoice && (
+        <ItemSelectionModal
+          isOpen={showRefundItemModal}
+          onClose={() => {
+            setShowRefundItemModal(false);
+            setShowRefundModal(true);
+          }}
+          invoiceId={refundInvoice.id}
+          invoiceName={refundInvoice.customerName}
+          lineItems={refundLineItems}
+          isLoading={refundItemsLoading}
+          initialSelectedItemIds={refundFlowState?.selectedItems.map((item) => item.itemId) || []}
+          onConfirm={handleRefundItemsConfirmed}
         />
       )}
 

@@ -82,8 +82,7 @@ interface RefundModalProps {
   allInvoices?: RefundDocumentData[];
   allDocuments?: RefundDocumentData[];
   onInvoiceSelected?: (invoice: RefundDocumentData) => void;
-  selectedRefundState?: RefundFlowState;
-  onRefundStateChange?: (state: RefundFlowState) => void;
+  selectedRefundState?: RefundFlowState | null;
 }
 
 interface SelectedRefundItem {
@@ -107,6 +106,7 @@ interface RefundRecord {
   invoiceId?: string;
   documentIds: string[];
   documents: RefundProcessedDocument[];
+  items?: Array<{ itemId: string; amount: number }>;
   refundAmount: number;
   refundMethod: string;
   refundMethodType: RefundMethodOption;
@@ -160,8 +160,7 @@ const RefundModal = ({
   allInvoices = [],
   allDocuments = [],
   onInvoiceSelected,
-  selectedRefundState,
-  onRefundStateChange,
+  selectedRefundState = null,
 }: RefundModalProps) => {
   const effectiveMode = mode ?? source;
   const [documentDropdownOpen, setDocumentDropdownOpen] = useState(false);
@@ -234,14 +233,21 @@ const RefundModal = ({
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
+  const hasItemSelection = Boolean(selectedRefundState?.selectedInvoice && selectedRefundState.selectedItems.length > 0);
+  const selectedInvoiceFromFlow = selectedRefundState?.selectedInvoice ?? null;
+
   const selectedDocuments = useMemo(() => {
+    if (selectedInvoiceFromFlow) {
+      return [selectedInvoiceFromFlow];
+    }
+
     if (selectedDocumentKeys.length === 0 && effectiveMode !== "job") {
       return [invoice];
     }
 
     const selected = refundableDocuments.filter((document) => selectedDocumentKeys.includes(getDocumentKey(document)));
     return selected.length > 0 ? selected : (effectiveMode === "job" ? [] : [invoice]);
-  }, [selectedDocumentKeys, effectiveMode, refundableDocuments, invoice]);
+  }, [selectedInvoiceFromFlow, selectedDocumentKeys, effectiveMode, refundableDocuments, invoice]);
 
   const activeInvoice = selectedDocuments[0] || invoice;
 
@@ -271,9 +277,13 @@ const RefundModal = ({
 
   // Computed refund amount used by allocations/payload (capped at available amount)
   const refundAmount = useMemo(() => {
+    if (hasItemSelection && selectedRefundState) {
+      return selectedRefundState.refundAmount;
+    }
+
     const cappedInCents = Math.min(toCents(enteredRefundTotal), toCents(totalAvailableRefund));
     return fromCents(cappedInCents);
-  }, [enteredRefundTotal, totalAvailableRefund]);
+  }, [hasItemSelection, selectedRefundState, enteredRefundTotal, totalAvailableRefund]);
 
   // Remaining = total available - entered refund total (never below zero)
   const remainingAmount = useMemo(() => {
@@ -288,7 +298,9 @@ const RefundModal = ({
         const documentKey = getDocumentKey(document);
 
         let allocatedAmount = 0;
-        if (refundType === "full") {
+        if (hasItemSelection && selectedRefundState?.selectedInvoice?.id === document.id) {
+          allocatedAmount = Math.min(selectedRefundState.refundAmount, refundableAmount);
+        } else if (refundType === "full") {
           allocatedAmount = refundableAmount;
         } else if (selectedDocuments.length > 1) {
           const parsed = parseFloat(partialAmountByDocument[documentKey] || "");
@@ -309,7 +321,7 @@ const RefundModal = ({
         };
       })
       .filter((allocation) => allocation.refundAmount > 0);
-  }, [selectedDocuments, partialAmountByDocument, refundAmount, refundType]);
+  }, [hasItemSelection, selectedRefundState, selectedDocuments, partialAmountByDocument, refundAmount, refundType]);
 
   const selectedStatusSummary = useMemo(() => {
     if (refundAllocations.length === 0) return "Pending";
@@ -343,21 +355,6 @@ const RefundModal = ({
     return getDocumentOriginalPaymentMethod(document) || "Unknown";
   };
 
-  // Payment method of the first selected document (drives which other docs can be selected)
-  const activePaymentMethodKey = useMemo(() => {
-    if (selectedDocumentKeys.length === 0) return null;
-    const firstSelected = refundableDocuments.find((d) => selectedDocumentKeys.includes(getDocumentKey(d)));
-    return firstSelected ? getNormalizedPaymentMethodKey(firstSelected) : null;
-  }, [selectedDocumentKeys, refundableDocuments]);
-
-  // Documents that can currently be selected (same payment method as active, or all if none selected)
-  const selectableDocuments = useMemo(() => {
-    if (activePaymentMethodKey === null) return refundableDocuments;
-    return refundableDocuments.filter((d) => getNormalizedPaymentMethodKey(d) === activePaymentMethodKey);
-  }, [activePaymentMethodKey, refundableDocuments]);
-
-  const allDocumentsSelected = selectableDocuments.length > 0 && selectableDocuments.every((d) => selectedDocumentKeys.includes(getDocumentKey(d)));
-
   const documentDropdownLabel = useMemo(() => {
     if (refundableDocuments.length === 0) {
       return "No refundable documents";
@@ -367,22 +364,9 @@ const RefundModal = ({
       return "Select an invoice to refund";
     }
 
-    const selectedSelectableCount = refundableDocuments.filter((d) => {
-      if (!selectedDocumentKeys.includes(getDocumentKey(d))) return false;
-      if (activePaymentMethodKey === null) return true;
-      return getNormalizedPaymentMethodKey(d) === activePaymentMethodKey;
-    }).length;
-
-    const totalSelectableCount = activePaymentMethodKey === null
-      ? refundableDocuments.length
-      : refundableDocuments.filter((d) => getNormalizedPaymentMethodKey(d) === activePaymentMethodKey).length;
-
-    if (selectedSelectableCount === totalSelectableCount && totalSelectableCount > 0) {
-      return `All selected (${selectedSelectableCount})`;
-    }
-
-    return `${selectedSelectableCount} selected`;
-  }, [refundableDocuments, selectedDocumentKeys, activePaymentMethodKey]);
+    const selectedDocument = refundableDocuments.find((d) => selectedDocumentKeys.includes(getDocumentKey(d)));
+    return selectedDocument ? selectedDocument.id : "Select an invoice to refund";
+  }, [refundableDocuments, selectedDocumentKeys]);
 
   // Check if refund method is Check (for both original and different method).
   // For "original": check if ANY selected document was paid by check.
@@ -526,20 +510,23 @@ const RefundModal = ({
       setIsProcessing(false);
       setShowSuccess(false);
 
-      if (effectiveMode === "job") {
+      if (selectedInvoiceFromFlow) {
+        setSelectedDocumentKeys([getDocumentKey(selectedInvoiceFromFlow)]);
+      } else if (effectiveMode === "job") {
         setSelectedDocumentKeys([]);
       } else {
         setSelectedDocumentKeys([getDocumentKey(invoice)]);
       }
     }
-  }, [isOpen, effectiveMode, refundableDocuments, invoice]);
+  }, [isOpen, effectiveMode, refundableDocuments, invoice, selectedInvoiceFromFlow]);
 
   // Check if step 1 is valid to proceed
   const isStep1Valid = useMemo(() => {
+    if (!hasItemSelection && effectiveMode === "job") return false;
     if (selectedDocuments.length === 0) return false;
 
     return !!refundReason.trim();
-  }, [selectedDocuments.length, refundReason]);
+  }, [hasItemSelection, effectiveMode, selectedDocuments.length, refundReason]);
 
   // Validate reason field
   useEffect(() => {
@@ -657,6 +644,9 @@ const RefundModal = ({
 
   const handleContinue = () => {
     if (currentStep === 1) {
+      if (effectiveMode === "job" && !hasItemSelection) {
+        return;
+      }
       if (!refundReason.trim()) {
         setReasonError("Please provide a reason for refund");
         return;
@@ -753,6 +743,10 @@ const RefundModal = ({
         invoiceId: activeInvoice.id,
         documentIds: refundAllocations.map((allocation) => allocation.id),
         documents: refundAllocations,
+        items: selectedRefundState?.selectedItems.map((item) => ({
+          itemId: item.itemId,
+          amount: item.total,
+        })),
         refundAmount: refundAmount,
         refundMethod: refundMethodString,
         refundMethodType: refundMethodOption,
@@ -945,8 +939,8 @@ const RefundModal = ({
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto bg-white pointer-events-auto" style={{ WebkitOverflowScrolling: 'touch' }}>
           <div className="px-5 py-5 pb-6 space-y-5 pointer-events-auto">
-            {/* Document Selector - Multi-select for job refunds */}
-          {effectiveMode === "job" && (
+            {/* Invoice Selector */}
+          {effectiveMode === "job" && !hasItemSelection && (
             <div className="space-y-2">
               <Label className="text-xs font-semibold text-gray-700">
                 Select an invoice to refund <span className="text-red-500">*</span>
@@ -967,53 +961,29 @@ const RefundModal = ({
                   </PopoverTrigger>
                   <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl" align="start">
                     <div className="max-h-64 overflow-y-auto py-1">
-                      <label className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b">
-                        <Checkbox
-                          checked={allDocumentsSelected}
-                          onCheckedChange={(checked) => {
-                            const nextChecked = checked === true;
-                            setSelectedDocumentKeys(nextChecked ? selectableDocuments.map((document) => getDocumentKey(document)) : []);
-                            setPartialAmount("");
-                            setPartialAmountByDocument({});
-                            setPartialAmountErrorsByDocument({});
-                            setAmountError("");
-                          }}
-                        />
-                        <span className="text-sm font-medium text-gray-900">Select All</span>
-                      </label>
                       {refundableDocuments.map((document) => {
                         const documentKey = getDocumentKey(document);
-                        const isDisabled = activePaymentMethodKey !== null && getNormalizedPaymentMethodKey(document) !== activePaymentMethodKey;
                         return (
                           <label
                             key={documentKey}
-                            className={cn(
-                              "flex items-center gap-2 px-4 py-3",
-                              isDisabled
-                                ? "opacity-40 cursor-not-allowed bg-gray-50"
-                                : "hover:bg-gray-50 cursor-pointer"
-                            )}
+                            className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer"
                           >
                             <Checkbox
                               checked={selectedDocumentKeys.includes(documentKey)}
-                              disabled={isDisabled}
                               onCheckedChange={(checked) => {
-                                if (isDisabled) return;
                                 const nextChecked = checked === true;
-                                setSelectedDocumentKeys((prev) => nextChecked
-                                  ? Array.from(new Set([...prev, documentKey]))
-                                  : prev.filter((key) => key !== documentKey));
-                                setPartialAmount("");
-                                setPartialAmountByDocument({});
-                                setPartialAmountErrorsByDocument({});
-                                setAmountError("");
+                                setSelectedDocumentKeys(nextChecked ? [documentKey] : []);
+                                if (nextChecked) {
+                                  setDocumentDropdownOpen(false);
+                                  onInvoiceSelected?.(document);
+                                }
                               }}
                             />
                             <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
-                              <span className={cn("text-sm truncate", isDisabled ? "text-gray-400" : "text-gray-900")}>
+                              <span className="text-sm text-gray-900 truncate">
                                 {document.id} — ${getRefundableAmountForDocument(document).toFixed(2)}
                               </span>
-                              <Badge variant="outline" className={cn("text-[10px] h-5 px-2 shrink-0", isDisabled && "opacity-50")}>
+                              <Badge variant="outline" className="text-[10px] h-5 px-2 shrink-0">
                                 {getPaymentMethodBadgeLabel(document)}
                               </Badge>
                             </div>
@@ -1028,12 +998,9 @@ const RefundModal = ({
           )}
 
           {/* Selected Document Cards */}
+          {(hasItemSelection || effectiveMode !== "job") && (
           <div className="space-y-2">
             {selectedDocuments
-              .filter((document) =>
-                activePaymentMethodKey === null ||
-                getNormalizedPaymentMethodKey(document) === activePaymentMethodKey
-              )
               .map((document) => (
               <div key={getDocumentKey(document)} className="p-3 bg-gray-50 rounded-lg border border-gray-200 space-y-1.5">
                 <div className="flex items-center justify-between gap-2">
@@ -1047,23 +1014,34 @@ const RefundModal = ({
               </div>
             ))}
           </div>
+          )}
 
           {/* Step 1: Refund Amount */}
           {currentStep === 1 && (
             <div className="space-y-4">
               {/* Total Refund Amount Display */}
-              {refundAmount > 0 && (
-                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg">
+              {hasItemSelection && refundAmount > 0 && (
+                <div className="p-3 bg-gray-50 border border-gray-200 rounded-lg space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Total Refund Amount</span>
                     <span className="text-base font-bold text-gray-900">
                       ${refundAmount.toFixed(2)}
                     </span>
                   </div>
+                  <div className="flex justify-between items-center border-t border-gray-200 pt-2">
+                    <span className="text-sm text-gray-600">Remaining Balance</span>
+                    <span className="text-base font-semibold text-gray-700">
+                      ${(Math.max(
+                        (Number(selectedInvoiceFromFlow?.paidAmount ?? selectedInvoiceFromFlow?.amount ?? 0)) - refundAmount,
+                        0
+                      )).toFixed(2)}
+                    </span>
+                  </div>
                 </div>
               )}
 
               {/* Reason for Refund */}
+              {hasItemSelection && (
               <div className="space-y-2 pt-1">
                 <Label htmlFor="refund-reason" className="text-sm font-semibold text-gray-900">
                   Reason for Refund <span className="text-red-500">*</span>
@@ -1124,6 +1102,7 @@ const RefundModal = ({
                   </p>
                 </div>
               </div>
+              )}
             </div>
           )}
 
@@ -1444,8 +1423,10 @@ const RefundModal = ({
                 </h4>
                 <div className="space-y-2">
                   <div className="flex justify-between text-sm">
-                    <span className="text-gray-600">Documents</span>
-                    <span className="font-medium text-gray-900">{selectedDocuments.length}</span>
+                    <span className="text-gray-600">Invoice ID</span>
+                    <span className="font-medium text-gray-900">
+                      {selectedInvoiceFromFlow?.id ?? selectedDocuments[0]?.id ?? activeInvoice.id}
+                    </span>
                   </div>
                   <div className="flex justify-between text-sm">
                     <span className="text-gray-600">Selected Total</span>

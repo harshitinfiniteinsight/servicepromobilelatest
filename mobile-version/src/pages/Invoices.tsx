@@ -15,7 +15,8 @@ import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
 import DocumentNoteModal from "@/components/modals/DocumentNoteModal";
 import ScheduleServiceModal from "@/components/modals/ScheduleServiceModal";
 import AssignToJobModal from "@/components/modals/AssignToJobModal";
-import RefundModal, { type RefundInvoiceData } from "@/components/modals/RefundModal";
+import RefundModal, { type RefundFlowState, type RefundInvoiceData } from "@/components/modals/RefundModal";
+import ItemSelectionModal, { type InvoiceLineItem } from "@/components/modals/ItemSelectionModal";
 import { mockCustomers, mockInvoices, mockEmployees } from "@/data/mobileMockData";
 import { createJobLookupMap } from "@/utils/jobLookup";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import KebabMenu, { KebabMenuItem } from "@/components/common/KebabMenu";
+import { fetchInvoiceLineItems } from "@/services/invoiceItemsService";
 import {
   Plus,
   Search,
@@ -87,6 +89,10 @@ const Invoices = () => {
   const [jobLookupRefreshKey, setJobLookupRefreshKey] = useState(0);
   const [showRefundModal, setShowRefundModal] = useState(false);
   const [refundInvoice, setRefundInvoice] = useState<RefundInvoiceData | null>(null);
+  const [showRefundItemModal, setShowRefundItemModal] = useState(false);
+  const [refundLineItems, setRefundLineItems] = useState<InvoiceLineItem[]>([]);
+  const [refundItemsLoading, setRefundItemsLoading] = useState(false);
+  const [refundFlowState, setRefundFlowState] = useState<RefundFlowState | null>(null);
 
   // Get user role from localStorage
   const userRole = localStorage.getItem("userType") || "merchant";
@@ -346,6 +352,50 @@ const Invoices = () => {
     setSelectedInvoice(null);
   };
 
+  const resetRefundFlow = () => {
+    setShowRefundModal(false);
+    setShowRefundItemModal(false);
+    setRefundInvoice(null);
+    setRefundLineItems([]);
+    setRefundItemsLoading(false);
+    setRefundFlowState(null);
+  };
+
+  const openRefundItemSelection = async (selectedInvoice: RefundInvoiceData) => {
+    setRefundInvoice(selectedInvoice);
+    setShowRefundModal(false);
+    setShowRefundItemModal(true);
+    setRefundItemsLoading(true);
+
+    try {
+      const items = await fetchInvoiceLineItems(`${selectedInvoice.type}:${selectedInvoice.id}`);
+      setRefundLineItems(items);
+    } catch (error) {
+      console.error("Failed to load refund items:", error);
+      toast.error("Unable to load invoice items");
+      setShowRefundItemModal(false);
+    } finally {
+      setRefundItemsLoading(false);
+    }
+  };
+
+  const handleRefundItemsConfirmed = (selectedItems: InvoiceLineItem[], totalAmount: number) => {
+    if (!refundInvoice) return;
+
+    setRefundFlowState({
+      selectedInvoice: refundInvoice,
+      selectedItems: selectedItems.map((item) => ({
+        itemId: item.itemId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.total,
+      })),
+      refundAmount: totalAmount,
+    });
+    setShowRefundItemModal(false);
+    setShowRefundModal(true);
+  };
+
   const handleMenuAction = (invoice: Invoice, action: string) => {
     const customer = mockCustomers.find(c => c.id === invoice.customerId);
 
@@ -402,7 +452,7 @@ const Invoices = () => {
         break;
       case "refund":
         // Open refund modal with invoice data
-        setRefundInvoice({
+        const refundInvoiceData = {
           id: invoice.id,
           type: "invoice",
           customerName: invoice.customerName,
@@ -418,8 +468,10 @@ const Invoices = () => {
           status: invoice.status,
           refundedAmount: (invoice as any).refundedAmount || 0,
           transactionId: (invoice as any).transactionId,
-        });
-        setShowRefundModal(true);
+        } as RefundInvoiceData;
+        setRefundFlowState(null);
+        setRefundLineItems([]);
+        void openRefundItemSelection(refundInvoiceData);
         break;
       case "deactivate":
         // Update invoice status using service
@@ -1083,11 +1135,11 @@ const Invoices = () => {
         <RefundModal
           isOpen={showRefundModal}
           onClose={() => {
-            setShowRefundModal(false);
-            setRefundInvoice(null);
+            resetRefundFlow();
           }}
           mode="invoice"
           invoice={refundInvoice}
+          selectedRefundState={refundFlowState}
           onRefundComplete={(documents) => {
             const updatedInvoices = allInvoices.map(inv => {
               const refundDocument = documents.find((document) => document.type === "invoice" && document.id === inv.id);
@@ -1114,9 +1166,28 @@ const Invoices = () => {
               });
 
             // Close modal
-            setShowRefundModal(false);
-            setRefundInvoice(null);
+            resetRefundFlow();
           }}
+        />
+      )}
+
+      {refundInvoice && (
+        <ItemSelectionModal
+          isOpen={showRefundItemModal}
+          onClose={() => {
+            setShowRefundItemModal(false);
+            if (refundFlowState?.selectedItems.length) {
+              setShowRefundModal(true);
+            } else {
+              resetRefundFlow();
+            }
+          }}
+          invoiceId={refundInvoice.id}
+          invoiceName={refundInvoice.customerName}
+          lineItems={refundLineItems}
+          isLoading={refundItemsLoading}
+          initialSelectedItemIds={refundFlowState?.selectedItems.map((item) => item.itemId) || []}
+          onConfirm={handleRefundItemsConfirmed}
         />
       )}
     </div>

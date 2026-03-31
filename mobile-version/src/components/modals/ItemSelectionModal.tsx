@@ -3,7 +3,6 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/compone
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, X, AlertCircle } from "lucide-react";
-import { cn } from "@/lib/utils";
 
 export interface InvoiceLineItem {
   itemId: string;
@@ -21,6 +20,7 @@ interface ItemSelectionModalProps {
   invoiceName: string;
   lineItems: InvoiceLineItem[];
   isLoading?: boolean;
+  initialSelectedItemIds?: string[];
   onConfirm: (selectedItems: InvoiceLineItem[], totalAmount: number) => void;
 }
 
@@ -31,6 +31,7 @@ const ItemSelectionModal = ({
   invoiceName,
   lineItems,
   isLoading = false,
+  initialSelectedItemIds = [],
   onConfirm,
 }: ItemSelectionModalProps) => {
   const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set());
@@ -38,9 +39,9 @@ const ItemSelectionModal = ({
   // Reset selection when modal opens
   useEffect(() => {
     if (isOpen) {
-      setSelectedItemIds(new Set());
+      setSelectedItemIds(new Set(initialSelectedItemIds));
     }
-  }, [isOpen]);
+  }, [isOpen, initialSelectedItemIds]);
 
   const refundableItems = useMemo(() => {
     return lineItems.filter((item) => {
@@ -108,7 +109,8 @@ const ItemSelectionModal = ({
             {/* Invoice Reference */}
             <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
               <p className="text-xs text-gray-600 font-medium">Invoice</p>
-              <p className="text-sm font-semibold text-gray-900 mt-1">{invoiceName}</p>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{invoiceId}</p>
+              <p className="text-xs text-gray-500 mt-1 truncate">{invoiceName}</p>
             </div>
 
             {/* Loading State */}
