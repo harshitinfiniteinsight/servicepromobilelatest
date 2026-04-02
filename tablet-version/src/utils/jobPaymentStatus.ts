@@ -61,6 +61,8 @@ export const getPaidInvoicesForJob = (
   };
 
   return getAllInvoicesForJob(jobId, jobs, invoices).filter((inv) => {
+    // Only refund actual invoices, not estimates or agreements
+    if (!inv.id.startsWith("INV-")) return false;
     if (!isRefundableInvoiceStatus(inv.status)) return false;
     const paidBase = Number(inv.paidAmount ?? inv.amount ?? 0);
     const refunded = Number(inv.refundedAmount || 0);

@@ -128,6 +128,9 @@ const RefundModal = ({
   const [checkNumber, setCheckNumber] = useState("");
   const [checkComment, setCheckComment] = useState("");
   
+  // Cash details (when different method is cash)
+  const [cashComment, setCashComment] = useState("");
+  
   // Processing state
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -1056,7 +1059,28 @@ const RefundModal = ({
                           rows={3}
                         />
                         <p className="text-xs text-gray-500 mt-1.5">
-                          This will be saved as notes for future reference.
+                          This will be displayed as notes in transaction details.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Cash Details - for Different Method */}
+                  {selectedDifferentMethod === "cash" && (
+                    <div className="space-y-4 mt-4 pt-4 border-t border-gray-200">
+                      <div>
+                        <Label className="text-xs font-medium text-gray-700 mb-1.5 block">
+                          Comment
+                        </Label>
+                        <Textarea
+                          value={cashComment}
+                          onChange={(e) => setCashComment(e.target.value)}
+                          placeholder="Add a comment"
+                          className="min-h-[80px] rounded-xl border-gray-200 text-sm resize-none"
+                          rows={3}
+                        />
+                        <p className="text-xs text-gray-500 mt-1.5">
+                          This will be displayed as notes in transaction details.
                         </p>
                       </div>
                     </div>
@@ -1091,7 +1115,7 @@ const RefundModal = ({
                       rows={3}
                     />
                     <p className="text-xs text-gray-500 mt-1.5">
-                      This will be saved as notes for future reference.
+                      This will be displayed as notes in transaction details.
                     </p>
                   </div>
                 </div>

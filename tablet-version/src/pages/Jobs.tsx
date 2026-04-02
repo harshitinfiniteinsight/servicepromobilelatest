@@ -1026,7 +1026,8 @@ const Jobs = () => {
     // Prototype fallback: if no paid invoices are linked, still allow opening the refund modal
     // using any linked invoice or a synthesized invoice payload from job data.
     if (paidInvoices.length === 0) {
-      const allLinkedInvoices = getAllInvoicesForJob(jobId, jobs as any[], mockInvoices as any[]);
+      const allLinkedInvoices = getAllInvoicesForJob(jobId, jobs as any[], mockInvoices as any[])
+        .filter((inv) => inv.id.startsWith("INV-")); // Only actual invoices, not estimates or agreements
       if (allLinkedInvoices.length > 0) {
         paidInvoices = allLinkedInvoices as any[];
       } else {
@@ -1057,19 +1058,21 @@ const Jobs = () => {
       }
     }
 
-    const refundInvoices = paidInvoices.map((inv) => {
-      const mapped = invoiceToRefundData(inv);
-      const mappedPaid = Number(mapped.paidAmount ?? mapped.amount ?? 0);
-      const safePaidAmount =
-        mappedPaid > 0 ? mappedPaid : PROTOTYPE_REFUND_FALLBACK_AMOUNT;
+    const refundInvoices = paidInvoices
+      .filter((inv) => inv.id.startsWith("INV-")) // Only actual invoices, not estimates or agreements
+      .map((inv) => {
+        const mapped = invoiceToRefundData(inv);
+        const mappedPaid = Number(mapped.paidAmount ?? mapped.amount ?? 0);
+        const safePaidAmount =
+          mappedPaid > 0 ? mappedPaid : PROTOTYPE_REFUND_FALLBACK_AMOUNT;
 
-      return {
-        ...mapped,
-        amount: Number(mapped.amount ?? safePaidAmount),
-        paidAmount: safePaidAmount,
-        status: mapped.status || "Paid",
-      };
-    });
+        return {
+          ...mapped,
+          amount: Number(mapped.amount ?? safePaidAmount),
+          paidAmount: safePaidAmount,
+          status: mapped.status || "Paid",
+        };
+      });
 
     setCurrentRefundJobId(jobId);
     setPaidInvoicesForSelector(refundInvoices);
