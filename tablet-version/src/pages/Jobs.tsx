@@ -27,8 +27,16 @@ import RescheduleJobModal from "@/components/modals/RescheduleJobModal";
 import AssociateInvoiceModal from "@/components/modals/AssociateInvoiceModal";
 import PaymentModal from "@/components/modals/PaymentModal";
 import CashPaymentModal from "@/components/modals/CashPaymentModal";
-import RefundModal, { type RefundInvoiceData } from "@/components/modals/RefundModal";
-import { invoiceToRefundData } from "@/utils/refundUtils";
+import RefundModal from "@/components/modals/RefundModal";
+import ItemSelectionModal from "@/components/modals/ItemSelectionModal";
+import InvoicePickerModal from "@/components/modals/InvoicePickerModal";
+import { invoiceToRefundData, generateMockLineItems } from "@/utils/refundUtils";
+import type { 
+  RefundInvoiceData, 
+  RefundFlowState, 
+  RefundProcessedDocument,
+  InvoiceLineItem 
+} from "@/utils/refundUtils";
 import {
   deriveJobPaymentSummary,
   getAllInvoicesForJob,
@@ -186,9 +194,14 @@ const Jobs = () => {
 
   // Refund modal state
   const [showRefundModal, setShowRefundModal] = useState(false);
+  const [showInvoicePickerModal, setShowInvoicePickerModal] = useState(false);
+  const [showItemSelectionModal, setShowItemSelectionModal] = useState(false);
   const [refundInvoice, setRefundInvoice] = useState<RefundInvoiceData | null>(null);
   const [paidInvoicesForSelector, setPaidInvoicesForSelector] = useState<RefundInvoiceData[]>([]);
   const [currentRefundJobId, setCurrentRefundJobId] = useState<string | null>(null);
+  const [refundFlowState, setRefundFlowState] = useState<RefundFlowState | null>(null);
+  const [currentRefundLineItems, setCurrentRefundLineItems] = useState<InvoiceLineItem[]>([]);
+  const [isLoadingLineItems, setIsLoadingLineItems] = useState(false);
   const [refundPendingByJob, setRefundPendingByJob] = useState<Record<string, boolean>>({});
   const [autoRefundOpenedOnCancelByJob, setAutoRefundOpenedOnCancelByJob] = useState<Record<string, boolean>>({});
   const [refundCompletedForCurrentSession, setRefundCompletedForCurrentSession] = useState(false);
@@ -1061,17 +1074,58 @@ const Jobs = () => {
     setCurrentRefundJobId(jobId);
     setPaidInvoicesForSelector(refundInvoices);
     setRefundCompletedForCurrentSession(false);
-    setRefundInvoice(refundInvoices[0]);
+    setRefundFlowState(null);
+
+    // Always show invoice picker first from Jobs dashboard
+    setShowInvoicePickerModal(true);
+  };
+
+  // Handle invoice selection from InvoicePickerModal
+  const handleInvoiceSelected = (invoice: RefundInvoiceData) => {
+    setShowInvoicePickerModal(false);
+    
+    // Simulate loading line items (prototype mode)
+    setIsLoadingLineItems(true);
+    setTimeout(() => {
+      const lineItems = generateMockLineItems(invoice);
+      setCurrentRefundLineItems(lineItems);
+      setRefundInvoice(invoice);
+      setIsLoadingLineItems(false);
+      setShowItemSelectionModal(true);
+    }, 300);
+  };
+
+  // Handle items confirmed from ItemSelectionModal
+  const handleItemsConfirmed = (selectedItems: InvoiceLineItem[], totalRefundAmount: number) => {
+    if (!refundInvoice) return;
+    
+    // Build refund flow state
+    const flowState: RefundFlowState = {
+      selectedInvoice: refundInvoice,
+      selectedItems: selectedItems.map((item) => ({
+        itemId: item.itemId,
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        total: item.total,
+      })),
+      refundAmount: totalRefundAmount,
+    };
+    
+    setRefundFlowState(flowState);
+    setShowItemSelectionModal(false);
     setShowRefundModal(true);
   };
 
-  const handleRefundComplete = (invoiceId: string, refundAmount: number, newStatus: string) => {
-    const invoice = mockInvoices.find(inv => inv.id === invoiceId) as any;
-    if (invoice) {
-      const currentRefunded = Number(invoice.refundedAmount || 0);
-      invoice.refundedAmount = currentRefunded + refundAmount;
-      invoice.status = newStatus;
-    }
+  const handleRefundComplete = (documents: RefundProcessedDocument[], totalRefundAmount: number) => {
+    // Update each document (invoice/agreement) with refund information
+    documents.forEach((doc) => {
+      const invoice = mockInvoices.find(inv => inv.id === doc.id) as any;
+      if (invoice) {
+        const currentRefunded = Number(invoice.refundedAmount || 0);
+        invoice.refundedAmount = currentRefunded + doc.refundAmount;
+        invoice.status = doc.newStatus;
+      }
+    });
 
     if (currentRefundJobId) {
       const refundJobId = currentRefundJobId;
@@ -1822,6 +1876,38 @@ const Jobs = () => {
       )}
 
       {/* Refund Modal */}
+      {/* Invoice Picker Modal (for multi-invoice jobs) */}
+      <InvoicePickerModal
+        isOpen={showInvoicePickerModal}
+        onClose={() => {
+          setShowInvoicePickerModal(false);
+          if (currentRefundJobId && !refundCompletedForCurrentSession) {
+            setRefundPendingByJob(prev => ({ ...prev, [currentRefundJobId]: true }));
+          }
+        }}
+        invoices={paidInvoicesForSelector}
+        jobId={currentRefundJobId}
+        onSelect={handleInvoiceSelected}
+      />
+
+      {/* Item Selection Modal */}
+      <ItemSelectionModal
+        isOpen={showItemSelectionModal}
+        onClose={() => {
+          setShowItemSelectionModal(false);
+          // Re-show invoice picker when coming from Jobs refund flow
+          if (currentRefundJobId) {
+            setTimeout(() => setShowInvoicePickerModal(true), 300);
+          }
+        }}
+        invoiceId={refundInvoice?.id || ""}
+        invoiceName={refundInvoice?.customerName || ""}
+        lineItems={currentRefundLineItems}
+        isLoading={isLoadingLineItems}
+        onConfirm={handleItemsConfirmed}
+      />
+
+      {/* Refund Modal */}
       {refundInvoice && (
         <RefundModal
           isOpen={showRefundModal}
@@ -1832,6 +1918,7 @@ const Jobs = () => {
             setShowRefundModal(false);
             setRefundInvoice(null);
             setCurrentRefundJobId(null);
+            setRefundFlowState(null);
             setPaidInvoicesForSelector([]);
           }}
           mode={currentRefundJobId ? "job" : "invoice"}
@@ -1840,6 +1927,14 @@ const Jobs = () => {
           source={currentRefundJobId ? "job" : "invoice"}
           jobId={currentRefundJobId || undefined}
           allInvoices={currentRefundJobId ? paidInvoicesForSelector : undefined}
+          selectedRefundState={refundFlowState}
+          onGoBack={() => {
+            setShowRefundModal(false);
+            // Re-open item selection modal to allow editing
+            if (refundInvoice) {
+              setShowItemSelectionModal(true);
+            }
+          }}
         />
       )}
     </div>

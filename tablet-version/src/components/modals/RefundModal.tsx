@@ -18,54 +18,23 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { showSuccessToast, showErrorToast } from "@/utils/toast";
-
-export interface RefundInvoiceData {
-  id: string;
-  customerName: string;
-  amount: number;
-  paidAmount?: number;
-  paymentMethod?: string;
-  payment_method?: string;
-  payment?: {
-    method?: string;
-    payment_method?: string;
-    method_details?: {
-      card?: {
-        last4?: string;
-      };
-    };
-    payment_method_details?: {
-      card?: {
-        last4?: string;
-      };
-    };
-  };
-  payment_method_details?: {
-    card?: {
-      last4?: string;
-    };
-  };
-  paymentMethodDetails?: {
-    card?: {
-      last4?: string;
-    };
-  };
-  cardBrand?: string;
-  cardLast4?: string;
-  transactionId?: string;
-  status: string;
-  refundedAmount?: number;
-}
+import type { 
+  RefundFlowState, 
+  RefundProcessedDocument
+} from "@/utils/refundUtils";
+import { RefundInvoiceData } from "@/utils/refundUtils";
 
 interface RefundModalProps {
   isOpen: boolean;
   onClose: () => void;
   invoice: RefundInvoiceData;
-  onRefundComplete?: (invoiceId: string, refundAmount: number, newStatus: string) => void;
+  onRefundComplete?: (documents: RefundProcessedDocument[], totalRefundAmount: number) => void;
   mode?: "job" | "invoice";
   source?: "job" | "invoice";
   jobId?: string;
   allInvoices?: RefundInvoiceData[];
+  selectedRefundState?: RefundFlowState | null;
+  onGoBack?: () => void;
 }
 
 type RefundType = "full" | "partial";
@@ -107,8 +76,22 @@ const differentPaymentMethods: { id: PaymentMethodType; label: string; icon: Rea
   { id: "check", label: "Check", icon: Banknote },
 ];
 
-const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source = "invoice", jobId, allInvoices = [] }: RefundModalProps) => {
+const RefundModal = ({ 
+  isOpen, 
+  onClose, 
+  invoice, 
+  onRefundComplete, 
+  mode, 
+  source = "invoice", 
+  jobId, 
+  allInvoices = [],
+  selectedRefundState = null,
+  onGoBack = undefined,
+}: RefundModalProps) => {
   const effectiveMode = mode ?? source;
+  
+  // Whether we have pre-selected items from the flow state
+  const hasItemSelection = Boolean(selectedRefundState?.selectedInvoice && selectedRefundState.selectedItems.length > 0);
 
   // Step management
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
@@ -121,7 +104,7 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
     return allInvoices;
   }, [effectiveMode, allInvoices]);
   
-  // For job source: selected invoice state
+  // For job source: selected invoice state (only used when no item selection)
   const [selectedInvoice, setSelectedInvoice] = useState<RefundInvoiceData | null>(null);
   
   // Step 1 - Refund Type
@@ -149,22 +132,28 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
   const [isProcessing, setIsProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
-  // Determine active invoice (either selected from job list or passed directly)
-  const activeInvoice = effectiveMode === "job" && selectedInvoice ? selectedInvoice : invoice;
+  // Determine active invoice
+  // If item selection is present, use that; otherwise fall back to selected/default
+  const activeInvoice = hasItemSelection && selectedRefundState
+    ? selectedRefundState.selectedInvoice 
+    : (effectiveMode === "job" && selectedInvoice ? selectedInvoice : invoice);
 
   // Calculate refundable amount
   const paidAmount = activeInvoice.paidAmount ?? activeInvoice.amount;
   const alreadyRefunded = activeInvoice.refundedAmount ?? 0;
   const refundableAmount = paidAmount - alreadyRefunded;
 
-  // Computed refund amount based on type
+  // Computed refund amount based on type or flow state
   const refundAmount = useMemo(() => {
+    if (hasItemSelection && selectedRefundState) {
+      return selectedRefundState.refundAmount;
+    }
     if (refundType === "full") {
       return refundableAmount;
     }
     const parsed = parseFloat(partialAmount);
     return isNaN(parsed) ? 0 : parsed;
-  }, [refundType, partialAmount, refundableAmount]);
+  }, [refundType, partialAmount, refundableAmount, hasItemSelection, selectedRefundState]);
 
   // Determine new invoice status after refund
   const newInvoiceStatus = useMemo(() => {
@@ -183,8 +172,12 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
     return isOriginalCheck || isDifferentCheck;
   }, [refundMethodOption, selectedDifferentMethod, activeInvoice.paymentMethod]);
 
-  // Validate partial amount
+  // Validate partial amount (only if no item selection)
   useEffect(() => {
+    if (hasItemSelection) {
+      setAmountError("");
+      return;
+    }
     if (refundType === "partial") {
       const parsed = parseFloat(partialAmount);
       if (!partialAmount) {
@@ -201,14 +194,19 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
     } else {
       setAmountError("");
     }
-  }, [partialAmount, refundType, refundableAmount]);
+  }, [partialAmount, refundType, refundableAmount, hasItemSelection]);
 
   // Reset state when modal opens
   useEffect(() => {
     if (isOpen) {
       setCurrentStep(1);
-      setRefundType("full");
-      setPartialAmount("");
+      
+      // If we have item selection, skip refund type/amount UI
+      if (!hasItemSelection) {
+        setRefundType("full");
+        setPartialAmount("");
+      }
+      
       setAmountError("");
       setRefundReason("");
       setReasonError("");
@@ -223,8 +221,8 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
       setIsProcessing(false);
       setShowSuccess(false);
       
-      // For job source: pre-select first paid invoice from the list
-      if (effectiveMode === "job") {
+      // For job source (and no item selection): pre-select first paid invoice
+      if (effectiveMode === "job" && !hasItemSelection) {
         if (paidInvoices && paidInvoices.length > 0) {
           setSelectedInvoice(paidInvoices[0]);
         } else if (invoice) {
@@ -234,18 +232,23 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
         }
       }
     }
-  }, [isOpen, effectiveMode, paidInvoices]);
+  }, [isOpen, effectiveMode, paidInvoices, hasItemSelection]);
 
   // Check if step 1 is valid to proceed
   const isStep1Valid = useMemo(() => {
-    // For job source: require invoice selection only when selector is visible/populated
+    // If we have item selection, just check reason
+    if (hasItemSelection) {
+      return !refundReason.trim() === false; // reason must be non-empty
+    }
+    
+    // Otherwise, require invoice selection for job mode and full validation
     if (effectiveMode === "job" && paidInvoices.length > 0 && !selectedInvoice) return false;
     
     if (!refundReason.trim()) return false;
     if (refundType === "full") return true;
     const parsed = parseFloat(partialAmount);
     return !isNaN(parsed) && parsed > 0 && parsed <= refundableAmount;
-  }, [effectiveMode, paidInvoices.length, selectedInvoice, refundType, partialAmount, refundableAmount, refundReason]);
+  }, [effectiveMode, paidInvoices.length, selectedInvoice, refundType, partialAmount, refundableAmount, refundReason, hasItemSelection]);
 
   // Validate reason field
   useEffect(() => {
@@ -334,7 +337,12 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
     if (currentStep === 2) {
       setCurrentStep(1);
     } else {
-      handleClose();
+      // On step 1, if we have item selection and onGoBack, call it to return to item picker
+      if (hasItemSelection && onGoBack) {
+        onGoBack();
+      } else {
+        handleClose();
+      }
     }
   };
 
@@ -421,7 +429,15 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
       // After brief delay, close and notify
       setTimeout(() => {
         showSuccessToast(`Refund of $${refundAmount.toFixed(2)} processed successfully`);
-        onRefundComplete?.(activeInvoice.id, refundAmount, newInvoiceStatus);
+        
+        // Call the new signature: (documents: RefundProcessedDocument[], totalRefundAmount: number)
+        const documents: RefundProcessedDocument[] = [{
+          id: activeInvoice.id,
+          type: "invoice" as const,
+          refundAmount: refundAmount,
+          newStatus: newInvoiceStatus,
+        }];
+        onRefundComplete?.(documents, refundAmount);
         handleClose();
       }, 1500);
 
@@ -593,9 +609,46 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
           {/* Step 1: Refund Amount */}
           {currentStep === 1 && (
             <div className="space-y-5">
-              <h3 className="text-sm font-semibold text-gray-900">Refund Amount</h3>
+              {/* When item selection is present, show selected items summary instead of type selection */}
+              {hasItemSelection && selectedRefundState ? (
+                <>
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Items Selected for Refund</h3>
+                    <div className="space-y-2">
+                      {selectedRefundState.selectedItems.map((item) => (
+                        <div
+                          key={item.itemId}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                        >
+                          <div>
+                            <p className="text-sm font-medium text-gray-900">{item.itemId}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">
+                              {item.quantity} × ${item.unitPrice.toFixed(2)}
+                            </p>
+                          </div>
+                          <p className="text-base font-bold text-gray-900">
+                            ${item.total.toFixed(2)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
+                  {/* Refund total for item selection */}
+                  <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm font-semibold text-green-900">Total Refund</span>
+                      <span className="text-2xl font-bold text-green-600">
+                        ${selectedRefundState.refundAmount.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h3 className="text-sm font-semibold text-gray-900">Refund Amount</h3>
+
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2 md:gap-4">
                 {/* Full Refund Option */}
                 <button
                   type="button"
@@ -703,7 +756,10 @@ const RefundModal = ({ isOpen, onClose, invoice, onRefundComplete, mode, source 
                 </div>
               )}
 
-              {/* Reason for Refund */}
+                </>
+              )}
+
+              {/* Reason for Refund (mandatory for all Step 1 flows) */}
               <div className="space-y-3 pt-1">
                 <Label htmlFor="refund-reason" className="text-sm font-semibold text-gray-900">
                   Reason for Refund <span className="text-red-500">*</span>
