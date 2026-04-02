@@ -225,6 +225,8 @@
       font-size: 13.5px; color: var(--text-muted);
     }
     .check-icon { color: var(--success); margin-top: 1px; flex-shrink: 0; font-size: 15px; }
+    .check-icon { display: inline-flex; align-items: center; justify-content: center; }
+    .check-icon svg { width: 14px; height: 14px; stroke: currentColor; stroke-width: 2.2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ─── Stats Row ─────────────────────────────────────────────────────── */
     .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 2px; }
@@ -281,8 +283,7 @@
     /* ─── Integration Section ───────────────────────────────────────────── */
     .integration-card {
       background: linear-gradient(135deg, var(--dark) 0%, var(--dark-3) 100%);
-      border-radius: 24px; padding: 64px; display: grid;
-      grid-template-columns: 1fr 1fr; gap: 64px; align-items: center;
+      border-radius: 24px; padding: 56px;
     }
     .integration-badge {
       display: inline-flex; align-items: center; gap: 8px;
@@ -290,12 +291,16 @@
       border-radius: 100px; padding: 6px 14px; font-size: 12px; font-weight: 700;
       letter-spacing: .08em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px;
     }
-    .integration-card h2 { color: var(--white); margin-bottom: 16px; }
-    .integration-card .lead { color: rgba(255,255,255,.6); }
+    .integration-top { text-align: center; max-width: 840px; margin: 0 auto 28px; }
+    .integration-card h2 { color: var(--white); margin-bottom: 12px; }
+    .integration-card .lead { color: rgba(255,255,255,.6); margin-left: auto; margin-right: auto; max-width: 760px; }
+    .integration-visual { margin: 0 auto 28px; max-width: 920px; }
+    .integration-visual svg { width: 100%; display: block; }
+    .integration-points-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .integration-feature {
       display: flex; align-items: center; gap: 14px; padding: 16px;
       background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.08);
-      border-radius: 12px; margin-top: 12px; transition: all .25s;
+      border-radius: 12px; transition: all .25s;
     }
     .integration-feature:hover { background: rgba(255,255,255,.08); }
     .int-icon {
@@ -377,7 +382,15 @@
     .tag-icon {
       width: 32px; height: 32px; border-radius: 8px;
       display: flex; align-items: center; justify-content: center;
-      font-size: 16px;
+    }
+    .tag-icon svg { width: 16px; height: 16px; stroke: var(--white); stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-inline {
+      width: 18px; height: 18px; display: inline-flex; align-items: center; justify-content: center;
+      color: currentColor;
+    }
+    .icon-inline svg {
+      width: 100%; height: 100%; stroke: currentColor; stroke-width: 2; fill: none;
+      stroke-linecap: round; stroke-linejoin: round;
     }
     .tag-title { font-size: 13px; font-weight: 600; color: var(--text); }
     .tag-sub   { font-size: 11px; color: var(--text-muted); }
@@ -389,7 +402,8 @@
     }
     .trust-bar-inner { display: flex; align-items: center; justify-content: center; gap: 48px; flex-wrap: wrap; }
     .trust-item { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 600; color: var(--gray-4); }
-    .trust-icon { font-size: 20px; }
+    .trust-icon { width: 20px; height: 20px; display: inline-flex; align-items: center; justify-content: center; color: var(--gray-4); }
+    .trust-icon svg { width: 18px; height: 18px; stroke: currentColor; stroke-width: 2; fill: none; stroke-linecap: round; stroke-linejoin: round; }
 
     /* ─── Mobile responsive ─────────────────────────────────────────────── */
     @media (max-width: 900px) {
@@ -402,7 +416,8 @@
       .stats-row { grid-template-columns: 1fr 1fr; }
       .stat-box:first-child { border-radius: var(--radius) var(--radius) 0 0; }
       .stat-box:last-child { border-radius: 0 0 var(--radius) var(--radius); }
-      .integration-card { grid-template-columns: 1fr; padding: 36px; }
+      .integration-card { padding: 36px; }
+      .integration-points-grid { grid-template-columns: 1fr; }
       .footer-grid { grid-template-columns: 1fr 1fr; gap: 32px; }
       .workflow { grid-template-columns: 1fr 1fr; gap: 20px; }
       .workflow::before { display: none; }
@@ -481,8 +496,8 @@
         <div class="phone-mockup-wrap" style="height:520px;">
 
           <!-- Floating status tags -->
-          <div class="floating-tag animate-in delay-3" style="top:40px;left:-30px;z-index:10;">
-            <div class="tag-icon" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);">📅</div>
+          <div class="floating-tag animate-in delay-3" style="top:84px;left:-68px;z-index:10;">
+            <div class="tag-icon" style="background:linear-gradient(135deg,#3b82f6,#1d4ed8);"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="2"></rect><path d="M8 3v4M16 3v4M3 10h18"></path></svg></div>
             <div>
               <div class="tag-title">Job Scheduled</div>
               <div class="tag-sub">Tap &amp; dispatch</div>
@@ -490,7 +505,7 @@
           </div>
 
           <div class="floating-tag animate-in delay-4" style="top:200px;right:-40px;z-index:10;">
-            <div class="tag-icon" style="background:linear-gradient(135deg,#16a34a,#15803d);">✓</div>
+            <div class="tag-icon" style="background:linear-gradient(135deg,#16a34a,#15803d);"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 6L9 17l-5-5"></path></svg></div>
             <div>
               <div class="tag-title">Payment Received</div>
               <div class="tag-sub">$485.00 collected</div>
@@ -498,7 +513,7 @@
           </div>
 
           <div class="floating-tag animate-in delay-3" style="bottom:80px;left:-20px;z-index:10;">
-            <div class="tag-icon" style="background:linear-gradient(135deg,var(--primary),var(--accent));">📍</div>
+            <div class="tag-icon" style="background:linear-gradient(135deg,var(--primary),var(--accent));"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11z"></path><circle cx="12" cy="10" r="2.2"></circle></svg></div>
             <div>
               <div class="tag-title">Route Opened</div>
               <div class="tag-sub">ETA 12 min</div>
@@ -510,6 +525,7 @@
             <!-- Phone body -->
             <rect x="2" y="2" width="296" height="596" rx="38" ry="38" fill="#1a1a1a" stroke="#333" stroke-width="2"/>
             <rect x="8" y="8" width="284" height="584" rx="32" ry="32" fill="#f9f9f9"/>
+            <g clip-path="url(#phoneScreenClip)">
             <!-- Notch -->
             <rect x="110" y="12" width="80" height="24" rx="12" fill="#1a1a1a"/>
             <!-- Status bar -->
@@ -517,12 +533,12 @@
 
             <!-- App Header Bar -->
             <rect x="8" y="48" width="284" height="52" fill="white"/>
-            <text x="24" y="78" font-family="Inter,sans-serif" font-size="15" font-weight="800" fill="#1a1a1a">Service Pro 911</text>
+            <text x="28" y="78" font-family="Inter,sans-serif" font-size="15" font-weight="800" fill="#1a1a1a">Service Pro 911</text>
             <!-- Header right icons -->
-            <circle cx="252" cy="74" r="14" fill="#f5f5f5"/>
-            <text x="246" y="79" font-family="sans-serif" font-size="14">🔔</text>
-            <circle cx="280" cy="74" r="14" fill="#f5f5f5"/>
-            <text x="274" y="79" font-family="sans-serif" font-size="14">👤</text>
+            <circle cx="246" cy="74" r="13" fill="#f5f5f5"/>
+            <g transform="translate(246 74)" stroke="#6b7280" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M-4 -1a4 4 0 0 1 8 0v3l1.6 2.1h-11.2L-4 2z"></path><path d="M-1.5 5.1a1.5 1.5 0 0 0 3 0"></path></g>
+            <circle cx="274" cy="74" r="13" fill="#f5f5f5"/>
+            <g transform="translate(274 74)" stroke="#6b7280" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"><circle cx="0" cy="-2.2" r="3"></circle><path d="M-5 5c1.3-2.7 8.7-2.7 10 0"></path></g>
 
             <!-- Today summary card -->
             <rect x="16" y="112" width="268" height="76" rx="14" fill="url(#heroGrad)"/>
@@ -539,7 +555,7 @@
             <!-- Card 1 -->
             <rect x="16" y="202" width="268" height="72" rx="12" fill="white" stroke="#f0f0f0" stroke-width="1"/>
             <circle cx="36" cy="238" r="14" fill="#fff3ee"/>
-            <text x="29" y="243" font-family="sans-serif" font-size="14">🔧</text>
+            <g transform="translate(36 238)" stroke="#f85520" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"><path d="M-4 4l8-8"></path><path d="M-1 -4l5 5"></path><circle cx="-4.8" cy="4.8" r="1.4"></circle></g>
             <text x="60" y="228" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">HVAC Repair - Johnson</text>
             <text x="60" y="244" font-family="Inter,sans-serif" font-size="10" fill="#737373">142 Maple St · 9:00 AM</text>
             <rect x="60" y="252" width="44" height="14" rx="7" fill="#dcfce7"/>
@@ -551,7 +567,7 @@
             <!-- Card 2 -->
             <rect x="16" y="282" width="268" height="72" rx="12" fill="white" stroke="#f0f0f0" stroke-width="1"/>
             <circle cx="36" cy="318" r="14" fill="#eff6ff"/>
-            <text x="29" y="323" font-family="sans-serif" font-size="14">💧</text>
+            <path d="M36 306 C31 312 30 315 30 318 a6 6 0 0 0 12 0 c0-3-1-6-6-12z" fill="none" stroke="#2563eb" stroke-width="1.8"/>
             <text x="60" y="308" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Plumbing - Williams</text>
             <text x="60" y="324" font-family="Inter,sans-serif" font-size="10" fill="#737373">89 Oak Ave · 11:30 AM</text>
             <rect x="60" y="332" width="48" height="14" rx="7" fill="#fef3c7"/>
@@ -561,7 +577,7 @@
             <!-- Card 3 -->
             <rect x="16" y="362" width="268" height="72" rx="12" fill="white" stroke="#f0f0f0" stroke-width="1"/>
             <circle cx="36" cy="398" r="14" fill="#f5f3ff"/>
-            <text x="29" y="403" font-family="sans-serif" font-size="14">⚡</text>
+            <path d="M38 388l-5 9h4l-3 9 7-10h-4l1-8z" fill="none" stroke="#7c3aed" stroke-width="1.8" stroke-linejoin="round"/>
             <text x="60" y="388" font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#1a1a1a">Electrical - Rodriguez</text>
             <text x="60" y="404" font-family="Inter,sans-serif" font-size="10" fill="#737373">33 Elm Blvd · 2:00 PM</text>
             <rect x="60" y="412" width="48" height="14" rx="7" fill="#fee2e2"/>
@@ -572,18 +588,22 @@
             <rect x="8" y="524" width="284" height="68" rx="0" fill="white"/>
             <rect x="8" y="524" width="284" height="1" fill="#f0f0f0"/>
             <!-- Nav icons -->
-            <text x="26" y="556" font-family="sans-serif" font-size="18">🏠</text>
+            <path d="M18 556l8-7 8 7M21 554v7h10v-7" stroke="#f85520" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
             <text x="22" y="568" font-family="Inter,sans-serif" font-size="8" font-weight="600" fill="#f85520">Home</text>
-            <text x="78" y="556" font-family="sans-serif" font-size="18">🔧</text>
+            <path d="M74 556l8-8M77 549l5 5M72 558l2 2" stroke="#9ca3af" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
             <text x="76" y="568" font-family="Inter,sans-serif" font-size="8" font-weight="500" fill="#9ca3af">Jobs</text>
-            <text x="132" y="556" font-family="sans-serif" font-size="18">📋</text>
+            <rect x="126" y="548" width="12" height="14" rx="2" fill="none" stroke="#9ca3af" stroke-width="1.6"/><path d="M129 546h6" stroke="#9ca3af" stroke-width="1.6" stroke-linecap="round"/>
             <text x="128" y="568" font-family="Inter,sans-serif" font-size="8" font-weight="500" fill="#9ca3af">Invoices</text>
-            <text x="188" y="556" font-family="sans-serif" font-size="18">👥</text>
+            <circle cx="186" cy="552" r="3" fill="none" stroke="#9ca3af" stroke-width="1.4"/><circle cx="191" cy="553" r="2.5" fill="none" stroke="#9ca3af" stroke-width="1.4"/><path d="M181 560c1.5-3 8.5-3 10 0" fill="none" stroke="#9ca3af" stroke-width="1.4"/>
             <text x="185" y="568" font-family="Inter,sans-serif" font-size="8" font-weight="500" fill="#9ca3af">Customers</text>
-            <text x="244" y="556" font-family="sans-serif" font-size="18">⚙️</text>
+            <circle cx="246" cy="555" r="4.5" fill="none" stroke="#9ca3af" stroke-width="1.6"/><circle cx="246" cy="555" r="1.8" fill="none" stroke="#9ca3af" stroke-width="1.6"/>
             <text x="242" y="568" font-family="Inter,sans-serif" font-size="8" font-weight="500" fill="#9ca3af">More</text>
+            </g>
 
             <defs>
+              <clipPath id="phoneScreenClip">
+                <rect x="8" y="8" width="284" height="584" rx="32" ry="32"/>
+              </clipPath>
               <linearGradient id="heroGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#f85520"/>
                 <stop offset="100%" stop-color="#ff7340"/>
@@ -599,12 +619,12 @@
 <!-- ─── Trust Bar ──────────────────────────────────────────────────────── -->
 <div class="trust-bar">
   <div class="trust-bar-inner container">
-    <div class="trust-item"><span class="trust-icon">🛠️</span> HVAC &amp; Plumbing</div>
-    <div class="trust-item"><span class="trust-icon">⚡</span> Electrical Contractors</div>
-    <div class="trust-item"><span class="trust-icon">🏠</span> Home Service Providers</div>
-    <div class="trust-item"><span class="trust-icon">🔧</span> Appliance Repair</div>
-    <div class="trust-item"><span class="trust-icon">🚪</span> Garage Door Services</div>
-    <div class="trust-item"><span class="trust-icon">📡</span> Field Service Teams</div>
+    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><path d="M14 7l3-3 3 3-3 3z"></path><path d="M3 21l8-8"></path><path d="M6 18l3 3"></path></svg></span> HVAC &amp; Plumbing</div>
+    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"></path></svg></span> Electrical Contractors</div>
+    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg></span> Home Service Providers</div>
+    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><path d="M4 20l8-8"></path><path d="M7 9l8 8"></path><path d="M14 4l6 6"></path></svg></span> Appliance Repair</div>
+    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M9 4v16"></path></svg></span> Garage Door Services</div>
+    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"></circle><path d="M5 12a7 7 0 0 1 14 0"></path><path d="M2 12a10 10 0 0 1 20 0"></path></svg></span> Field Service Teams</div>
   </div>
 </div>
 
@@ -650,25 +670,25 @@
         <h3>Smart Job Management</h3>
         <p>Schedule, dispatch, and track every job from start to finish.</p>
         <ul>
-          <li><span class="check-icon">✓</span> Schedule and dispatch jobs efficiently</li>
-          <li><span class="check-icon">✓</span> Track job status in real time</li>
-          <li><span class="check-icon">✓</span> Reassign and reschedule instantly</li>
-          <li><span class="check-icon">✓</span> Link jobs with invoices &amp; estimates</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Schedule and dispatch jobs efficiently</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Track job status in real time</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Reassign and reschedule instantly</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Link jobs with invoices &amp; estimates</li>
         </ul>
       </div>
 
       <!-- Feature 2 -->
       <div class="feature-card animate-in delay-2">
-        <div class="feature-icon" style="background:#f0fdf4;">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="feature-icon" style="background:#fff1f2;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" stroke="#e11d48" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke="#e11d48" stroke-width="2"/><path d="M6 12h.01M18 12h.01" stroke="#e11d48" stroke-width="2" stroke-linecap="round"/></svg>
         </div>
-        <h3>Faster Payments Workflow</h3>
-        <p>From estimate to paid invoice in the fewest steps possible.</p>
+        <h3>Seamless Customer Management</h3>
+        <p>Full customer history, notes, and service records always accessible.</p>
         <ul>
-          <li><span class="check-icon">✓</span> Create estimates quickly</li>
-          <li><span class="check-icon">✓</span> Convert estimates to invoices</li>
-          <li><span class="check-icon">✓</span> Collect and track payments</li>
-          <li><span class="check-icon">✓</span> Handle partial &amp; full refunds</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Easily access and update complete customer profiles</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Keep notes and service pictures recorded under each customer</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> View all jobs linked to a customer in one place</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Capture customer feedback for every completed job</li>
         </ul>
       </div>
 
@@ -680,10 +700,10 @@
         <h3>Team Coordination</h3>
         <p>Keep office staff and field technicians on the same page.</p>
         <ul>
-          <li><span class="check-icon">✓</span> Office manages scheduling &amp; comms</li>
-          <li><span class="check-icon">✓</span> Field techs see job details on-site</li>
-          <li><span class="check-icon">✓</span> Single connected workflow</li>
-          <li><span class="check-icon">✓</span> Real-time status updates</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Office staff manages customers and job scheduling</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Field techs see job details on-site</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Single connected workflow</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Real-time status updates</li>
         </ul>
       </div>
 
@@ -692,28 +712,28 @@
         <div class="feature-icon" style="background:#faf5ff;">
           <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M14 2v6h6M16 13H8M16 17H8M10 9H8" stroke="#7c3aed" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <h3>Estimates, Invoices &amp; Agreements</h3>
+        <h3>Estimates, Invoices &amp; Agreements in One Place</h3>
         <p>Professional documents generated in seconds, not minutes.</p>
         <ul>
-          <li><span class="check-icon">✓</span> Create professional estimates</li>
-          <li><span class="check-icon">✓</span> One-click invoice conversion</li>
-          <li><span class="check-icon">✓</span> Manage service agreements</li>
-          <li><span class="check-icon">✓</span> All documents tied to jobs</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Create professional estimates, agreements, and invoices</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Get agreements signed to help reduce chargebacks</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Convert estimates and agreements into invoices to manage payments more easily</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Link related estimates, agreements, and invoices to each job</li>
         </ul>
       </div>
 
       <!-- Feature 5 -->
       <div class="feature-card animate-in delay-2">
-        <div class="feature-icon" style="background:#fff1f2;">
-          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" stroke="#e11d48" stroke-width="2"/><circle cx="12" cy="12" r="2" stroke="#e11d48" stroke-width="2"/><path d="M6 12h.01M18 12h.01" stroke="#e11d48" stroke-width="2" stroke-linecap="round"/></svg>
+        <div class="feature-icon" style="background:#f0fdf4;">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" stroke="#16a34a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </div>
-        <h3>Customer Management</h3>
-        <p>Full customer history, notes, and service records always accessible.</p>
+        <h3>Faster Payment Workflow</h3>
+        <p>Flexible payment collection and refund handling built for fast service operations.</p>
         <ul>
-          <li><span class="check-icon">✓</span> Customer profiles &amp; history</li>
-          <li><span class="check-icon">✓</span> Notes &amp; service records</li>
-          <li><span class="check-icon">✓</span> Linked documents per customer</li>
-          <li><span class="check-icon">✓</span> Quick lookup in the field</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Receive payments by card, check, cash, and QR</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Option to collect partial payment</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Collect and track payments</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Easy refund flow for partial and full refunds</li>
         </ul>
       </div>
 
@@ -725,11 +745,92 @@
         <h3>Business Visibility</h3>
         <p>Dashboards and reports to see what's happening across your business.</p>
         <ul>
-          <li><span class="check-icon">✓</span> Payment tracking dashboards</li>
-          <li><span class="check-icon">✓</span> Document status monitoring</li>
-          <li><span class="check-icon">✓</span> Revenue &amp; job reports</li>
-          <li><span class="check-icon">✓</span> Real-time operational view</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Payment tracking dashboards</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Document status monitoring</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Revenue &amp; job reports</li>
+          <li><span class="check-icon"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M3 8.5l3 3 7-7"></path></svg></span> Real-time operational view</li>
         </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Maps Section ───────────────────────────────────────────────────── -->
+<section class="section" id="maps">
+  <div class="container">
+    <div class="maps-grid">
+      <!-- Left: Copy -->
+      <div>
+        <div class="eyebrow"><span class="eyebrow-dot"></span> Maps &amp; Route Visibility</div>
+        <h2>Get to Every Job Faster with Built-In Maps</h2>
+        <p class="lead" style="margin-top:16px;">
+          Service Pro 911 helps technicians and dispatchers quickly open job locations and view the route in seconds — directly from job details.
+        </p>
+        <ul style="margin-top:28px;display:flex;flex-direction:column;gap:14px;">
+          <li style="display:flex;align-items:flex-start;gap:14px;">
+            <span style="width:36px;height:36px;border-radius:10px;background:#fff3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="icon-inline" style="color:#f85520;"><svg viewBox="0 0 24 24"><path d="M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11z"></path><circle cx="12" cy="10" r="2"></circle></svg></span></span>
+            <div><strong style="display:block;margin-bottom:2px;">Open Addresses Directly</strong><span style="font-size:14px;color:var(--text-muted);">Open customer addresses in maps from job details with a single tap.</span></div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:14px;">
+            <span style="width:36px;height:36px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="icon-inline" style="color:#16a34a;"><svg viewBox="0 0 24 24"><path d="M9 4l6 2 6-2v16l-6 2-6-2-6 2V6z"></path><path d="M9 4v16M15 6v16"></path></svg></span></span>
+            <div><strong style="display:block;margin-bottom:2px;">View Route Instantly</strong><span style="font-size:14px;color:var(--text-muted);">See the route immediately for faster travel decisions without leaving the app.</span></div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:14px;">
+            <span style="width:36px;height:36px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="icon-inline" style="color:#2563eb;"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"></circle><path d="M12 13l3-2"></path><path d="M12 5V3"></path></svg></span></span>
+            <div><strong style="display:block;margin-bottom:2px;">Reduce Arrival Delays</strong><span style="font-size:14px;color:var(--text-muted);">Improve on-time arrivals and daily route efficiency for every technician.</span></div>
+          </li>
+          <li style="display:flex;align-items:flex-start;gap:14px;">
+            <span style="width:36px;height:36px;border-radius:10px;background:#faf5ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;"><span class="icon-inline" style="color:#7c3aed;"><svg viewBox="0 0 24 24"><path d="M5 14l2-5h10l2 5"></path><rect x="4" y="14" width="16" height="4" rx="1"></rect><circle cx="8" cy="19" r="1.5"></circle><circle cx="16" cy="19" r="1.5"></circle></svg></span></span>
+            <div><strong style="display:block;margin-bottom:2px;">Faster Dispatch Decisions</strong><span style="font-size:14px;color:var(--text-muted);">Help dispatch teams make smarter daily routing decisions at a glance.</span></div>
+          </li>
+        </ul>
+      </div>
+
+      <!-- Right: Map Infographic -->
+      <div style="position:relative;border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,0.12);overflow:hidden;">
+        <img src="GoogleMapTA.webp" alt="Map showing connected job locations with route" style="width:100%;display:block;"/>
+        <!-- Pin + Route overlay -->
+        <svg viewBox="0 0 600 420" xmlns="http://www.w3.org/2000/svg"
+             style="position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;">
+          <!-- Dashed route connecting all 4 pins -->
+          <path d="M118 340 C145 310, 170 290, 210 255 C245 225, 285 200, 330 168 C368 140, 415 112, 468 82"
+                fill="none" stroke="#f85520" stroke-width="4" stroke-linecap="round" stroke-dasharray="10 7" opacity="0.92"/>
+          <!-- Pin 1 (bottom-left) -->
+          <g>
+            <ellipse cx="118" cy="358" rx="13" ry="5" fill="rgba(248,85,32,0.25)"/>
+            <path d="M118 320 c10 0 17 8 17 17 0 12-17 27-17 27 s-17-15-17-27 c0-9 7-17 17-17z" fill="#f85520"/>
+            <circle cx="118" cy="337" r="6.5" fill="white"/>
+            <circle cx="118" cy="337" r="3" fill="#f85520"/>
+          </g>
+          <!-- Pin 2 -->
+          <g>
+            <ellipse cx="210" cy="271" rx="13" ry="5" fill="rgba(248,85,32,0.25)"/>
+            <path d="M210 233 c10 0 17 8 17 17 0 12-17 27-17 27 s-17-15-17-27 c0-9 7-17 17-17z" fill="#f85520"/>
+            <circle cx="210" cy="250" r="6.5" fill="white"/>
+            <circle cx="210" cy="250" r="3" fill="#f85520"/>
+          </g>
+          <!-- Pin 3 -->
+          <g>
+            <ellipse cx="330" cy="184" rx="13" ry="5" fill="rgba(248,85,32,0.25)"/>
+            <path d="M330 146 c10 0 17 8 17 17 0 12-17 27-17 27 s-17-15-17-27 c0-9 7-17 17-17z" fill="#f85520"/>
+            <circle cx="330" cy="163" r="6.5" fill="white"/>
+            <circle cx="330" cy="163" r="3" fill="#f85520"/>
+          </g>
+          <!-- Pin 4 (top-right) -->
+          <g>
+            <ellipse cx="468" cy="99" rx="13" ry="5" fill="rgba(248,85,32,0.25)"/>
+            <path d="M468 61 c10 0 17 8 17 17 0 12-17 27-17 27 s-17-15-17-27 c0-9 7-17 17-17z" fill="#f85520"/>
+            <circle cx="468" cy="78" r="6.5" fill="white"/>
+            <circle cx="468" cy="78" r="3" fill="#f85520"/>
+          </g>
+          <!-- Info cards -->
+          <rect x="14" y="354" width="168" height="48" rx="10" fill="white" opacity="0.95" style="filter:drop-shadow(0 3px 8px rgba(0,0,0,0.15))"/>
+          <text x="26" y="374" font-family="Inter,sans-serif" font-size="10.5" font-weight="700" fill="#f85520">4 Connected Stops</text>
+          <text x="26" y="390" font-family="Inter,sans-serif" font-size="9.5" fill="#555">Live location routing enabled</text>
+          <rect x="410" y="354" width="174" height="48" rx="10" fill="white" opacity="0.95" style="filter:drop-shadow(0 3px 8px rgba(0,0,0,0.15))"/>
+          <text x="422" y="374" font-family="Inter,sans-serif" font-size="10.5" font-weight="700" fill="#16a34a">Optimized Route</text>
+          <text x="422" y="390" font-family="Inter,sans-serif" font-size="9.5" fill="#555">ETA 9:42 AM · 4.2 mi</text>
+        </svg>
       </div>
     </div>
   </div>
@@ -797,14 +898,14 @@
       <p class="lead">From solo technicians to growing service fleets, Service Pro 911 adapts to your business type and workflow.</p>
     </div>
     <div class="pills-row">
-      <div class="pill">🌬️ HVAC</div>
-      <div class="pill">💧 Plumbing</div>
-      <div class="pill">⚡ Electrical</div>
-      <div class="pill">🏠 Appliance Repair</div>
-      <div class="pill">🚪 Garage Door Service</div>
-      <div class="pill">🏡 Home Services</div>
-      <div class="pill">🔧 Maintenance Teams</div>
-      <div class="pill">📡 Field Service Ops</div>
+      <div class="pill"><span class="icon-inline" style="margin-right:6px;"><svg viewBox="0 0 24 24"><path d="M3 12h5l2-3 4 6 2-3h5"></path></svg></span>HVAC</div>
+      <div class="pill"><span class="icon-inline" style="margin-right:6px;"><svg viewBox="0 0 24 24"><path d="M12 3C8 8 7 10 7 13a5 5 0 0 0 10 0c0-3-1-5-5-10z"></path></svg></span>Plumbing</div>
+      <div class="pill"><span class="icon-inline" style="margin-right:6px;"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"></path></svg></span>Electrical</div>
+      <div class="pill"><span class="icon-inline" style="margin-right:6px;"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg></span>Appliance Repair</div>
+      <div class="pill"><span class="icon-inline" style="margin-right:6px;"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M9 4v16"></path></svg></span>Garage Door Service</div>
+      <div class="pill"><span class="icon-inline" style="margin-right:6px;"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"></path><path d="M7 21v-6h10v6"></path></svg></span>Home Services</div>
+      <div class="pill"><span class="icon-inline" style="margin-right:6px;"><svg viewBox="0 0 24 24"><path d="M4 20l8-8"></path><path d="M7 9l8 8"></path><path d="M14 4l6 6"></path></svg></span>Maintenance Teams</div>
+      <div class="pill"><span class="icon-inline" style="margin-right:6px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"></circle><path d="M5 12a7 7 0 0 1 14 0"></path><path d="M2 12a10 10 0 0 1 20 0"></path></svg></span>Field Service Ops</div>
     </div>
   </div>
 </section>
@@ -835,7 +936,7 @@
             <rect x="28" y="50" width="24" height="6" rx="3" fill="#f85520"/>
           </svg>
         </div>
-        <h3>📱 Mobile</h3>
+        <h3><span class="icon-inline" style="margin-right:6px;vertical-align:middle;"><svg viewBox="0 0 24 24"><rect x="7" y="2" width="10" height="20" rx="2"></rect><path d="M11 18h2"></path></svg></span>Mobile</h3>
         <p>Perfect for technicians and field teams who need quick access while on the move. Optimized for speed and one-handed use.</p>
       </div>
 
@@ -853,7 +954,7 @@
             <rect x="42" y="30" width="24" height="25" rx="2" fill="#fff3ee" stroke="#f85520" stroke-width=".5"/>
           </svg>
         </div>
-        <h3>📲 Tablet</h3>
+        <h3><span class="icon-inline" style="margin-right:6px;vertical-align:middle;"><svg viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2"></rect><circle cx="12" cy="17" r="1"></circle></svg></span>Tablet</h3>
         <p>Ideal for teams that want a larger, more comfortable interface in the field or at the front desk. More screen, more context.</p>
       </div>
 
@@ -872,106 +973,8 @@
             <rect x="30" y="35" width="36" height="10" rx="1" fill="#e5e5e5" opacity=".5"/>
           </svg>
         </div>
-        <h3>💻 Desktop</h3>
+        <h3><span class="icon-inline" style="margin-right:6px;vertical-align:middle;"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="2"></rect><path d="M8 20h8M12 16v4"></path></svg></span>Desktop</h3>
         <p>Best for office staff, dispatchers, and managers handling scheduling, reporting, financial workflows, and customer records.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<!-- ─── Maps Section ───────────────────────────────────────────────────── -->
-<section class="section" id="maps">
-  <div class="container">
-    <div class="maps-grid">
-      <!-- Left: Copy -->
-      <div>
-        <div class="eyebrow"><span class="eyebrow-dot"></span> Maps &amp; Route Visibility</div>
-        <h2>Get to Every Job Faster with Built-In Maps</h2>
-        <p class="lead" style="margin-top:16px;">
-          Service Pro 911 helps technicians and dispatchers quickly open job locations and view the route in seconds — directly from job details.
-        </p>
-        <ul style="margin-top:28px;display:flex;flex-direction:column;gap:14px;">
-          <li style="display:flex;align-items:flex-start;gap:14px;">
-            <span style="width:36px;height:36px;border-radius:10px;background:#fff3ee;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">📍</span>
-            <div><strong style="display:block;margin-bottom:2px;">Open Addresses Directly</strong><span style="font-size:14px;color:var(--text-muted);">Open customer addresses in maps from job details with a single tap.</span></div>
-          </li>
-          <li style="display:flex;align-items:flex-start;gap:14px;">
-            <span style="width:36px;height:36px;border-radius:10px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🗺️</span>
-            <div><strong style="display:block;margin-bottom:2px;">View Route Instantly</strong><span style="font-size:14px;color:var(--text-muted);">See the route immediately for faster travel decisions without leaving the app.</span></div>
-          </li>
-          <li style="display:flex;align-items:flex-start;gap:14px;">
-            <span style="width:36px;height:36px;border-radius:10px;background:#eff6ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">⏱️</span>
-            <div><strong style="display:block;margin-bottom:2px;">Reduce Arrival Delays</strong><span style="font-size:14px;color:var(--text-muted);">Improve on-time arrivals and daily route efficiency for every technician.</span></div>
-          </li>
-          <li style="display:flex;align-items:flex-start;gap:14px;">
-            <span style="width:36px;height:36px;border-radius:10px;background:#faf5ff;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;">🚗</span>
-            <div><strong style="display:block;margin-bottom:2px;">Faster Dispatch Decisions</strong><span style="font-size:14px;color:var(--text-muted);">Help dispatch teams make smarter daily routing decisions at a glance.</span></div>
-          </li>
-        </ul>
-      </div>
-
-      <!-- Right: Map Infographic -->
-      <div>
-        <svg viewBox="0 0 480 380" xmlns="http://www.w3.org/2000/svg" style="width:100%;border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,0.12);">
-          <!-- Map background -->
-          <rect width="480" height="380" fill="#e8f4e8"/>
-          <!-- Road grid -->
-          <line x1="0" y1="190" x2="480" y2="190" stroke="white" stroke-width="8" opacity=".8"/>
-          <line x1="240" y1="0" x2="240" y2="380" stroke="white" stroke-width="8" opacity=".8"/>
-          <line x1="0" y1="95"  x2="480" y2="95"  stroke="white" stroke-width="4" opacity=".5"/>
-          <line x1="0" y1="285" x2="480" y2="285" stroke="white" stroke-width="4" opacity=".5"/>
-          <line x1="120" y1="0" x2="120" y2="380" stroke="white" stroke-width="4" opacity=".5"/>
-          <line x1="360" y1="0" x2="360" y2="380" stroke="white" stroke-width="4" opacity=".5"/>
-          <!-- City blocks -->
-          <rect x="30"  y="30"  width="70"  height="50"  rx="4" fill="#d4ead4" opacity=".8"/>
-          <rect x="130" y="30"  width="90"  height="50"  rx="4" fill="#c8e3c8" opacity=".8"/>
-          <rect x="250" y="30"  width="80"  height="50"  rx="4" fill="#d4ead4" opacity=".8"/>
-          <rect x="350" y="30"  width="100" height="50"  rx="4" fill="#c8e3c8" opacity=".8"/>
-          <rect x="30"  y="115" width="70"  height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
-          <rect x="130" y="115" width="90"  height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
-          <rect x="250" y="115" width="80"  height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
-          <rect x="350" y="115" width="100" height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
-          <rect x="30"  y="210" width="70"  height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
-          <rect x="130" y="210" width="90"  height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
-          <rect x="250" y="210" width="80"  height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
-          <rect x="350" y="210" width="100" height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
-          <rect x="30"  y="300" width="70"  height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
-          <rect x="130" y="300" width="90"  height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
-          <rect x="250" y="300" width="80"  height="60"  rx="4" fill="#c8e3c8" opacity=".8"/>
-          <rect x="350" y="300" width="100" height="60"  rx="4" fill="#d4ead4" opacity=".8"/>
-
-          <!-- Route line (animated dashes) -->
-          <path d="M 80 240 Q 80 190 120 190 Q 180 190 200 145 Q 220 100 280 80 Q 350 55 400 55"
-                fill="none" stroke="#f85520" stroke-width="4" stroke-dasharray="8 4"
-                stroke-linecap="round" opacity=".9"/>
-
-          <!-- Start pin (technician) -->
-          <circle cx="80" cy="240" r="18" fill="white" stroke="#f85520" stroke-width="3"/>
-          <text x="80" y="245" text-anchor="middle" font-family="sans-serif" font-size="16">🚗</text>
-
-          <!-- End pin (job site) -->
-          <ellipse cx="400" cy="72" rx="14" ry="5" fill="rgba(248,85,32,.2)"/>
-          <path d="M400 28 C400 28 414 42 414 54 C414 62.8 407.7 70 400 70 C392.3 70 386 62.8 386 54 C386 42 400 28 400 28Z" fill="#f85520"/>
-          <circle cx="400" cy="53" r="7" fill="white"/>
-          <text x="400" y="57" text-anchor="middle" font-family="sans-serif" font-size="10">🔧</text>
-
-          <!-- Midpoint -->
-          <circle cx="200" cy="145" r="8" fill="#f85520" opacity=".4"/>
-          <circle cx="280" cy="80"  r="8" fill="#f85520" opacity=".4"/>
-
-          <!-- Info card -->
-          <rect x="20" y="300" width="180" height="66" rx="12" fill="white" opacity=".95" style="filter:drop-shadow(0 4px 12px rgba(0,0,0,.12))"/>
-          <text x="36"  y="322" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#f85520">📍 HVAC Repair – Johnson</text>
-          <text x="36"  y="337" font-family="Inter,sans-serif" font-size="10" fill="#737373">142 Maple Street</text>
-          <rect x="36"  y="345" width="80" height="14" rx="7" fill="#f85520"/>
-          <text x="76" y="355" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="white">Open in Maps</text>
-
-          <!-- ETA badge -->
-          <rect x="300" y="300" width="160" height="50" rx="12" fill="white" opacity=".95" style="filter:drop-shadow(0 4px 12px rgba(0,0,0,.12))"/>
-          <text x="316" y="318" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#16a34a">✓ Route Ready</text>
-          <text x="316" y="334" font-family="Inter,sans-serif" font-size="24" font-weight="900" fill="#1a1a1a">12 min</text>
-          <text x="316" y="345" font-family="Inter,sans-serif" font-size="9" fill="#737373">ETA 9:42 AM · 4.2 mi</text>
-        </svg>
       </div>
     </div>
   </div>
@@ -981,82 +984,109 @@
 <section class="section section--gray" id="integration">
   <div class="container">
     <div class="integration-card">
-      <!-- Left: Copy -->
-      <div>
+      <div class="integration-top">
         <div class="integration-badge">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor"><path d="M6 0L7.5 4.5H12L8.25 7.3 9.75 12 6 9.2 2.25 12 3.75 7.3 0 4.5H4.5z"/></svg>
           Official Integration
         </div>
-        <h2>Fully Integrated with Universell</h2>
-        <p class="lead" style="margin-top:12px;margin-bottom:28px;">
-          Service Pro 911 includes a dedicated integration experience with Universell, helping businesses connect their operations more efficiently within a unified workflow.
+        <h2>Grow Faster with Universell Integration</h2>
+        <p class="lead" style="margin-top:12px;margin-bottom:0;">
+          Integrating with Universell helps merchants scale with connected capabilities across operations, sales, marketing, and team collaboration.
         </p>
-        <div class="integration-feature">
-          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" stroke="#ff7340" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><h4>Unified Business Workflow</h4><p>Reduce friction between systems with connected data and processes</p></div>
-        </div>
-        <div class="integration-feature">
-          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="#ff7340" stroke-width="2"/><path d="M12 6v6l4 2" stroke="#ff7340" stroke-width="2" stroke-linecap="round"/></svg></div>
-          <div><h4>Eliminate Duplication</h4><p>Reduces duplicate entry across systems for faster team operations</p></div>
-        </div>
-        <div class="integration-feature">
-          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2V3zm20 0h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7V3z" stroke="#ff7340" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div><h4>Consistent Operations</h4><p>Improved operational consistency across service and financial activity</p></div>
-        </div>
       </div>
 
-      <!-- Right: Integration Diagram SVG -->
-      <div style="display:flex;align-items:center;justify-content:center;">
-        <svg viewBox="0 0 360 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;max-width:360px;">
-          <!-- Background circles -->
-          <circle cx="180" cy="150" r="130" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
-          <circle cx="180" cy="150" r="90" fill="rgba(255,255,255,.04)" stroke="rgba(255,255,255,.08)" stroke-width="1"/>
-          <circle cx="180" cy="150" r="50" fill="rgba(248,85,32,.15)" stroke="rgba(248,85,32,.3)" stroke-width="1"/>
-
-          <!-- Center: Connect icon -->
-          <circle cx="180" cy="150" r="34" fill="url(#intGrad)"/>
-          <text x="180" y="156" text-anchor="middle" font-family="sans-serif" font-size="24">🔗</text>
-
-          <!-- ServicePro911 node -->
-          <circle cx="80" cy="80" r="36" fill="rgba(255,255,255,.07)" stroke="rgba(248,85,32,.4)" stroke-width="2"/>
-          <text x="80" y="76" text-anchor="middle" font-family="sans-serif" font-size="18">🛡️</text>
-          <text x="80" y="91" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,.7)">Service</text>
-          <text x="80" y="101" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,.7)">Pro 911</text>
-
-          <!-- Universell node -->
-          <circle cx="280" cy="80" r="36" fill="rgba(255,255,255,.07)" stroke="rgba(248,85,32,.4)" stroke-width="2"/>
-          <text x="280" y="76" text-anchor="middle" font-family="sans-serif" font-size="18">⚡</text>
-          <text x="280" y="91" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="rgba(255,255,255,.7)">Universell</text>
-
-          <!-- Jobs node -->
-          <circle cx="80" cy="230" r="28" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
-          <text x="80" y="226" text-anchor="middle" font-family="sans-serif" font-size="16">📋</text>
-          <text x="80" y="240" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="rgba(255,255,255,.5)">Jobs</text>
-
-          <!-- Payments node -->
-          <circle cx="280" cy="230" r="28" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
-          <text x="280" y="226" text-anchor="middle" font-family="sans-serif" font-size="16">💳</text>
-          <text x="280" y="240" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="rgba(255,255,255,.5)">Payments</text>
-
-          <!-- Customers node -->
-          <circle cx="180" cy="270" r="28" fill="rgba(255,255,255,.05)" stroke="rgba(255,255,255,.15)" stroke-width="1.5"/>
-          <text x="180" y="266" text-anchor="middle" font-family="sans-serif" font-size="16">👥</text>
-          <text x="180" y="280" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="rgba(255,255,255,.5)">Customers</text>
-
-          <!-- Connection lines -->
-          <line x1="110" y1="98"  x2="155" y2="135" stroke="rgba(248,85,32,.4)" stroke-width="1.5" stroke-dasharray="4 3"/>
-          <line x1="250" y1="98"  x2="205" y2="135" stroke="rgba(248,85,32,.4)" stroke-width="1.5" stroke-dasharray="4 3"/>
-          <line x1="105" y1="215" x2="155" y2="165" stroke="rgba(255,255,255,.2)" stroke-width="1" stroke-dasharray="4 3"/>
-          <line x1="255" y1="215" x2="205" y2="165" stroke="rgba(255,255,255,.2)" stroke-width="1" stroke-dasharray="4 3"/>
-          <line x1="180" y1="245" x2="180" y2="184" stroke="rgba(255,255,255,.2)" stroke-width="1" stroke-dasharray="4 3"/>
-
+      <div class="integration-visual">
+        <svg viewBox="0 0 420 320" xmlns="http://www.w3.org/2000/svg" style="max-width:920px;">
           <defs>
-            <linearGradient id="intGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0%" stop-color="#1f2127"/>
+              <stop offset="100%" stop-color="#2a2d35"/>
+            </linearGradient>
+            <linearGradient id="accentGrad" x1="0" y1="0" x2="1" y2="1">
               <stop offset="0%" stop-color="#f85520"/>
               <stop offset="100%" stop-color="#ff7340"/>
             </linearGradient>
+            <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#000" flood-opacity="0.25"/>
+            </filter>
           </defs>
+
+          <rect x="10" y="12" width="400" height="296" rx="20" fill="url(#bgGrad)"/>
+
+          <!-- Top integration labels -->
+          <rect x="34" y="34" width="128" height="30" rx="15" fill="rgba(255,255,255,.08)"/>
+          <text x="98" y="53" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="rgba(255,255,255,.9)">ServicePro 911</text>
+          <rect x="258" y="34" width="128" height="30" rx="15" fill="rgba(255,255,255,.08)"/>
+          <text x="322" y="53" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="rgba(255,255,255,.9)">Universell</text>
+          <line x1="162" y1="49" x2="258" y2="49" stroke="url(#accentGrad)" stroke-width="3" stroke-linecap="round" stroke-dasharray="8 5"/>
+
+          <!-- Main dashboard card -->
+          <g filter="url(#softShadow)">
+            <rect x="105" y="86" width="210" height="150" rx="16" fill="rgba(255,255,255,.07)" stroke="rgba(255,255,255,.14)"/>
+            <rect x="121" y="104" width="92" height="44" rx="10" fill="rgba(248,85,32,.18)"/>
+            <path d="M129 134l16-10 12 6 14-14 18 10" fill="none" stroke="#ff8d63" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <rect x="223" y="104" width="76" height="44" rx="10" fill="rgba(255,255,255,.09)"/>
+            <rect x="232" y="137" width="10" height="7" rx="2" fill="#ff7340"/>
+            <rect x="246" y="129" width="10" height="15" rx="2" fill="#ff7340"/>
+            <rect x="260" y="122" width="10" height="22" rx="2" fill="#ff7340"/>
+            <rect x="274" y="114" width="10" height="30" rx="2" fill="#ff7340"/>
+            <rect x="121" y="160" width="178" height="12" rx="6" fill="rgba(255,255,255,.12)"/>
+            <rect x="121" y="180" width="145" height="12" rx="6" fill="rgba(255,255,255,.12)"/>
+            <rect x="121" y="200" width="112" height="12" rx="6" fill="rgba(255,255,255,.12)"/>
+          </g>
+
+          <!-- Orbit feature chips -->
+          <g>
+            <line x1="210" y1="161" x2="64" y2="105" stroke="rgba(255,255,255,.2)" stroke-dasharray="5 4"/>
+            <rect x="24" y="88" width="88" height="30" rx="15" fill="rgba(248,85,32,.2)" stroke="rgba(248,85,32,.5)"/>
+            <text x="68" y="107" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="white">Deals Pipeline</text>
+
+            <line x1="210" y1="161" x2="355" y2="105" stroke="rgba(255,255,255,.2)" stroke-dasharray="5 4"/>
+            <rect x="316" y="88" width="80" height="30" rx="15" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.24)"/>
+            <text x="356" y="107" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="rgba(255,255,255,.9)">Stock</text>
+
+            <line x1="210" y1="161" x2="66" y2="252" stroke="rgba(255,255,255,.2)" stroke-dasharray="5 4"/>
+            <rect x="22" y="236" width="94" height="30" rx="15" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.24)"/>
+            <text x="69" y="255" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="rgba(255,255,255,.9)">Daily EOD</text>
+
+            <line x1="210" y1="161" x2="354" y2="252" stroke="rgba(255,255,255,.2)" stroke-dasharray="5 4"/>
+            <rect x="312" y="236" width="90" height="30" rx="15" fill="rgba(255,255,255,.12)" stroke="rgba(255,255,255,.24)"/>
+            <text x="357" y="255" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" fill="rgba(255,255,255,.9)">Team Chat</text>
+
+            <rect x="132" y="258" width="78" height="26" rx="13" fill="rgba(248,85,32,.2)" stroke="rgba(248,85,32,.5)"/>
+            <text x="171" y="275" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" fill="white">Fastshop</text>
+
+            <rect x="220" y="258" width="104" height="26" rx="13" fill="rgba(248,85,32,.2)" stroke="rgba(248,85,32,.5)"/>
+            <text x="272" y="275" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" fill="white">Email Campaigns</text>
+          </g>
         </svg>
+      </div>
+
+      <div class="integration-points-grid">
+        <div class="integration-feature">
+          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 7h16M4 12h12M4 17h9" stroke="#ff7340" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div><h4>Deals & Pipeline Visibility</h4><p>Track opportunities end-to-end and move more deals through a clear pipeline.</p></div>
+        </div>
+        <div class="integration-feature">
+          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 6h10v12H3zM13 9h8v9h-8z" stroke="#ff7340" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <div><h4>Service & Stock Management</h4><p>Coordinate service delivery and inventory in one workflow to reduce delays.</p></div>
+        </div>
+        <div class="integration-feature">
+          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 2v4M16 2v4M3 10h18M5 6h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2z" stroke="#ff7340" stroke-width="2" stroke-linecap="round"/></svg></div>
+          <div><h4>Daily EOD Reports</h4><p>Get end-of-day reports with clear snapshots of performance and cash flow.</p></div>
+        </div>
+        <div class="integration-feature">
+          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 6h16v10H7l-3 3V6z" stroke="#ff7340" stroke-width="2" stroke-linejoin="round"/></svg></div>
+          <div><h4>Seamless Team Communication</h4><p>Keep office staff and technicians aligned with faster updates and shared context.</p></div>
+        </div>
+        <div class="integration-feature">
+          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 6l9 7 9-7M5 5h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z" stroke="#ff7340" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div><h4>Email Campaigns</h4><p>Run targeted campaigns to re-engage customers and increase repeat bookings.</p></div>
+        </div>
+        <div class="integration-feature">
+          <div class="int-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="3" y="6" width="18" height="12" rx="2" stroke="#ff7340" stroke-width="2"/><path d="M3 10h18" stroke="#ff7340" stroke-width="2"/></svg></div>
+          <div><h4>Billing & Payment Sync</h4><p>Keep invoices and payment updates connected to operational workflows in real time.</p></div>
+        </div>
       </div>
     </div>
   </div>
@@ -1135,26 +1165,26 @@
     <!-- Testimonial cards -->
     <div class="grid-3" style="text-align:left;margin-bottom:0;">
       <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px;">
-        <div style="display:flex;gap:4px;margin-bottom:16px;color:#f85520;font-size:18px;">★★★★★</div>
+        <div style="display:flex;gap:4px;margin-bottom:16px;color:#f85520;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg></div>
         <p style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:20px;">"Our dispatch time dropped significantly after switching. Technicians always know exactly where to go and what to bring."</p>
         <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#f85520,#ff7340);display:flex;align-items:center;justify-content:center;font-size:16px;">👷</div>
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#f85520,#ff7340);display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3" stroke="white" stroke-width="2"></circle><path d="M6 19c1.5-3.5 10.5-3.5 12 0" stroke="white" stroke-width="2" stroke-linecap="round"></path></svg></div>
           <div><div style="font-size:14px;font-weight:600;color:white;">Marcus T.</div><div style="font-size:12px;color:rgba(255,255,255,.4);">HVAC Business Owner</div></div>
         </div>
       </div>
       <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px;">
-        <div style="display:flex;gap:4px;margin-bottom:16px;color:#f85520;font-size:18px;">★★★★★</div>
+        <div style="display:flex;gap:4px;margin-bottom:16px;color:#f85520;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg></div>
         <p style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:20px;">"Managing invoices, estimates and agreements in one place has completely changed how our office team operates."</p>
         <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#1d4ed8);display:flex;align-items:center;justify-content:center;font-size:16px;">👩‍💼</div>
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#1d4ed8);display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="8" r="3" stroke="white" stroke-width="2"></circle><path d="M6 19c1.5-3.5 10.5-3.5 12 0" stroke="white" stroke-width="2" stroke-linecap="round"></path></svg></div>
           <div><div style="font-size:14px;font-weight:600;color:white;">Sarah L.</div><div style="font-size:12px;color:rgba(255,255,255,.4);">Office Manager, Plumbing Co.</div></div>
         </div>
       </div>
       <div style="background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);border-radius:16px;padding:28px;">
-        <div style="display:flex;gap:4px;margin-bottom:16px;color:#f85520;font-size:18px;">★★★★★</div>
+        <div style="display:flex;gap:4px;margin-bottom:16px;color:#f85520;"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 7h7l-5.5 4.2L18 21l-6-4-6 4 1.5-7.8L2 9h7z"/></svg></div>
         <p style="font-size:15px;color:rgba(255,255,255,.75);line-height:1.7;margin-bottom:20px;">"The mobile app is exactly what field techs need. Quick, simple, and everything is right there on the job card."</p>
         <div style="display:flex;align-items:center;gap:12px;">
-          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#6d28d9);display:flex;align-items:center;justify-content:center;font-size:16px;">🔧</div>
+          <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,#7c3aed,#6d28d9);display:flex;align-items:center;justify-content:center;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 20l8-8"></path><path d="M7 9l8 8"></path><path d="M14 4l6 6"></path></svg></div>
           <div><div style="font-size:14px;font-weight:600;color:white;">David R.</div><div style="font-size:12px;color:rgba(255,255,255,.4);">Lead Tech, Electrical Contractor</div></div>
         </div>
       </div>
