@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Service Pro 911 — Run Your Service Business Smarter</title>
+  <title>Service Pro 911 Run Your Service Business Smarter</title>
   <meta name="description" content="Service Pro 911 helps service-based businesses manage jobs, customers, scheduling, estimates, invoices, payments, and refunds from one connected platform." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -332,6 +332,28 @@
     }
     .pill:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
 
+    /* ─── Comparison Table ──────────────────────────────────────────────── */
+    .compare-table-wrap { overflow-x: auto; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); border: 1px solid var(--gray-2); }
+    .compare-table { width: 100%; border-collapse: collapse; font-size: 15px; background: var(--white); }
+    .compare-table thead tr { background: var(--gray-1); }
+    .compare-table th { padding: 16px 20px; text-align: center; font-weight: 600; font-size: 14px; color: var(--text); white-space: nowrap; }
+    .compare-table th:first-child { text-align: left; width: 40%; }
+    .compare-table th.sp-col { background: var(--primary); color: var(--white); }
+    .compare-table td { padding: 14px 20px; border-bottom: 1px solid var(--gray-2); text-align: center; vertical-align: middle; color: var(--text-muted); font-size: 14px; }
+    .compare-table td:first-child { text-align: left; font-weight: 500; color: var(--text); }
+    .compare-table tbody tr:last-child td { border-bottom: none; }
+    .compare-table tbody tr:hover { background: #fafafa; }
+    .compare-table td.sp-col { background: rgba(248,85,32,.05); font-weight: 600; }
+    .c-yes { color: #16a34a; font-size: 19px; line-height: 1; }
+    .c-no { color: var(--gray-3); font-size: 17px; line-height: 1; }
+    .c-partial { display: inline-block; font-size: 12px; font-weight: 500; color: var(--warning); background: #fef3c7; padding: 2px 9px; border-radius: 100px; }
+    .sp-badge { display: inline-block; font-size: 10px; font-weight: 700; background: var(--primary); color: white; padding: 2px 7px; border-radius: 100px; margin-left: 6px; vertical-align: middle; letter-spacing: .4px; text-transform: uppercase; }
+    .compare-note { margin-top: 20px; font-size: 12px; color: var(--gray-4); text-align: center; }
+    @media (max-width: 640px) {
+      .compare-table { font-size: 13px; }
+      .compare-table th, .compare-table td { padding: 10px 12px; }
+    }
+
     /* ─── CTA Section ───────────────────────────────────────────────────── */
     .cta-section {
       background: linear-gradient(135deg, var(--primary) 0%, #ff6b35 50%, var(--accent) 100%);
@@ -475,7 +497,7 @@
         </div>
         <h1>Run Your Service Business <span>Smarter</span> with Service Pro 911</h1>
         <p class="lead" style="margin-top:16px;">
-          Manage jobs, customers, scheduling, estimates, invoices, payments, and refunds from one connected platform — built for field and office teams.
+          Manage jobs, customers, scheduling, estimates, invoices, payments, and refunds from one connected platform built for your business.
         </p>
         <div class="hero-badges">
           <div class="hero-badge"><span class="hero-badge-dot"></span> Mobile &amp; Tablet Ready</div>
@@ -616,18 +638,6 @@
   </div>
 </section>
 
-<!-- ─── Trust Bar ──────────────────────────────────────────────────────── -->
-<div class="trust-bar">
-  <div class="trust-bar-inner container">
-    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><path d="M14 7l3-3 3 3-3 3z"></path><path d="M3 21l8-8"></path><path d="M6 18l3 3"></path></svg></span> HVAC &amp; Plumbing</div>
-    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><path d="M13 2L3 14h7l-1 8 10-12h-7l1-8z"></path></svg></span> Electrical Contractors</div>
-    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><path d="M3 11l9-7 9 7"></path><path d="M5 10v10h14V10"></path></svg></span> Home Service Providers</div>
-    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><path d="M4 20l8-8"></path><path d="M7 9l8 8"></path><path d="M14 4l6 6"></path></svg></span> Appliance Repair</div>
-    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><path d="M9 4v16"></path></svg></span> Garage Door Services</div>
-    <div class="trust-item"><span class="trust-icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"></circle><path d="M5 12a7 7 0 0 1 14 0"></path><path d="M2 12a10 10 0 0 1 20 0"></path></svg></span> Field Service Teams</div>
-  </div>
-</div>
-
 <!-- ─── Stats ──────────────────────────────────────────────────────────── -->
 <section class="section--dark">
   <div class="container">
@@ -657,7 +667,7 @@
   <div class="container">
     <div class="section-header animate-in">
       <div class="eyebrow"><span class="eyebrow-dot"></span> Why Service Businesses Choose Us</div>
-      <h2>Everything Your Service Business Needs — In One Place</h2>
+      <h2>Everything Your Service Business Needs In One Place</h2>
       <p class="lead">Stop juggling multiple tools. Service Pro 911 brings scheduling, invoicing, payments, and team coordination into one seamless workflow.</p>
     </div>
 
@@ -764,7 +774,7 @@
         <div class="eyebrow"><span class="eyebrow-dot"></span> Maps &amp; Route Visibility</div>
         <h2>Get to Every Job Faster with Built-In Maps</h2>
         <p class="lead" style="margin-top:16px;">
-          Service Pro 911 helps technicians and dispatchers quickly open job locations and view the route in seconds — directly from job details.
+          Service Pro 911 helps technicians and dispatchers quickly open job locations and view the route in seconds directly from job details.
         </p>
         <ul style="margin-top:28px;display:flex;flex-direction:column;gap:14px;">
           <li style="display:flex;align-items:flex-start;gap:14px;">
@@ -854,6 +864,94 @@
       <div class="pill"><span class="icon-inline" style="margin-right:6px;"><svg viewBox="0 0 24 24"><path d="M4 20l8-8"></path><path d="M7 9l8 8"></path><path d="M14 4l6 6"></path></svg></span>Maintenance Teams</div>
       <div class="pill"><span class="icon-inline" style="margin-right:6px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="2"></circle><path d="M5 12a7 7 0 0 1 14 0"></path><path d="M2 12a10 10 0 0 1 20 0"></path></svg></span>Field Service Ops</div>
     </div>
+    <div class="cta-buttons" style="margin-top:28px;">
+      <a href="#platforms" class="btn btn-primary">View More</a>
+    </div>
+  </div>
+</section>
+
+<!-- ─── Why ServicePro 911 ─────────────────────────────────────────────── -->
+<section class="section" id="why-sp" style="background:var(--gray-1);">
+  <div class="container">
+    <div class="section-header animate-in">
+      <div class="eyebrow"><span class="eyebrow-dot"></span> The Better Choice</div>
+      <h2>Why Service Pros Choose Us Over the Rest</h2>
+      <p class="lead">Jobber and Housecall Pro cover the basics. Service Pro 911 goes further — with features built specifically for service businesses that need complete payment control, document protection, and a seamless team workflow.</p>
+    </div>
+    <div class="compare-table-wrap animate-in delay-1">
+      <table class="compare-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th class="sp-col">
+              <span style="display:flex;align-items:center;justify-content:center;gap:7px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                Service Pro 911
+              </span>
+            </th>
+            <th>Jobber</th>
+            <th>Housecall Pro</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Signed agreements for chargeback protection <span class="sp-badge">Unique</span></td>
+            <td class="sp-col"><span class="c-yes">✓</span></td>
+            <td><span class="c-no">✕</span></td>
+            <td><span class="c-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>Partial payment collection</td>
+            <td class="sp-col"><span class="c-yes">✓</span></td>
+            <td><span class="c-no">✕</span></td>
+            <td><span class="c-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>Full &amp; partial refund flow</td>
+            <td class="sp-col"><span class="c-yes">✓</span></td>
+            <td><span class="c-no">✕</span></td>
+            <td><span class="c-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>QR code payment acceptance</td>
+            <td class="sp-col"><span class="c-yes">✓</span></td>
+            <td><span class="c-no">✕</span></td>
+            <td><span class="c-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>Tablet-optimized interface</td>
+            <td class="sp-col"><span class="c-yes">✓</span></td>
+            <td><span class="c-no">✕</span></td>
+            <td><span class="c-no">✕</span></td>
+          </tr>
+          <tr>
+            <td>One-tap map routing from job card</td>
+            <td class="sp-col"><span class="c-yes">✓</span></td>
+            <td><span class="c-no">✕</span></td>
+            <td><span class="c-partial">Fleet GPS only</span></td>
+          </tr>
+          <tr>
+            <td>Estimates, agreements &amp; invoices linked per job</td>
+            <td class="sp-col"><span class="c-yes">✓</span></td>
+            <td><span class="c-partial">Partial</span></td>
+            <td><span class="c-partial">Partial</span></td>
+          </tr>
+          <tr>
+            <td>No restrictive per-user seat caps</td>
+            <td class="sp-col"><span class="c-yes">✓</span></td>
+            <td><span class="c-partial">Soft cap ~30 users</span></td>
+            <td><span class="c-partial">1 / 5 / 8 user tiers</span></td>
+          </tr>
+          <tr>
+            <td>ERP &amp; pipeline integration (Universell)</td>
+            <td class="sp-col"><span class="c-yes">✓</span></td>
+            <td><span class="c-no">✕</span></td>
+            <td><span class="c-no">✕</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="compare-note">Feature comparison based on publicly available information as of April 2026.</p>
   </div>
 </section>
 
@@ -863,7 +961,7 @@
     <div class="section-header">
       <div class="eyebrow"><span class="eyebrow-dot"></span> Works Everywhere Your Team Works</div>
       <h2>Compatible Across Mobile, Tablet, and Desktop</h2>
-      <p class="lead">Service Pro 911 is built to support the way modern service businesses work — wherever your team is, the platform is ready.</p>
+      <p class="lead">Service Pro 911 is built to support the way modern service businesses work wherever your team is, the platform is ready.</p>
     </div>
 
     <div class="device-row">
@@ -1233,7 +1331,7 @@
     nav.classList.toggle('scrolled', window.scrollY > 20);
   });
 
-  // Intersection Observer — animate-in elements
+  // Intersection Observer animate-in elements
   const observer = new IntersectionObserver((entries) => {
     entries.forEach(e => {
       if (e.isIntersecting) {
