@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Camera, Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -438,17 +437,19 @@ export const DocumentVerificationModal = ({
           {/* Document Type Dropdown */}
           <div>
             <Label className="text-sm text-gray-700 font-medium">Select Document Type</Label>
-            <Select value={documentType} onValueChange={(value) => setDocumentType(value as DocumentType)}>
-              <SelectTrigger className="w-full h-10 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500 mt-1">
-                <SelectValue placeholder="Select Document Type" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="driving_license">Driving License</SelectItem>
-                <SelectItem value="passport">Passport</SelectItem>
-                <SelectItem value="social_security_card">Social Security Card</SelectItem>
-                <SelectItem value="real_id">REAL ID Act</SelectItem>
-              </SelectContent>
-            </Select>
+            <select
+              value={documentType}
+              onChange={(e) => setDocumentType(e.target.value as DocumentType)}
+              className="w-full h-10 border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-1 focus:ring-orange-500 focus:border-orange-500 mt-1 bg-white"
+            >
+              <option value="" disabled>
+                Select Document Type
+              </option>
+              <option value="driving_license">Driving License</option>
+              <option value="passport">Passport</option>
+              <option value="social_security_card">Social Security Card</option>
+              <option value="real_id">REAL ID Act</option>
+            </select>
           </div>
 
           {/* Upload Area */}
