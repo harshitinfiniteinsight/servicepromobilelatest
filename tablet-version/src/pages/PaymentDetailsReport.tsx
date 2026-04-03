@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import TabletHeader from "@/components/layout/TabletHeader";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -7,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Calendar, Search } from "lucide-react";
 import { getAllInvoices } from "@/services/invoiceService";
 import { mockInvoices } from "@/data/mobileMockData";
+import type { TransactionRecord } from "../components/modals/TransactionDetailsModal";
 
 interface PaymentTransaction {
   id: string;
@@ -18,6 +20,19 @@ interface PaymentTransaction {
   transactionType: "Payment Received" | "Refund";
   amount: number;
   status: "Completed" | "Refunded";
+  time?: string;
+  customerEmail?: string;
+  cardLast4?: string;
+  cardBrand?: "VISA" | "Mastercard" | "Amex" | "Discover";
+  cardExpiry?: string;
+  transactionNotes?: string;
+  refundReason?: string;
+  totalAmount?: number;
+  refundedAmount?: number;
+  processedBy?: string;
+  transactionStatus?: string;
+  merchantId?: string;
+  authorizationCode?: string;
 }
 
 const fallbackMobileStyleData: PaymentTransaction[] = [
@@ -68,6 +83,7 @@ const fallbackMobileStyleData: PaymentTransaction[] = [
 ];
 
 const PaymentDetailsReport = () => {
+  const navigate = useNavigate();
   const [transactions, setTransactions] = useState<PaymentTransaction[]>([]);
   const [search, setSearch] = useState("");
   const [dateRange, setDateRange] = useState("");
@@ -86,13 +102,22 @@ const PaymentDetailsReport = () => {
         .map((inv, idx) => ({
           id: `PAY-${idx + 1}`,
           date: String(inv.issueDate || new Date().toISOString().split("T")[0]),
+          time: String(inv.paymentTime || "12:00 PM"),
           customerName: String(inv.customerName || "Unknown Customer"),
+          customerEmail: String(inv.customerEmail || ""),
           jobId: String(inv.jobId || `JOB-${String(inv.id || idx + 1).replace(/\D/g, "").padStart(3, "0")}`),
           invoiceId: String(inv.id || "-"),
           paymentMethod: String(inv.paymentMethod || "Card"),
           transactionType: "Payment Received" as const,
           amount: Number(inv.paidAmount ?? inv.amount ?? 0),
           status: "Completed" as const,
+          cardLast4: inv.cardLast4,
+          cardBrand: inv.cardBrand,
+          cardExpiry: inv.cardExpiry,
+          processedBy: String(inv.processedBy || "System"),
+          transactionStatus: "Completed",
+          merchantId: String(inv.merchantId || "MER-001"),
+          authorizationCode: inv.authorizationCode,
         }))
         .filter((row) => row.amount > 0);
 
@@ -104,13 +129,30 @@ const PaymentDetailsReport = () => {
         return {
           id: `REF-${idx + 1}`,
           date: String(refund.timestamp || new Date().toISOString()).slice(0, 10),
+          time: new Date(String(refund.timestamp || new Date().toISOString())).toLocaleTimeString("en-US", {
+            hour: "numeric",
+            minute: "2-digit",
+            hour12: true,
+          }),
           customerName: String(linked.customerName || "Unknown Customer"),
+          customerEmail: String(linked.customerEmail || ""),
           jobId: String(linked.jobId || `JOB-${String(refund.invoiceId || idx + 1).replace(/\D/g, "").padStart(3, "0")}`),
           invoiceId: String(refund.invoiceId || linked.id || "-"),
           paymentMethod: String(refund.refundMethod || linked.paymentMethod || "Card"),
           transactionType: "Refund" as const,
           amount: -Math.abs(refundAmount),
           status: "Refunded" as const,
+          cardLast4: linked.cardLast4,
+          cardBrand: linked.cardBrand,
+          cardExpiry: linked.cardExpiry,
+          refundReason: String(refund.refundReason || ""),
+          transactionNotes: String(refund.transactionNotes || refund.comment || ""),
+          refundedAmount: Math.abs(refundAmount),
+          totalAmount: Number(linked.paidAmount ?? linked.amount ?? Math.abs(refundAmount)),
+          processedBy: String(refund.processedBy || "System"),
+          transactionStatus: "Refunded",
+          merchantId: String(linked.merchantId || "MER-001"),
+          authorizationCode: linked.authorizationCode,
         };
       }).filter((row) => row.amount < 0);
 
@@ -192,6 +234,48 @@ const PaymentDetailsReport = () => {
       style: "currency",
       currency: "USD",
     }).format(value);
+  };
+
+  const normalizePaymentMethod = (method: string): TransactionRecord["paymentMethod"] => {
+    const normalized = method.trim().toLowerCase();
+    if (normalized.includes("cash")) return "Cash";
+    if (normalized.includes("check")) return "Check";
+    if (normalized.includes("ach") || normalized.includes("bank")) return "Bank Transfer";
+    return "Card";
+  };
+
+  const handleViewDetails = (tx: PaymentTransaction) => {
+    const mapped: TransactionRecord = {
+      id: tx.id,
+      date: tx.date,
+      time: tx.time || "12:00 PM",
+      customerName: tx.customerName,
+      customerEmail: tx.customerEmail,
+      customerId: "-",
+      jobId: tx.jobId || null,
+      referenceId: tx.invoiceId,
+      referenceType: "Invoice",
+      amount: Math.abs(tx.amount),
+      status: tx.status === "Refunded" ? "Refunded" : "Received",
+      paymentMethod: normalizePaymentMethod(tx.paymentMethod),
+      cardLast4: tx.cardLast4,
+      cardBrand: tx.cardBrand,
+      cardExpiry: tx.cardExpiry,
+      transactionNumber: tx.id,
+      merchantId: tx.merchantId || "MER-001",
+      authorizationCode: tx.authorizationCode,
+      orderType: "Service",
+      processedBy: tx.processedBy || "System",
+      transactionStatus: tx.transactionStatus || (tx.status === "Refunded" ? "Refunded" : "Completed"),
+      transactionNotes: tx.transactionNotes,
+      totalAmount: tx.totalAmount,
+      refundedAmount: tx.refundedAmount,
+      refundReason: tx.refundReason,
+    };
+
+    navigate(`/reports/payment-details/${tx.id}`, {
+      state: { transaction: mapped },
+    });
   };
 
   return (
@@ -331,6 +415,7 @@ const PaymentDetailsReport = () => {
               {filteredTransactions.map((tx) => (
                 <div
                   key={tx.id}
+                  onClick={() => handleViewDetails(tx)}
                   className="bg-white rounded-2xl cursor-pointer transition-all duration-200 hover:shadow-md hover:-translate-y-0.5 active:scale-[0.99]"
                   style={{
                     padding: "18px 20px",
@@ -390,6 +475,7 @@ const PaymentDetailsReport = () => {
 
         </div>
       </div>
+
     </div>
   );
 };

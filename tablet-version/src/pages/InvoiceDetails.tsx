@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
-import MobileHeader from "@/components/layout/MobileHeader";
+import TabletHeader from "@/components/layout/TabletHeader";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -73,7 +73,7 @@ const InvoiceDetails = () => {
 
   return (
     <div className="h-full flex flex-col overflow-hidden">
-      <MobileHeader
+      <TabletHeader
         title="Invoice Details"
         showBack={true}
         actions={
@@ -83,7 +83,7 @@ const InvoiceDetails = () => {
         }
       />
 
-      <div className="flex-1 overflow-y-auto scrollable pt-14">
+      <div className="flex-1 overflow-y-auto scrollable">
         {/* Header */}
         <div className="p-4 bg-gradient-to-br from-primary/10 to-accent/5">
           <div className="flex items-start justify-between mb-2">

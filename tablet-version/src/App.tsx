@@ -50,6 +50,7 @@ import Reports from "./pages/Reports";
 import InvoiceReport from "./pages/InvoiceReport";
 import EstimateReport from "./pages/EstimateReport";
 import PaymentDetailsReport from "./pages/PaymentDetailsReport";
+import PaymentTransactionDetails from "./pages/PaymentTransactionDetails";
 import MonthlyReportAlert from "./pages/MonthlyReportAlert";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
@@ -144,6 +145,7 @@ const AppContent = () => {
             <Route path="/reports/invoice" element={<InvoiceReport />} />
             <Route path="/reports/estimate" element={<EstimateReport />} />
             <Route path="/reports/payment-details" element={<PaymentDetailsReport />} />
+            <Route path="/reports/payment-details/:transactionId" element={<PaymentTransactionDetails />} />
             <Route path="/reports/monthly-alert" element={<MonthlyReportAlert />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/settings/profile" element={<Profile />} />
