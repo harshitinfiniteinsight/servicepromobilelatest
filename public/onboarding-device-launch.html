@@ -278,6 +278,11 @@
     const iframe = document.getElementById('app-frame');
     const openFull = document.getElementById('open-full');
 
+    // Pre-authenticate so the app opens directly to the dashboard
+    localStorage.setItem('isAuthenticated', 'true');
+    localStorage.setItem('userType', 'merchant');
+    localStorage.removeItem('currentEmployeeId');
+
     chip.textContent = config.label;
     sub.textContent = config.desc;
     frame.className = 'device-frame ' + config.cls;
