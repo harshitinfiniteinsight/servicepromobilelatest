@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to Service Pro 911</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --primary:       #f85520;
+      --primary-dark:  #d94010;
+      --primary-light: #fff3ee;
+      --primary-mid:   #ff7340;
+      --accent:        #ff7340;
+      --success:       #16a34a;
+      --text:          #1a1a1a;
+      --text-muted:    #6b7280;
+      --border:        #e5e7eb;
+      --border-focus:  #f85520;
+      --white:         #ffffff;
+      --radius-sm:     8px;
+      --radius:        14px;
+      --radius-lg:     20px;
+      --radius-xl:     28px;
+      --shadow-card:   0 24px 64px rgba(0,0,0,.12), 0 4px 16px rgba(0,0,0,.06);
+      --transition:    .18s ease;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px 60px;
+      background: linear-gradient(135deg, #fff8f5 0%, #ffeee6 40%, #fdf4ff 100%);
+      position: relative;
+      overflow-x: hidden;
+    }
+
+    /* ── Background blobs ── */
+    body::before, body::after {
+      content: '';
+      position: fixed;
+      border-radius: 50%;
+      opacity: .35;
+      pointer-events: none;
+      z-index: 0;
+    }
+    body::before {
+      width: 520px; height: 520px;
+      background: radial-gradient(circle, #f8552033 0%, transparent 70%);
+      top: -100px; left: -140px;
+    }
+    body::after {
+      width: 440px; height: 440px;
+      background: radial-gradient(circle, #c084fc22 0%, transparent 70%);
+      bottom: -80px; right: -100px;
+    }
+
+    /* ── Card ── */
+    .card {
+      position: relative;
+      z-index: 1;
+      background: var(--white);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow-card);
+      padding: 44px 48px 48px;
+      width: 100%;
+      max-width: 580px;
+      animation: slideUp .45s cubic-bezier(.22,.68,0,1.2) both;
+    }
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(32px) scale(.97); }
+      to   { opacity: 1; transform: translateY(0) scale(1); }
+    }
+
+    /* ── Progress bar ── */
+    .progress-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 36px;
+    }
+    .progress-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      white-space: nowrap;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+    }
+    .progress-bar-track {
+      flex: 1;
+      height: 6px;
+      background: #f3f4f6;
+      border-radius: 99px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      width: 33.3%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 99px;
+      transition: width .5s ease;
+    }
+
+    /* ── Logo ── */
+    .logo-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 28px;
+    }
+    .logo-icon {
+      width: 44px; height: 44px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 14px rgba(248,85,32,.35);
+    }
+    .logo-icon svg { width: 24px; height: 24px; fill: none; stroke: #fff; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .logo-wordmark {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      line-height: 1;
+      letter-spacing: -.02em;
+    }
+    .logo-wordmark span { color: var(--primary); }
+
+    /* ── Header copy ── */
+    .headline {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.03em;
+      line-height: 1.25;
+      margin-bottom: 8px;
+    }
+    .subline {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      margin-bottom: 36px;
+    }
+
+    /* ── Form grid ── */
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    .field { display: flex; flex-direction: column; gap: 7px; }
+    .field.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      letter-spacing: .01em;
+    }
+    label .req { color: var(--primary); margin-left: 2px; }
+
+    /* Input base */
+    .input-wrap {
+      position: relative;
+      display: flex;
+      align-items: center;
+    }
+    .input-wrap .icon {
+      position: absolute;
+      left: 14px;
+      width: 17px; height: 17px;
+      color: #9ca3af;
+      pointer-events: none;
+      flex-shrink: 0;
+      transition: color var(--transition);
+    }
+    .input-wrap input,
+    .input-wrap select {
+      width: 100%;
+      height: 48px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text);
+      background: #fafafa;
+      padding: 0 14px 0 40px;
+      transition: border-color var(--transition), box-shadow var(--transition), background var(--transition);
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .input-wrap input::placeholder { color: #c4c9d4; font-weight: 400; }
+    .input-wrap input:focus,
+    .input-wrap select:focus {
+      border-color: var(--border-focus);
+      background: var(--white);
+      box-shadow: 0 0 0 3.5px rgba(248,85,32,.12);
+    }
+    .input-wrap.error input,
+    .input-wrap.error select {
+      border-color: #ef4444;
+      box-shadow: 0 0 0 3px rgba(239,68,68,.12);
+    }
+    .input-wrap:focus-within .icon { color: var(--primary); }
+
+    /* Phone field composite */
+    .phone-wrap {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .phone-wrap .cc-select {
+      position: relative;
+    }
+    .phone-wrap .cc-select select {
+      width: 90px;
+      height: 48px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text);
+      background: #fafafa;
+      padding: 0 8px 0 10px;
+      appearance: none;
+      -webkit-appearance: none;
+      cursor: pointer;
+      outline: none;
+      font-family: inherit;
+      transition: border-color var(--transition), box-shadow var(--transition);
+    }
+    .phone-wrap .cc-select select:focus {
+      border-color: var(--border-focus);
+      box-shadow: 0 0 0 3.5px rgba(248,85,32,.12);
+    }
+    .phone-wrap .phone-input-wrap {
+      flex: 1;
+    }
+    .phone-wrap .phone-input-wrap input {
+      padding-left: 14px;
+    }
+
+    /* Select caret */
+    .select-caret {
+      position: absolute;
+      right: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      pointer-events: none;
+      color: #9ca3af;
+    }
+    .input-wrap.select-field select { padding-right: 36px; }
+
+    /* Error message */
+    .error-msg {
+      font-size: 12px;
+      color: #ef4444;
+      font-weight: 500;
+      display: none;
+      margin-top: 2px;
+    }
+    .error-msg.show { display: block; }
+
+    /* ── Biz type card grid ── */
+    .biz-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+    .biz-option {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 16px 10px 14px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition), transform var(--transition);
+      text-align: center;
+      user-select: none;
+      background: #fafafa;
+    }
+    .biz-option:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 14px rgba(248,85,32,.12);
+    }
+    .biz-option.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(248,85,32,.15), 0 4px 14px rgba(248,85,32,.12);
+    }
+    .biz-option .biz-emoji { font-size: 24px; line-height: 1; }
+    .biz-option .biz-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .biz-option.selected .biz-label { color: var(--primary); }
+    .biz-error { margin-top: 8px; }
+
+    /* ── CTA Buttons ── */
+    .btn-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 14px;
+      margin-top: 36px;
+    }
+    .btn-continue {
+      width: 100%;
+      height: 52px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: .01em;
+      cursor: pointer;
+      box-shadow: 0 6px 22px rgba(248,85,32,.35);
+      transition: transform var(--transition), box-shadow var(--transition), filter var(--transition);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+    .btn-continue:hover  { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(248,85,32,.4); }
+    .btn-continue:active { transform: translateY(0); filter: brightness(.96); }
+    .btn-continue svg    { width: 18px; height: 18px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+    .btn-skip {
+      background: none;
+      border: none;
+      font-family: inherit;
+      font-size: 13.5px;
+      font-weight: 500;
+      color: var(--text-muted);
+      cursor: pointer;
+      text-decoration: underline;
+      text-underline-offset: 3px;
+      text-decoration-color: transparent;
+      transition: color var(--transition), text-decoration-color var(--transition);
+    }
+    .btn-skip:hover { color: var(--text); text-decoration-color: var(--text-muted); }
+
+    /* ── Success screen ── */
+    #success-screen {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px 0 10px;
+      animation: fadeIn .4s ease both;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: scale(.95); } to { opacity: 1; transform: scale(1); } }
+
+    .success-ring {
+      width: 80px; height: 80px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 24px;
+      box-shadow: 0 0 0 12px rgba(22,163,74,.08);
+      animation: pop .5s cubic-bezier(.22,.68,0,1.4) .2s both;
+    }
+    @keyframes pop { from { transform: scale(0); } to { transform: scale(1); } }
+    .success-ring svg { width: 38px; height: 38px; stroke: var(--success); fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .success-title {
+      font-size: 26px;
+      font-weight: 800;
+      color: var(--text);
+      letter-spacing: -.03em;
+      margin-bottom: 10px;
+    }
+    .success-sub {
+      font-size: 15px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-width: 360px;
+      margin: 0 auto 32px;
+    }
+    .btn-dashboard {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 14px 32px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #fff;
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      font-size: 15px;
+      font-weight: 700;
+      box-shadow: 0 6px 22px rgba(248,85,32,.3);
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .btn-dashboard:hover { transform: translateY(-2px); box-shadow: 0 10px 28px rgba(248,85,32,.38); }
+    .btn-dashboard svg  { width: 17px; height: 17px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── Responsive ── */
+    @media (max-width: 580px) {
+      body { padding: 24px 12px 48px; align-items: flex-start; }
+      .card { padding: 32px 24px 36px; border-radius: var(--radius-lg); }
+      .form-grid { grid-template-columns: 1fr; }
+      .field.full { grid-column: 1; }
+      .biz-grid { grid-template-columns: repeat(2, 1fr); }
+      .headline { font-size: 22px; }
+    }
+    @media (max-width: 360px) {
+      .biz-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ══ CARD ══ -->
+  <div class="card" id="main-card">
+
+    <!-- Progress bar -->
+    <div class="progress-wrap">
+      <span class="progress-label">Step 1 of 3</span>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- Logo -->
+    <div class="logo-row">
+      <div class="logo-icon">
+        <svg viewBox="0 0 24 24"><path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z"/></svg>
+      </div>
+      <div class="logo-wordmark">Service<span>Pro</span> 911</div>
+    </div>
+
+    <!-- Header copy -->
+    <h1 class="headline">Welcome to Service Pro 911 👋</h1>
+    <p class="subline">Let's get your business set up in just a few steps.</p>
+
+    <!-- ══ FORM ══ -->
+    <form id="ob-form" novalidate>
+      <div class="form-grid">
+
+        <!-- 1. Merchant Name -->
+        <div class="field">
+          <label for="merchant-name">Your Name <span class="req">*</span></label>
+          <div class="input-wrap" id="wrap-merchant-name">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+            <input type="text" id="merchant-name" name="merchant_name" placeholder="e.g. Alex Johnson" autocomplete="name" autofocus />
+          </div>
+          <span class="error-msg" id="err-merchant-name">Please enter your name.</span>
+        </div>
+
+        <!-- 2. Business Name -->
+        <div class="field">
+          <label for="business-name">Business Name <span class="req">*</span></label>
+          <div class="input-wrap" id="wrap-business-name">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="10" width="18" height="11" rx="2"/><path d="M8 10V7a4 4 0 018 0v3"/></svg>
+            <input type="text" id="business-name" name="business_name" placeholder="e.g. Bright Plumbers LLC" autocomplete="organization" />
+          </div>
+          <span class="error-msg" id="err-business-name">Please enter your business name.</span>
+        </div>
+
+        <!-- 3. Email -->
+        <div class="field">
+          <label for="email">Email Address <span class="req">*</span></label>
+          <div class="input-wrap" id="wrap-email">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="M2 8l10 7 10-7"/></svg>
+            <input type="email" id="email" name="email" placeholder="you@company.com" autocomplete="email" />
+          </div>
+          <span class="error-msg" id="err-email">Please enter a valid email address.</span>
+        </div>
+
+        <!-- 4. Phone Number -->
+        <div class="field">
+          <label for="phone">Phone Number <span class="req">*</span></label>
+          <div class="phone-wrap" id="wrap-phone">
+            <div class="cc-select">
+              <select id="country-code" name="country_code" aria-label="Country code">
+                <option value="+1">🇺🇸 +1</option>
+                <option value="+44">🇬🇧 +44</option>
+                <option value="+61">🇦🇺 +61</option>
+                <option value="+91">🇮🇳 +91</option>
+                <option value="+971">🇦🇪 +971</option>
+                <option value="+92">🇵🇰 +92</option>
+                <option value="+64">🇳🇿 +64</option>
+                <option value="+1-CA">🇨🇦 +1</option>
+              </select>
+            </div>
+            <div class="input-wrap phone-input-wrap">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.9v3a2 2 0 01-2.18 2A19.8 19.8 0 013 5.18 2 2 0 015 3h3a2 2 0 012 1.72 12.8 12.8 0 00.7 2.81 2 2 0 01-.45 2.11L9.09 10.9a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.8 12.8 0 002.81.7A2 2 0 0122 16.9z"/></svg>
+              <input type="tel" id="phone" name="phone" placeholder="(555) 000-0000" autocomplete="tel" />
+            </div>
+          </div>
+          <span class="error-msg" id="err-phone">Please enter a valid phone number.</span>
+        </div>
+
+        <!-- 5. Team Size -->
+        <div class="field">
+          <label for="team-size">Number of Employees</label>
+          <div class="input-wrap select-field" id="wrap-team-size">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+            <select id="team-size" name="team_size">
+              <option value="" disabled selected>Select team size</option>
+              <option value="solo">Just me</option>
+              <option value="2-10">2 – 10</option>
+              <option value="11-50">11 – 50</option>
+              <option value="50+">50+</option>
+            </select>
+            <svg class="select-caret" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+        </div>
+
+        <!-- 6. Type of Business (full width) -->
+        <div class="field full">
+          <label>Type of Business <span class="req">*</span></label>
+          <div class="biz-grid" id="biz-grid">
+            <div class="biz-option" data-val="electrical"       onclick="selectBiz(this)"><span class="biz-emoji">⚡</span><span class="biz-label">Electrical</span></div>
+            <div class="biz-option" data-val="cleaning"         onclick="selectBiz(this)"><span class="biz-emoji">🧹</span><span class="biz-label">Cleaning Service</span></div>
+            <div class="biz-option" data-val="painter"          onclick="selectBiz(this)"><span class="biz-emoji">🎨</span><span class="biz-label">Painter</span></div>
+            <div class="biz-option" data-val="construction"     onclick="selectBiz(this)"><span class="biz-emoji">🏗️</span><span class="biz-label">Construction</span></div>
+            <div class="biz-option" data-val="hvac"             onclick="selectBiz(this)"><span class="biz-emoji">❄️</span><span class="biz-label">HVAC</span></div>
+            <div class="biz-option" data-val="other"            onclick="selectBiz(this)"><span class="biz-emoji">🔧</span><span class="biz-label">Others</span></div>
+          </div>
+          <span class="error-msg biz-error" id="err-biz">Please select your type of business.</span>
+        </div>
+
+      </div><!-- /form-grid -->
+
+      <!-- CTA Buttons -->
+      <div class="btn-row">
+        <button type="submit" class="btn-continue" id="btn-continue">
+          Continue
+          <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+        </button>
+        <button type="button" class="btn-skip" onclick="window.location.href='/landing-page.html'">
+          Skip for now
+        </button>
+      </div>
+
+    </form><!-- /ob-form -->
+
+    <!-- ══ SUCCESS SCREEN ══ -->
+    <div id="success-screen">
+      <div class="success-ring">
+        <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <h2 class="success-title">You're all set! 🎉</h2>
+      <p class="success-sub">Thanks for joining Service Pro 911. Your business profile is ready. Let's get to work!</p>
+      <a href="/" class="btn-dashboard">
+        Go to Dashboard
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </a>
+    </div>
+
+  </div><!-- /card -->
+
+  <script>
+    /* ── Business type selection ── */
+    let selectedBiz = '';
+    function selectBiz(el) {
+      document.querySelectorAll('.biz-option').forEach(o => o.classList.remove('selected'));
+      el.classList.add('selected');
+      selectedBiz = el.dataset.val;
+      document.getElementById('err-biz').classList.remove('show');
+      document.getElementById('biz-grid').style.borderColor = '';
+    }
+
+    /* ── Validation helpers ── */
+    function setError(wrapId, errId, show) {
+      const wrap = document.getElementById(wrapId);
+      const err  = document.getElementById(errId);
+      if (show) {
+        if (wrap) wrap.classList.add('error');
+        err.classList.add('show');
+      } else {
+        if (wrap) wrap.classList.remove('error');
+        err.classList.remove('show');
+      }
+      return show;
+    }
+
+    function isValidEmail(v) {
+      return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim());
+    }
+    function isValidPhone(v) {
+      return /^[\d\s\-()+]{7,15}$/.test(v.trim());
+    }
+
+    function validate() {
+      let hasError = false;
+      const merchantName = document.getElementById('merchant-name').value.trim();
+      const businessName = document.getElementById('business-name').value.trim();
+      const email        = document.getElementById('email').value.trim();
+      const phone        = document.getElementById('phone').value.trim();
+
+      if (!merchantName) hasError = setError('wrap-merchant-name', 'err-merchant-name', true)  || hasError;
+      else setError('wrap-merchant-name', 'err-merchant-name', false);
+
+      if (!businessName) hasError = setError('wrap-business-name', 'err-business-name', true)  || hasError;
+      else setError('wrap-business-name', 'err-business-name', false);
+
+      if (!email || !isValidEmail(email)) hasError = setError('wrap-email', 'err-email', true)  || hasError;
+      else setError('wrap-email', 'err-email', false);
+
+      if (!phone || !isValidPhone(phone)) hasError = setError('wrap-phone', 'err-phone', true) || hasError;
+      else setError('wrap-phone', 'err-phone', false);
+
+      if (!selectedBiz) {
+        document.getElementById('err-biz').classList.add('show');
+        hasError = true;
+      }
+
+      return !hasError;
+    }
+
+    /* ── Clear error on input ── */
+    ['merchant-name','business-name','email','phone'].forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        const wrapId = id === 'phone' ? 'wrap-phone' : `wrap-${id}`;
+        const errId  = `err-${id}`;
+        const wrap   = document.getElementById(wrapId);
+        const err    = document.getElementById(errId);
+        if (wrap) wrap.classList.remove('error');
+        if (err)  err.classList.remove('show');
+      });
+    });
+
+    /* ── Form submit ── */
+    document.getElementById('ob-form').addEventListener('submit', function(e) {
+      e.preventDefault();
+      if (!validate()) return;
+
+      const btn = document.getElementById('btn-continue');
+      btn.disabled = true;
+      btn.innerHTML = '<svg viewBox="0 0 24 24" style="animation:spin .7s linear infinite" width="18" height="18" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round"><path d="M12 2a10 10 0 0110 10"/></svg> Setting up…';
+
+      // Animate progress bar to 66%
+      document.getElementById('progress-fill').style.width = '66%';
+
+      // Simulate async submit
+      setTimeout(() => {
+        const form          = document.getElementById('ob-form');
+        const progressWrap  = document.querySelector('.progress-wrap');
+        const logoRow       = document.querySelector('.logo-row');
+        const headline      = document.querySelector('.headline');
+        const subline       = document.querySelector('.subline');
+        const successScreen = document.getElementById('success-screen');
+
+        // Final progress
+        document.getElementById('progress-fill').style.width = '100%';
+        document.querySelector('.progress-label').textContent = 'Step 3 of 3';
+
+        // Fade out form, show success
+        form.style.transition = 'opacity .3s ease';
+        form.style.opacity = '0';
+        setTimeout(() => {
+          form.style.display       = 'none';
+          headline.style.display   = 'none';
+          subline.style.display    = 'none';
+          successScreen.style.display = 'flex';
+        }, 300);
+      }, 1200);
+    });
+  </script>
+
+  <style>
+    @keyframes spin { to { transform: rotate(360deg); } }
+  </style>
+</body>
+</html>
