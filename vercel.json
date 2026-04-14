@@ -1,9 +1,33 @@
 {
-  "buildCommand": "cd mobile-version && npm install && npm run build",
-  "outputDirectory": "mobile-version/dist",
-  "installCommand": "cd mobile-version && npm install",
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
+    {
+      "source": "/landing-page",
+      "destination": "/landing-page.html"
+    },
+    {
+      "source": "/landing-page-onboarding",
+      "destination": "/landing-page-onboarding.html"
+    },
+    {
+      "source": "/onboarding-welcome",
+      "destination": "/onboarding-welcome.html"
+    },
+    {
+      "source": "/onboarding-step2",
+      "destination": "/onboarding-step2.html"
+    },
+    {
+      "source": "/onboarding-device-launch",
+      "destination": "/onboarding-device-launch.html"
+    },
+    {
+      "source": "/onboarding-complete",
+      "destination": "/onboarding-complete.html"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
@@ -19,7 +43,7 @@
         },
         {
           "key": "X-Frame-Options",
-          "value": "DENY"
+          "value": "SAMEORIGIN"
         },
         {
           "key": "X-XSS-Protection",
