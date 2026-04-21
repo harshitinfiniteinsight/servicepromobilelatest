@@ -314,6 +314,74 @@
     .biz-option.selected .biz-label { color: var(--primary); }
     .biz-error { margin-top: 8px; }
 
+    /* ── Job titles section ── */
+    .job-section {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height .4s ease, opacity .35s ease, margin .35s ease;
+      margin-top: 0;
+    }
+    .job-section.visible {
+      max-height: 500px;
+      opacity: 1;
+      margin-top: 4px;
+    }
+    .job-section > label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+    .job-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .job-option {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--radius);
+      cursor: pointer;
+      transition: border-color var(--transition), background var(--transition), box-shadow var(--transition);
+      background: #fafafa;
+      user-select: none;
+    }
+    .job-option:hover {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    .job-option.selected {
+      border-color: var(--primary);
+      background: var(--primary-light);
+      box-shadow: 0 0 0 3px rgba(248,85,32,.13);
+    }
+    .job-check {
+      width: 16px; height: 16px;
+      border: 1.5px solid #d1d5db;
+      border-radius: 4px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s, border-color .2s;
+    }
+    .job-option.selected .job-check {
+      background: var(--primary);
+      border-color: var(--primary);
+    }
+    .job-check svg { display: none; }
+    .job-option.selected .job-check svg { display: block; }
+    .job-label {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text);
+      line-height: 1.3;
+    }
+    .job-option.selected .job-label { color: var(--primary); }
+
     /* ── CTA Buttons ── */
     .btn-row {
       display: flex;
@@ -546,6 +614,14 @@
           <span class="error-msg biz-error" id="err-biz">Please select your type of business.</span>
         </div>
 
+        <!-- 7. Job Titles (shown after biz selection) -->
+        <div class="field full">
+          <div class="job-section" id="job-section">
+            <label>Select Your Job Titles <span style="font-weight:400;color:#9ca3af">(choose all that apply)</span></label>
+            <div class="job-grid" id="job-grid"></div>
+          </div>
+        </div>
+
       </div><!-- /form-grid -->
 
       <!-- CTA Buttons -->
@@ -577,14 +653,66 @@
   </div><!-- /card -->
 
   <script>
+    /* ── Job title mapping (config) ── */
+    const JOB_TITLES = {
+      general:      ['Technician', 'Field Worker', 'Service Manager', 'Operations Lead'],
+      hvac:         ['HVAC Technician', 'HVAC Installer', 'Refrigeration Specialist', 'Air Quality Tech'],
+      plumbing:     ['Plumber', 'Pipe Fitter', 'Drain Technician', 'Plumbing Inspector'],
+      electrical:   ['Electrician', 'Electrical Technician', 'Wireman', 'Electrical Inspector'],
+      carpentry:    ['Carpenter', 'Cabinet Maker', 'Finish Carpenter', 'Woodworker'],
+      exterminators:['Pest Control Technician', 'Exterminator', 'Fumigation Specialist'],
+      landscaping:  ['Landscaper', 'Gardener', 'Lawn Care Specialist', 'Irrigation Tech'],
+      cleaning:     ['Cleaner', 'Janitor', 'Housekeeper', 'Sanitation Worker'],
+      painter:      ['Painter', 'Spray Painter', 'Surface Prep Technician'],
+      construction: ['Site Supervisor', 'General Contractor', 'Labor Worker', 'Project Manager'],
+      roofing:      ['Roofer', 'Roof Inspector', 'Shingle Installer', 'Gutter Technician'],
+      other:        ['Technician', 'Field Worker', 'Service Specialist', 'Operations Staff'],
+    };
+
+    /* ── State ── */
+    let selectedBiz   = '';
+    let selectedJobs  = [];
+
+    /* ── Render job titles for a business type ── */
+    function renderJobTitles(bizVal) {
+      const titles  = JOB_TITLES[bizVal] || JOB_TITLES['other'];
+      const grid    = document.getElementById('job-grid');
+      const section = document.getElementById('job-section');
+      selectedJobs  = [];
+
+      grid.innerHTML = titles.map(t => `
+        <div class="job-option" data-job="${t}" onclick="toggleJob(this)">
+          <span class="job-check">
+            <svg width="10" height="10" viewBox="0 0 12 12" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="1.5 6 4.5 9 10.5 3"/></svg>
+          </span>
+          <span class="job-label">${t}</span>
+        </div>`).join('');
+
+      section.classList.add('visible');
+    }
+
+    /* ── Toggle individual job title ── */
+    function toggleJob(el) {
+      el.classList.toggle('selected');
+      const job = el.dataset.job;
+      if (el.classList.contains('selected')) {
+        selectedJobs.push(job);
+      } else {
+        selectedJobs = selectedJobs.filter(j => j !== job);
+      }
+      // persist to localStorage for next step
+      localStorage.setItem('sp911_job_titles', JSON.stringify(selectedJobs));
+    }
+
     /* ── Business type selection ── */
-    let selectedBiz = '';
     function selectBiz(el) {
       document.querySelectorAll('.biz-option').forEach(o => o.classList.remove('selected'));
       el.classList.add('selected');
       selectedBiz = el.dataset.val;
+      localStorage.setItem('sp911_biz_type', selectedBiz);
       document.getElementById('err-biz').classList.remove('show');
       document.getElementById('biz-grid').style.borderColor = '';
+      renderJobTitles(selectedBiz);
     }
 
     /* ── Validation helpers ── */
