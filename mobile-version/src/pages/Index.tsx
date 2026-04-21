@@ -51,6 +51,7 @@ import {
 import { mockAppointments, mockInvoices, mockEstimates, mockJobs } from "@/data/mobileMockData";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import DashboardTour from "@/components/DashboardTour";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -403,7 +404,8 @@ const Index = () => {
   }, [dateRange]);
 
   return (
-    <div className="h-full flex flex-col overflow-hidden">
+    <div className="h-full flex flex-col overflow-hidden" data-tour-id="tour-dashboard">
+      <DashboardTour />
       <MobileHeader
         title="Dashboard"
         actions={
@@ -583,6 +585,7 @@ const Index = () => {
           {stats.map((stat, index) => {
             const Icon = stat.icon;
             const isPrimary = index === 0;
+            const statTourId = stat.label === "Awaiting Payment" ? "tour-payments" : undefined;
             return (
               <MobileCard
                 key={index}
@@ -591,6 +594,7 @@ const Index = () => {
                   isPrimary && "bg-gradient-to-br from-primary/5 to-primary/10 border-primary/30"
                 )}
                 onClick={() => navigate(stat.path)}
+                {...(statTourId ? { "data-tour-id": statTourId } : {})}
               >
                 {isPrimary && (
                   <div className="absolute top-0 right-0 w-12 h-12 bg-primary/5 rounded-full -mr-6 -mt-6" />
@@ -768,12 +772,17 @@ const Index = () => {
           <div className="grid grid-cols-2 gap-2">
             {quickActions.map((action, index) => {
               const Icon = action.icon;
+              const tourId =
+                action.path === "/estimates/new" ? "tour-estimates" :
+                action.path === "/invoices/new"  ? "tour-invoices" :
+                action.path === "/employees/tracking" ? "tour-scheduled-routes" : undefined;
               return (
                 <Button
                   key={index}
                   variant="outline"
                   className="h-auto flex-col gap-2 py-3 px-2 border-gray-200 hover:border-primary/50 hover:bg-primary/5 transition-all touch-target min-w-0"
                   onClick={() => navigate(action.path)}
+                  {...(tourId ? { "data-tour-id": tourId } : {})}
                 >
                   <Icon className="h-5 w-5 text-gray-700 flex-shrink-0" />
                   <span className="text-xs text-center leading-tight text-gray-700 break-words">{action.label}</span>
@@ -790,6 +799,10 @@ const Index = () => {
             {operationalModules.map((module, index) => {
               const Icon = module.icon;
               const isPrimary = module.path === "/customers";
+              const tourId =
+                module.path === "/customers" ? "tour-customers" :
+                module.path === "/jobs"      ? "tour-jobs" :
+                module.path === "/employees" ? "tour-employees" : undefined;
               return (
                 <Button
                   key={index}
@@ -799,6 +812,7 @@ const Index = () => {
                     isPrimary ? "hover:border-primary/50 hover:bg-primary/5" : "hover:border-gray-300 hover:bg-gray-50"
                   )}
                   onClick={() => navigate(module.path)}
+                  {...(tourId ? { "data-tour-id": tourId } : {})}
                 >
                   <div className={`p-3 rounded-xl ${module.color} transition-transform group-hover:scale-110`}>
                     <Icon className="h-6 w-6" />
