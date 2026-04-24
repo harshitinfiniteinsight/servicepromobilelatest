@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Inventory Flow – Tour</title>
+<title>Inventory – Tour</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100vh;overflow:hidden;display:flex;flex-direction:column}
 .hdr{background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;padding:13px 16px 11px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.hdr-title{font-weight:800;font-size:16px}
-.hdr-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700}
+.hdr-title{font-weight:800;font-size:16px}.hdr-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700}
 .step-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .dots{display:flex;gap:5px}.dot{width:22px;height:4px;border-radius:99px;background:#e5e7eb;transition:background .3s}.dot.on{background:#f85520}
 .step-lbl{font-size:10px;font-weight:700;color:#9ca3af}
@@ -18,168 +17,87 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
 .scr{position:absolute;inset:0;overflow-y:auto;opacity:0;transition:opacity .45s;pointer-events:none;background:#f9fafb}
 .scr.active{opacity:1;pointer-events:auto}
 .card{background:#fff;border-radius:14px;margin:8px 12px 0;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6}
+.card.low{border-color:#fca5a5;background:#fff9f9}
 .row{display:flex;align-items:center;justify-content:space-between}
+.badge{border-radius:999px;padding:2px 7px;font-size:10px;font-weight:700}
+.b-ok{background:#dcfce7;color:#15803d}.b-low{background:#fee2e2;color:#b91c1c}.b-med{background:#fef3c7;color:#b45309}
 .muted{font-size:10px;color:#9ca3af}
-.badge{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700}
-.b-ok{background:#dcfce7;color:#15803d}
-.b-low{background:#fee2e2;color:#b91c1c}
-.b-med{background:#fef3c7;color:#b45309}
 .btn-row{display:flex;gap:5px;margin-top:8px}
 .btn{flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;font-size:10px;font-weight:700;color:#374151;text-align:center}
-.btn-a{background:#fff3ee;border-color:#ffd4c4;color:#f85520}
-.btn-r{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}
-.divider{border:none;border-top:1px solid #f3f4f6;margin:8px 0}
+.btn-p{background:#fff3ee;border-color:#ffd4c4;color:#f85520}.btn-r{background:#fee2e2;border-color:#fca5a5;color:#b91c1c}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border-bottom:1px solid #e5e7eb}
+.stat{padding:9px;text-align:center;border-right:1px solid #e5e7eb}.stat:last-child{border-right:none}
+.stat-n{font-size:17px;font-weight:800;color:#f85520}.stat-l{font-size:9px;color:#6b7280;font-weight:600}
 .track{height:5px;background:#f3f4f6;border-radius:99px;overflow:hidden;margin-top:4px}
 .fill{height:100%;border-radius:99px}
+.success-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px}
 </style>
 </head>
 <body>
 <div class="hdr"><div class="hdr-title">Inventory</div><div class="hdr-btn">+ Add Part</div></div>
 <div class="step-bar">
   <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-  <div class="step-lbl" id="slbl">Step 1 of 4 · Parts List</div>
+  <div class="step-lbl" id="slbl">Step 1 of 4</div>
 </div>
-<div class="screens">
-
-<!-- ① Parts List + Alert -->
-<div class="scr active" id="s0">
-  <div style="background:#fef2f2;border-bottom:1px solid #fecaca;padding:8px 14px;display:flex;align-items:center;gap:8px">
-    <div style="width:18px;height:18px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg></div>
-    <div style="font-size:11px;color:#b91c1c;font-weight:600;flex:1">2 items running low on stock</div>
-    <div style="font-size:10px;font-weight:700;color:#dc2626;text-decoration:underline">Fix</div>
-  </div>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border-bottom:1px solid #e5e7eb">
-    <div style="padding:9px;text-align:center;border-right:1px solid #e5e7eb"><div style="font-size:17px;font-weight:800;color:#f85520">42</div><div style="font-size:9px;color:#6b7280;font-weight:600">Items</div></div>
-    <div style="padding:9px;text-align:center;border-right:1px solid #e5e7eb"><div style="font-size:17px;font-weight:800;color:#f85520">2</div><div style="font-size:9px;color:#6b7280;font-weight:600">Low Stock</div></div>
-    <div style="padding:9px;text-align:center"><div style="font-size:17px;font-weight:800;color:#f85520">$8.4k</div><div style="font-size:9px;color:#6b7280;font-weight:600">Value</div></div>
-  </div>
-  <div class="card" style="border-color:#fca5a5;background:#fff9f9;margin-top:10px">
-    <div class="row"><div class="muted">SKU: REF-410A-25</div><span class="badge b-low">⚠ Low Stock</span></div>
-    <div style="font-size:13px;font-weight:700;margin:4px 0 1px">R-410A Refrigerant (25 lb)</div>
-    <div class="row" style="margin-top:4px"><div class="muted">3 of 20 units</div><div style="font-size:13px;font-weight:800;color:#f85520">$186.00</div></div>
-    <div class="track"><div class="fill" style="width:15%;background:#ef4444"></div></div>
-    <div class="btn-row"><div class="btn btn-r">Reorder Now</div><div class="btn btn-a">Use Stock</div></div>
-  </div>
-  <div class="card">
-    <div class="row"><div class="muted">SKU: FLT-16201-M11</div><span class="badge b-ok">In Stock</span></div>
-    <div style="font-size:13px;font-weight:700;margin:4px 0 1px">HVAC Air Filter 16x20x1 MERV-11</div>
-    <div class="row" style="margin-top:4px"><div class="muted">48 of 60 units</div><div style="font-size:13px;font-weight:800;color:#f85520">$8.50</div></div>
-    <div class="track"><div class="fill" style="width:80%;background:#22c55e"></div></div>
-    <div class="btn-row"><div class="btn btn-a">Use Stock</div><div class="btn">Stock In</div></div>
-  </div>
-  <div class="card" style="margin-bottom:10px">
-    <div class="row"><div class="muted">SKU: THERM-SM-PRG</div><span class="badge b-med">Running Low</span></div>
-    <div style="font-size:13px;font-weight:700;margin:4px 0 1px">Smart Thermostat (Programmable)</div>
-    <div class="row" style="margin-top:4px"><div class="muted">5 of 25 units</div><div style="font-size:13px;font-weight:800;color:#f85520">$89.00</div></div>
-    <div class="track"><div class="fill" style="width:20%;background:#f85520"></div></div>
-    <div class="btn-row"><div class="btn btn-r">Reorder</div><div class="btn btn-a">Use Stock</div></div>
-  </div>
-</div>
-
-<!-- ② Item Detail -->
-<div class="scr" id="s1">
-  <div style="background:linear-gradient(135deg,#f85520,#ff7340);padding:14px;color:#fff">
-    <div style="font-size:10px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Item Detail</div>
-    <div style="font-size:16px;font-weight:800">R-410A Refrigerant (25 lb)</div>
-    <div style="font-size:11px;opacity:.85;margin-top:2px">SKU: REF-410A-25 · $186.00/unit</div>
-  </div>
-  <div class="card">
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;text-align:center">
-      <div style="border-right:1px solid #f3f4f6;padding:6px"><div style="font-size:18px;font-weight:800;color:#b91c1c">3</div><div style="font-size:9px;color:#6b7280">In Stock</div></div>
-      <div style="border-right:1px solid #f3f4f6;padding:6px"><div style="font-size:18px;font-weight:800;color:#f85520">20</div><div style="font-size:9px;color:#6b7280">Min Level</div></div>
-      <div style="padding:6px"><div style="font-size:18px;font-weight:800;color:#374151">$186</div><div style="font-size:9px;color:#6b7280">Unit Price</div></div>
-    </div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Stock Level</div>
-    <div class="row" style="margin-bottom:4px"><span style="font-size:10px;color:#6b7280">Current</span><span style="font-size:11px;font-weight:700;color:#b91c1c">3 units (critical)</span></div>
-    <div style="height:8px;background:#f3f4f6;border-radius:99px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:15%;background:#ef4444;border-radius:99px"></div></div>
-    <div class="row"><span style="font-size:10px;color:#9ca3af">Min: 20 units</span><span style="font-size:10px;color:#9ca3af">Max: 50 units</span></div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Usage History (last 30 days)</div>
-    <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">#JOB-2847 · Emma Davis</span><span style="font-size:11px;font-weight:700">−2 units</span></div>
-    <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">#JOB-2833 · John Smith</span><span style="font-size:11px;font-weight:700">−1 unit</span></div>
-    <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">#JOB-2819 · R. Miller</span><span style="font-size:11px;font-weight:700">−1 unit</span></div>
-    <div class="row"><span style="font-size:11px;color:#374151">Stock In · Jan 5</span><span style="font-size:11px;font-weight:700;color:#16a34a">+20 units</span></div>
-  </div>
-  <div class="card" style="margin-bottom:12px">
-    <div class="btn-row"><div class="btn btn-r">Reorder Now</div><div class="btn btn-a">Use Stock</div><div class="btn">Edit</div></div>
-  </div>
-</div>
-
-<!-- ③ Low Stock Alert + Reorder -->
-<div class="scr" id="s2">
-  <div style="background:#fef2f2;border-bottom:2px solid #ef4444;padding:12px 14px">
-    <div style="font-size:12px;font-weight:800;color:#b91c1c;margin-bottom:4px">⚠ Low Stock Alert</div>
-    <div style="font-size:11px;color:#dc2626">R-410A Refrigerant is critically low (3 units). You have 2 jobs next week requiring this part.</div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Reorder Details</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:9px;padding:10px">
-        <div style="font-size:10px;color:#9ca3af;margin-bottom:2px">Item</div>
-        <div style="font-size:12px;font-weight:700">R-410A Refrigerant 25 lb</div>
-      </div>
-      <div style="display:flex;gap:8px">
-        <div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:9px;padding:10px">
-          <div style="font-size:10px;color:#9ca3af;margin-bottom:2px">Qty to order</div>
-          <div style="font-size:18px;font-weight:800;color:#f85520">20 units</div>
-        </div>
-        <div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:9px;padding:10px">
-          <div style="font-size:10px;color:#9ca3af;margin-bottom:2px">Total cost</div>
-          <div style="font-size:18px;font-weight:800;color:#374151">$3,720</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Jobs needing this part</div>
-    <div style="display:flex;flex-direction:column;gap:5px">
-      <div class="row"><div><div style="font-size:11px;font-weight:700">#JOB-2851 · Lisa Anderson</div><div style="font-size:10px;color:#9ca3af">Feb 1 · AC replacement</div></div><div style="font-size:10px;font-weight:700;color:#b91c1c">Needs 3 units</div></div>
-      <div class="row"><div><div style="font-size:11px;font-weight:700">#JOB-2855 · Sarah J.</div><div style="font-size:10px;color:#9ca3af">Feb 3 · Refrigerant top-up</div></div><div style="font-size:10px;font-weight:700;color:#b91c1c">Needs 1 unit</div></div>
-    </div>
-  </div>
-  <div style="margin:10px 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:12px;text-align:center;font-size:14px;font-weight:800;box-shadow:0 6px 20px rgba(245,158,11,.35)">Place Reorder · 20 units</div>
-</div>
-
-<!-- ④ Reorder Confirmed -->
-<div class="scr" id="s3">
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px">
-    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#f85520,#ff7340);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(22,163,74,.3)">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <div style="font-size:20px;font-weight:800;margin-bottom:8px">Reorder Placed!</div>
-    <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">20 units of R-410A Refrigerant ordered. You'll receive a confirmation email and estimated delivery date.</div>
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Order Summary</div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Item</span><span style="font-size:11px;font-weight:700">R-410A Refrigerant</span></div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Quantity</span><span style="font-size:11px;font-weight:700">20 units</span></div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Total</span><span style="font-size:11px;font-weight:700;color:#f85520">$3,720.00</span></div>
-      <div class="row"><span style="font-size:11px;color:#374151">ETA</span><span style="font-size:11px;font-weight:700;color:#15803d">Feb 1, 2024</span></div>
-    </div>
-    <div style="background:#fff3ee;border:1px solid #fed7aa;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#b45309;font-weight:600;text-align:left">
-      📦 Delivery before next job · Both jobs fully covered
-    </div>
-  </div>
-</div>
-
-</div>
+<div class="screens" id="screens"></div>
 <script>
+localStorage.setItem('isAuthenticated','true');localStorage.setItem('userType','merchant');
+const BIZ_PARTS={hvac:[{n:'R-410A Refrigerant 25lb',sku:'REF-410A-25',p:186,st:3,mx:20},{n:'HVAC Filter 16x20x1 MERV-11',sku:'FLT-16201',p:8.50,st:48,mx:60},{n:'Smart Thermostat Pro',sku:'THERM-SM',p:89,st:5,mx:25}],plumbing:[{n:'½" Copper Pipe (10ft)',sku:'CPR-12-10',p:24,st:3,mx:20},{n:'PVC Fittings Pack (50pc)',sku:'PVC-FIT-50',p:18.50,st:12,mx:40},{n:'Water Heater Anode Rod',sku:'WHR-ANO-1',p:32,st:6,mx:15}],electrical:[{n:'20A Circuit Breaker',sku:'CB-20A-STD',p:28,st:4,mx:20},{n:'GFCI Outlet 2-pack',sku:'GFCI-2PK',p:22,st:12,mx:30},{n:'12AWG Romex Wire 100ft',sku:'ROM-12-100',p:65,st:2,mx:10}],landscaping:[{n:'Premium Mulch (2 cu ft)',sku:'MLC-PRM-2',p:12,st:6,mx:30},{n:'Grass Seed Mix 5lb',sku:'GRS-MIX-5',p:28,st:3,mx:15},{n:'Drip Irrigation Line 50ft',sku:'IRR-DRP-50',p:45,st:2,mx:10}],cleaning:[{n:'All-Purpose Cleaner (Gal)',sku:'APC-GAL-1',p:18,st:4,mx:20},{n:'Microfiber Cloths 20pk',sku:'MFC-20PK',p:24,st:2,mx:10},{n:'Carpet Shampoo (Qt)',sku:'CSH-QT-1',p:14,st:3,mx:12}],carpentry:[{n:'Oak Hardwood Board (BF)',sku:'OAK-HW-BF',p:8,st:30,mx:100},{n:'Wood Screws 3" 100pk',sku:'SCR-3IN-100',p:14,st:5,mx:20},{n:'Cabinet Hinges 10 pairs',sku:'HNG-CAB-10',p:32,st:2,mx:10}],exterminators:[{n:'Termite Bait Stations 6pk',sku:'TRM-BST-6',p:48,st:3,mx:15},{n:'Rodent Traps 12pk',sku:'RDT-TRP-12',p:28,st:5,mx:20},{n:'Insecticide Concentrate (Qt)',sku:'INS-CON-QT',p:62,st:2,mx:10}],painter:[{n:'Premium Interior Paint (Gal)',sku:'PNT-INT-GAL',p:45,st:6,mx:20},{n:"Painter's Tape 2\" 6pk",sku:'TPE-2IN-6',p:22,st:3,mx:12},{n:'Drywall Compound 5qt',sku:'DWC-5QT',p:28,st:2,mx:8}],construction:[{n:'Concrete Mix 80lb',sku:'CMX-80LB',p:12,st:10,mx:50},{n:'2x4 Framing Lumber 8ft',sku:'LMB-24-8',p:8,st:30,mx:100},{n:'Rebar 5/8" 20ft',sku:'RBR-58-20',p:18,st:5,mx:25}],roofing:[{n:'Asphalt Shingles (sq)',sku:'SHG-ASP-SQ',p:95,st:4,mx:20},{n:'Roofing Nails 1.75" 5lb',sku:'RNL-175-5',p:18,st:3,mx:15},{n:'Roof Underlayment 100sqft',sku:'UNL-100SF',p:42,st:2,mx:10}],general:[{n:'General Supply Kit',sku:'GEN-KIT-1',p:45,st:8,mx:20},{n:'Fastener Assortment',sku:'FST-AST-1',p:24,st:4,mx:15},{n:'Safety Equipment Set',sku:'SAF-EQP-1',p:68,st:2,mx:10}],other:[{n:'General Supply Kit',sku:'GEN-KIT-1',p:45,st:8,mx:20},{n:'Fastener Assortment',sku:'FST-AST-1',p:24,st:15,mx:30},{n:'Safety Equipment Set',sku:'SAF-EQP-1',p:68,st:2,mx:10}]};
+const BIZ_S1={hvac:'AC Service Call',plumbing:'Pipe Repair',electrical:'Panel Inspection',landscaping:'Lawn Mowing',cleaning:'Deep Clean',carpentry:'Cabinet Install',exterminators:'Termite Treatment',painter:'Interior Paint',construction:'Site Prep',roofing:'Roof Inspection',general:'Service Call',other:'Service Call'};
+const BIZ_S2={hvac:'Duct Inspection',plumbing:'Drain Cleaning',electrical:'Wiring Repair',landscaping:'Irrigation Setup',cleaning:'Carpet Steam Clean',carpentry:'Trim Finish',exterminators:'Rodent Control',painter:'Deck Staining',construction:'Foundation Work',roofing:'Shingle Replacement',general:'Maintenance Visit',other:'Maintenance Visit'};
+const bizType=localStorage.getItem('ob_biz_type')||'general';
+const parts=BIZ_PARTS[bizType]||BIZ_PARTS.general;
+const s1txt=BIZ_S1[bizType]||'Service Call';
+const s2txt=BIZ_S2[bizType]||'Maintenance Visit';
 const LABELS=['Parts List','Item Detail','Low Stock Alert','Reorder Confirmed ✓'];
-const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
-let cur=0,stepTimer=null;
-function showStep(n){
-  if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}
-  scrs[cur].classList.remove("active");dots[cur].classList.remove("on");
-  cur=n;scrs[cur].classList.add("active");dots[cur].classList.add("on");
-  lbl.textContent="Step "+(cur+1)+" of "+scrs.length+" · "+LABELS[cur];
-  window.parent.postMessage({step:cur+1,total:scrs.length},"*");
-  if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}
-  else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},"*");},3800);}
+const lowPart=parts[0];
+const lowPct=Math.round(lowPart.st/lowPart.mx*100);
+const medPart=parts[2];
+const reorderQty=lowPart.mx-lowPart.st;
+const reorderCost=(reorderQty*lowPart.p).toFixed(2);
+
+function sb(p){const pct=Math.round(p.st/p.mx*100);return{pct,col:pct<20?'#ef4444':pct<40?'#f59e0b':'#22c55e',cls:pct<20?'b-low':pct<40?'b-med':'b-ok',lbl:pct<20?'⚠ Low Stock':pct<40?'⚠ Running Low':'In Stock',isLow:pct<40};}
+
+function pcard(p){
+  const s=sb(p);
+  return`<div class="card${s.isLow?' low':''}"><div class="row"><div class="muted">SKU: ${p.sku}</div><span class="badge ${s.cls}">${s.lbl}</span></div><div style="font-size:13px;font-weight:700;margin:4px 0 1px">${p.n}</div><div class="row" style="margin-top:4px"><div class="muted">${p.st} of ${p.mx} units</div><div style="font-size:13px;font-weight:800;color:#f85520">$${p.p.toFixed(2)}</div></div><div class="track"><div class="fill" style="width:${s.pct}%;background:${s.col}"></div></div><div class="btn-row">${s.isLow?'<div class="btn btn-r">Reorder Now</div>':''}<div class="btn btn-p">Use Stock</div><div class="btn">Stock In</div></div></div>`;
 }
+
+function build(){
+  const scr=document.getElementById('screens');
+  const lowCount=parts.filter(p=>p.st/p.mx<.4).length;
+  // S1 List
+  const s0=document.createElement('div');s0.className='scr';
+  const alertHTML=lowCount?`<div style="background:#fef2f2;border-bottom:1px solid #fecaca;padding:8px 14px;display:flex;align-items:center;gap:8px"><div style="width:18px;height:18px;border-radius:50%;background:#ef4444;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/></svg></div><div style="font-size:11px;color:#b91c1c;font-weight:600;flex:1">${lowCount} item${lowCount>1?'s':''} running low</div><div style="font-size:10px;font-weight:700;color:#dc2626;text-decoration:underline">Fix</div></div>`:'';
+  s0.innerHTML=alertHTML+`<div class="stat-row"><div class="stat"><div class="stat-n">42</div><div class="stat-l">Items</div></div><div class="stat"><div class="stat-n">${lowCount}</div><div class="stat-l">Low Stock</div></div><div class="stat"><div class="stat-n">$8.4k</div><div class="stat-l">Value</div></div></div>${parts.map(p=>pcard(p)).join('')}`;
+  scr.appendChild(s0);
+  // S2 Item Detail
+  const s1=document.createElement('div');s1.className='scr';
+  const sLow=sb(lowPart);
+  s1.innerHTML=`<div style="background:linear-gradient(135deg,#f85520,#ff7340);padding:14px;color:#fff"><div style="font-size:10px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Item Detail</div><div style="font-size:16px;font-weight:800">${lowPart.n}</div><div style="font-size:11px;opacity:.85;margin-top:2px">SKU: ${lowPart.sku} · $${lowPart.p.toFixed(2)}/unit</div></div>
+  <div class="card"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;text-align:center"><div style="border-right:1px solid #f3f4f6;padding:6px"><div style="font-size:18px;font-weight:800;color:#b91c1c">${lowPart.st}</div><div style="font-size:9px;color:#6b7280">In Stock</div></div><div style="border-right:1px solid #f3f4f6;padding:6px"><div style="font-size:18px;font-weight:800;color:#f85520">${lowPart.mx}</div><div style="font-size:9px;color:#6b7280">Min Level</div></div><div style="padding:6px"><div style="font-size:18px;font-weight:800;color:#374151">$${lowPart.p.toFixed(0)}</div><div style="font-size:9px;color:#6b7280">Unit Price</div></div></div></div>
+  <div class="card"><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Stock Level</div><div class="row" style="margin-bottom:4px"><span style="font-size:10px;color:#6b7280">Current</span><span style="font-size:11px;font-weight:700;color:#b91c1c">${lowPart.st} units (critical)</span></div><div style="height:8px;background:#f3f4f6;border-radius:99px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:${sLow.pct}%;background:#ef4444;border-radius:99px"></div></div><div class="row"><span style="font-size:10px;color:#9ca3af">Min: ${lowPart.mx} units</span></div></div>
+  <div class="card"><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Recent Usage (30 days)</div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">#JOB-2847 · Emma Davis</span><span style="font-size:11px;font-weight:700">-2 units</span></div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">#JOB-2833 · John Smith</span><span style="font-size:11px;font-weight:700">-1 unit</span></div><div class="row"><span style="font-size:11px;color:#374151">Stock In · Jan 5</span><span style="font-size:11px;font-weight:700;color:#16a34a">+${lowPart.mx} units</span></div></div>
+  <div class="card" style="margin-bottom:12px"><div class="btn-row"><div class="btn btn-r">Reorder Now</div><div class="btn btn-p">Use Stock</div><div class="btn">Edit</div></div></div>`;
+  scr.appendChild(s1);
+  // S3 Reorder
+  const s2=document.createElement('div');s2.className='scr';
+  s2.innerHTML=`<div style="background:#fef2f2;border-bottom:2px solid #ef4444;padding:12px 14px"><div style="font-size:12px;font-weight:800;color:#b91c1c;margin-bottom:4px">⚠ Low Stock Alert</div><div style="font-size:11px;color:#dc2626">${lowPart.n} critically low (${lowPart.st} units). 2 jobs need this part next week.</div></div>
+  <div class="card"><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Reorder Details</div><div style="display:flex;flex-direction:column;gap:8px"><div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:9px;padding:10px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">Item</div><div style="font-size:12px;font-weight:700">${lowPart.n}</div></div><div style="display:flex;gap:8px"><div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:9px;padding:10px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">Qty to order</div><div style="font-size:18px;font-weight:800;color:#f85520">${reorderQty} units</div></div><div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:9px;padding:10px"><div style="font-size:10px;color:#9ca3af;margin-bottom:2px">Total cost</div><div style="font-size:18px;font-weight:800;color:#374151">$${reorderCost}</div></div></div></div></div>
+  <div class="card"><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Jobs needing this part</div><div class="row" style="margin-bottom:5px"><div><div style="font-size:11px;font-weight:700">#JOB-2851 · Emma Davis</div><div style="font-size:10px;color:#9ca3af">Feb 1 · ${s1txt}</div></div><div style="font-size:10px;font-weight:700;color:#b91c1c">Needs 3 units</div></div><div class="row"><div><div style="font-size:11px;font-weight:700">#JOB-2855 · Sarah J.</div><div style="font-size:10px;color:#9ca3af">Feb 3 · ${s2txt}</div></div><div style="font-size:10px;font-weight:700;color:#b91c1c">Needs 1 unit</div></div></div>
+  <div style="margin:10px 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:12px;text-align:center;font-size:14px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.35)">Place Reorder · ${reorderQty} units</div>`;
+  scr.appendChild(s2);
+  // S4 Success
+  const s3=document.createElement('div');s3.className='scr';
+  s3.innerHTML=`<div class="success-screen"><div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#22c55e);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(22,163,74,.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div><div style="font-size:20px;font-weight:800;margin-bottom:8px">Reorder Placed!</div><div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">${reorderQty} units of ${lowPart.n} ordered. ETA and confirmation sent to your email.</div><div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Order Summary</div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Item</span><span style="font-size:11px;font-weight:700">${lowPart.n}</span></div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Quantity</span><span style="font-size:11px;font-weight:700">${reorderQty} units</span></div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Total</span><span style="font-size:11px;font-weight:700;color:#f85520">$${reorderCost}</span></div><div class="row"><span style="font-size:11px;color:#374151">ETA</span><span style="font-size:11px;font-weight:700;color:#15803d">Feb 1, 2024</span></div></div><div style="background:#fff3ee;border:1px solid #ffd4c4;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#f85520;font-weight:600;text-align:left">📦 Delivery before next job · Both jobs covered</div></div>`;
+  scr.appendChild(s3);
+}
+build();
+const scrs=document.querySelectorAll('.scr'),dots=document.querySelectorAll('.dot'),lbl=document.getElementById('slbl');
+let cur=0,stepTimer=null;
+function showStep(n){if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}scrs[cur].classList.remove('active');dots[cur].classList.remove('on');cur=n;scrs[cur].classList.add('active');dots[cur].classList.add('on');lbl.textContent='Step '+(cur+1)+' of '+scrs.length+' · '+LABELS[cur];window.parent.postMessage({step:cur+1,total:scrs.length},'*');if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},'*');},3800);}}
+document.body.addEventListener('click',function(){if(cur<scrs.length-1)showStep(cur+1);});
 showStep(0);
-document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
 </script>
 </body>
 </html>

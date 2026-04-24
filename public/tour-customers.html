@@ -36,7 +36,7 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
 </style>
 </head>
 <body>
-<div class="hdr"><div class="hdr-title">Customers</div><div class="hdr-btn">+ Add</div></div>
+<div class="hdr"><div class="hdr-title" id="c-title">Customers</div><div class="hdr-btn">+ Add</div></div>
 <div class="step-bar">
   <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
   <div class="step-lbl" id="slbl">Step 1 of 4 · Customer List</div>
@@ -156,6 +156,17 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
 
 </div>
 <script>
+localStorage.setItem('isAuthenticated','true');localStorage.setItem('userType','merchant');
+const _BN={hvac:'HVAC',plumbing:'Plumbing',electrical:'Electrical',landscaping:'Landscaping',cleaning:'Cleaning',carpentry:'Carpentry',exterminators:'Pest Control',painter:'Painting',construction:'Construction',roofing:'Roofing',general:'Service',other:'Service'};
+const _S1={hvac:'AC Service Call',plumbing:'Pipe Repair',electrical:'Panel Inspection',landscaping:'Lawn Mowing',cleaning:'Deep Clean',carpentry:'Cabinet Install',exterminators:'Termite Treatment',painter:'Interior Paint',construction:'Site Prep',roofing:'Roof Inspection',general:'Service Call',other:'Service Call'};
+const _S2={hvac:'Filter Replacement',plumbing:'Drain Cleaning',electrical:'Wiring Repair',landscaping:'Garden Maintenance',cleaning:'Carpet Steam Clean',carpentry:'Trim Finish',exterminators:'Rodent Control',painter:'Drywall Repair',construction:'Foundation Work',roofing:'Shingle Replacement',general:'Maintenance Visit',other:'Maintenance Visit'};
+const _CATS={hvac:['HVAC Service Calls','Parts & Equipment','Maintenance Contracts'],plumbing:['Plumbing Repairs','Parts & Fittings','Maintenance Contracts'],electrical:['Electrical Repairs','Parts & Materials','Inspection Contracts'],landscaping:['Maintenance Services','Materials & Plants','Seasonal Contracts'],cleaning:['Cleaning Services','Supplies & Materials','Recurring Contracts'],carpentry:['Carpentry Services','Lumber & Hardware','Project Contracts'],exterminators:['Pest Control Services','Chemicals & Traps','Service Contracts'],painter:['Painting Services','Paint & Supplies','Project Contracts'],construction:['Construction Services','Materials & Equipment','Project Contracts'],roofing:['Roofing Services','Materials & Supplies','Inspection Contracts'],general:['Service Calls','Parts & Materials','Maintenance Contracts'],other:['Service Calls','Parts & Materials','Maintenance Contracts']};
+const _bt=localStorage.getItem('ob_biz_type')||'general';
+const _trade=_BN[_bt]||'Service';
+const _s1=_S1[_bt]||'Service Call';
+const _s2=_S2[_bt]||'Maintenance Visit';
+const _cats=_CATS[_bt]||_CATS.general;
+const _bizName=localStorage.getItem('ob_business')||'ServicePro 911';
 const LABELS=['Customer List','Customer Profile','Job History','Note Sent'];
 const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
 let cur=0,stepTimer=null;
@@ -170,6 +181,14 @@ function showStep(n){
 }
 showStep(0);
 document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
+</script>
+
+<script>
+(function(){
+  // Update stat label section if present
+  var el=document.getElementById('c-title');
+  if(el&&_trade!='Service') el.textContent=_trade+' Customers';
+})();
 </script>
 </body>
 </html>

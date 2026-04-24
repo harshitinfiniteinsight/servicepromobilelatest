@@ -3,16 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Sell on Device – Tour</title>
+<title>Sell – Tour</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100vh;overflow:hidden;display:flex;flex-direction:column}
 .hdr{background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;padding:13px 16px 11px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .hdr-title{font-weight:800;font-size:16px}
-.cart-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;position:relative}
-.cart-btn svg{width:13px;height:13px}
-.badge-cart{position:absolute;top:-5px;right:-5px;background:#fff;color:#f85520;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;border:1.5px solid #ffd4c4}
 .step-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .dots{display:flex;gap:5px}.dot{width:22px;height:4px;border-radius:99px;background:#e5e7eb;transition:background .3s}.dot.on{background:#f85520}
 .step-lbl{font-size:10px;font-weight:700;color:#9ca3af}
@@ -22,197 +19,73 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
 .card{background:#fff;border-radius:14px;margin:8px 12px 0;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6}
 .row{display:flex;align-items:center;justify-content:space-between}
 .muted{font-size:10px;color:#9ca3af}
-.btn-row{display:flex;gap:5px;margin-top:8px}
-.btn{flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;font-size:10px;font-weight:700;color:#374151;text-align:center}
-.btn-p{background:#fff3ee;border-color:#ffd4c4;color:#f85520}
-.btn-g{background:#f0fdf4;border-color:#bbf7d0;color:#16a34a}
 .divider{border:none;border-top:1px solid #f3f4f6;margin:8px 0}
-.prod-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 12px}
-.prod-card{background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden}
-.prod-img{height:56px;background:#f3f4f6;display:flex;align-items:center;justify-content:center}
-.prod-img svg{width:22px;height:22px;color:#d1d5db}
-.prod-body{padding:8px}
-.qty-ctrl{display:flex;align-items:center;gap:4px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:7px;padding:3px 6px}
-.qty-btn{width:14px;height:14px;display:flex;align-items:center;justify-content:center;color:#6b7280;font-weight:700;font-size:13px;cursor:pointer;line-height:1}
-.qty-num{font-size:11px;font-weight:700;color:#111;min-width:14px;text-align:center}
-.add-btn{flex:1;background:#fff3ee;border:1px solid #ffd4c4;color:#f85520;border-radius:7px;padding:4px;font-size:10px;font-weight:700;text-align:center}
-.add-btn.added{background:#f0fdf4;border-color:#bbf7d0;color:#16a34a}
-.av{display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0}
-.method-chip{flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;text-align:center;font-size:10px;font-weight:700;color:#374151;display:flex;flex-direction:column;align-items:center;gap:2px}
-.method-chip svg{width:13px;height:13px;color:#6b7280}
-.method-chip.active{border-color:#ffd4c4;background:#fff3ee;color:#f85520}
-.method-chip.active svg{color:#f85520}
+.success-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px}
 </style>
 </head>
 <body>
-<div class="hdr">
-  <div class="hdr-title">Sell on Device</div>
-  <div class="cart-btn">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.97-1.69l1.48-8.31H6"/></svg>
-    Cart
-    <div class="badge-cart">3</div>
-  </div>
-</div>
+<div class="hdr"><div class="hdr-title">Sell on Device</div><div id="cart-btn" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;display:flex;align-items:center;gap:5px;position:relative"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.97-1.69l1.48-8.31H6"/></svg>Cart<div style="position:absolute;top:-5px;right:-5px;background:#fff;color:#f85520;border-radius:50%;width:14px;height:14px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;border:1.5px solid #ffd4c4">3</div></div></div>
 <div class="step-bar">
   <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-  <div class="step-lbl" id="slbl">Step 1 of 4 · Browse Products</div>
+  <div class="step-lbl" id="slbl">Step 1 of 4</div>
 </div>
-<div class="screens">
-
-<!-- ① Product Grid -->
-<div class="scr active" id="s0">
-  <div style="padding:8px 12px;background:#fff;border-bottom:1px solid #e5e7eb">
-    <div style="display:flex;align-items:center;gap:8px;background:#f3f4f6;border-radius:10px;padding:7px 11px">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <span style="font-size:12px;color:#9ca3af">Search by name or SKU…</span>
-    </div>
-  </div>
-  <div class="prod-grid">
-    <div class="prod-card">
-      <div class="prod-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
-      <div class="prod-body">
-        <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:1px;line-height:1.3">HVAC Filter 16x20x1</div>
-        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">SKU: FLT-16201 · 48 in stock</div>
-        <div class="row" style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:#f85520">$8.50</div></div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <div class="qty-ctrl"><div class="qty-btn">−</div><div class="qty-num">2</div><div class="qty-btn">+</div></div>
-          <div class="add-btn added">✓ Added</div>
-        </div>
-      </div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
-      <div class="prod-body">
-        <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:1px;line-height:1.3">Smart Thermostat Pro</div>
-        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">SKU: THERM-SM · 5 in stock</div>
-        <div class="row" style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:#f85520">$89.00</div></div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <div class="qty-ctrl"><div class="qty-btn">−</div><div class="qty-num">1</div><div class="qty-btn">+</div></div>
-          <div class="add-btn added">✓ Added</div>
-        </div>
-      </div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
-      <div class="prod-body">
-        <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:1px;line-height:1.3">Capacitor 45/5 MFD</div>
-        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">SKU: CAP-455 · 18 in stock</div>
-        <div class="row" style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:#f85520">$22.00</div></div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <div class="qty-ctrl"><div class="qty-btn">−</div><div class="qty-num">1</div><div class="qty-btn">+</div></div>
-          <div class="add-btn">Add</div>
-        </div>
-      </div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
-      <div class="prod-body">
-        <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:1px;line-height:1.3">Service Labour (1hr)</div>
-        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">SKU: LAB-HR · Unlimited</div>
-        <div class="row" style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:#f85520">$120.00</div></div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <div class="qty-ctrl"><div class="qty-btn">−</div><div class="qty-num">1</div><div class="qty-btn">+</div></div>
-          <div class="add-btn added">✓ Added</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div style="margin:8px 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:11px;text-align:center;font-size:13px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.35)">View Cart · 3 items</div>
-</div>
-
-<!-- ② Cart Review -->
-<div class="scr" id="s1">
-  <div style="padding:8px 14px 4px;background:#fff;border-bottom:1px solid #e5e7eb">
-    <div style="font-size:12px;font-weight:800;color:#f85520">Cart · 3 items</div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Customer</div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div class="av" style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#f85520,#ff7340);font-size:11px">ED</div>
-      <div><div style="font-size:12px;font-weight:700">Emma Davis</div><div style="font-size:10px;color:#6b7280">321 Elm St, Aurora · VIP</div></div>
-      <div style="margin-left:auto;font-size:10px;font-weight:700;color:#f85520">Change</div>
-    </div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Items</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div class="row"><div><div style="font-size:11px;font-weight:700">HVAC Filter 16x20x1</div><div style="font-size:10px;color:#9ca3af">Qty 2 × $8.50</div></div><div style="font-size:12px;font-weight:800">$17.00</div></div>
-      <div class="row"><div><div style="font-size:11px;font-weight:700">Smart Thermostat Pro</div><div style="font-size:10px;color:#9ca3af">Qty 1 × $89.00</div></div><div style="font-size:12px;font-weight:800">$89.00</div></div>
-      <div class="row"><div><div style="font-size:11px;font-weight:700">Service Labour (1hr)</div><div style="font-size:10px;color:#9ca3af">Qty 1 × $120.00</div></div><div style="font-size:12px;font-weight:800">$120.00</div></div>
-    </div>
-  </div>
-  <div class="card" style="margin-bottom:12px">
-    <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">Subtotal</span><span style="font-size:11px;font-weight:700">$226.00</span></div>
-    <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">Discount (10%)</span><span style="font-size:11px;font-weight:700;color:#16a34a">−$22.60</span></div>
-    <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">Tax (8.5%)</span><span style="font-size:11px;font-weight:700">$17.21</span></div>
-    <div class="divider"></div>
-    <div class="row"><span style="font-size:13px;font-weight:800">Total</span><span style="font-size:22px;font-weight:800;color:#f85520">$220.61</span></div>
-    <div style="margin-top:10px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:10px;padding:11px;text-align:center;font-size:13px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.3)">Proceed to Payment</div>
-  </div>
-</div>
-
-<!-- ③ Payment Screen -->
-<div class="scr" id="s2">
-  <div style="padding:10px 14px;background:#fff;border-bottom:1px solid #e5e7eb"><div style="font-size:12px;font-weight:700">Collect Payment</div><div style="font-size:10px;color:#6b7280;margin-top:1px">Emma Davis · 3 items</div></div>
-  <div class="card">
-    <div style="text-align:center;padding:8px 0 12px">
-      <div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:4px">Amount Due</div>
-      <div style="font-size:38px;font-weight:800;color:#111">$220.61</div>
-    </div>
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Payment Method</div>
-    <div style="display:flex;gap:5px;margin-bottom:10px">
-      <div class="method-chip active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Card</div>
-      <div class="method-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Cash</div>
-      <div class="method-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9z"/></svg>QR</div>
-      <div class="method-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07"/></svg>Link</div>
-    </div>
-    <div style="background:#f9fafb;border:1.5px dashed #e5e7eb;border-radius:10px;padding:16px;text-align:center">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-      <div style="font-size:12px;font-weight:700;color:#374151;margin-top:6px">Tap card or insert chip</div>
-      <div style="font-size:10px;color:#9ca3af;margin-top:2px">Card reader ready</div>
-    </div>
-  </div>
-  <div style="margin:10px 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:12px;text-align:center;font-size:14px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.35)">Charge $220.61</div>
-</div>
-
-<!-- ④ Payment Success -->
-<div class="scr" id="s3">
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px">
-    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#22c55e);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(22,163,74,.3)">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <div style="font-size:20px;font-weight:800;margin-bottom:4px">Payment Accepted!</div>
-    <div style="font-size:34px;font-weight:800;color:#16a34a;margin-bottom:8px">$220.61</div>
-    <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">Emma Davis paid by card. Receipt sent via SMS and email. Inventory updated automatically.</div>
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Receipt</div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Customer</span><span style="font-size:11px;font-weight:700">Emma Davis</span></div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Items</span><span style="font-size:11px;font-weight:700">3 items</span></div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Method</span><span style="font-size:11px;font-weight:700">Card ••4872</span></div>
-      <div class="row"><span style="font-size:11px;color:#374151">Status</span><span style="font-size:11px;font-weight:700;color:#15803d">✓ Paid</span></div>
-    </div>
-    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#15803d;font-weight:600;text-align:left">
-      ✓ Receipt sent · Inventory updated · Order logged
-    </div>
-  </div>
-</div>
-
-</div>
+<div class="screens" id="screens"></div>
 <script>
+localStorage.setItem('isAuthenticated','true');localStorage.setItem('userType','merchant');
+const BIZ_PARTS={hvac:[{n:'R-410A Refrigerant 25lb',sku:'REF-410A-25',p:186,st:3},{n:'HVAC Filter 16x20x1',sku:'FLT-16201',p:8.50,st:48},{n:'Smart Thermostat Pro',sku:'THERM-SM',p:89,st:5}],plumbing:[{n:'½" Copper Pipe (10ft)',sku:'CPR-12-10',p:24,st:8},{n:'PVC Fittings Pack (50pc)',sku:'PVC-FIT-50',p:18.50,st:12},{n:'Water Heater Anode Rod',sku:'WHR-ANO-1',p:32,st:6}],electrical:[{n:'20A Circuit Breaker',sku:'CB-20A-STD',p:28,st:4},{n:'GFCI Outlet 2-pack',sku:'GFCI-2PK',p:22,st:12},{n:'12AWG Romex Wire 100ft',sku:'ROM-12-100',p:65,st:2}],landscaping:[{n:'Premium Mulch (2 cu ft)',sku:'MLC-PRM-2',p:12,st:6},{n:'Grass Seed Mix 5lb',sku:'GRS-MIX-5',p:28,st:3},{n:'Irrigation Drip Line 50ft',sku:'IRR-DRP-50',p:45,st:2}],cleaning:[{n:'All-Purpose Cleaner (Gal)',sku:'APC-GAL-1',p:18,st:4},{n:'Microfiber Cloths 20pk',sku:'MFC-20PK',p:24,st:2},{n:'Carpet Shampoo (Qt)',sku:'CSH-QT-1',p:14,st:3}],carpentry:[{n:'Oak Hardwood Board (BF)',sku:'OAK-HW-BF',p:8,st:30},{n:'Wood Screws 3" 100pk',sku:'SCR-3IN-100',p:14,st:5},{n:'Cabinet Hinges 10 pairs',sku:'HNG-CAB-10',p:32,st:2}],exterminators:[{n:'Termite Bait Stations 6pk',sku:'TRM-BST-6',p:48,st:3},{n:'Rodent Traps 12pk',sku:'RDT-TRP-12',p:28,st:5},{n:'Insecticide Concentrate (Qt)',sku:'INS-CON-QT',p:62,st:2}],painter:[{n:'Premium Interior Paint (Gal)',sku:'PNT-INT-GAL',p:45,st:6},{n:"Painter's Tape 2\" 6pk",sku:'TPE-2IN-6',p:22,st:3},{n:'Drywall Compound 5qt',sku:'DWC-5QT',p:28,st:2}],construction:[{n:'Concrete Mix 80lb',sku:'CMX-80LB',p:12,st:10},{n:'2x4 Framing Lumber 8ft',sku:'LMB-24-8',p:8,st:30},{n:'Rebar 5/8" 20ft',sku:'RBR-58-20',p:18,st:5}],roofing:[{n:'Asphalt Shingles (sq)',sku:'SHG-ASP-SQ',p:95,st:4},{n:'Roofing Nails 1.75" 5lb',sku:'RNL-175-5',p:18,st:3},{n:'Roof Underlayment 100sqft',sku:'UNL-100SF',p:42,st:2}],general:[{n:'General Supply Kit',sku:'GEN-KIT-1',p:45,st:8},{n:'Fastener Assortment',sku:'FST-AST-1',p:24,st:4},{n:'Safety Equipment Set',sku:'SAF-EQP-1',p:68,st:2}],other:[{n:'General Supply Kit',sku:'GEN-KIT-1',p:45,st:8},{n:'Fastener Assortment',sku:'FST-AST-1',p:24,st:15},{n:'Safety Equipment Set',sku:'SAF-EQP-1',p:68,st:2}]};
+const BIZ_TRADE={hvac:'HVAC',plumbing:'Plumbing',electrical:'Electrical',landscaping:'Landscaping',cleaning:'Cleaning',carpentry:'Carpentry',exterminators:'Pest Control',painter:'Painting',construction:'Construction',roofing:'Roofing',general:'Service',other:'Service'};
+const bizType=localStorage.getItem('ob_biz_type')||'general';
+const parts=BIZ_PARTS[bizType]||BIZ_PARTS.general;
+const trade=BIZ_TRADE[bizType]||'Service';
 const LABELS=['Browse Products','Cart Review','Collect Payment','Sale Complete ✓'];
-const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
-let cur=0,stepTimer=null;
-function showStep(n){
-  if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}
-  scrs[cur].classList.remove("active");dots[cur].classList.remove("on");
-  cur=n;scrs[cur].classList.add("active");dots[cur].classList.add("on");
-  lbl.textContent="Step "+(cur+1)+" of "+scrs.length+" · "+LABELS[cur];
-  window.parent.postMessage({step:cur+1,total:scrs.length},"*");
-  if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}
-  else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},"*");},3800);}
+const LABOUR=120;
+const p0=parts[0],p1=parts[1];
+const subtotal=p0.p*2+p1.p+LABOUR;
+const disc=subtotal*0.1;
+const tax=(subtotal-disc)*0.085;
+const grand=(subtotal-disc+tax).toFixed(2);
+const CART_SVG='<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.97-1.69l1.48-8.31H6"/></svg>';
+const BOX_SVG='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>';
+
+function build(){
+  const scr=document.getElementById('screens');
+  // S1 Product Grid
+  const s0=document.createElement('div');s0.className='scr';
+  s0.innerHTML=`<div style="padding:8px 12px;background:#fff;border-bottom:1px solid #e5e7eb"><div style="display:flex;align-items:center;gap:8px;background:#f3f4f6;border-radius:10px;padding:7px 11px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg><span style="font-size:12px;color:#9ca3af">Search by name or SKU…</span></div></div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;padding:8px 12px;padding-bottom:12px">
+    ${parts.map((p,i)=>`<div style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;overflow:hidden"><div style="height:56px;background:#f3f4f6;display:flex;align-items:center;justify-content:center">${BOX_SVG}</div><div style="padding:8px"><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:1px;line-height:1.3">${p.n}</div><div style="font-size:9px;color:#9ca3af;margin-bottom:4px">SKU: ${p.sku}</div><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:#f85520">$${p.p.toFixed(2)}</div><div style="font-size:9px;color:#9ca3af">${p.st} in stock</div></div><div style="display:flex;align-items:center;gap:4px"><div style="display:flex;align-items:center;gap:4px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:7px;padding:3px 6px"><span style="font-weight:700;color:#6b7280;font-size:13px;line-height:1">−</span><span style="font-size:11px;font-weight:700;color:#111;min-width:14px;text-align:center">${i<2?2:1}</span><span style="font-weight:700;color:#6b7280;font-size:13px;line-height:1">+</span></div><div style="${i<2?'background:#f0fdf4;border:1px solid #bbf7d0;color:#16a34a':'background:#fff3ee;border:1px solid #ffd4c4;color:#f85520'};flex:1;border-radius:7px;padding:4px;font-size:10px;font-weight:700;text-align:center">${i<2?'✓ Added':'Add'}</div></div></div></div>`).join('')}
+  </div>
+  <div style="margin:0 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:11px;text-align:center;font-size:13px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.35)">View Cart · 3 items</div>`;
+  scr.appendChild(s0);
+  // S2 Cart
+  const s1=document.createElement('div');s1.className='scr';
+  s1.innerHTML=`<div style="padding:8px 14px 4px;background:#fff;border-bottom:1px solid #e5e7eb"><div style="font-size:12px;font-weight:800;color:#f85520">Cart · 3 items</div></div>
+  <div class="card"><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Customer</div><div style="display:flex;align-items:center;gap:8px"><div style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#f85520,#ff7340);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0">ED</div><div><div style="font-size:12px;font-weight:700">Emma Davis</div><div style="font-size:10px;color:#6b7280">321 Elm St · VIP</div></div><div style="margin-left:auto;font-size:10px;font-weight:700;color:#f85520">Change</div></div></div>
+  <div class="card"><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Items</div><div style="display:flex;flex-direction:column;gap:8px"><div class="row"><div><div style="font-size:11px;font-weight:700">${p0.n}</div><div style="font-size:10px;color:#9ca3af">Qty 2 × $${p0.p.toFixed(2)}</div></div><div style="font-size:12px;font-weight:800">$${(p0.p*2).toFixed(2)}</div></div><div class="row"><div><div style="font-size:11px;font-weight:700">${p1.n}</div><div style="font-size:10px;color:#9ca3af">Qty 1 × $${p1.p.toFixed(2)}</div></div><div style="font-size:12px;font-weight:800">$${p1.p.toFixed(2)}</div></div><div class="row"><div><div style="font-size:11px;font-weight:700">${trade} Labour (1hr)</div><div style="font-size:10px;color:#9ca3af">Qty 1 × $${LABOUR}.00</div></div><div style="font-size:12px;font-weight:800">$${LABOUR}.00</div></div></div></div>
+  <div class="card" style="margin-bottom:12px"><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">Subtotal</span><span style="font-size:11px;font-weight:700">$${subtotal.toFixed(2)}</span></div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">Discount (10%)</span><span style="font-size:11px;font-weight:700;color:#16a34a">−$${disc.toFixed(2)}</span></div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">Tax (8.5%)</span><span style="font-size:11px;font-weight:700">$${tax.toFixed(2)}</span></div><div class="divider"/><div class="row"><span style="font-size:13px;font-weight:800">Total</span><span style="font-size:22px;font-weight:800;color:#f85520">$${grand}</span></div><div style="margin-top:10px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:10px;padding:11px;text-align:center;font-size:13px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.3)">Proceed to Payment</div></div>`;
+  scr.appendChild(s1);
+  // S3 Payment
+  const s2=document.createElement('div');s2.className='scr';
+  s2.innerHTML=`<div style="padding:10px 14px;background:#fff;border-bottom:1px solid #e5e7eb"><div style="font-size:12px;font-weight:700">Collect Payment</div><div style="font-size:10px;color:#6b7280;margin-top:1px">Emma Davis · 3 items</div></div>
+  <div class="card"><div style="text-align:center;padding:8px 0 12px"><div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:4px">Amount Due</div><div style="font-size:38px;font-weight:800;color:#111">$${grand}</div></div><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Payment Method</div><div style="display:flex;gap:5px;margin-bottom:10px">
+    <div style="flex:1;border:1.5px solid #f85520;background:#fff3ee;border-radius:8px;padding:6px;text-align:center;font-size:10px;font-weight:700;color:#f85520;display:flex;flex-direction:column;align-items:center;gap:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Card</div>
+    <div style="flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;text-align:center;font-size:10px;font-weight:700;color:#374151;display:flex;flex-direction:column;align-items:center;gap:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Cash</div>
+    <div style="flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;text-align:center;font-size:10px;font-weight:700;color:#374151;display:flex;flex-direction:column;align-items:center;gap:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9z"/></svg>QR</div>
+    <div style="flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;text-align:center;font-size:10px;font-weight:700;color:#374151;display:flex;flex-direction:column;align-items:center;gap:2px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07"/></svg>Link</div>
+  </div><div style="background:#f9fafb;border:1.5px dashed #e5e7eb;border-radius:10px;padding:16px;text-align:center"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg><div style="font-size:12px;font-weight:700;color:#374151;margin-top:6px">Tap card or insert chip</div></div></div>
+  <div style="margin:10px 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:12px;text-align:center;font-size:14px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.35)">Charge $${grand}</div>`;
+  scr.appendChild(s2);
+  // S4 Success
+  const s3=document.createElement('div');s3.className='scr';
+  s3.innerHTML=`<div class="success-screen"><div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#22c55e);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(22,163,74,.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div><div style="font-size:20px;font-weight:800;margin-bottom:4px">Payment Accepted!</div><div style="font-size:34px;font-weight:800;color:#16a34a;margin-bottom:8px">$${grand}</div><div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">Emma Davis paid by card. Receipt sent and inventory updated automatically.</div><div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Receipt</div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Items</span><span style="font-size:11px;font-weight:700">3 items</span></div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Method</span><span style="font-size:11px;font-weight:700">Card ••4872</span></div><div class="row"><span style="font-size:11px;color:#374151">Status</span><span style="font-size:11px;font-weight:700;color:#15803d">✓ Paid</span></div></div><div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#15803d;font-weight:600;text-align:left">✓ Receipt sent · Inventory updated · Order logged</div></div>`;
+  scr.appendChild(s3);
 }
+build();
+const scrs=document.querySelectorAll('.scr'),dots=document.querySelectorAll('.dot'),lbl=document.getElementById('slbl');
+let cur=0,stepTimer=null;
+function showStep(n){if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}scrs[cur].classList.remove('active');dots[cur].classList.remove('on');cur=n;scrs[cur].classList.add('active');dots[cur].classList.add('on');lbl.textContent='Step '+(cur+1)+' of '+scrs.length+' · '+LABELS[cur];window.parent.postMessage({step:cur+1,total:scrs.length},'*');if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},'*');},3800);}}
+document.body.addEventListener('click',function(){if(cur<scrs.length-1)showStep(cur+1);});
 showStep(0);
-document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
 </script>
 </body>
 </html>

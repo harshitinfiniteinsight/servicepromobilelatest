@@ -3,14 +3,13 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Documents Flow – Tour</title>
+<title>Documents – Tour</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100vh;overflow:hidden;display:flex;flex-direction:column}
 .hdr{background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;padding:13px 16px 11px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.hdr-title{font-weight:800;font-size:16px}
-.hdr-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700}
+.hdr-title{font-weight:800;font-size:16px}.hdr-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700}
 .step-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .dots{display:flex;gap:5px}.dot{width:22px;height:4px;border-radius:99px;background:#e5e7eb;transition:background .3s}.dot.on{background:#f85520}
 .step-lbl{font-size:10px;font-weight:700;color:#9ca3af}
@@ -20,144 +19,68 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
 .card{background:#fff;border-radius:14px;margin:8px 12px 0;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6}
 .row{display:flex;align-items:center;justify-content:space-between}
 .badge{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700}
-.b-signed{background:#dcfce7;color:#15803d}
-.b-pending{background:#fef3c7;color:#b45309}
+.b-signed{background:#dcfce7;color:#15803d}.b-pending{background:#fef3c7;color:#b45309}.b-expired{background:#fee2e2;color:#b91c1c}
+.muted{font-size:10px;color:#9ca3af}
 .btn-row{display:flex;gap:5px;margin-top:8px}
 .btn{flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;font-size:10px;font-weight:700;color:#374151;text-align:center}
-.btn-v{background:#fff3ee;border-color:#ffd4c4;color:#f85520}
-.muted{font-size:10px;color:#9ca3af}
+.btn-p{background:#fff3ee;border-color:#ffd4c4;color:#f85520}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border-bottom:1px solid #e5e7eb}
+.stat{padding:9px;text-align:center;border-right:1px solid #e5e7eb}.stat:last-child{border-right:none}
+.stat-n{font-size:17px;font-weight:800;color:#f85520}.stat-l{font-size:9px;color:#6b7280;font-weight:600}
 .divider{border:none;border-top:1px solid #f3f4f6;margin:8px 0}
+.success-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px}
 </style>
 </head>
 <body>
 <div class="hdr"><div class="hdr-title">Agreements</div><div class="hdr-btn">+ New</div></div>
 <div class="step-bar">
   <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
-  <div class="step-lbl" id="slbl">Step 1 of 4 · Agreement List</div>
+  <div class="step-lbl" id="slbl">Step 1 of 4</div>
 </div>
-<div class="screens">
-
-<!-- ① List -->
-<div class="scr active" id="s0">
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border-bottom:1px solid #e5e7eb">
-    <div style="padding:9px;text-align:center;border-right:1px solid #e5e7eb"><div style="font-size:17px;font-weight:800;color:#f85520">14</div><div style="font-size:9px;color:#6b7280;font-weight:600">Total</div></div>
-    <div style="padding:9px;text-align:center;border-right:1px solid #e5e7eb"><div style="font-size:17px;font-weight:800;color:#f85520">11</div><div style="font-size:9px;color:#6b7280;font-weight:600">Signed</div></div>
-    <div style="padding:9px;text-align:center"><div style="font-size:17px;font-weight:800;color:#f85520">3</div><div style="font-size:9px;color:#6b7280;font-weight:600">Pending</div></div>
-  </div>
-  <div class="card" style="margin-top:10px">
-    <div class="row"><div class="muted">#AGR-2024-0119</div><span class="badge b-signed">✓ Signed</span></div>
-    <div style="font-size:13px;font-weight:700;margin:4px 0 1px">Emma Davis</div>
-    <div style="font-size:11px;color:#6b7280;margin-bottom:4px">Annual HVAC Service Agreement · $2,400/yr</div>
-    <div class="muted">Signed Jan 20, 2024 · Expires Jan 20, 2025</div>
-    <div class="btn-row"><div class="btn btn-v">View</div><div class="btn">Invoice</div></div>
-  </div>
-  <div class="card">
-    <div class="row"><div class="muted">#AGR-2024-0118</div><span class="badge b-pending">⏳ Awaiting</span></div>
-    <div style="font-size:13px;font-weight:700;margin:4px 0 1px">Robert Miller</div>
-    <div style="font-size:11px;color:#6b7280;margin-bottom:4px">Maintenance Plan Agreement · $1,800/yr</div>
-    <div class="muted">Sent Jan 22, 2024 · Awaiting signature</div>
-    <div class="btn-row"><div class="btn btn-v">Resend</div><div class="btn">Remind</div></div>
-  </div>
-  <div class="card" style="margin-bottom:12px">
-    <div class="row"><div class="muted">#AGR-2024-0117</div><span class="badge b-signed">✓ Signed</span></div>
-    <div style="font-size:13px;font-weight:700;margin:4px 0 1px">Sarah Johnson</div>
-    <div style="font-size:11px;color:#6b7280;margin-bottom:4px">Commercial Service Agreement · $4,200/yr</div>
-    <div class="muted">Signed Jan 15, 2024</div>
-    <div class="btn-row"><div class="btn btn-v">View</div><div class="btn">Invoice</div></div>
-  </div>
-</div>
-
-<!-- ② Agreement Preview -->
-<div class="scr" id="s1">
-  <div style="background:linear-gradient(135deg,#f85520,#ff7340);padding:14px;color:#fff;margin-bottom:0">
-    <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Agreement Preview</div>
-    <div style="font-size:16px;font-weight:800">HVAC Service Agreement</div>
-    <div style="font-size:11px;opacity:.85;margin-top:2px">#AGR-2024-0120 · Robert Miller · $1,800/yr</div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Agreement Terms</div>
-    <div style="font-size:11px;color:#374151;line-height:1.8">
-      <div style="margin-bottom:6px">✦ <strong>Coverage:</strong> Annual AC + Furnace maintenance, 2 visits per year</div>
-      <div style="margin-bottom:6px">✦ <strong>Response:</strong> Priority emergency service within 4 hours</div>
-      <div style="margin-bottom:6px">✦ <strong>Parts:</strong> 10% discount on all replacement parts</div>
-      <div style="margin-bottom:6px">✦ <strong>Payment:</strong> $1,800 annually, due at signing</div>
-      <div>✦ <strong>Term:</strong> 12 months from signature date</div>
-    </div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:6px">Customer Details</div>
-    <div style="font-size:11px;color:#374151;line-height:1.8">Robert Miller<br/>654 Maple Dr, Joliet, IL 60435<br/>(555) 567-8901</div>
-  </div>
-  <div class="card" style="margin-bottom:12px">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Send for Signature</div>
-    <div style="display:flex;gap:6px">
-      <div style="flex:1;background:#fff3ee;border:1.5px solid #7c3aed;border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700;color:#f85520">📧 Email</div>
-      <div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700;color:#374151">📱 SMS</div>
-      <div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700;color:#374151">🔗 Link</div>
-    </div>
-  </div>
-</div>
-
-<!-- ③ Customer Signing -->
-<div class="scr" id="s2">
-  <div style="background:#fff3ee;padding:12px 14px;border-bottom:1px solid #ddd6fe">
-    <div style="font-size:11px;font-weight:700;color:#f85520;margin-bottom:2px">Customer signing on device</div>
-    <div style="font-size:10px;color:#6b7280">Robert Miller · #AGR-2024-0120</div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">I agree to the terms of this HVAC Service Agreement and authorize annual payment of $1,800.</div>
-    <div style="background:#f9fafb;border:1.5px dashed #7c3aed;border-radius:10px;height:90px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;margin-bottom:8px">
-      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-      <div style="font-size:10px;color:#f85520;font-weight:700">Sign here</div>
-    </div>
-    <div style="background:#fff3ee;border-radius:10px;padding:8px;font-size:10px;color:#5b21b6;line-height:1.6">
-      By signing, Robert Miller agrees to the service terms. This agreement is legally binding and will be stored securely.
-    </div>
-  </div>
-  <div class="card" style="margin-bottom:8px">
-    <div class="row"><div style="font-size:12px;font-weight:700">Agreement Total</div><div style="font-size:18px;font-weight:800;color:#f85520">$1,800.00</div></div>
-    <div style="font-size:10px;color:#6b7280;margin-top:2px">Billed annually · Due at signing</div>
-  </div>
-  <div style="margin:0 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:12px;text-align:center;font-size:14px;font-weight:800;box-shadow:0 6px 20px rgba(124,58,237,.35)">Confirm &amp; Sign Agreement</div>
-</div>
-
-<!-- ④ Signed Confirmation -->
-<div class="scr" id="s3">
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px">
-    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#f85520,#ff7340);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(124,58,237,.3)">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <div style="font-size:20px;font-weight:800;margin-bottom:8px">Agreement Signed!</div>
-    <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">Robert Miller signed the HVAC Service Agreement. A copy was sent to his email and your records.</div>
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Agreement Summary</div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Customer</span><span style="font-size:11px;font-weight:700">Robert Miller</span></div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Agreement</span><span style="font-size:11px;font-weight:700">#AGR-2024-0120</span></div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Value</span><span style="font-size:11px;font-weight:700;color:#f85520">$1,800/yr</span></div>
-      <div class="row"><span style="font-size:11px;color:#374151">Valid through</span><span style="font-size:11px;font-weight:700">Jan 30, 2025</span></div>
-    </div>
-    <div style="background:#fff3ee;border:1px solid #ddd6fe;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#f85520;font-weight:600;text-align:left">
-      ✓ Signed &amp; stored · Invoice auto-generated · Job linked
-    </div>
-  </div>
-</div>
-
-</div>
+<div class="screens" id="screens"></div>
 <script>
+localStorage.setItem('isAuthenticated','true');localStorage.setItem('userType','merchant');
+const BIZ_DATA={hvac:{t:'HVAC',s1:'AC Service Call',s2:'Filter Replacement',s3:'Duct Inspection',s4:'Refrigerant Top-Up',agr:'HVAC Service Agreement · Annual Plan'},plumbing:{t:'Plumbing',s1:'Pipe Repair',s2:'Drain Cleaning',s3:'Leak Detection',s4:'Water Heater Service',agr:'Plumbing Service Agreement · Annual Plan'},electrical:{t:'Electrical',s1:'Panel Inspection',s2:'Wiring Repair',s3:'Outlet Installation',s4:'Circuit Breaker Replace',agr:'Electrical Service Agreement · Annual Plan'},landscaping:{t:'Landscaping',s1:'Lawn Mowing',s2:'Garden Maintenance',s3:'Tree Trimming',s4:'Irrigation Setup',agr:'Landscaping Maintenance Contract · Annual'},cleaning:{t:'Cleaning',s1:'Deep Clean',s2:'Carpet Steam Clean',s3:'Move-Out Clean',s4:'Office Cleaning',agr:'Cleaning Service Agreement · Monthly Plan'},carpentry:{t:'Carpentry',s1:'Cabinet Install',s2:'Door Repair',s3:'Deck Build',s4:'Trim Finish',agr:'Carpentry Service Agreement'},exterminators:{t:'Pest Control',s1:'Termite Treatment',s2:'Rodent Control',s3:'Ant Extermination',s4:'Bed Bug Treatment',agr:'Pest Control Service Plan · Quarterly'},painter:{t:'Painting',s1:'Interior Paint',s2:'Exterior Paint',s3:'Cabinet Refinish',s4:'Deck Staining',agr:'Painting Service Agreement'},construction:{t:'Construction',s1:'Site Prep',s2:'Foundation Work',s3:'Framing',s4:'Concrete Pour',agr:'Construction Service Contract'},roofing:{t:'Roofing',s1:'Roof Inspection',s2:'Shingle Replacement',s3:'Gutter Cleaning',s4:'Leak Repair',agr:'Roofing Service Agreement · Annual Inspection'},general:{t:'Service',s1:'Service Call',s2:'Maintenance Visit',s3:'Repair Work',s4:'Installation',agr:'Service Agreement · Annual Plan'},other:{t:'Service',s1:'Service Call',s2:'Maintenance Visit',s3:'Repair Work',s4:'Installation',agr:'Service Agreement · Annual Plan'}};
+const bizType=localStorage.getItem('ob_biz_type')||'general';
+const biz=BIZ_DATA[bizType]||BIZ_DATA.general;
+const bizName=localStorage.getItem('ob_business')||'';
 const LABELS=['Agreement List','Agreement Preview','Customer Signing','Signed ✓'];
-const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
-let cur=0,stepTimer=null;
-function showStep(n){
-  if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}
-  scrs[cur].classList.remove("active");dots[cur].classList.remove("on");
-  cur=n;scrs[cur].classList.add("active");dots[cur].classList.add("on");
-  lbl.textContent="Step "+(cur+1)+" of "+scrs.length+" · "+LABELS[cur];
-  window.parent.postMessage({step:cur+1,total:scrs.length},"*");
-  if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}
-  else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},"*");},3800);}
+const NAMES=['Emma Davis','Robert Miller','Sarah Johnson'];
+const AGR_SHORT=biz.agr.split('·')[0].trim();
+
+function build(){
+  const scr=document.getElementById('screens');
+  // S1 List
+  const s0=document.createElement('div');s0.className='scr';
+  s0.innerHTML=`<div class="stat-row"><div class="stat"><div class="stat-n">14</div><div class="stat-l">Total</div></div><div class="stat"><div class="stat-n">11</div><div class="stat-l">Signed</div></div><div class="stat"><div class="stat-n">3</div><div class="stat-l">Pending</div></div></div>
+  <div class="card" style="margin-top:10px"><div class="row"><div class="muted">#AGR-2024-0119</div><span class="badge b-signed">✓ Signed</span></div><div style="font-size:13px;font-weight:700;margin:4px 0 1px">${NAMES[0]}</div><div style="font-size:11px;color:#6b7280;margin-bottom:4px">${biz.agr} · $2,400/yr</div><div class="muted">Signed Jan 20, 2024 · Expires Jan 20, 2025</div><div class="btn-row"><div class="btn btn-p">View</div><div class="btn">Invoice</div></div></div>
+  <div class="card"><div class="row"><div class="muted">#AGR-2024-0118</div><span class="badge b-pending">⏳ Awaiting</span></div><div style="font-size:13px;font-weight:700;margin:4px 0 1px">${NAMES[1]}</div><div style="font-size:11px;color:#6b7280;margin-bottom:4px">${biz.agr} · $1,800/yr</div><div class="muted">Sent Jan 22, 2024 · Awaiting signature</div><div class="btn-row"><div class="btn btn-p">Resend</div><div class="btn">Remind</div></div></div>
+  <div class="card" style="margin-bottom:12px"><div class="row"><div class="muted">#AGR-2024-0117</div><span class="badge b-signed">✓ Signed</span></div><div style="font-size:13px;font-weight:700;margin:4px 0 1px">${NAMES[2]}</div><div style="font-size:11px;color:#6b7280;margin-bottom:4px">Commercial ${AGR_SHORT} · $4,200/yr</div><div class="muted">Signed Jan 15, 2024</div><div class="btn-row"><div class="btn btn-p">View</div><div class="btn">Invoice</div></div></div>`;
+  scr.appendChild(s0);
+  // S2 Preview
+  const s1=document.createElement('div');s1.className='scr';
+  s1.innerHTML=`<div style="background:linear-gradient(135deg,#f85520,#ff7340);padding:14px;color:#fff"><div style="font-size:10px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Agreement Preview</div><div style="font-size:16px;font-weight:800">${AGR_SHORT}</div><div style="font-size:11px;opacity:.85;margin-top:2px">#AGR-2024-0120 · ${NAMES[1]} · $1,800/yr</div></div>
+  <div class="card"><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Agreement Terms</div><div style="font-size:11px;color:#374151;line-height:1.8"><div style="margin-bottom:6px">✦ <strong>Coverage:</strong> Annual ${biz.s1} + ${biz.s2}, 2 visits/year</div><div style="margin-bottom:6px">✦ <strong>Response:</strong> Priority emergency service within 4 hours</div><div style="margin-bottom:6px">✦ <strong>Parts:</strong> 10% discount on all replacement parts</div><div style="margin-bottom:6px">✦ <strong>Payment:</strong> $1,800 annually, due at signing</div><div>✦ <strong>Term:</strong> 12 months from signature date</div></div></div>
+  <div class="card" style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Send for Signature</div><div style="display:flex;gap:6px"><div style="flex:1;background:#fff3ee;border:1.5px solid #f85520;border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700;color:#f85520">📧 Email</div><div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700;color:#374151">📱 SMS</div><div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700;color:#374151">🔗 Link</div></div></div>`;
+  scr.appendChild(s1);
+  // S3 Signing
+  const s2=document.createElement('div');s2.className='scr';
+  s2.innerHTML=`<div style="background:#fff3ee;border-bottom:2px solid #f85520;padding:12px 14px"><div style="font-size:11px;font-weight:700;color:#f85520;margin-bottom:2px">Customer signing on device</div><div style="font-size:10px;color:#6b7280">${NAMES[1]} · #AGR-2024-0120</div></div>
+  <div class="card"><div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">I agree to the terms of this ${AGR_SHORT} and authorize annual payment of $1,800.</div><div style="background:#f9fafb;border:1.5px dashed #f85520;border-radius:10px;height:90px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;margin-bottom:8px"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg><div style="font-size:10px;color:#f85520;font-weight:700">Sign here</div></div><div style="background:#fff3ee;border-radius:10px;padding:8px;font-size:10px;color:#b45309;line-height:1.6">By signing, ${NAMES[1]} agrees to the service terms. Legally binding and stored securely.</div></div>
+  <div class="card" style="margin-bottom:8px"><div class="row"><div style="font-size:12px;font-weight:700">Agreement Total</div><div style="font-size:18px;font-weight:800;color:#f85520">$1,800.00</div></div></div>
+  <div style="margin:0 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:12px;text-align:center;font-size:14px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.35)">Confirm &amp; Sign Agreement</div>`;
+  scr.appendChild(s2);
+  // S4 Signed
+  const s3=document.createElement('div');s3.className='scr';
+  s3.innerHTML=`<div class="success-screen"><div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#f85520,#ff7340);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(248,85,32,.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div><div style="font-size:20px;font-weight:800;margin-bottom:8px">Agreement Signed!</div><div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">${NAMES[1]} signed the ${AGR_SHORT}. A copy was sent to their email and your records.</div><div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px"><div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Agreement Summary</div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Customer</span><span style="font-size:11px;font-weight:700">${NAMES[1]}</span></div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Agreement</span><span style="font-size:11px;font-weight:700">#AGR-2024-0120</span></div><div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Value</span><span style="font-size:11px;font-weight:700;color:#f85520">$1,800/yr</span></div><div class="row"><span style="font-size:11px;color:#374151">Valid through</span><span style="font-size:11px;font-weight:700">Jan 30, 2025</span></div></div><div style="background:#fff3ee;border:1px solid #ffd4c4;border-radius:10px;padding:10px;width:100%;text-align:left;font-size:11px;color:#f85520;font-weight:600">✓ Signed &amp; stored · Invoice auto-generated · Job linked</div></div>`;
+  scr.appendChild(s3);
 }
+build();
+const scrs=document.querySelectorAll('.scr'),dots=document.querySelectorAll('.dot'),lbl=document.getElementById('slbl');
+let cur=0,stepTimer=null;
+function showStep(n){if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}scrs[cur].classList.remove('active');dots[cur].classList.remove('on');cur=n;scrs[cur].classList.add('active');dots[cur].classList.add('on');lbl.textContent='Step '+(cur+1)+' of '+scrs.length+' · '+LABELS[cur];window.parent.postMessage({step:cur+1,total:scrs.length},'*');if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},'*');},3800);}}
+document.body.addEventListener('click',function(){if(cur<scrs.length-1)showStep(cur+1);});
 showStep(0);
-document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
 </script>
 </body>
 </html>

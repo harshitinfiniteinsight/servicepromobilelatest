@@ -152,6 +152,17 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
 
 </div>
 <script>
+localStorage.setItem('isAuthenticated','true');localStorage.setItem('userType','merchant');
+const _BN={hvac:'HVAC',plumbing:'Plumbing',electrical:'Electrical',landscaping:'Landscaping',cleaning:'Cleaning',carpentry:'Carpentry',exterminators:'Pest Control',painter:'Painting',construction:'Construction',roofing:'Roofing',general:'Service',other:'Service'};
+const _S1={hvac:'AC Service Call',plumbing:'Pipe Repair',electrical:'Panel Inspection',landscaping:'Lawn Mowing',cleaning:'Deep Clean',carpentry:'Cabinet Install',exterminators:'Termite Treatment',painter:'Interior Paint',construction:'Site Prep',roofing:'Roof Inspection',general:'Service Call',other:'Service Call'};
+const _S2={hvac:'Filter Replacement',plumbing:'Drain Cleaning',electrical:'Wiring Repair',landscaping:'Garden Maintenance',cleaning:'Carpet Steam Clean',carpentry:'Trim Finish',exterminators:'Rodent Control',painter:'Drywall Repair',construction:'Foundation Work',roofing:'Shingle Replacement',general:'Maintenance Visit',other:'Maintenance Visit'};
+const _CATS={hvac:['HVAC Service Calls','Parts & Equipment','Maintenance Contracts'],plumbing:['Plumbing Repairs','Parts & Fittings','Maintenance Contracts'],electrical:['Electrical Repairs','Parts & Materials','Inspection Contracts'],landscaping:['Maintenance Services','Materials & Plants','Seasonal Contracts'],cleaning:['Cleaning Services','Supplies & Materials','Recurring Contracts'],carpentry:['Carpentry Services','Lumber & Hardware','Project Contracts'],exterminators:['Pest Control Services','Chemicals & Traps','Service Contracts'],painter:['Painting Services','Paint & Supplies','Project Contracts'],construction:['Construction Services','Materials & Equipment','Project Contracts'],roofing:['Roofing Services','Materials & Supplies','Inspection Contracts'],general:['Service Calls','Parts & Materials','Maintenance Contracts'],other:['Service Calls','Parts & Materials','Maintenance Contracts']};
+const _bt=localStorage.getItem('ob_biz_type')||'general';
+const _trade=_BN[_bt]||'Service';
+const _s1=_S1[_bt]||'Service Call';
+const _s2=_S2[_bt]||'Maintenance Visit';
+const _cats=_CATS[_bt]||_CATS.general;
+const _bizName=localStorage.getItem('ob_business')||'ServicePro 911';
 const LABELS=['Live Map','Crew Detail','Field Update','Route Complete ✓'];
 const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
 let cur=0,stepTimer=null;
@@ -166,6 +177,18 @@ function showStep(n){
 }
 showStep(0);
 document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
+</script>
+
+<script>
+(function(){
+  var jobs=document.querySelectorAll('[data-track-job]');
+  jobs.forEach(function(el,i){
+    if(i===0)el.textContent='On job · Emma Davis · '+_s1;
+    if(i===1)el.textContent='En route · R. Miller · '+_s2;
+    if(i===2)el.textContent='On job · Lisa Anderson · '+_s1;
+    if(i===3)el.textContent='Available · Last '+_s2+' done ✓';
+  });
+})();
 </script>
 </body>
 </html>
