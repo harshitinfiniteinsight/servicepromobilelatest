@@ -58,147 +58,167 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
   <div class="step-lbl" id="slbl">Step 1 of 4 · Browse Products</div>
 </div>
 <div class="screens">
-
-<!-- ① Product Grid -->
-<div class="scr active" id="s0">
-  <div style="padding:8px 12px;background:#fff;border-bottom:1px solid #e5e7eb">
-    <div style="display:flex;align-items:center;gap:8px;background:#f3f4f6;border-radius:10px;padding:7px 11px">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-      <span style="font-size:12px;color:#9ca3af">Search by name or SKU…</span>
-    </div>
-  </div>
-  <div class="prod-grid">
-    <div class="prod-card">
-      <div class="prod-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
-      <div class="prod-body">
-        <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:1px;line-height:1.3">HVAC Filter 16x20x1</div>
-        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">SKU: FLT-16201 · 48 in stock</div>
-        <div class="row" style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:#f85520">$8.50</div></div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <div class="qty-ctrl"><div class="qty-btn">−</div><div class="qty-num">2</div><div class="qty-btn">+</div></div>
-          <div class="add-btn added">✓ Added</div>
-        </div>
-      </div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
-      <div class="prod-body">
-        <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:1px;line-height:1.3">Smart Thermostat Pro</div>
-        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">SKU: THERM-SM · 5 in stock</div>
-        <div class="row" style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:#f85520">$89.00</div></div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <div class="qty-ctrl"><div class="qty-btn">−</div><div class="qty-num">1</div><div class="qty-btn">+</div></div>
-          <div class="add-btn added">✓ Added</div>
-        </div>
-      </div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
-      <div class="prod-body">
-        <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:1px;line-height:1.3">Capacitor 45/5 MFD</div>
-        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">SKU: CAP-455 · 18 in stock</div>
-        <div class="row" style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:#f85520">$22.00</div></div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <div class="qty-ctrl"><div class="qty-btn">−</div><div class="qty-num">1</div><div class="qty-btn">+</div></div>
-          <div class="add-btn">Add</div>
-        </div>
-      </div>
-    </div>
-    <div class="prod-card">
-      <div class="prod-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
-      <div class="prod-body">
-        <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:1px;line-height:1.3">Service Labour (1hr)</div>
-        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">SKU: LAB-HR · Unlimited</div>
-        <div class="row" style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:#f85520">$120.00</div></div>
-        <div style="display:flex;align-items:center;gap:4px">
-          <div class="qty-ctrl"><div class="qty-btn">−</div><div class="qty-num">1</div><div class="qty-btn">+</div></div>
-          <div class="add-btn added">✓ Added</div>
-        </div>
-      </div>
-    </div>
-  </div>
-  <div style="margin:8px 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:11px;text-align:center;font-size:13px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.35)">View Cart · 3 items</div>
+<div class="scr active" id="s0"></div>
+<div class="scr" id="s1"></div>
+<div class="scr" id="s2"></div>
+<div class="scr" id="s3"></div>
 </div>
 
-<!-- ② Cart Review -->
-<div class="scr" id="s1">
-  <div style="padding:8px 14px 4px;background:#fff;border-bottom:1px solid #e5e7eb">
-    <div style="font-size:12px;font-weight:800;color:#f85520">Cart · 3 items</div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Customer</div>
-    <div style="display:flex;align-items:center;gap:8px">
-      <div class="av" style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#f85520,#ff7340);font-size:11px">ED</div>
-      <div><div style="font-size:12px;font-weight:700">Emma Davis</div><div style="font-size:10px;color:#6b7280">321 Elm St, Aurora · VIP</div></div>
-      <div style="margin-left:auto;font-size:10px;font-weight:700;color:#f85520">Change</div>
-    </div>
-  </div>
-  <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Items</div>
-    <div style="display:flex;flex-direction:column;gap:8px">
-      <div class="row"><div><div style="font-size:11px;font-weight:700">HVAC Filter 16x20x1</div><div style="font-size:10px;color:#9ca3af">Qty 2 × $8.50</div></div><div style="font-size:12px;font-weight:800">$17.00</div></div>
-      <div class="row"><div><div style="font-size:11px;font-weight:700">Smart Thermostat Pro</div><div style="font-size:10px;color:#9ca3af">Qty 1 × $89.00</div></div><div style="font-size:12px;font-weight:800">$89.00</div></div>
-      <div class="row"><div><div style="font-size:11px;font-weight:700">Service Labour (1hr)</div><div style="font-size:10px;color:#9ca3af">Qty 1 × $120.00</div></div><div style="font-size:12px;font-weight:800">$120.00</div></div>
-    </div>
-  </div>
-  <div class="card" style="margin-bottom:12px">
-    <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">Subtotal</span><span style="font-size:11px;font-weight:700">$226.00</span></div>
-    <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">Discount (10%)</span><span style="font-size:11px;font-weight:700;color:#16a34a">−$22.60</span></div>
-    <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">Tax (8.5%)</span><span style="font-size:11px;font-weight:700">$17.21</span></div>
-    <div class="divider"></div>
-    <div class="row"><span style="font-size:13px;font-weight:800">Total</span><span style="font-size:22px;font-weight:800;color:#f85520">$220.61</span></div>
-    <div style="margin-top:10px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:10px;padding:11px;text-align:center;font-size:13px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.3)">Proceed to Payment</div>
-  </div>
-</div>
-
-<!-- ③ Payment Screen -->
-<div class="scr" id="s2">
-  <div style="padding:10px 14px;background:#fff;border-bottom:1px solid #e5e7eb"><div style="font-size:12px;font-weight:700">Collect Payment</div><div style="font-size:10px;color:#6b7280;margin-top:1px">Emma Davis · 3 items</div></div>
-  <div class="card">
-    <div style="text-align:center;padding:8px 0 12px">
-      <div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:4px">Amount Due</div>
-      <div style="font-size:38px;font-weight:800;color:#111">$220.61</div>
-    </div>
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Payment Method</div>
-    <div style="display:flex;gap:5px;margin-bottom:10px">
-      <div class="method-chip active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Card</div>
-      <div class="method-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Cash</div>
-      <div class="method-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9z"/></svg>QR</div>
-      <div class="method-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07"/></svg>Link</div>
-    </div>
-    <div style="background:#f9fafb;border:1.5px dashed #e5e7eb;border-radius:10px;padding:16px;text-align:center">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
-      <div style="font-size:12px;font-weight:700;color:#374151;margin-top:6px">Tap card or insert chip</div>
-      <div style="font-size:10px;color:#9ca3af;margin-top:2px">Card reader ready</div>
-    </div>
-  </div>
-  <div style="margin:10px 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:12px;text-align:center;font-size:14px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.35)">Charge $220.61</div>
-</div>
-
-<!-- ④ Payment Success -->
-<div class="scr" id="s3">
-  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px">
-    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#22c55e);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(22,163,74,.3)">
-      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <div style="font-size:20px;font-weight:800;margin-bottom:4px">Payment Accepted!</div>
-    <div style="font-size:34px;font-weight:800;color:#16a34a;margin-bottom:8px">$220.61</div>
-    <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">Emma Davis paid by card. Receipt sent via SMS and email. Inventory updated automatically.</div>
-    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px">
-      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Receipt</div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Customer</span><span style="font-size:11px;font-weight:700">Emma Davis</span></div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Items</span><span style="font-size:11px;font-weight:700">3 items</span></div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Method</span><span style="font-size:11px;font-weight:700">Card ••4872</span></div>
-      <div class="row"><span style="font-size:11px;color:#374151">Status</span><span style="font-size:11px;font-weight:700;color:#15803d">✓ Paid</span></div>
-    </div>
-    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#15803d;font-weight:600;text-align:left">
-      ✓ Receipt sent · Inventory updated · Order logged
-    </div>
-  </div>
-</div>
-
-</div>
 <script>
+// ── Business data config ──
+const BUSINESS_DATA = {
+  hvac: {
+    products: [
+      { name:'HVAC Filter 16x20x1', sku:'FLT-16201',  stock:'48 in stock', price:'$8.50',   qty:2, added:true  },
+      { name:'Smart Thermostat Pro', sku:'THERM-SM',   stock:'5 in stock',  price:'$89.00',  qty:1, added:true  },
+      { name:'Capacitor 45/5 MFD',  sku:'CAP-455',    stock:'18 in stock', price:'$22.00',  qty:1, added:false },
+      { name:'Service Labour (1hr)', sku:'LAB-HR',     stock:'Unlimited',   price:'$120.00', qty:1, added:true  }
+    ],
+    customer: { name:'Emma Davis', initials:'ED', address:'321 Elm St, Aurora · VIP' },
+    cart: [
+      { name:'HVAC Filter 16x20x1', qty:2, unitPrice:'$8.50',   total:'$17.00'  },
+      { name:'Smart Thermostat Pro', qty:1, unitPrice:'$89.00',  total:'$89.00'  },
+      { name:'Service Labour (1hr)', qty:1, unitPrice:'$120.00', total:'$120.00' }
+    ],
+    pricing: { subtotal:'$226.00', discountLabel:'Discount (10%)', discount:'−$22.60', taxLabel:'Tax (8.5%)', tax:'$17.21', total:'$220.61' }
+  },
+  plumbing: {
+    products: [
+      { name:'PVC Pipes (6ft)',      sku:'PVC-6FT',   stock:'32 in stock', price:'$12.00',  qty:2, added:true  },
+      { name:'Faucet &amp; Tap Set', sku:'FAUCET-01', stock:'8 in stock',  price:'$45.00',  qty:1, added:true  },
+      { name:'Shower Head Pro',      sku:'SHW-PRO',   stock:'14 in stock', price:'$38.00',  qty:1, added:false },
+      { name:'Service Labour (1hr)', sku:'LAB-HR',    stock:'Unlimited',   price:'$120.00', qty:1, added:true  }
+    ],
+    customer: { name:'Emma Davis', initials:'ED', address:'321 Elm St, Aurora · VIP' },
+    cart: [
+      { name:'PVC Pipes (6ft)',      qty:2, unitPrice:'$12.00',  total:'$24.00'  },
+      { name:'Faucet &amp; Tap Set', qty:1, unitPrice:'$45.00',  total:'$45.00'  },
+      { name:'Service Labour (1hr)', qty:1, unitPrice:'$120.00', total:'$120.00' }
+    ],
+    pricing: { subtotal:'$189.00', discountLabel:'Discount (10%)', discount:'−$18.90', taxLabel:'Tax (8.5%)', tax:'$14.36', total:'$184.46' }
+  }
+};
+
+// ── Read business type from localStorage (same-origin share) ──
+var _bizType;
+try { _bizType = localStorage.getItem('ob_biz_type') || 'hvac'; } catch(e) { _bizType = 'hvac'; }
+const data = BUSINESS_DATA[_bizType] || BUSINESS_DATA.hvac;
+
+// ── Screen renderers ──
+function renderProductGrid(d) {
+  const productCards = d.products.map(p => `
+    <div class="prod-card">
+      <div class="prod-img"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg></div>
+      <div class="prod-body">
+        <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:1px;line-height:1.3">${p.name}</div>
+        <div style="font-size:9px;color:#9ca3af;margin-bottom:4px">SKU: ${p.sku} · ${p.stock}</div>
+        <div class="row" style="margin-bottom:6px"><div style="font-size:13px;font-weight:800;color:#f85520">${p.price}</div></div>
+        <div style="display:flex;align-items:center;gap:4px">
+          <div class="qty-ctrl"><div class="qty-btn">−</div><div class="qty-num">${p.qty}</div><div class="qty-btn">+</div></div>
+          <div class="add-btn${p.added ? ' added' : ''}">${p.added ? '✓ Added' : 'Add'}</div>
+        </div>
+      </div>
+    </div>`).join('');
+  const addedCount = d.products.filter(p => p.added).length;
+  return `
+    <div style="padding:8px 12px;background:#fff;border-bottom:1px solid #e5e7eb">
+      <div style="display:flex;align-items:center;gap:8px;background:#f3f4f6;border-radius:10px;padding:7px 11px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <span style="font-size:12px;color:#9ca3af">Search by name or SKU…</span>
+      </div>
+    </div>
+    <div class="prod-grid">${productCards}</div>
+    <div style="margin:8px 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:11px;text-align:center;font-size:13px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.35)">View Cart · ${addedCount} items</div>`;
+}
+
+function renderCartReview(d) {
+  const cartRows = d.cart.map(item => `
+    <div class="row"><div><div style="font-size:11px;font-weight:700">${item.name}</div><div style="font-size:10px;color:#9ca3af">Qty ${item.qty} × ${item.unitPrice}</div></div><div style="font-size:12px;font-weight:800">${item.total}</div></div>`).join('');
+  const p = d.pricing;
+  const cust = d.customer;
+  return `
+    <div style="padding:8px 14px 4px;background:#fff;border-bottom:1px solid #e5e7eb">
+      <div style="font-size:12px;font-weight:800;color:#f85520">Cart · ${d.cart.length} items</div>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Customer</div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="av" style="width:32px;height:32px;border-radius:9px;background:linear-gradient(135deg,#f85520,#ff7340);font-size:11px">${cust.initials}</div>
+        <div><div style="font-size:12px;font-weight:700">${cust.name}</div><div style="font-size:10px;color:#6b7280">${cust.address}</div></div>
+        <div style="margin-left:auto;font-size:10px;font-weight:700;color:#f85520">Change</div>
+      </div>
+    </div>
+    <div class="card">
+      <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Items</div>
+      <div style="display:flex;flex-direction:column;gap:8px">${cartRows}</div>
+    </div>
+    <div class="card" style="margin-bottom:12px">
+      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">Subtotal</span><span style="font-size:11px;font-weight:700">${p.subtotal}</span></div>
+      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">${p.discountLabel}</span><span style="font-size:11px;font-weight:700;color:#16a34a">${p.discount}</span></div>
+      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#6b7280">${p.taxLabel}</span><span style="font-size:11px;font-weight:700">${p.tax}</span></div>
+      <div class="divider"></div>
+      <div class="row"><span style="font-size:13px;font-weight:800">Total</span><span style="font-size:22px;font-weight:800;color:#f85520">${p.total}</span></div>
+      <div style="margin-top:10px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:10px;padding:11px;text-align:center;font-size:13px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.3)">Proceed to Payment</div>
+    </div>`;
+}
+
+function renderPayment(d) {
+  const total = d.pricing.total;
+  const cust = d.customer;
+  return `
+    <div style="padding:10px 14px;background:#fff;border-bottom:1px solid #e5e7eb"><div style="font-size:12px;font-weight:700">Collect Payment</div><div style="font-size:10px;color:#6b7280;margin-top:1px">${cust.name} · ${d.cart.length} items</div></div>
+    <div class="card">
+      <div style="text-align:center;padding:8px 0 12px">
+        <div style="font-size:11px;color:#6b7280;font-weight:600;margin-bottom:4px">Amount Due</div>
+        <div style="font-size:38px;font-weight:800;color:#111">${total}</div>
+      </div>
+      <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Payment Method</div>
+      <div style="display:flex;gap:5px;margin-bottom:10px">
+        <div class="method-chip active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Card</div>
+        <div class="method-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>Cash</div>
+        <div class="method-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 9h2v2H9zM13 9h2v2h-2zM9 13h2v2H9z"/></svg>QR</div>
+        <div class="method-chip"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07"/></svg>Link</div>
+      </div>
+      <div style="background:#f9fafb;border:1.5px dashed #e5e7eb;border-radius:10px;padding:16px;text-align:center">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.5"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+        <div style="font-size:12px;font-weight:700;color:#374151;margin-top:6px">Tap card or insert chip</div>
+        <div style="font-size:10px;color:#9ca3af;margin-top:2px">Card reader ready</div>
+      </div>
+    </div>
+    <div style="margin:10px 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:12px;text-align:center;font-size:14px;font-weight:800;box-shadow:0 6px 20px rgba(248,85,32,.35)">Charge ${total}</div>`;
+}
+
+function renderPaymentSuccess(d) {
+  const total = d.pricing.total;
+  const cust = d.customer;
+  return `
+    <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px">
+      <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#22c55e);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(22,163,74,.3)">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+      </div>
+      <div style="font-size:20px;font-weight:800;margin-bottom:4px">Payment Accepted!</div>
+      <div style="font-size:34px;font-weight:800;color:#16a34a;margin-bottom:8px">${total}</div>
+      <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">${cust.name} paid by card. Receipt sent via SMS and email. Inventory updated automatically.</div>
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px">
+        <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Receipt</div>
+        <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Customer</span><span style="font-size:11px;font-weight:700">${cust.name}</span></div>
+        <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Items</span><span style="font-size:11px;font-weight:700">${d.cart.length} items</span></div>
+        <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Method</span><span style="font-size:11px;font-weight:700">Card ••4872</span></div>
+        <div class="row"><span style="font-size:11px;color:#374151">Status</span><span style="font-size:11px;font-weight:700;color:#15803d">✓ Paid</span></div>
+      </div>
+      <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#15803d;font-weight:600;text-align:left">
+        ✓ Receipt sent · Inventory updated · Order logged
+      </div>
+    </div>`;
+}
+
+// ── Populate screens ──
+document.getElementById('s0').innerHTML = renderProductGrid(data);
+document.getElementById('s1').innerHTML = renderCartReview(data);
+document.getElementById('s2').innerHTML = renderPayment(data);
+document.getElementById('s3').innerHTML = renderPaymentSuccess(data);
+
+// ── Step controller ──
 const LABELS=['Browse Products','Cart Review','Collect Payment','Sale Complete ✓'];
 const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
 let cur=0,stepTimer=null;
