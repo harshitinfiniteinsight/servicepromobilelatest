@@ -9,7 +9,15 @@
       "destination": "/landing-page.html"
     },
     {
+      "source": "/landing-page.html",
+      "destination": "/landing-page.html"
+    },
+    {
       "source": "/landing-page-onboarding",
+      "destination": "/landing-page-onboarding.html"
+    },
+    {
+      "source": "/landing-page-onboarding.html",
       "destination": "/landing-page-onboarding.html"
     },
     {
@@ -17,7 +25,15 @@
       "destination": "/onboarding-welcome.html"
     },
     {
+      "source": "/onboarding-welcome.html",
+      "destination": "/onboarding-welcome.html"
+    },
+    {
       "source": "/onboarding-step2",
+      "destination": "/onboarding-step2.html"
+    },
+    {
+      "source": "/onboarding-step2.html",
       "destination": "/onboarding-step2.html"
     },
     {
@@ -25,8 +41,60 @@
       "destination": "/onboarding-device-launch.html"
     },
     {
+      "source": "/onboarding-device-launch.html",
+      "destination": "/onboarding-device-launch.html"
+    },
+    {
       "source": "/onboarding-complete",
       "destination": "/onboarding-complete.html"
+    },
+    {
+      "source": "/onboarding-complete.html",
+      "destination": "/onboarding-complete.html"
+    },
+    {
+      "source": "/mobile-version.html",
+      "destination": "/mobile-version.html"
+    },
+    {
+      "source": "/tour-accounting.html",
+      "destination": "/tour-accounting.html"
+    },
+    {
+      "source": "/tour-appointments.html",
+      "destination": "/tour-appointments.html"
+    },
+    {
+      "source": "/tour-customers.html",
+      "destination": "/tour-customers.html"
+    },
+    {
+      "source": "/tour-documents.html",
+      "destination": "/tour-documents.html"
+    },
+    {
+      "source": "/tour-inventory.html",
+      "destination": "/tour-inventory.html"
+    },
+    {
+      "source": "/tour-jobs.html",
+      "destination": "/tour-jobs.html"
+    },
+    {
+      "source": "/tour-payments.html",
+      "destination": "/tour-payments.html"
+    },
+    {
+      "source": "/tour-sell.html",
+      "destination": "/tour-sell.html"
+    },
+    {
+      "source": "/tour-teamsync.html",
+      "destination": "/tour-teamsync.html"
+    },
+    {
+      "source": "/tour-tracking.html",
+      "destination": "/tour-tracking.html"
     },
     {
       "source": "/(.*)",
