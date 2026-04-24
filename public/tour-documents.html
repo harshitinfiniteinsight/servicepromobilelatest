@@ -4,6 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Documents Flow – Tour</title>
+<script src="tour-data.js"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -47,21 +48,21 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
   <div class="card" style="margin-top:10px">
     <div class="row"><div class="muted">#AGR-2024-0119</div><span class="badge b-signed">✓ Signed</span></div>
     <div style="font-size:13px;font-weight:700;margin:4px 0 1px">Emma Davis</div>
-    <div style="font-size:11px;color:#6b7280;margin-bottom:4px">Annual HVAC Service Agreement · $2,400/yr</div>
+    <div id="d1" style="font-size:11px;color:#6b7280;margin-bottom:4px">Annual HVAC Service Agreement · $2,400/yr</div>
     <div class="muted">Signed Jan 20, 2024 · Expires Jan 20, 2025</div>
     <div class="btn-row"><div class="btn btn-v">View</div><div class="btn">Invoice</div></div>
   </div>
   <div class="card">
     <div class="row"><div class="muted">#AGR-2024-0118</div><span class="badge b-pending">⏳ Awaiting</span></div>
     <div style="font-size:13px;font-weight:700;margin:4px 0 1px">Robert Miller</div>
-    <div style="font-size:11px;color:#6b7280;margin-bottom:4px">Maintenance Plan Agreement · $1,800/yr</div>
+    <div id="d2" style="font-size:11px;color:#6b7280;margin-bottom:4px">Maintenance Plan Agreement · $1,800/yr</div>
     <div class="muted">Sent Jan 22, 2024 · Awaiting signature</div>
     <div class="btn-row"><div class="btn btn-v">Resend</div><div class="btn">Remind</div></div>
   </div>
   <div class="card" style="margin-bottom:12px">
     <div class="row"><div class="muted">#AGR-2024-0117</div><span class="badge b-signed">✓ Signed</span></div>
     <div style="font-size:13px;font-weight:700;margin:4px 0 1px">Sarah Johnson</div>
-    <div style="font-size:11px;color:#6b7280;margin-bottom:4px">Commercial Service Agreement · $4,200/yr</div>
+    <div id="d3" style="font-size:11px;color:#6b7280;margin-bottom:4px">Commercial Service Agreement · $4,200/yr</div>
     <div class="muted">Signed Jan 15, 2024</div>
     <div class="btn-row"><div class="btn btn-v">View</div><div class="btn">Invoice</div></div>
   </div>
@@ -71,16 +72,16 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
 <div class="scr" id="s1">
   <div style="background:linear-gradient(135deg,#f85520,#ff7340);padding:14px;color:#fff;margin-bottom:0">
     <div style="font-size:10px;font-weight:700;opacity:.8;margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em">Agreement Preview</div>
-    <div style="font-size:16px;font-weight:800">HVAC Service Agreement</div>
-    <div style="font-size:11px;opacity:.85;margin-top:2px">#AGR-2024-0120 · Robert Miller · $1,800/yr</div>
+    <div style="font-size:16px;font-weight:800" id="pt">HVAC Service Agreement</div>
+    <div style="font-size:11px;opacity:.85;margin-top:2px" id="ps">#AGR-2024-0120 · Robert Miller · $1,800/yr</div>
   </div>
   <div class="card">
     <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Agreement Terms</div>
     <div style="font-size:11px;color:#374151;line-height:1.8">
-      <div style="margin-bottom:6px">✦ <strong>Coverage:</strong> Annual AC + Furnace maintenance, 2 visits per year</div>
+      <div style="margin-bottom:6px">✦ <strong>Coverage:</strong> <span id="cov">Annual AC + Furnace maintenance, 2 visits per year</span></div>
       <div style="margin-bottom:6px">✦ <strong>Response:</strong> Priority emergency service within 4 hours</div>
       <div style="margin-bottom:6px">✦ <strong>Parts:</strong> 10% discount on all replacement parts</div>
-      <div style="margin-bottom:6px">✦ <strong>Payment:</strong> $1,800 annually, due at signing</div>
+      <div style="margin-bottom:6px">✦ <strong>Payment:</strong> <span id="pmt">$1,800 annually, due at signing</span></div>
       <div>✦ <strong>Term:</strong> 12 months from signature date</div>
     </div>
   </div>
@@ -105,7 +106,7 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
     <div style="font-size:10px;color:#6b7280">Robert Miller · #AGR-2024-0120</div>
   </div>
   <div class="card">
-    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">I agree to the terms of this HVAC Service Agreement and authorize annual payment of $1,800.</div>
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px" id="st">I agree to the terms of this HVAC Service Agreement and authorize annual payment of $1,800.</div>
     <div style="background:#f9fafb;border:1.5px dashed #7c3aed;border-radius:10px;height:90px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;margin-bottom:8px">
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="1.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
       <div style="font-size:10px;color:#f85520;font-weight:700">Sign here</div>
@@ -115,7 +116,7 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
     </div>
   </div>
   <div class="card" style="margin-bottom:8px">
-    <div class="row"><div style="font-size:12px;font-weight:700">Agreement Total</div><div style="font-size:18px;font-weight:800;color:#f85520">$1,800.00</div></div>
+    <div class="row"><div style="font-size:12px;font-weight:700">Agreement Total</div><div style="font-size:18px;font-weight:800;color:#f85520" id="stot">$1,800.00</div></div>
     <div style="font-size:10px;color:#6b7280;margin-top:2px">Billed annually · Due at signing</div>
   </div>
   <div style="margin:0 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:12px;text-align:center;font-size:14px;font-weight:800;box-shadow:0 6px 20px rgba(124,58,237,.35)">Confirm &amp; Sign Agreement</div>
@@ -128,12 +129,12 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
       <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
     </div>
     <div style="font-size:20px;font-weight:800;margin-bottom:8px">Agreement Signed!</div>
-    <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">Robert Miller signed the HVAC Service Agreement. A copy was sent to his email and your records.</div>
+    <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px" id="ctext">Robert Miller signed the HVAC Service Agreement. A copy was sent to their email and your records.</div>
     <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px">
       <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Agreement Summary</div>
       <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Customer</span><span style="font-size:11px;font-weight:700">Robert Miller</span></div>
       <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Agreement</span><span style="font-size:11px;font-weight:700">#AGR-2024-0120</span></div>
-      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Value</span><span style="font-size:11px;font-weight:700;color:#f85520">$1,800/yr</span></div>
+      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Value</span><span style="font-size:11px;font-weight:700;color:#f85520" id="cval">$1,800/yr</span></div>
       <div class="row"><span style="font-size:11px;color:#374151">Valid through</span><span style="font-size:11px;font-weight:700">Jan 30, 2025</span></div>
     </div>
     <div style="background:#fff3ee;border:1px solid #ddd6fe;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#f85520;font-weight:600;text-align:left">
@@ -156,6 +157,51 @@ function showStep(n){
   if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}
   else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},"*");},3800);}
 }
+
+// Populate business-type-specific content
+(function(){
+  var bizType=(typeof localStorage!=='undefined'?localStorage.getItem('ob_biz_type'):null)||'general';
+  var biz=(typeof TOUR_BIZ_DATA!=='undefined'&&TOUR_BIZ_DATA[bizType])||
+          (typeof TOUR_BIZ_DATA!=='undefined'&&TOUR_BIZ_DATA.general)||null;
+  if(!biz||!biz.documents)return;
+  var d=biz.documents;
+  function el(id){return document.getElementById(id);}
+
+  // Derive period suffix and amounts from listDesc (e.g. "Annual X Agreement · $2,400/yr")
+  var listParts=d.listDesc.split('·');
+  var listAmt=listParts.length>1?listParts[1].trim():(d.amount||'$0')+'/yr';
+  var periodicSuffix=listAmt.toLowerCase().includes('/mo')?'/mo':'/yr';
+  var payFreq=periodicSuffix==='/mo'?'monthly':'annual';
+
+  // Compute commercial rate: ~2.25× the base amount, rounded to nearest $100.
+  // The multiplier approximates a typical commercial-tier premium over individual plans.
+  var DEFAULT_BASE_AMOUNT=1600; // fallback when amount string cannot be parsed
+  var COMMERCIAL_RATE_MULTIPLIER=2.25;
+  var rawAmt=parseInt((d.amount||'').replace(/[$,]/g,''))||DEFAULT_BASE_AMOUNT;
+  var commRaw=Math.round(rawAmt*COMMERCIAL_RATE_MULTIPLIER/100)*100;
+  var commAmt='$'+commRaw.toLocaleString()+periodicSuffix;
+
+  // Screen 0 – Agreement List
+  el('d1').textContent=d.listDesc;
+  el('d2').textContent='Maintenance Plan Agreement · '+d.amount+periodicSuffix;
+  el('d3').textContent='Commercial '+d.agreementType+' · '+commAmt;
+
+  // Screen 1 – Agreement Preview
+  el('pt').textContent=d.agreementType;
+  el('ps').textContent='#AGR-2024-0120 · Robert Miller · '+d.amount+periodicSuffix;
+  el('cov').textContent=d.coverage;
+  el('pmt').textContent=d.amount+' '+payFreq+', due at signing';
+
+  // Screen 2 – Customer Signing
+  el('st').textContent='I agree to the terms of this '+d.agreementType+' and authorize '+payFreq+' payment of '+d.amount+'.';
+  el('stot').textContent=d.amount;
+
+  // Screen 3 – Confirmation
+  // signConfirm already contains the full sentence e.g. "Robert Miller signed the X Agreement."
+  el('ctext').textContent=d.signConfirm+' A copy was sent to their email and your records.';
+  el('cval').textContent=d.amount+periodicSuffix;
+}());
+
 showStep(0);
 document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
 </script>
