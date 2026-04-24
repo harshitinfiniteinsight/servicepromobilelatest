@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Customers Flow – Tour</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.hdr{background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;padding:13px 16px 11px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-title{font-weight:800;font-size:16px}
+.hdr-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700}
+.step-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.dots{display:flex;gap:5px}.dot{width:22px;height:4px;border-radius:99px;background:#e5e7eb;transition:background .3s}.dot.on{background:#f85520}
+.step-lbl{font-size:10px;font-weight:700;color:#9ca3af}
+.screens{flex:1;position:relative;overflow:hidden}
+.scr{position:absolute;inset:0;overflow-y:auto;opacity:0;transition:opacity .45s;pointer-events:none;background:#f9fafb}
+.scr.active{opacity:1;pointer-events:auto}
+.card{background:#fff;border-radius:14px;margin:8px 12px 0;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6}
+.row{display:flex;align-items:center;justify-content:space-between}
+.badge{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700}
+.b-active{background:#dcfce7;color:#15803d}
+.b-vip{background:#fef3c7;color:#b45309}
+.btn-row{display:flex;gap:5px;margin-top:8px}
+.btn{flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;font-size:10px;font-weight:700;color:#374151;text-align:center}
+.btn-c{background:#fff3ee;border-color:#ffd4c4;color:#f85520}
+.btn-g{background:#f0fdf4;border-color:#bbf7d0;color:#16a34a}
+.btn-full{display:block;text-align:center;border-radius:12px;padding:12px;font-size:14px;font-weight:800;color:#fff;background:linear-gradient(135deg,#f85520,#ff7340);box-shadow:0 6px 20px rgba(8,145,178,.35);margin:10px 12px 0}
+.av{display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0}
+.muted{font-size:10px;color:#9ca3af}
+.divider{border:none;border-top:1px solid #f3f4f6;margin:8px 0}
+.success-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px}
+.success-icon{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#f85520,#ff7340);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(8,145,178,.3)}
+.success-icon svg{width:32px;height:32px;color:#fff}
+</style>
+</head>
+<body>
+<div class="hdr"><div class="hdr-title">Customers</div><div class="hdr-btn">+ Add</div></div>
+<div class="step-bar">
+  <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="step-lbl" id="slbl">Step 1 of 4 · Customer List</div>
+</div>
+<div class="screens">
+
+<!-- ① List -->
+<div class="scr active" id="s0">
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border-bottom:1px solid #e5e7eb">
+    <div style="padding:9px;text-align:center;border-right:1px solid #e5e7eb"><div style="font-size:17px;font-weight:800;color:#f85520">24</div><div style="font-size:9px;color:#6b7280;font-weight:600">Total</div></div>
+    <div style="padding:9px;text-align:center;border-right:1px solid #e5e7eb"><div style="font-size:17px;font-weight:800;color:#f85520">21</div><div style="font-size:9px;color:#6b7280;font-weight:600">Active</div></div>
+    <div style="padding:9px;text-align:center"><div style="font-size:17px;font-weight:800;color:#f85520">$68k</div><div style="font-size:9px;color:#6b7280;font-weight:600">Total Spent</div></div>
+  </div>
+  <div class="card" style="margin-top:10px">
+    <div class="row" style="margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="av" style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#8b5cf6,#a78bfa);font-size:13px">ED</div>
+        <div><div class="row"><span style="font-size:13px;font-weight:700">Emma Davis</span></div><div style="font-size:10px;color:#6b7280">321 Elm St, Aurora</div></div>
+      </div>
+      <span class="badge b-vip">VIP</span>
+    </div>
+    <div class="row"><div class="muted">Last visit: Jan 25, 2024</div><span style="font-size:12px;font-weight:800;color:#f85520">$15,600</span></div>
+    <div class="btn-row"><div class="btn btn-c">View Profile</div><div class="btn">SMS</div><div class="btn">Book</div></div>
+  </div>
+  <div class="card">
+    <div class="row" style="margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="av" style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#f85520,#ff7340);font-size:13px">JS</div>
+        <div><div style="font-size:13px;font-weight:700">John Smith</div><div style="font-size:10px;color:#6b7280">123 Main St, Springfield</div></div>
+      </div>
+      <span class="badge b-active">Active</span>
+    </div>
+    <div class="row"><div class="muted">Last visit: Jan 15, 2024</div><span style="font-size:12px;font-weight:800;color:#f85520">$12,450</span></div>
+    <div class="btn-row"><div class="btn btn-c">View Profile</div><div class="btn">SMS</div><div class="btn">Invoice</div></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="row" style="margin-bottom:6px">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="av" style="width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#f85520,#ff7340);font-size:13px">DB</div>
+        <div><div style="font-size:13px;font-weight:700">David Brown</div><div style="font-size:10px;color:#6b7280">246 Birch St, Peoria</div></div>
+      </div>
+      <span class="badge b-active">Active</span>
+    </div>
+    <div class="row"><div class="muted">Last visit: Jan 10, 2024</div><span style="font-size:12px;font-weight:800;color:#f85520">$9,870</span></div>
+    <div class="btn-row"><div class="btn btn-c">View Profile</div><div class="btn">Invoice</div><div class="btn">Book</div></div>
+  </div>
+</div>
+
+<!-- ② Customer Profile -->
+<div class="scr" id="s1">
+  <div style="background:linear-gradient(135deg,#f85520,#ff7340);padding:16px 14px;display:flex;align-items:center;gap:12px">
+    <div class="av" style="width:52px;height:52px;border-radius:16px;background:rgba(255,255,255,.25);font-size:18px">ED</div>
+    <div style="color:#fff"><div style="font-size:17px;font-weight:800">Emma Davis</div><div style="font-size:11px;opacity:.85;margin-top:2px">(555) 456-7890 · emma.davis@email.com</div><div style="margin-top:4px"><span style="background:rgba(255,255,255,.25);border-radius:999px;padding:2px 10px;font-size:10px;font-weight:700">VIP Customer</span></div></div>
+  </div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;text-align:center">
+      <div style="border-right:1px solid #f3f4f6;padding:6px"><div style="font-size:16px;font-weight:800;color:#f85520">12</div><div style="font-size:9px;color:#6b7280">Jobs</div></div>
+      <div style="border-right:1px solid #f3f4f6;padding:6px"><div style="font-size:16px;font-weight:800;color:#f85520">$15.6k</div><div style="font-size:9px;color:#6b7280">Spent</div></div>
+      <div style="padding:6px"><div style="font-size:16px;font-weight:800;color:#f85520">1.2yr</div><div style="font-size:9px;color:#6b7280">Customer</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Contact &amp; Address</div>
+    <div style="font-size:11px;color:#374151;line-height:1.8">321 Elm St, Aurora, IL 60506<br/>(555) 456-7890<br/>emma.davis@email.com</div>
+    <div style="font-size:11px;color:#6b7280;margin-top:6px;font-style:italic">"Prefers morning appointments. VIP — always same technician."</div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Quick Actions</div>
+    <div class="btn-row">
+      <div class="btn btn-c">Book Appt</div>
+      <div class="btn">Send SMS</div>
+    </div>
+    <div class="btn-row">
+      <div class="btn">New Invoice</div>
+      <div class="btn">Agreement</div>
+    </div>
+  </div>
+</div>
+
+<!-- ③ Job History -->
+<div class="scr" id="s2">
+  <div style="padding:10px 12px 4px"><div style="font-size:12px;font-weight:800;color:#f85520">Emma Davis — Job History</div><div style="font-size:10px;color:#6b7280;margin-top:1px">12 completed jobs · $15,600 total spent</div></div>
+  <div class="card">
+    <div class="row"><div style="font-size:12px;font-weight:700">#JOB-2847 · HVAC Service Call</div><span class="badge" style="background:#fef3c7;color:#b45309">In Progress</span></div>
+    <div class="row" style="margin-top:4px"><div class="muted">Today · Mike Johnson</div><div style="font-size:12px;font-weight:700;color:#f85520">$217.00</div></div>
+  </div>
+  <div class="card">
+    <div class="row"><div style="font-size:12px;font-weight:700">#JOB-2801 · Duct Cleaning</div><span class="badge" style="background:#dcfce7;color:#15803d">Paid ✓</span></div>
+    <div class="row" style="margin-top:4px"><div class="muted">Dec 12, 2023 · Mike Johnson</div><div style="font-size:12px;font-weight:700;color:#f85520">$285.00</div></div>
+  </div>
+  <div class="card">
+    <div class="row"><div style="font-size:12px;font-weight:700">#JOB-2764 · AC Maintenance</div><span class="badge" style="background:#dcfce7;color:#15803d">Paid ✓</span></div>
+    <div class="row" style="margin-top:4px"><div class="muted">Oct 5, 2023 · Mike Johnson</div><div style="font-size:12px;font-weight:700;color:#f85520">$320.00</div></div>
+  </div>
+  <div class="card">
+    <div class="row"><div style="font-size:12px;font-weight:700">#JOB-2721 · HVAC Install</div><span class="badge" style="background:#dcfce7;color:#15803d">Paid ✓</span></div>
+    <div class="row" style="margin-top:4px"><div class="muted">Aug 18, 2023 · Mike Johnson</div><div style="font-size:12px;font-weight:700;color:#f85520">$3,200.00</div></div>
+  </div>
+  <div style="text-align:center;padding:8px 0;font-size:11px;font-weight:600;color:#f85520">View all 12 jobs →</div>
+</div>
+
+<!-- ④ Add Note / SMS -->
+<div class="scr" id="s3">
+  <div class="success-screen">
+    <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg></div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:8px">Note Added</div>
+    <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">Customer note saved to Emma Davis's profile — visible to all team members on every visit.</div>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Note saved · Jan 30, 2024</div>
+      <div style="font-size:12px;color:#374151;line-height:1.6;font-style:italic">"Prefers Mike Johnson as technician. Dog in backyard — use front door. Gate code: 4421."</div>
+    </div>
+    <div style="background:#fff3ee;border:1px solid #a5f3fc;border-radius:10px;padding:10px;width:100%;text-align:left;font-size:11px;color:#f85520;font-weight:600">
+      📱 Reminder SMS also sent: "Hi Emma, your next service is Feb 15 at 10 AM. Reply CONFIRM or CHANGE."
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+const LABELS=['Customer List','Customer Profile','Job History','Note Sent'];
+const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
+let cur=0,stepTimer=null;
+function showStep(n){
+  if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}
+  scrs[cur].classList.remove("active");dots[cur].classList.remove("on");
+  cur=n;scrs[cur].classList.add("active");dots[cur].classList.add("on");
+  lbl.textContent="Step "+(cur+1)+" of "+scrs.length+" · "+LABELS[cur];
+  window.parent.postMessage({step:cur+1,total:scrs.length},"*");
+  if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}
+  else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},"*");},3800);}
+}
+showStep(0);
+document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
+</script>
+</body>
+</html>

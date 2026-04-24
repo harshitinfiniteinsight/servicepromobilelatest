@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Jobs Flow – Tour</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.hdr{background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;padding:13px 16px 11px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-title{font-weight:800;font-size:16px}
+.hdr-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700}
+.step-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.dots{display:flex;gap:5px}
+.dot{width:22px;height:4px;border-radius:99px;background:#e5e7eb;transition:background .3s}
+.dot.on{background:#f85520}
+.step-lbl{font-size:10px;font-weight:700;color:#9ca3af}
+.screens{flex:1;position:relative;overflow:hidden}
+.scr{position:absolute;inset:0;overflow-y:auto;opacity:0;transition:opacity .45s;pointer-events:none;background:#f9fafb}
+.scr.active{opacity:1;pointer-events:auto}
+/* ── shared components ── */
+.card{background:#fff;border-radius:14px;margin:8px 12px 0;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6}
+.badge{border-radius:999px;padding:3px 8px;font-size:10px;font-weight:700}
+.b-sched{background:#dbeafe;color:#1d4ed8}
+.b-prog{background:#fef3c7;color:#b45309}
+.b-done{background:#dcfce7;color:#15803d}
+.b-pay{background:#fce7f3;color:#be185d}
+.b-new{background:#ede9fe;color:#6d28d9}
+.row{display:flex;align-items:center;justify-content:space-between}
+.muted{font-size:10px;color:#9ca3af}
+.meta{display:flex;align-items:center;gap:3px;font-size:10px;color:#9ca3af}
+.meta svg{width:10px;height:10px}
+.divider{border:none;border-top:1px solid #f3f4f6;margin:8px 0}
+.btn-row{display:flex;gap:5px;margin-top:8px}
+.btn{flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;font-size:10px;font-weight:700;color:#374151;text-align:center}
+.btn-p{background:#fff3ee;border-color:#ffd4c4;color:#f85520}
+.btn-g{background:#f0fdf4;border-color:#bbf7d0;color:#16a34a}
+.btn-full{display:block;text-align:center;border-radius:12px;padding:12px;font-size:14px;font-weight:800;color:#fff;background:linear-gradient(135deg,#f85520,#ff7340);box-shadow:0 6px 20px rgba(248,85,32,.35);margin:10px 12px 0}
+.stat-row{display:grid;grid-template-columns:repeat(3,1fr);background:#fff;border-bottom:1px solid #e5e7eb;margin-bottom:0}
+.stat{padding:9px;text-align:center;border-right:1px solid #e5e7eb}
+.stat:last-child{border-right:none}
+.stat-n{font-size:17px;font-weight:800;color:#f85520}
+.stat-l{font-size:9px;color:#6b7280;font-weight:600}
+.section-lbl{font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;padding:10px 12px 4px}
+.av{width:22px;height:22px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:800;color:#fff;flex-shrink:0}
+.success-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px}
+.success-icon{width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#16a34a,#22c55e);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(22,163,74,.3)}
+.success-icon svg{width:32px;height:32px;color:#fff}
+.success-title{font-size:20px;font-weight:800;color:#111;margin-bottom:8px}
+.success-sub{font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px}
+.info-row{display:flex;align-items:flex-start;gap:10px;margin-bottom:8px}
+.info-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.info-icon svg{width:15px;height:15px}
+</style>
+</head>
+<body>
+<div class="hdr"><div class="hdr-title">Jobs</div><div class="hdr-btn">+ New Job</div></div>
+<div class="step-bar">
+  <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="step-lbl" id="slbl">Step 1 of 4 · Job Board</div>
+</div>
+<div class="screens">
+
+<!-- ① Job Board -->
+<div class="scr active" id="s0">
+  <div class="stat-row">
+    <div class="stat"><div class="stat-n">5</div><div class="stat-l">Scheduled</div></div>
+    <div class="stat"><div class="stat-n">3</div><div class="stat-l">In Progress</div></div>
+    <div class="stat"><div class="stat-n">28</div><div class="stat-l">Completed</div></div>
+  </div>
+  <div class="card">
+    <div class="row"><div class="muted">#JOB-2847</div><span class="badge b-prog">In Progress</span></div>
+    <div style="font-size:13px;font-weight:700;margin:4px 0 1px">Emma Davis</div>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:5px">HVAC Service Call + Filter Replacement</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <div class="meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Today, 10:00 AM</div>
+      <div class="meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"/><circle cx="12" cy="10" r="3"/></svg>321 Elm St, Aurora</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;margin-top:5px"><div class="av" style="background:#f85520">MJ</div><span style="font-size:10px;color:#6b7280">Mike Johnson</span></div>
+    <div class="btn-row"><div class="btn btn-p">View Job</div><div class="btn">Invoice</div><div class="btn">Photos</div></div>
+  </div>
+  <div class="card">
+    <div class="row"><div class="muted">#JOB-2846</div><span class="badge b-sched">Scheduled</span></div>
+    <div style="font-size:13px;font-weight:700;margin:4px 0 1px">Robert Miller</div>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:5px">Annual AC Maintenance</div>
+    <div style="display:flex;gap:8px"><div class="meta"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg>Today, 2:00 PM</div></div>
+    <div style="display:flex;align-items:center;gap:5px;margin-top:5px"><div class="av" style="background:#0891b2">TW</div><span style="font-size:10px;color:#6b7280">Tom Wilson</span></div>
+    <div class="btn-row"><div class="btn btn-p">View Job</div><div class="btn">Reschedule</div></div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div class="row"><div class="muted">#JOB-2845</div><span class="badge b-pay">Pending Payment</span></div>
+    <div style="font-size:13px;font-weight:700;margin:4px 0 1px">Sarah Johnson</div>
+    <div style="font-size:11px;color:#6b7280;margin-bottom:5px">Duct Cleaning + Inspection</div>
+    <div style="display:flex;align-items:center;gap:5px;margin-top:5px"><div class="av" style="background:#16a34a">CD</div><span style="font-size:10px;color:#6b7280">Chris Davis</span></div>
+    <div class="btn-row"><div class="btn btn-p">Collect Payment</div><div class="btn">Invoice</div></div>
+  </div>
+</div>
+
+<!-- ② Job Detail -->
+<div class="scr" id="s1">
+  <div class="card">
+    <div class="row" style="margin-bottom:8px">
+      <div>
+        <div class="muted">#JOB-2847</div>
+        <div style="font-size:15px;font-weight:800;margin-top:2px">Emma Davis</div>
+      </div>
+      <span class="badge b-prog">In Progress</span>
+    </div>
+    <div class="info-row">
+      <div class="info-icon" style="background:#fff3ee"><svg viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><line x1="2" y1="11" x2="22" y2="11"/></svg></div>
+      <div><div style="font-size:11px;font-weight:700;color:#111">HVAC Service Call</div><div style="font-size:10px;color:#6b7280">Filter Replacement · Duct Inspection</div></div>
+    </div>
+    <div class="info-row">
+      <div class="info-icon" style="background:#eff6ff"><svg viewBox="0 0 24 24" fill="none" stroke="#3b82f6" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div><div style="font-size:11px;font-weight:700;color:#111">Today, 10:00 AM – 12:00 PM</div><div style="font-size:10px;color:#6b7280">2-hour estimated duration</div></div>
+    </div>
+    <div class="info-row">
+      <div class="info-icon" style="background:#ecfeff"><svg viewBox="0 0 24 24" fill="none" stroke="#0891b2" stroke-width="1.8"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"/><circle cx="12" cy="10" r="3"/></svg></div>
+      <div><div style="font-size:11px;font-weight:700;color:#111">321 Elm St, Aurora, IL 60506</div><div style="font-size:10px;color:#6b7280">Open in Maps →</div></div>
+    </div>
+    <div class="info-row" style="margin-bottom:0">
+      <div class="av" style="background:linear-gradient(135deg,#f85520,#ff7340);width:32px;height:32px;border-radius:10px;font-size:11px">MJ</div>
+      <div><div style="font-size:11px;font-weight:700;color:#111">Mike Johnson</div><div style="font-size:10px;color:#6b7280">Lead Technician · En route</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Service Checklist</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:16px;height:16px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span style="font-size:11px;color:#374151">Replace MERV-11 air filter</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:16px;height:16px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><span style="font-size:11px;color:#374151">Inspect ductwork for leaks</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:16px;height:16px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center"><svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><circle cx="12" cy="12" r="8"/></svg></div><span style="font-size:11px;color:#374151">Check refrigerant levels</span></div>
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:16px;height:16px;border-radius:50%;background:#e5e7eb;"></div><span style="font-size:11px;color:#9ca3af">Test thermostat calibration</span></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:6px">Customer Notes</div>
+    <div style="font-size:11px;color:#6b7280;line-height:1.6">"Please arrive before 10:30 AM. Dog will be put away. Back gate code: 4421."</div>
+    <div class="btn-row" style="margin-top:10px"><div class="btn btn-p">Add Photos</div><div class="btn">Add Note</div></div>
+  </div>
+</div>
+
+<!-- ③ Mark Complete -->
+<div class="scr" id="s2">
+  <div class="card">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <div style="width:40px;height:40px;border-radius:12px;background:#fff3ee;display:flex;align-items:center;justify-content:center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><line x1="2" y1="11" x2="22" y2="11"/></svg></div>
+      <div><div style="font-size:13px;font-weight:800">#JOB-2847 · Emma Davis</div><div style="font-size:10px;color:#6b7280">HVAC Service Call</div></div>
+    </div>
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Mark job as complete?</div>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;margin-bottom:10px">
+      <div style="font-size:10px;font-weight:700;color:#15803d;margin-bottom:4px">All checklist items done</div>
+      <div style="font-size:10px;color:#16a34a">✓ Filter replaced · ✓ Ducts inspected · ✓ Refrigerant OK</div>
+    </div>
+    <div style="font-size:11px;color:#6b7280;line-height:1.5;margin-bottom:10px">Completing the job will update its status and prompt you to send an invoice to the customer.</div>
+    <div class="btn-row"><div class="btn btn-g" style="padding:10px;font-size:12px">✓ Mark Complete</div></div>
+  </div>
+  <div class="card" style="margin-bottom:0">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Service summary &amp; photos</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">
+      <div style="height:56px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+      <div style="height:56px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+      <div style="height:56px;border-radius:8px;background:#fff3ee;border:1.5px dashed #ffd4c4;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    </div>
+    <div style="font-size:10px;color:#9ca3af">2 photos added · tap + to add more</div>
+  </div>
+  <div class="btn-full" style="margin-bottom:12px">Complete &amp; Send Invoice</div>
+</div>
+
+<!-- ④ Invoice Sent -->
+<div class="scr" id="s3">
+  <div class="success-screen">
+    <div class="success-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+    <div class="success-title">Job Complete!</div>
+    <div class="success-sub">Job #2847 marked complete. Invoice sent to Emma Davis via SMS and email.</div>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:14px">
+      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Invoice Summary</div>
+      <div class="row" style="margin-bottom:4px"><span style="font-size:12px;color:#374151">HVAC Service Call</span><span style="font-size:12px;font-weight:700">$120.00</span></div>
+      <div class="row" style="margin-bottom:4px"><span style="font-size:12px;color:#374151">Filter Replacement (×2)</span><span style="font-size:12px;font-weight:700">$17.00</span></div>
+      <div class="row" style="margin-bottom:4px"><span style="font-size:12px;color:#374151">Duct Inspection</span><span style="font-size:12px;font-weight:700">$80.00</span></div>
+      <div style="border-top:1px solid #e5e7eb;margin:8px 0"></div>
+      <div class="row"><span style="font-size:13px;font-weight:800">Total</span><span style="font-size:18px;font-weight:800;color:#f85520">$217.00</span></div>
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;width:100%;text-align:left;font-size:11px;color:#15803d;font-weight:600">
+      ✓ Invoice delivered · Payment link sent via SMS to (555) 456-7890
+    </div>
+  </div>
+</div>
+
+</div><!-- /screens -->
+<script>
+const LABELS=['Job Board','Job Detail','Mark Complete','Invoice Sent'];
+const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
+let cur=0,stepTimer=null;
+function showStep(n){
+  if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}
+  scrs[cur].classList.remove("active");dots[cur].classList.remove("on");
+  cur=n;scrs[cur].classList.add("active");dots[cur].classList.add("on");
+  lbl.textContent="Step "+(cur+1)+" of "+scrs.length+" · "+LABELS[cur];
+  window.parent.postMessage({step:cur+1,total:scrs.length},"*");
+  if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}
+  else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},"*");},3800);}
+}
+showStep(0);
+document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
+</script>
+</body>
+</html>

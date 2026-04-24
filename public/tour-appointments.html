@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Appointments Flow – Tour</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.hdr{background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;padding:13px 16px 11px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-title{font-weight:800;font-size:16px}
+.hdr-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700}
+.step-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.dots{display:flex;gap:5px}.dot{width:22px;height:4px;border-radius:99px;background:#e5e7eb;transition:background .3s}.dot.on{background:#f85520}
+.step-lbl{font-size:10px;font-weight:700;color:#9ca3af}
+.screens{flex:1;position:relative;overflow:hidden}
+.scr{position:absolute;inset:0;overflow-y:auto;opacity:0;transition:opacity .45s;pointer-events:none;background:#f9fafb}
+.scr.active{opacity:1;pointer-events:auto}
+.card{background:#fff;border-radius:14px;margin:8px 12px 0;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6}
+.row{display:flex;align-items:center;justify-content:space-between}
+.av{display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0}
+.muted{font-size:10px;color:#9ca3af}
+.badge{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700}
+.b-conf{background:#dcfce7;color:#15803d}
+.b-new{background:#dbeafe;color:#1d4ed8}
+.b-done{background:#f3f4f6;color:#6b7280}
+.apt-card{background:#fff;border-radius:12px;margin:6px 12px 0;display:flex;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6}
+.apt-bar{width:48px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px;flex-shrink:0}
+.apt-time{font-size:12px;font-weight:800;color:#fff;line-height:1.2}
+.apt-period{font-size:9px;color:rgba(255,255,255,.85);font-weight:600}
+.apt-body{flex:1;padding:9px 10px;min-width:0}
+.divider{border:none;border-top:1px solid #f3f4f6;margin:8px 0}
+.btn-row{display:flex;gap:5px;margin-top:8px}
+.btn{flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;font-size:10px;font-weight:700;color:#374151;text-align:center}
+.btn-a{background:#fff3ee;border-color:#ffd4c4;color:#f85520}
+</style>
+</head>
+<body>
+<div class="hdr"><div class="hdr-title">Appointments</div><div class="hdr-btn">+ Book</div></div>
+<div class="step-bar">
+  <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="step-lbl" id="slbl">Step 1 of 4 · Calendar View</div>
+</div>
+<div class="screens">
+
+<!-- ① Calendar + List -->
+<div class="scr active" id="s0">
+  <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:10px 12px">
+    <div class="row" style="margin-bottom:8px"><div style="font-size:13px;font-weight:700">January 2024</div><div style="display:flex;gap:4px"><div style="width:24px;height:24px;border-radius:6px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></div><div style="width:24px;height:24px;border-radius:6px;border:1px solid #e5e7eb;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></div></div></div>
+    <div style="display:grid;grid-template-columns:repeat(7,1fr);text-align:center;gap:2px">
+      <div style="font-size:9px;font-weight:700;color:#9ca3af;padding-bottom:4px">Su</div><div style="font-size:9px;font-weight:700;color:#9ca3af;padding-bottom:4px">Mo</div><div style="font-size:9px;font-weight:700;color:#9ca3af;padding-bottom:4px">Tu</div><div style="font-size:9px;font-weight:700;color:#9ca3af;padding-bottom:4px">We</div><div style="font-size:9px;font-weight:700;color:#9ca3af;padding-bottom:4px">Th</div><div style="font-size:9px;font-weight:700;color:#9ca3af;padding-bottom:4px">Fr</div><div style="font-size:9px;font-weight:700;color:#9ca3af;padding-bottom:4px">Sa</div>
+      <div style="font-size:11px;color:#d1d5db">31</div><div style="font-size:11px;color:#374151;position:relative">1<div style="width:4px;height:4px;border-radius:50%;background:#f85520;margin:0 auto;margin-top:1px"></div></div><div style="font-size:11px;color:#374151;position:relative">2<div style="width:4px;height:4px;border-radius:50%;background:#f85520;margin:0 auto;margin-top:1px"></div></div><div style="font-size:11px;color:#374151">3</div><div style="font-size:11px;color:#374151;position:relative">4<div style="width:4px;height:4px;border-radius:50%;background:#f85520;margin:0 auto;margin-top:1px"></div></div><div style="font-size:11px;color:#374151;position:relative">5<div style="width:4px;height:4px;border-radius:50%;background:#f85520;margin:0 auto;margin-top:1px"></div></div><div style="font-size:11px;color:#374151">6</div>
+      <div style="font-size:11px;color:#374151;position:relative">7<div style="width:4px;height:4px;border-radius:50%;background:#f85520;margin:0 auto;margin-top:1px"></div></div><div style="font-size:11px;color:#374151;position:relative">8<div style="width:4px;height:4px;border-radius:50%;background:#f85520;margin:0 auto;margin-top:1px"></div></div><div style="font-size:11px;color:#374151">9</div><div style="font-size:11px;color:#374151;position:relative">10<div style="width:4px;height:4px;border-radius:50%;background:#f85520;margin:0 auto;margin-top:1px"></div></div><div style="font-size:11px;color:#374151">11</div><div style="font-size:11px;color:#374151;position:relative">12<div style="width:4px;height:4px;border-radius:50%;background:#f85520;margin:0 auto;margin-top:1px"></div></div><div style="font-size:11px;color:#374151">13</div>
+      <div style="font-size:11px;font-weight:800;background:#f85520;color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin:0 auto">30</div>
+    </div>
+  </div>
+  <div style="padding:8px 12px 4px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.04em">Today · 4 appointments</div>
+  <div class="apt-card"><div class="apt-bar" style="background:linear-gradient(180deg,#9ca3af,#d1d5db)"><div class="apt-time">9:00</div><div class="apt-period">AM</div></div><div class="apt-body"><div class="row"><div style="font-size:12px;font-weight:700">John Smith</div><span class="badge b-done">Done</span></div><div style="font-size:10px;color:#6b7280;margin-top:1px">HVAC Inspection · Mike J.</div></div></div>
+  <div class="apt-card"><div class="apt-bar" style="background:linear-gradient(180deg,#d97706,#f59e0b)"><div class="apt-time">11:00</div><div class="apt-period">AM</div></div><div class="apt-body"><div class="row"><div style="font-size:12px;font-weight:700">Emma Davis</div><span class="badge b-conf">Confirmed</span></div><div style="font-size:10px;color:#6b7280;margin-top:1px">Annual Maintenance · Sarah M.</div></div></div>
+  <div class="apt-card"><div class="apt-bar" style="background:linear-gradient(180deg,#d97706,#f59e0b)"><div class="apt-time">2:00</div><div class="apt-period">PM</div></div><div class="apt-body"><div class="row"><div style="font-size:12px;font-weight:700">Robert Miller</div><span class="badge b-conf">Confirmed</span></div><div style="font-size:10px;color:#6b7280;margin-top:1px">AC Maintenance · Tom W.</div></div></div>
+  <div class="apt-card" style="margin-bottom:10px"><div class="apt-bar" style="background:linear-gradient(180deg,#d97706,#f59e0b)"><div class="apt-time">4:30</div><div class="apt-period">PM</div></div><div class="apt-body"><div class="row"><div style="font-size:12px;font-weight:700">Lisa Anderson</div><span class="badge b-new">New</span></div><div style="font-size:10px;color:#6b7280;margin-top:1px">AC Replacement · Mike J.</div></div></div>
+</div>
+
+<!-- ② Appointment Detail -->
+<div class="scr" id="s1">
+  <div style="background:linear-gradient(135deg,#f85520,#ff7340);padding:14px;color:#fff">
+    <div style="font-size:10px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Appointment · Today 2:00 PM</div>
+    <div style="font-size:16px;font-weight:800">Robert Miller</div>
+    <div style="font-size:11px;opacity:.85;margin-top:2px">AC Maintenance · 654 Maple Dr</div>
+  </div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:9px;padding:8px"><div style="font-size:9px;color:#9ca3af;margin-bottom:2px">Date &amp; Time</div><div style="font-size:11px;font-weight:700">Jan 30 · 2:00 PM</div></div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:9px;padding:8px"><div style="font-size:9px;color:#9ca3af;margin-bottom:2px">Duration</div><div style="font-size:11px;font-weight:700">1.5 hours</div></div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:9px;padding:8px"><div style="font-size:9px;color:#9ca3af;margin-bottom:2px">Technician</div><div style="font-size:11px;font-weight:700">Tom Wilson</div></div>
+      <div style="background:#fff3ee;border:1px solid #fed7aa;border-radius:9px;padding:8px"><div style="font-size:9px;color:#9ca3af;margin-bottom:2px">Status</div><div style="font-size:11px;font-weight:700;color:#f85520">Confirmed</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:6px">Service Details</div>
+    <div style="font-size:11px;color:#374151;line-height:1.8">✦ Annual AC maintenance inspection<br/>✦ Refrigerant level check<br/>✦ Filter replacement (MERV-11)<br/>✦ Thermostat calibration test</div>
+    <div class="divider"></div>
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:4px">Customer Note</div>
+    <div style="font-size:11px;color:#6b7280;font-style:italic">"Dog in backyard — use front door. Gate code: 7734."</div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Actions</div>
+    <div class="btn-row"><div class="btn btn-a">Send Reminder</div><div class="btn">Reschedule</div></div>
+    <div class="btn-row"><div class="btn">Convert to Job</div><div class="btn">Add Note</div></div>
+  </div>
+</div>
+
+<!-- ③ Send Reminder -->
+<div class="scr" id="s2">
+  <div style="padding:10px 14px;background:#fff;border-bottom:1px solid #e5e7eb"><div style="font-size:12px;font-weight:700">Send Appointment Reminder</div><div style="font-size:10px;color:#6b7280;margin-top:1px">Robert Miller · Today 2:00 PM</div></div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Message Preview</div>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:12px">
+      <div style="font-size:10px;font-weight:700;color:#6b7280;margin-bottom:6px">📱 SMS to (555) 567-8901</div>
+      <div style="font-size:12px;color:#374151;line-height:1.7">"Hi Robert! Reminder: your AC Maintenance appointment is today at 2:00 PM. Tom Wilson will arrive at 654 Maple Dr. Reply CONFIRM or CHANGE. – ServicePro 911"</div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Also send via</div>
+    <div style="display:flex;gap:6px">
+      <div style="flex:1;background:#fff3ee;border:1.5px solid #d97706;border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700;color:#f85520">📱 SMS</div>
+      <div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700;color:#374151">📧 Email</div>
+      <div style="flex:1;background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:8px;text-align:center;font-size:11px;font-weight:700;color:#374151">🔔 Push</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:0">
+    <div class="row"><div style="font-size:11px;font-weight:700;color:#111">Also notify technician</div><div style="width:36px;height:20px;background:#f85520;border-radius:999px;position:relative"><div style="width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;right:2px;top:2px;box-shadow:0 1px 3px rgba(0,0,0,.2)"></div></div></div>
+    <div style="font-size:10px;color:#6b7280;margin-top:2px">Tom Wilson will receive route details 30 min before</div>
+  </div>
+  <div style="margin:10px 12px 12px;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:12px;padding:12px;text-align:center;font-size:14px;font-weight:800;box-shadow:0 6px 20px rgba(217,119,6,.35)">Send Reminder Now</div>
+</div>
+
+<!-- ④ Confirmed -->
+<div class="scr" id="s3">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px">
+    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#f85520,#ff7340);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(217,119,6,.3)">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:4px">Reminder Sent!</div>
+    <div style="font-size:30px;font-weight:800;color:#f85520;margin-bottom:8px">Confirmed ✓</div>
+    <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">Robert Miller confirmed via SMS. Tom Wilson notified with route details.</div>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Confirmation</div>
+      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Customer</span><span style="font-size:11px;font-weight:700;color:#15803d">✓ Confirmed</span></div>
+      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Technician</span><span style="font-size:11px;font-weight:700;color:#15803d">✓ Notified</span></div>
+      <div class="row"><span style="font-size:11px;color:#374151">Auto-job</span><span style="font-size:11px;font-weight:700;color:#f85520">Ready to create</span></div>
+    </div>
+    <div style="background:#fff3ee;border:1px solid #fed7aa;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#f85520;font-weight:600;text-align:left">
+      📅 Next: convert to job · Reminder auto-set for Feb 27
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+const LABELS=['Calendar View','Appointment Detail','Send Reminder','Confirmed ✓'];
+const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
+let cur=0,stepTimer=null;
+function showStep(n){
+  if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}
+  scrs[cur].classList.remove("active");dots[cur].classList.remove("on");
+  cur=n;scrs[cur].classList.add("active");dots[cur].classList.add("on");
+  lbl.textContent="Step "+(cur+1)+" of "+scrs.length+" · "+LABELS[cur];
+  window.parent.postMessage({step:cur+1,total:scrs.length},"*");
+  if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}
+  else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},"*");},3800);}
+}
+showStep(0);
+document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
+</script>
+</body>
+</html>

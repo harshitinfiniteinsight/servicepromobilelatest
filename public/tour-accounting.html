@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Accounting Flow – Tour</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.hdr{background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;padding:13px 16px 11px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-title{font-weight:800;font-size:16px}
+.hdr-btn{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700}
+.step-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.dots{display:flex;gap:5px}.dot{width:22px;height:4px;border-radius:99px;background:#e5e7eb;transition:background .3s}.dot.on{background:#f85520}
+.step-lbl{font-size:10px;font-weight:700;color:#9ca3af}
+.screens{flex:1;position:relative;overflow:hidden}
+.scr{position:absolute;inset:0;overflow-y:auto;opacity:0;transition:opacity .45s;pointer-events:none;background:#f9fafb}
+.scr.active{opacity:1;pointer-events:auto}
+.card{background:#fff;border-radius:14px;margin:8px 12px 0;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6}
+.row{display:flex;align-items:center;justify-content:space-between}
+.muted{font-size:10px;color:#9ca3af}
+.divider{border:none;border-top:1px solid #f3f4f6;margin:8px 0}
+</style>
+</head>
+<body>
+<div class="hdr"><div class="hdr-title">Revenue &amp; Reports</div><div class="hdr-btn">Export</div></div>
+<div class="step-bar">
+  <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="step-lbl" id="slbl">Step 1 of 4 · Dashboard</div>
+</div>
+<div class="screens">
+
+<!-- ① Dashboard -->
+<div class="scr active" id="s0">
+  <div style="background:linear-gradient(135deg,#f85520,#ff7340);margin:10px 12px 0;border-radius:14px;padding:14px;color:#fff">
+    <div style="font-size:10px;opacity:.8;font-weight:600;margin-bottom:2px">Total Revenue · January 2024</div>
+    <div style="font-size:28px;font-weight:800;margin-bottom:4px">$18,340</div>
+    <div style="display:flex;align-items:center;gap:4px;font-size:11px;opacity:.9"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#86efac" stroke-width="2.5"><polyline points="18 15 12 9 6 15"/></svg><span style="color:#86efac;font-weight:700">+14.2%</span> vs last month</div>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 12px 0">
+    <div style="background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6">
+      <div style="width:28px;height:28px;border-radius:8px;background:#fff3ee;display:flex;align-items:center;justify-content:center;margin-bottom:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><line x1="2" y1="11" x2="22" y2="11"/></svg></div>
+      <div style="font-size:18px;font-weight:800;color:#111">36</div><div style="font-size:10px;color:#6b7280;font-weight:600">Jobs done</div>
+      <div style="font-size:10px;font-weight:700;color:#16a34a;margin-top:2px">↑ 8 vs last</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6">
+      <div style="width:28px;height:28px;border-radius:8px;background:#f0fdf4;display:flex;align-items:center;justify-content:center;margin-bottom:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+      <div style="font-size:18px;font-weight:800;color:#111">94%</div><div style="font-size:10px;color:#6b7280;font-weight:600">Collection rate</div>
+      <div style="font-size:10px;font-weight:700;color:#16a34a;margin-top:2px">↑ 3% better</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6">
+      <div style="width:28px;height:28px;border-radius:8px;background:#fff3ee;display:flex;align-items:center;justify-content:center;margin-bottom:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div>
+      <div style="font-size:18px;font-weight:800;color:#111">7</div><div style="font-size:10px;color:#6b7280;font-weight:600">New customers</div>
+      <div style="font-size:10px;font-weight:700;color:#16a34a;margin-top:2px">↑ Best month</div>
+    </div>
+    <div style="background:#fff;border-radius:12px;padding:10px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6">
+      <div style="width:28px;height:28px;border-radius:8px;background:#fee2e2;display:flex;align-items:center;justify-content:center;margin-bottom:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg></div>
+      <div style="font-size:18px;font-weight:800;color:#111">$3.2k</div><div style="font-size:10px;color:#6b7280;font-weight:600">Outstanding</div>
+      <div style="font-size:10px;font-weight:700;color:#dc2626;margin-top:2px">3 overdue</div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Quick Reports</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;background:#f9fafb"><div style="width:24px;height:24px;border-radius:7px;background:#fff3ee;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div><div style="flex:1;font-size:11px;font-weight:600;color:#111">Revenue Report</div><div style="font-size:10px;font-weight:700;color:#f85520">View →</div></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;background:#f9fafb"><div style="width:24px;height:24px;border-radius:7px;background:#f0fdf4;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#16a34a" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><line x1="8" y1="13" x2="16" y2="13"/></svg></div><div style="flex:1;font-size:11px;font-weight:600;color:#111">Invoice Report</div><div style="font-size:10px;font-weight:700;color:#f85520">View →</div></div>
+      <div style="display:flex;align-items:center;gap:8px;padding:6px;border-radius:8px;background:#f9fafb"><div style="width:24px;height:24px;border-radius:7px;background:#fff3ee;display:flex;align-items:center;justify-content:center"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg></div><div style="flex:1;font-size:11px;font-weight:600;color:#111">Customer Report</div><div style="font-size:10px;font-weight:700;color:#f85520">View →</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ② Revenue Chart -->
+<div class="scr" id="s1">
+  <div class="card" style="margin-top:10px">
+    <div class="row" style="margin-bottom:10px"><div style="font-size:12px;font-weight:700">Monthly Revenue</div><div style="font-size:10px;color:#9ca3af">Last 7 months</div></div>
+    <div style="display:flex;align-items:flex-end;gap:5px;height:90px;margin-bottom:8px">
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div style="font-size:7px;color:#f85520;font-weight:700">$9k</div><div style="flex:1;width:100%;background:#fff3ee;border-radius:4px 4px 0 0" style="height:38%"></div><div style="font-size:8px;color:#9ca3af">Jul</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div style="font-size:7px;color:#f85520;font-weight:700">$11k</div><div style="width:100%;background:#fff3ee;border-radius:4px 4px 0 0;height:48%"></div><div style="font-size:8px;color:#9ca3af">Aug</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div style="font-size:7px;color:#f85520;font-weight:700">$13k</div><div style="width:100%;background:#fff3ee;border-radius:4px 4px 0 0;height:57%"></div><div style="font-size:8px;color:#9ca3af">Sep</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div style="font-size:7px;color:#f85520;font-weight:700">$10k</div><div style="width:100%;background:#fff3ee;border-radius:4px 4px 0 0;height:43%"></div><div style="font-size:8px;color:#9ca3af">Oct</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div style="font-size:7px;color:#f85520;font-weight:700">$14k</div><div style="width:100%;background:#fff3ee;border-radius:4px 4px 0 0;height:61%"></div><div style="font-size:8px;color:#9ca3af">Nov</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div style="font-size:7px;color:#f85520;font-weight:700">$16k</div><div style="width:100%;background:#c7d2fe;border-radius:4px 4px 0 0;height:70%"></div><div style="font-size:8px;color:#9ca3af">Dec</div></div>
+      <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px"><div style="font-size:7px;color:#f85520;font-weight:700">$18k</div><div style="width:100%;background:#f85520;border-radius:4px 4px 0 0;height:80%"></div><div style="font-size:8px;color:#f85520;font-weight:700">Jan</div></div>
+    </div>
+    <div style="background:#fff3ee;border-radius:8px;padding:8px;display:flex;align-items:center;justify-content:space-between">
+      <div><div style="font-size:10px;color:#f85520;font-weight:700">Best month ever</div><div style="font-size:9px;color:#6b7280">+$2,340 vs December</div></div>
+      <div style="font-size:20px;font-weight:800;color:#f85520">$18.3k</div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Revenue Breakdown</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div><div class="row" style="margin-bottom:2px"><span style="font-size:11px;color:#374151">HVAC Service Calls</span><span style="font-size:11px;font-weight:700">$8,200</span></div><div style="height:5px;background:#f3f4f6;border-radius:99px;overflow:hidden"><div style="height:100%;width:45%;background:#f85520;border-radius:99px"></div></div></div>
+      <div><div class="row" style="margin-bottom:2px"><span style="font-size:11px;color:#374151">Parts &amp; Equipment</span><span style="font-size:11px;font-weight:700">$5,640</span></div><div style="height:5px;background:#f3f4f6;border-radius:99px;overflow:hidden"><div style="height:100%;width:31%;background:#818cf8;border-radius:99px"></div></div></div>
+      <div><div class="row" style="margin-bottom:2px"><span style="font-size:11px;color:#374151">Maintenance Contracts</span><span style="font-size:11px;font-weight:700">$4,500</span></div><div style="height:5px;background:#f3f4f6;border-radius:99px;overflow:hidden"><div style="height:100%;width:24%;background:#c7d2fe;border-radius:99px"></div></div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:10px">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Top Customers · This Month</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div class="row"><div style="font-size:11px;color:#374151">Emma Davis</div><div style="font-size:11px;font-weight:800;color:#f85520">$2,400</div></div>
+      <div class="row"><div style="font-size:11px;color:#374151">Sarah Johnson</div><div style="font-size:11px;font-weight:800;color:#f85520">$1,850</div></div>
+      <div class="row"><div style="font-size:11px;color:#374151">David Brown</div><div style="font-size:11px;font-weight:800;color:#f85520">$1,200</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ③ Invoice Report -->
+<div class="scr" id="s2">
+  <div style="background:linear-gradient(135deg,#f85520,#ff7340);padding:14px;color:#fff">
+    <div style="font-size:10px;font-weight:700;opacity:.8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Invoice Report · January 2024</div>
+    <div style="font-size:17px;font-weight:800">24 invoices · $18,340 billed</div>
+  </div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;text-align:center">
+      <div style="border-right:1px solid #f3f4f6;padding:8px"><div style="font-size:16px;font-weight:800;color:#15803d">21</div><div style="font-size:9px;color:#6b7280;font-weight:600">Paid</div><div style="font-size:9px;color:#16a34a;font-weight:700">$15,140</div></div>
+      <div style="border-right:1px solid #f3f4f6;padding:8px"><div style="font-size:16px;font-weight:800;color:#b45309">2</div><div style="font-size:9px;color:#6b7280;font-weight:600">Pending</div><div style="font-size:9px;color:#b45309;font-weight:700">$598</div></div>
+      <div style="padding:8px"><div style="font-size:16px;font-weight:800;color:#b91c1c">1</div><div style="font-size:9px;color:#6b7280;font-weight:600">Overdue</div><div style="font-size:9px;color:#b91c1c;font-weight:700">$2,602</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Payment Methods Used</div>
+    <div style="display:flex;flex-direction:column;gap:5px">
+      <div><div class="row" style="margin-bottom:2px"><span style="font-size:11px;color:#374151">Credit / Debit Card</span><span style="font-size:11px;font-weight:700">$10,200 (68%)</span></div><div style="height:5px;background:#f3f4f6;border-radius:99px;overflow:hidden"><div style="height:100%;width:68%;background:#f85520;border-radius:99px"></div></div></div>
+      <div><div class="row" style="margin-bottom:2px"><span style="font-size:11px;color:#374151">Bank Transfer</span><span style="font-size:11px;font-weight:700">$3,100 (21%)</span></div><div style="height:5px;background:#f3f4f6;border-radius:99px;overflow:hidden"><div style="height:100%;width:21%;background:#818cf8;border-radius:99px"></div></div></div>
+      <div><div class="row" style="margin-bottom:2px"><span style="font-size:11px;color:#374151">Cash</span><span style="font-size:11px;font-weight:700">$1,840 (11%)</span></div><div style="height:5px;background:#f3f4f6;border-radius:99px;overflow:hidden"><div style="height:100%;width:11%;background:#c7d2fe;border-radius:99px"></div></div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Avg. days to payment</div>
+    <div style="font-size:28px;font-weight:800;color:#f85520">2.4 days</div>
+    <div style="font-size:10px;color:#16a34a;font-weight:700;margin-top:2px">↑ 1.2 days faster than industry avg</div>
+  </div>
+</div>
+
+<!-- ④ Export Ready -->
+<div class="scr" id="s3">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px">
+    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#f85520,#ff7340);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(99,102,241,.3)">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:8px">Report Ready to Export</div>
+    <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">January revenue report compiled. Share with your accountant or download as PDF/CSV.</div>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Export Options</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div style="background:#fff3ee;border:1px solid #c7d2fe;border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="1.8"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/></svg><span style="font-size:12px;font-weight:700;color:#f85520">Download PDF Report</span></div>
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/></svg><span style="font-size:12px;font-weight:700;color:#374151">Export CSV for Accountant</span></div>
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px;display:flex;align-items:center;gap:8px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6b7280" stroke-width="1.8"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg><span style="font-size:12px;font-weight:700;color:#374151">Email to Accountant</span></div>
+      </div>
+    </div>
+    <div style="background:#fff3ee;border:1px solid #c7d2fe;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#f85520;font-weight:600;text-align:left">
+      📊 Auto-report scheduled: 1st of every month
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+const LABELS=['Dashboard','Revenue Chart','Invoice Report','Export Ready'];
+const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
+let cur=0,stepTimer=null;
+function showStep(n){
+  if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}
+  scrs[cur].classList.remove("active");dots[cur].classList.remove("on");
+  cur=n;scrs[cur].classList.add("active");dots[cur].classList.add("on");
+  lbl.textContent="Step "+(cur+1)+" of "+scrs.length+" · "+LABELS[cur];
+  window.parent.postMessage({step:cur+1,total:scrs.length},"*");
+  if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}
+  else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},"*");},3800);}
+}
+showStep(0);
+document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
+</script>
+</body>
+</html>

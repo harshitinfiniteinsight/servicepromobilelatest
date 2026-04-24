@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Service Pro 911 App Preview</title>
+  <title>Service Pro 911 – Your App Tour</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
@@ -11,301 +11,690 @@
 
     :root {
       --primary: #f85520;
-      --accent: #ff7340;
-      --text: #1a1a1a;
-      --muted: #6b7280;
-      --white: #fff;
-      --radius-xl: 28px;
-      --radius-lg: 20px;
-      --shadow-card: 0 24px 64px rgba(0,0,0,.12), 0 4px 16px rgba(0,0,0,.06);
-      --shadow-frame: 0 24px 70px rgba(0,0,0,.18), 0 6px 18px rgba(0,0,0,.10);
+      --accent:  #ff7340;
+      --text:    #1a1a1a;
+      --muted:   #6b7280;
+      --border:  #e5e7eb;
+      --white:   #fff;
+      --bg:      #f9fafb;
     }
 
     body {
       font-family: 'Inter', sans-serif;
       min-height: 100vh;
+      background: linear-gradient(135deg, #fff8f5 0%, #ffeee6 42%, #fdf4ff 100%);
       display: flex;
       align-items: flex-start;
       justify-content: center;
-      padding: 32px 16px 48px;
-      background: linear-gradient(135deg, #fff8f5 0%, #ffeee6 42%, #fdf4ff 100%);
+      padding: 28px 16px 48px;
       color: var(--text);
     }
 
+    /* ── Outer card ── */
     .card {
       width: 100%;
-      max-width: 1140px;
+      max-width: 1200px;
       background: var(--white);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow-card);
-      padding: 28px 28px 34px;
+      border-radius: 28px;
+      box-shadow: 0 24px 64px rgba(0,0,0,.11), 0 4px 16px rgba(0,0,0,.06);
+      padding: 24px 28px 28px;
     }
 
-    .top {
+    /* ── Top bar ── */
+    .topbar {
       display: flex;
       align-items: center;
       justify-content: space-between;
-      gap: 14px;
-      margin-bottom: 24px;
       flex-wrap: wrap;
-    }
-
-    .brand {
-      display: flex;
-      align-items: center;
       gap: 12px;
+      margin-bottom: 6px;
     }
-
+    .brand { display: flex; align-items: center; gap: 10px; }
     .brand-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
+      width: 38px; height: 38px;
+      border-radius: 11px;
       background: linear-gradient(135deg, var(--primary), var(--accent));
-      display: grid;
-      place-items: center;
-      color: #fff;
-      font-weight: 800;
-      font-size: 14px;
-      box-shadow: 0 4px 14px rgba(248,85,32,.35);
+      display: grid; place-items: center;
+      color: #fff; font-weight: 800; font-size: 13px;
+      box-shadow: 0 4px 12px rgba(248,85,32,.35);
     }
-
-    .brand-name {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -.02em;
-    }
+    .brand-name { font-size: 20px; font-weight: 800; letter-spacing: -.02em; }
     .brand-name span { color: var(--primary); }
-
+    .top-right { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .chip {
-      border: 1px solid #ffd4c4;
-      background: #fff3ee;
-      color: var(--primary);
-      border-radius: 999px;
-      padding: 8px 14px;
-      font-size: 12px;
-      font-weight: 700;
-      letter-spacing: .05em;
-      text-transform: uppercase;
+      background: #fff3ee; border: 1px solid #ffd4c4;
+      color: var(--primary); border-radius: 999px;
+      padding: 6px 12px; font-size: 11px; font-weight: 700;
+      letter-spacing: .05em; text-transform: uppercase;
     }
-
-    .sub {
-      color: var(--muted);
-      font-size: 14px;
-      margin-bottom: 20px;
+    .progress-mini {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 12px; color: var(--muted); font-weight: 600;
     }
+    .progress-dots { display: flex; gap: 5px; }
+    .progress-dots span {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--border); transition: background .3s;
+    }
+    .progress-dots span.done { background: var(--primary); }
+    .progress-dots span.active { background: var(--primary); box-shadow: 0 0 0 3px rgba(248,85,32,.2); }
 
-    .frame-wrap {
-      width: 100%;
-      min-height: 540px;
+    .greet {
+      font-size: 13px; color: var(--muted);
+      margin-bottom: 18px; margin-top: 4px;
+    }
+    .greet strong { color: var(--text); }
+
+    /* ── 3-column layout ── */
+    .stage {
       display: grid;
-      place-items: center;
-      background: linear-gradient(180deg, #f9fafb 0%, #f3f4f6 100%);
-      border: 1px solid #e5e7eb;
-      border-radius: var(--radius-lg);
-      padding: 24px;
-      overflow: auto;
+      grid-template-columns: 260px 1fr 300px;
+      gap: 18px;
+      align-items: start;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px 18px;
     }
 
+    /* ── LEFT: step list ── */
+    .step-list { display: flex; flex-direction: column; gap: 2px; overflow-y: auto; max-height: 580px; }
+    .step-list-title {
+      font-size: 11px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: .07em;
+      margin-bottom: 8px;
+    }
+    .step-item {
+      display: flex; align-items: flex-start; gap: 10px;
+      padding: 7px 10px;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: background .2s;
+      border: 1.5px solid transparent;
+      flex-shrink: 0;
+    }
+    .step-item.active {
+      background: #fff3ee;
+      border-color: #ffd4c4;
+    }
+    .step-item:hover:not(.active) { background: #f3f4f6; }
+
+    .step-icon-wrap {
+      width: 30px; height: 30px; flex-shrink: 0;
+      border-radius: 9px;
+      background: #f3f4f6;
+      display: grid; place-items: center;
+      transition: background .2s;
+    }
+    .step-item.active .step-icon-wrap { background: var(--primary); }
+    .step-item.done .step-icon-wrap { background: #dcfce7; }
+    .step-icon-wrap svg { width: 15px; height: 15px; color: #9ca3af; }
+    .step-item.active .step-icon-wrap svg { color: #fff; }
+    .step-item.done  .step-icon-wrap svg { color: #16a34a; }
+
+    .step-text-wrap { flex: 1; min-width: 0; }
+    .step-name { font-size: 12px; font-weight: 600; color: var(--muted); line-height: 1.3; }
+    .step-item.active .step-name { color: var(--primary); }
+    .step-item.done  .step-name { color: #374151; }
+    .step-tag {
+      display: inline-block; margin-top: 3px;
+      font-size: 10px; font-weight: 600;
+      background: #f3f4f6; color: #9ca3af;
+      border-radius: 4px; padding: 1px 6px;
+    }
+    .step-item.active .step-tag { background: rgba(248,85,32,.12); color: var(--primary); }
+
+    /* auto-play bar at bottom of step list */
+    .auto-bar-wrap {
+      margin-top: 14px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .auto-bar-track {
+      flex: 1; height: 4px; background: #e5e7eb; border-radius: 99px; overflow: hidden;
+    }
+    .auto-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--primary), var(--accent));
+      border-radius: 99px;
+      width: 0%;
+      transition: width linear;
+    }
+    .auto-bar-label { font-size: 10px; color: var(--muted); font-weight: 500; white-space: nowrap; }
+
+    /* ── CENTER: phone ── */
+    .phone-col { display: flex; justify-content: center; align-items: flex-start; }
     .device-frame {
       background: #111827;
-      position: relative;
-      box-shadow: var(--shadow-frame);
-      overflow: hidden;
-      transition: width .2s ease, height .2s ease, border-radius .2s ease;
-    }
-
-    .device-frame.mobile {
-      width: 390px;
-      height: 820px;
+      width: 310px;
+      height: 650px;
       border-radius: 42px;
-      padding: 14px;
+      padding: 13px;
+      box-shadow: 0 24px 70px rgba(0,0,0,.22), 0 6px 18px rgba(0,0,0,.12);
+      position: relative;
+      flex-shrink: 0;
     }
-
-    .device-frame.tablet {
-      width: 1024px;
-      max-width: 100%;
-      height: 700px;
-      border-radius: 28px;
-      padding: 10px;
-    }
-
-    .device-screen {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: #fff;
-      border-radius: 30px;
-    }
-
-    .device-frame.tablet .device-screen {
-      border-radius: 18px;
-    }
-
     .notch {
-      position: absolute;
-      top: 8px;
-      left: 50%;
+      position: absolute; top: 7px; left: 50%;
       transform: translateX(-50%);
-      width: 130px;
-      height: 24px;
+      width: 100px; height: 20px;
+      border-radius: 12px; background: #050505; z-index: 3;
+    }
+    .device-screen {
+      width: 100%; height: 100%;
+      background: #fff; border-radius: 30px; overflow: hidden;
+    }
+    iframe { width: 100%; height: 100%; border: 0; display: block; }
+
+    /* ── RIGHT: feature detail card ── */
+    .detail-col { display: flex; flex-direction: column; gap: 14px; }
+
+    .feat-card {
+      background: var(--white);
+      border: 1.5px solid var(--border);
       border-radius: 16px;
-      background: #050505;
-      z-index: 3;
+      padding: 20px;
+      display: flex; flex-direction: column; gap: 14px;
+      animation: fadeSlide .35s ease both;
+    }
+    @keyframes fadeSlide {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .feat-icon-bg {
+      width: 52px; height: 52px; border-radius: 14px;
+      display: grid; place-items: center;
+      flex-shrink: 0;
+    }
+    .feat-icon-bg svg { width: 26px; height: 26px; }
+
+    .feat-header { display: flex; align-items: center; gap: 12px; }
+    .feat-title-wrap {}
+    .feat-num { font-size: 10px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .06em; }
+    .feat-title { font-size: 17px; font-weight: 800; color: var(--text); letter-spacing: -.02em; margin-top: 2px; }
+
+    .feat-desc { font-size: 13px; color: var(--muted); line-height: 1.65; }
+
+    .feat-bullets { display: flex; flex-direction: column; gap: 8px; }
+    .feat-bullet {
+      display: flex; align-items: flex-start; gap: 9px;
+      font-size: 12.5px; color: #374151; line-height: 1.45;
+    }
+    .bullet-dot {
+      width: 18px; height: 18px; border-radius: 50%; flex-shrink: 0;
+      display: grid; place-items: center; margin-top: 1px;
+    }
+    .bullet-dot svg { width: 10px; height: 10px; color: #fff; }
+
+    .feat-tagline {
+      font-size: 12.5px;
+      font-style: italic;
+      color: var(--muted);
+      line-height: 1.5;
+      margin-top: 4px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
     }
 
-    .device-frame.tablet .notch {
-      width: 180px;
-      height: 10px;
-      top: 6px;
-      border-radius: 8px;
-      opacity: .75;
+    .feat-badge {
+      display: inline-flex; align-items: center; gap: 6px;
+      border-radius: 8px; padding: 6px 10px;
+      font-size: 11px; font-weight: 700;
+      width: fit-content;
     }
+    .feat-badge svg { width: 13px; height: 13px; }
 
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: 0;
-      background: #fff;
-      border-radius: 0;
-      display: block;
+    .btn-live {
+      display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+      width: 100%; border: 1.5px solid var(--primary); color: var(--primary);
+      background: #fff3ee; border-radius: 9px; padding: 8px 12px;
+      font-size: 11px; font-weight: 700; text-decoration: none;
+      transition: background .18s, box-shadow .18s;
     }
+    .btn-live:hover { background: #ffe8df; box-shadow: 0 2px 8px rgba(248,85,32,.18); }
+    .btn-live svg { width: 13px; height: 13px; }
 
+    /* next-up preview */
+    .next-up {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      display: flex; align-items: center; gap: 10px;
+    }
+    .next-up-icon {
+      width: 32px; height: 32px; border-radius: 9px;
+      background: var(--white); border: 1px solid var(--border);
+      display: grid; place-items: center; flex-shrink: 0;
+    }
+    .next-up-icon svg { width: 15px; height: 15px; color: var(--muted); }
+    .next-up-text {}
+    .next-up-label { font-size: 10px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+    .next-up-name { font-size: 13px; font-weight: 700; color: var(--text); margin-top: 1px; }
+
+    /* ── Bottom actions ── */
     .actions {
-      margin-top: 18px;
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
+      margin-top: 16px;
+      display: flex; gap: 10px; flex-wrap: wrap; align-items: center;
     }
-
     .btn {
-      height: 44px;
-      padding: 0 16px;
-      border-radius: 10px;
-      border: 0;
-      font-weight: 700;
-      font-size: 14px;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      height: 42px; padding: 0 18px; border-radius: 10px; border: 0;
+      font-weight: 700; font-size: 13px; cursor: pointer;
+      text-decoration: none; display: inline-flex; align-items: center; gap: 7px;
     }
-
     .btn-primary {
       color: #fff;
       background: linear-gradient(135deg, var(--primary), var(--accent));
-      box-shadow: 0 6px 20px rgba(248,85,32,.35);
+      box-shadow: 0 6px 18px rgba(248,85,32,.32);
     }
+    .btn-primary:hover { filter: brightness(1.05); }
+    .btn-light { color: #374151; background: #f3f4f6; border: 1px solid var(--border); }
+    .btn-skip { background: none; border: none; color: var(--muted); font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
 
-    .btn-light {
-      color: #374151;
-      background: #f3f4f6;
-      border: 1px solid #e5e7eb;
+    @media (max-width: 1060px) {
+      .stage { grid-template-columns: 200px 1fr 240px; gap: 14px; }
     }
-
-    .hint {
-      margin-top: 10px;
-      color: #9ca3af;
-      font-size: 12px;
-    }
-
-    @media (max-width: 1120px) {
-      .device-frame.tablet {
-        width: 900px;
-      }
-    }
-
-    @media (max-width: 980px) {
-      .device-frame.mobile {
-        width: 360px;
-        height: 760px;
-      }
-      .device-frame.tablet {
-        width: 100%;
-        height: 620px;
-      }
-    }
-
-    @media (max-width: 640px) {
-      .card { padding: 20px 16px 22px; border-radius: 20px; }
-      .brand-name { font-size: 18px; }
-      .chip { width: 100%; text-align: center; }
-      .frame-wrap { min-height: 460px; padding: 12px; }
-      .device-frame.mobile { width: 100%; max-width: 360px; height: 620px; border-radius: 28px; }
-      .device-frame.tablet { height: 520px; border-radius: 18px; }
-      .device-screen { border-radius: 20px; }
-      .device-frame.tablet .device-screen { border-radius: 12px; }
+    @media (max-width: 780px) {
+      .stage { grid-template-columns: 1fr; }
+      .phone-col { order: -1; }
+      .device-frame { width: 100%; max-width: 340px; height: 580px; }
     }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="top">
-      <div class="brand">
-        <div class="brand-icon">SP</div>
-        <div class="brand-name">Service<span>Pro</span> 911</div>
+<div class="card">
+
+  <!-- Top bar -->
+  <div class="topbar">
+    <div class="brand">
+      <div class="brand-icon">SP</div>
+      <div class="brand-name">Service<span>Pro</span> 911</div>
+    </div>
+    <div class="top-right">
+      <div class="progress-mini">
+        <div class="progress-dots">
+          <span class="done"></span>
+          <span class="done"></span>
+          <span class="active"></span>
+        </div>
+        Step 3 of 3
       </div>
-      <div class="chip" id="device-chip">Loading device…</div>
+      <div class="chip" id="biz-chip">Your App Tour</div>
+    </div>
+  </div>
+
+  <div class="greet" id="greet-line">Here's everything <strong id="biz-name-display">your business</strong> gets with Service Pro 911.</div>
+
+  <!-- 3-column stage -->
+  <div class="stage">
+
+    <!-- LEFT: step list -->
+    <div>
+      <div class="step-list-title">Feature Tour</div>
+      <div class="step-list" id="step-list"></div>
+      <div class="auto-bar-wrap">
+        <div class="auto-bar-track"><div class="auto-bar-fill" id="auto-bar"></div></div>
+        <div class="auto-bar-label" id="bar-label">Next in 5s</div>
+      </div>
     </div>
 
-    <div class="sub" id="device-subtitle">Opening your selected app experience.</div>
-
-    <div class="frame-wrap">
-      <div class="device-frame mobile" id="device-frame">
+    <!-- CENTER: phone -->
+    <div class="phone-col">
+      <div class="device-frame">
         <div class="notch"></div>
         <div class="device-screen">
-          <iframe id="app-frame" title="Service Pro App"></iframe>
+          <iframe id="app-frame" title="Service Pro 911 App"></iframe>
         </div>
       </div>
     </div>
 
-    <div class="actions">
-      <a class="btn btn-primary" id="open-full" target="_blank" rel="noopener">Open full app</a>
-      <a class="btn btn-light" href="/onboarding-step2.html">Back to device selection</a>
+    <!-- RIGHT: feature detail -->
+    <div class="detail-col">
+      <div id="feat-card-wrap"></div>
+      <div class="next-up" id="next-up-box">
+        <div class="next-up-icon" id="next-icon"></div>
+        <div class="next-up-text">
+          <div class="next-up-label">Up next</div>
+          <div class="next-up-name" id="next-name">—</div>
+        </div>
+      </div>
     </div>
-    <div class="hint">If preview is blank, click "Open full app".</div>
+
+  </div><!-- /stage -->
+
+  <!-- Actions -->
+  <div class="actions">
+    <a class="btn btn-primary" href="/" target="_blank" rel="noopener">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      Open Full App
+    </a>
+    <a class="btn btn-light" href="/onboarding-step2.html">← Back</a>
+    <button class="btn-skip" onclick="window.location.href='/'">Skip tour, go to dashboard</button>
   </div>
 
-  <script>
-    const params = new URLSearchParams(window.location.search);
-    const picked = (params.get('device') || localStorage.getItem('sp911_preferred_device') || 'mobile').toLowerCase();
+</div><!-- /card -->
 
-    const map = {
-      mobile: {
-        label: 'Mobile selected',
-        desc: 'Showing Service Pro 911 in a mobile layout.',
-        src: '/',
-        cls: 'mobile'
-      },
-      tablet: {
-        label: 'Tablet selected',
-        desc: 'Showing Service Pro 911 in a tablet layout.',
-        src: '/',
-        cls: 'tablet'
-      }
-    };
+<script>
+// ── Pre-authenticate BEFORE iframe loads ──
+localStorage.setItem('isAuthenticated', 'true');
+localStorage.setItem('userType', 'merchant');
+localStorage.removeItem('currentEmployeeId');
 
-    const config = map[picked] || map.mobile;
-    localStorage.setItem('sp911_preferred_device', picked in map ? picked : 'mobile');
+// ── SVG icon library ──
+const ICONS = {
+  jobs:         `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="2" y1="11" x2="22" y2="11"/></svg>`,
+  customers:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>`,
+  teamSync:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 01 0 7.75"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></svg>`,
+  documents:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11.08V8l-6-6H6a2 2 0 00-2 2v16a2 2 0 002 2h6"/><path d="M14 2v6h6"/><path d="M16 18l2 2 4-4"/></svg>`,
+  payments:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>`,
+  tracking:     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0116 0z"/><circle cx="12" cy="10" r="3"/></svg>`,
+  appointments: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>`,
+  accounting:   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>`,
+  inventory:    `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+  sell:         `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 001.98 1.61h9.72a2 2 0 001.97-1.69l1.48-8.31H6"/></svg>`,
+};
 
-    const chip = document.getElementById('device-chip');
-    const sub = document.getElementById('device-subtitle');
-    const frame = document.getElementById('device-frame');
-    const iframe = document.getElementById('app-frame');
-    const openFull = document.getElementById('open-full');
+// ── Figma-aligned feature copy (single pitch; {biz} personalised) ──
+const ALL_FEATURES = {
+  jobs: {
+    key: 'jobs', icon: 'jobs', route: '/tour-jobs.html', liveRoute: '/jobs',
+    color: '#3b82f6', bg: '#eff6ff',
+    pitch: {
+      title: 'Run {biz} jobs from anywhere',
+      desc: 'Create, assign, and track every service job from dispatch to completion. Your crew always knows what is next.',
+      bullets: ['Create jobs in seconds from the field or office', 'Real-time status for every job on the board', 'Link jobs to invoices and full customer history'],
+      tagline: 'Everything your business runs on one job board.',
+    },
+  },
+  customers: {
+    key: 'customers', icon: 'customers', route: '/tour-customers.html', liveRoute: '/customers',
+    color: '#0891b2', bg: '#ecfeff',
+    pitch: {
+      title: '{biz} customers in one place',
+      desc: 'Every profile holds jobs, invoices, notes, and photos in one searchable place so you can grow relationships.',
+      bullets: ['Full contact and service history in one view', 'Notes and photos on every visit', 'Search and filter your entire customer base'],
+      tagline: 'Know your customers before you knock on the door.',
+    },
+  },
+  teamSync: {
+    key: 'teamSync', icon: 'teamSync', route: '/tour-teamsync.html', liveRoute: '/employees/schedule',
+    color: '#db2777', bg: '#fdf2f8',
+    pitch: {
+      title: 'Sync your {biz} team',
+      desc: 'Coordinate schedules and dispatch so the right person arrives at the right time — without double-booking.',
+      bullets: ['Shared crew calendars in one place', 'Drag-and-drop shifts and assignments', 'Instant updates when schedules change'],
+      tagline: 'One schedule. Zero double-booking.',
+    },
+  },
+  documents: {
+    key: 'documents', icon: 'documents', route: '/tour-documents.html', liveRoute: '/agreements',
+    color: '#7c3aed', bg: '#f5f3ff',
+    pitch: {
+      title: '{biz} agreements and e-sign',
+      desc: 'Send professional agreements and collect signatures before work starts — linked to every job and invoice.',
+      bullets: ['Digital signatures on any device', 'Templates for repeat service types', 'Agreements organized and tied to jobs'],
+      tagline: 'Signed before the first tool comes out.',
+    },
+  },
+  payments: {
+    key: 'payments', icon: 'payments', route: '/tour-payments.html', liveRoute: '/invoices',
+    color: '#16a34a', bg: '#f0fdf4',
+    pitch: {
+      title: 'Get paid for {biz} work faster',
+      desc: 'Invoice and collect on-site or remotely with cards, cash, QR, and payment links — cash flow, simplified.',
+      bullets: ['Invoices ready in under a minute', 'Accept card, cash, QR, or SMS payment links', 'Automated reminders for unpaid balances'],
+      tagline: 'Money in the bank, not in the inbox.',
+    },
+  },
+  tracking: {
+    key: 'tracking', icon: 'tracking', route: '/tour-tracking.html', liveRoute: '/employees/tracking',
+    color: '#ec4899', bg: '#fdf2f8',
+    pitch: {
+      title: 'Live {biz} crew tracking',
+      desc: 'See where your field team is, which job they are on, and how the day is progressing — in real time.',
+      bullets: ['Live map of your field team', 'Job status tied to each technician', 'End-of-day route and completion summaries'],
+      tagline: 'Visibility from the truck to the office.',
+    },
+  },
+  appointments: {
+    key: 'appointments', icon: 'appointments', route: '/tour-appointments.html', liveRoute: '/appointments/manage',
+    color: '#d97706', bg: '#fffbeb',
+    pitch: {
+      title: '{biz} appointments and bookings',
+      desc: 'Calendar, list, and recurring booking tools so your team stays booked — not buried in spreadsheets.',
+      bullets: ['Calendar and list views with drag-and-drop', 'Recurring appointments and route-friendly blocks', 'Customer notifications on every change'],
+      tagline: 'Your calendar fills itself.',
+    },
+  },
+  accounting: {
+    key: 'accounting', icon: 'accounting', route: '/tour-accounting.html', liveRoute: '/reports',
+    color: '#6366f1', bg: '#eef2ff',
+    pitch: {
+      title: '{biz} revenue and reports',
+      desc: 'Revenue, profitability, unpaid invoices, and top customers — dashboards that answer the questions you ask every week.',
+      bullets: ['Revenue and profit views by job', 'Aging and unpaid invoice tracking', 'Export-ready snapshots for your accountant'],
+      tagline: 'The numbers that run your business.',
+    },
+  },
+  inventory: {
+    key: 'inventory', icon: 'inventory', route: '/tour-inventory.html', liveRoute: '/inventory',
+    color: '#f59e0b', bg: '#fffbeb',
+    pitch: {
+      title: '{biz} parts and inventory',
+      desc: 'Track parts in the van and warehouse with low-stock alerts so you never run out mid-job.',
+      bullets: ['Real-time stock across locations', 'Low-stock alerts before you dispatch', 'Parts usage tied to jobs and invoices'],
+      tagline: 'Never show up empty-handed.',
+    },
+  },
+  sell: {
+    key: 'sell', icon: 'sell', route: '/tour-sell.html', liveRoute: '/sales/sell-product',
+    color: '#f85520', bg: '#fff3ee',
+    pitch: {
+      title: 'Sell products on the spot',
+      desc: 'Add parts and products to a cart, apply discounts, then collect payment by card, cash, QR, or SMS link — all from your device.',
+      bullets: ['Browse inventory and add to cart in seconds', 'Apply discounts and calculate tax on the fly', 'Collect payment your way: card, cash, QR, or link'],
+      tagline: 'Close the sale before you leave the driveway.',
+    },
+  },
+};
 
-    // Pre-authenticate so the app opens directly to the dashboard
-    localStorage.setItem('isAuthenticated', 'true');
-    localStorage.setItem('userType', 'merchant');
-    localStorage.removeItem('currentEmployeeId');
-    // Enable the guided demo tour
-    localStorage.setItem('sp911_demo_mode', 'true');
+// ── All 10 features for every business type, ordered by relevance ──
+const ALL_FEATURE_KEYS = ['jobs', 'customers', 'documents', 'payments', 'sell', 'appointments', 'tracking', 'teamSync', 'accounting', 'inventory'];
 
-    chip.textContent = config.label;
-    sub.textContent = config.desc;
-    frame.className = 'device-frame ' + config.cls;
-    iframe.src = config.src;
-    openFull.href = config.src;
-  </script>
+const BIZ_FEATURE_SETS = {
+  hvac:          ['jobs', 'documents', 'payments', 'sell', 'inventory', 'customers', 'tracking', 'appointments', 'teamSync', 'accounting'],
+  plumbing:      ['jobs', 'documents', 'payments', 'sell', 'inventory', 'customers', 'appointments', 'tracking', 'teamSync', 'accounting'],
+  electrical:    ['jobs', 'tracking', 'payments', 'sell', 'accounting', 'customers', 'documents', 'appointments', 'teamSync', 'inventory'],
+  carpentry:     ['jobs', 'documents', 'payments', 'sell', 'inventory', 'customers', 'appointments', 'tracking', 'teamSync', 'accounting'],
+  exterminators: ['jobs', 'appointments', 'payments', 'documents', 'customers', 'tracking', 'sell', 'teamSync', 'accounting', 'inventory'],
+  landscaping:   ['jobs', 'appointments', 'tracking', 'inventory', 'sell', 'customers', 'documents', 'payments', 'teamSync', 'accounting'],
+  cleaning:      ['jobs', 'appointments', 'customers', 'payments', 'teamSync', 'tracking', 'documents', 'sell', 'accounting', 'inventory'],
+  painter:       ['jobs', 'documents', 'payments', 'customers', 'appointments', 'tracking', 'sell', 'teamSync', 'accounting', 'inventory'],
+  construction:  ['jobs', 'documents', 'payments', 'tracking', 'teamSync', 'customers', 'appointments', 'sell', 'accounting', 'inventory'],
+  roofing:       ['jobs', 'documents', 'payments', 'tracking', 'accounting', 'customers', 'appointments', 'sell', 'teamSync', 'inventory'],
+  general:       ['jobs', 'customers', 'payments', 'sell', 'accounting', 'appointments', 'documents', 'tracking', 'teamSync', 'inventory'],
+  other:         ['jobs', 'customers', 'payments', 'sell', 'accounting', 'appointments', 'documents', 'tracking', 'teamSync', 'inventory'],
+};
+
+const BIZ_INLINE = {
+  hvac: 'HVAC',
+  plumbing: 'plumbing',
+  electrical: 'electrical',
+  carpentry: 'carpentry',
+  exterminators: 'pest control',
+  landscaping: 'landscaping',
+  cleaning: 'cleaning',
+  painter: 'painting',
+  construction: 'construction',
+  roofing: 'roofing',
+  general: '',
+  other: '',
+};
+
+// ── Business type labels ──
+const BIZ_LABELS = {
+  hvac:'AC / HVAC', plumbing:'Plumbing', electrical:'Electric',
+  carpentry:'Carpentry', exterminators:'Exterminators', landscaping:'Landscapers',
+  cleaning:'Cleaning', painter:'Painter', construction:'Construction',
+  roofing:'Roofing', general:'General Service', other:'Your Business',
+};
+
+// ── Load saved data ──
+const bizType    = localStorage.getItem('ob_biz_type') || 'general';
+const bizName    = localStorage.getItem('ob_business') || '';
+const userName   = localStorage.getItem('ob_name')     || '';
+const featureSet = BIZ_FEATURE_SETS[bizType] || BIZ_FEATURE_SETS.general;
+
+function personalise(str) {
+  if (bizType === 'general' || bizType === 'other' || !BIZ_INLINE[bizType]) {
+    return str.replace(/\{biz\}/g, '').replace(/\s{2,}/g, ' ').trim();
+  }
+  return str.replace(/\{biz\}/g, BIZ_INLINE[bizType]);
+}
+
+// Personalise UI
+document.getElementById('biz-chip').textContent = BIZ_LABELS[bizType] || 'Your App Tour';
+if (bizName) {
+  document.getElementById('biz-name-display').textContent = bizName;
+} else {
+  document.getElementById('greet-line').innerHTML =
+    `Here's everything <strong>your ${BIZ_LABELS[bizType] || 'business'}</strong> gets with Service Pro 911.`;
+}
+
+// ── Build feature list ──
+let currentIdx = 0;
+
+function getFeature(idx) {
+  const key = featureSet[idx];
+  return ALL_FEATURES[key];
+}
+
+// Build left step list
+function buildStepList() {
+  const list = document.getElementById('step-list');
+  list.innerHTML = '';
+  featureSet.forEach((key, i) => {
+    const f     = ALL_FEATURES[key];
+    const pitch = f.pitch;
+    const item  = document.createElement('div');
+    item.className = 'step-item' + (i < currentIdx ? ' done' : '') + (i === currentIdx ? ' active' : '');
+    item.innerHTML = `
+      <div class="step-icon-wrap">${ICONS[f.icon]}</div>
+      <div class="step-text-wrap">
+        <div class="step-name">${personalise(pitch.title)}</div>
+        <div class="step-tag">${i + 1} of ${featureSet.length}</div>
+      </div>`;
+    item.onclick = () => goTo(i);
+    list.appendChild(item);
+  });
+  // scroll active item into view
+  const activeItem = list.querySelector('.step-item.active');
+  if (activeItem) activeItem.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+}
+
+// Build right detail card
+function buildDetailCard(idx) {
+  const f     = getFeature(idx);
+  const pitch = f.pitch;
+  const wrap  = document.getElementById('feat-card-wrap');
+  wrap.innerHTML = `
+    <div class="feat-card">
+      <div class="feat-header">
+        <div class="feat-icon-bg" style="background:#fff3ee">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[f.icon].replace(/<svg[^>]*>|<\/svg>/g,'')}</svg>
+        </div>
+        <div class="feat-title-wrap">
+          <div class="feat-num">Feature ${idx + 1} of ${featureSet.length}</div>
+          <div class="feat-title">${personalise(pitch.title)}</div>
+        </div>
+      </div>
+      <div class="feat-desc">${pitch.desc}</div>
+      <div class="feat-bullets">
+        ${pitch.bullets.map(b => `
+          <div class="feat-bullet">
+            <div class="bullet-dot" style="background:#f85520">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            ${b}
+          </div>`).join('')}
+      </div>
+      <div class="feat-tagline">${pitch.tagline}</div>
+      <a class="btn-live"
+         href="/mobile-version.html?route=${encodeURIComponent(f.liveRoute)}&label=${encodeURIComponent(personalise(pitch.title))}"
+         target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+        See live in app
+      </a>
+      <div class="feat-badge" style="background:#fff3ee;color:#f85520">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Included in your plan
+      </div>
+    </div>`;
+}
+
+// Build "next up" preview
+function buildNextUp(idx) {
+  const nextIdx = (idx + 1) % featureSet.length;
+  const f       = getFeature(nextIdx);
+  const pitch   = f.pitch;
+  document.getElementById('next-icon').innerHTML =
+    `<svg viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[f.icon].replace(/<svg[^>]*>|<\/svg>/g,'')}</svg>`;
+  document.getElementById('next-name').textContent = personalise(pitch.title);
+}
+
+// Navigate phone
+function navigatePhone(route) {
+  const iframe = document.getElementById('app-frame');
+  // set auth so app loads correctly
+  try {
+    iframe.contentWindow.localStorage.setItem('isAuthenticated', 'true');
+    iframe.contentWindow.localStorage.setItem('userType', 'merchant');
+  } catch(e) {}
+  iframe.src = route + '?t=' + Date.now();
+}
+
+// Go to feature
+function goTo(idx) {
+  currentIdx = idx;
+  const f = getFeature(idx);
+  buildStepList();
+  buildDetailCard(idx);
+  buildNextUp(idx);
+  navigatePhone(f.route);
+  resetBar();
+}
+
+// Reset bar when a new feature loads
+function resetBar() {
+  const bar   = document.getElementById('auto-bar');
+  const label = document.getElementById('bar-label');
+  bar.style.transition = 'none';
+  bar.style.width = '0%';
+  label.textContent = 'Step 1 of 4';
+}
+
+// Advance bar when iframe reports step progress
+window.addEventListener('message', (e) => {
+  if (!e.data) return;
+  const bar   = document.getElementById('auto-bar');
+  const label = document.getElementById('bar-label');
+
+  if (e.data.step !== undefined && e.data.total !== undefined) {
+    const pct = Math.round((e.data.step / e.data.total) * 100);
+    bar.style.transition = 'width 0.5s ease';
+    bar.style.width = pct + '%';
+    label.textContent = `Step ${e.data.step} of ${e.data.total}`;
+  }
+
+  if (e.data.tourComplete) {
+    bar.style.transition = 'width 0.3s ease';
+    bar.style.width = '100%';
+    label.textContent = 'Next feature…';
+    setTimeout(() => goTo((currentIdx + 1) % featureSet.length), 800);
+  }
+});
+
+// ── Initialise ──
+goTo(0);
+</script>
 </body>
 </html>

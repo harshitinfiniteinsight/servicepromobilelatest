@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tracking Flow – Tour</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100vh;overflow:hidden;display:flex;flex-direction:column}
+.hdr{background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;padding:13px 16px 11px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-title{font-weight:800;font-size:16px}
+.live-chip{background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3);color:#fff;border-radius:999px;padding:3px 10px;font-size:10px;font-weight:700;display:flex;align-items:center;gap:5px}
+.live-dot{width:7px;height:7px;border-radius:50%;background:#fff;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.step-bar{background:#fff;border-bottom:1px solid #e5e7eb;padding:7px 14px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.dots{display:flex;gap:5px}.dot{width:22px;height:4px;border-radius:99px;background:#e5e7eb;transition:background .3s}.dot.on{background:#f85520}
+.step-lbl{font-size:10px;font-weight:700;color:#9ca3af}
+.screens{flex:1;position:relative;overflow:hidden}
+.scr{position:absolute;inset:0;overflow-y:auto;opacity:0;transition:opacity .45s;pointer-events:none;background:#f9fafb;display:flex;flex-direction:column}
+.scr.active{opacity:1;pointer-events:auto}
+.card{background:#fff;border-radius:14px;margin:8px 12px 0;padding:12px;box-shadow:0 1px 4px rgba(0,0,0,.07);border:1px solid #f3f4f6}
+.row{display:flex;align-items:center;justify-content:space-between}
+.av{display:flex;align-items:center;justify-content:center;font-weight:800;color:#fff;flex-shrink:0}
+.muted{font-size:10px;color:#9ca3af}
+.badge{border-radius:999px;padding:2px 8px;font-size:10px;font-weight:700}
+.btn-row{display:flex;gap:5px;margin-top:8px}
+.btn{flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;font-size:10px;font-weight:700;color:#374151;text-align:center}
+.btn-p{background:#fff3ee;border-color:#ffd4c4;color:#f85520}
+.dot-on{display:inline-block;width:8px;height:8px;border-radius:50%;background:#22c55e;margin-right:4px}
+.dot-mid{display:inline-block;width:8px;height:8px;border-radius:50%;background:#f59e0b;margin-right:4px}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div class="hdr-title">Crew Tracking</div>
+  <div class="live-chip"><div class="live-dot"></div>LIVE</div>
+</div>
+<div class="step-bar">
+  <div class="dots"><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+  <div class="step-lbl" id="slbl">Step 1 of 4 · Live Map</div>
+</div>
+<div class="screens">
+
+<!-- ① Live Map -->
+<div class="scr active" id="s0">
+  <div style="flex:0 0 220px;position:relative;background:#e8f0e8;overflow:hidden">
+    <svg width="100%" height="220" viewBox="0 0 300 220" preserveAspectRatio="xMidYMid slice">
+      <rect width="300" height="220" fill="#e8f0e8"/>
+      <g stroke="#fff" stroke-width="8" opacity=".9"><line x1="0" y1="60" x2="300" y2="60"/><line x1="0" y1="120" x2="300" y2="120"/><line x1="0" y1="180" x2="300" y2="180"/><line x1="60" y1="0" x2="60" y2="220"/><line x1="150" y1="0" x2="150" y2="220"/><line x1="240" y1="0" x2="240" y2="220"/></g>
+      <rect x="68" y="68" width="74" height="44" rx="4" fill="#c8e6c9" opacity=".8"/>
+      <rect x="160" y="128" width="72" height="44" rx="4" fill="#c8e6c9" opacity=".8"/>
+      <polyline points="75,95 120,95 120,60 200,60 200,120 240,120" fill="none" stroke="#ec4899" stroke-width="2" stroke-dasharray="5,4" opacity=".6"/>
+      <g transform="translate(115,50)"><circle cx="0" cy="0" r="14" fill="#f85520" opacity=".15"/><circle cx="0" cy="0" r="10" fill="#f85520"/><text x="0" y="3.5" text-anchor="middle" font-family="Inter,sans-serif" font-size="7" font-weight="800" fill="#fff">MJ</text><polygon points="0,10 -4,18 4,18" fill="#f85520"/></g>
+      <g transform="translate(193,115)"><circle cx="0" cy="0" r="14" fill="#3b82f6" opacity=".15"/><circle cx="0" cy="0" r="10" fill="#3b82f6"/><text x="0" y="3.5" text-anchor="middle" font-family="Inter,sans-serif" font-size="7" font-weight="800" fill="#fff">TW</text><polygon points="0,10 -4,18 4,18" fill="#3b82f6"/></g>
+      <g transform="translate(68,148)"><circle cx="0" cy="0" r="14" fill="#ec4899" opacity=".15"/><circle cx="0" cy="0" r="10" fill="#ec4899"/><text x="0" y="3.5" text-anchor="middle" font-family="Inter,sans-serif" font-size="7" font-weight="800" fill="#fff">SM</text><polygon points="0,10 -4,18 4,18" fill="#ec4899"/></g>
+      <g transform="translate(240,80)"><circle cx="0" cy="0" r="14" fill="#22c55e" opacity=".15"/><circle cx="0" cy="0" r="10" fill="#22c55e"/><text x="0" y="3.5" text-anchor="middle" font-family="Inter,sans-serif" font-size="7" font-weight="800" fill="#fff">CD</text><polygon points="0,10 -4,18 4,18" fill="#22c55e"/></g>
+    </svg>
+  </div>
+  <div style="padding:8px 12px 4px;font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em">4 crew members active</div>
+  <div class="card" style="margin-top:4px">
+    <div class="row"><div style="display:flex;align-items:center;gap:6px"><div class="av" style="width:26px;height:26px;border-radius:8px;background:#f85520;font-size:9px">MJ</div><div style="font-size:11px;font-weight:700">Mike Johnson</div></div><div style="font-size:11px;font-weight:700;color:#f85520">On Job</div></div>
+    <div style="font-size:10px;color:#6b7280;margin-top:2px">Emma Davis · 321 Elm St · 3 jobs today</div>
+  </div>
+  <div class="card" style="margin-top:6px">
+    <div class="row"><div style="display:flex;align-items:center;gap:6px"><div class="av" style="width:26px;height:26px;border-radius:8px;background:#3b82f6;font-size:9px">TW</div><div style="font-size:11px;font-weight:700">Tom Wilson</div></div><div style="font-size:11px;font-weight:700;color:#3b82f6">En Route</div></div>
+    <div style="font-size:10px;color:#6b7280;margin-top:2px">R. Miller · ETA 8 min · 2 jobs today</div>
+  </div>
+  <div class="card" style="margin-top:6px;margin-bottom:10px">
+    <div class="row"><div style="display:flex;align-items:center;gap:6px"><div class="av" style="width:26px;height:26px;border-radius:8px;background:#22c55e;font-size:9px">CD</div><div style="font-size:11px;font-weight:700">Chris Davis</div></div><div style="font-size:11px;font-weight:700;color:#22c55e">Available</div></div>
+    <div style="font-size:10px;color:#6b7280;margin-top:2px">Last job done · Ready for dispatch</div>
+  </div>
+</div>
+
+<!-- ② Crew Member Detail -->
+<div class="scr" id="s1">
+  <div style="background:linear-gradient(135deg,#f85520,#ff7340);padding:14px;color:#fff;display:flex;align-items:center;gap:12px">
+    <div class="av" style="width:48px;height:48px;border-radius:14px;background:rgba(255,255,255,.25);font-size:16px">MJ</div>
+    <div><div style="font-size:16px;font-weight:800">Mike Johnson</div><div style="font-size:10px;opacity:.85;margin-top:2px">Lead Technician · 6 years</div><div style="margin-top:4px"><span style="background:rgba(255,255,255,.25);border-radius:999px;padding:2px 10px;font-size:10px;font-weight:700">On Job · 321 Elm St</span></div></div>
+  </div>
+  <div class="card">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0;text-align:center">
+      <div style="border-right:1px solid #f3f4f6;padding:6px"><div style="font-size:16px;font-weight:800;color:#f85520">3</div><div style="font-size:9px;color:#6b7280">Jobs Today</div></div>
+      <div style="border-right:1px solid #f3f4f6;padding:6px"><div style="font-size:16px;font-weight:800;color:#f85520">2</div><div style="font-size:9px;color:#6b7280">Completed</div></div>
+      <div style="padding:6px"><div style="font-size:16px;font-weight:800;color:#f85520">1</div><div style="font-size:9px;color:#6b7280">In Progress</div></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Today's Route</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;border-radius:50%;background:#22c55e;display:flex;align-items:center;justify-content:center;flex-shrink:0"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg></div><div style="font-size:11px;color:#374151">John Smith · 9:00 AM <span style="color:#15803d;font-weight:700">Done</span></div></div>
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;border-radius:50%;background:#f59e0b;display:flex;align-items:center;justify-content:center;flex-shrink:0"><div style="width:6px;height:6px;border-radius:50%;background:#fff"></div></div><div style="font-size:11px;color:#374151">Emma Davis · 10:00 AM <span style="color:#b45309;font-weight:700">In Progress</span></div></div>
+      <div style="display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;border-radius:50%;background:#e5e7eb;flex-shrink:0"></div><div style="font-size:11px;color:#9ca3af">Lisa Anderson · 2:00 PM · Upcoming</div></div>
+    </div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:6px">Current Location</div>
+    <div style="font-size:11px;color:#374151">321 Elm St, Aurora, IL 60506</div>
+    <div style="font-size:10px;color:#6b7280;margin-top:2px">Last ping: 30 seconds ago</div>
+    <div class="btn-row"><div class="btn btn-p">Message</div><div class="btn">Call</div><div class="btn">Reassign</div></div>
+  </div>
+</div>
+
+<!-- ③ Job Update from Field -->
+<div class="scr" id="s2">
+  <div style="background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 14px">
+    <div style="font-size:12px;font-weight:700;color:#111">Field Update</div>
+    <div style="font-size:10px;color:#6b7280;margin-top:1px">Mike Johnson · #JOB-2847 · Emma Davis</div>
+  </div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Update Job Status</div>
+    <div style="display:flex;flex-direction:column;gap:6px">
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:#3b82f6;flex-shrink:0"></div><span style="font-size:11px;font-weight:600">Scheduled</span></div>
+      <div style="background:#fef3c7;border:2px solid #f59e0b;border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:#f59e0b;flex-shrink:0"></div><span style="font-size:11px;font-weight:700;color:#b45309">In Progress ← Current</span></div>
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:10px;display:flex;align-items:center;gap:8px;opacity:.6"><div style="width:10px;height:10px;border-radius:50%;background:#22c55e;flex-shrink:0"></div><span style="font-size:11px;font-weight:600">Completed</span></div>
+    </div>
+  </div>
+  <div class="card">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:6px">Add field note</div>
+    <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:10px;font-size:11px;color:#6b7280;font-style:italic;line-height:1.6">"Filter replaced. Ducts have a minor gap near the furnace — recommending duct seal on next visit. Customer approved an add-on thermostat install."</div>
+  </div>
+  <div class="card" style="margin-bottom:12px">
+    <div style="font-size:11px;font-weight:700;color:#111;margin-bottom:8px">Add service photos</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+      <div style="height:52px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+      <div style="height:52px;border-radius:8px;background:#f3f4f6;display:flex;align-items:center;justify-content:center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg></div>
+      <div style="height:52px;border-radius:8px;background:#fff3ee;border:1.5px dashed #ffd4c4;display:flex;align-items:center;justify-content:center;cursor:pointer"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></div>
+    </div>
+    <div style="margin:10px 0 0;background:linear-gradient(135deg,#f85520,#ff7340);color:#fff;border-radius:10px;padding:10px;text-align:center;font-size:12px;font-weight:800">Mark Job Complete</div>
+  </div>
+</div>
+
+<!-- ④ Route Complete -->
+<div class="scr" id="s3">
+  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px">
+    <div style="width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#22c55e,#4ade80);display:flex;align-items:center;justify-content:center;margin-bottom:16px;box-shadow:0 8px 24px rgba(34,197,94,.3)">
+      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div style="font-size:20px;font-weight:800;margin-bottom:4px">All Jobs Wrapped!</div>
+    <div style="font-size:13px;color:#6b7280;line-height:1.6;margin-bottom:20px">Mike Johnson completed all 3 jobs today. Office notified. Invoices auto-generated.</div>
+    <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;width:100%;text-align:left;margin-bottom:12px">
+      <div style="font-size:10px;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Day Summary · Mike Johnson</div>
+      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Jobs completed</span><span style="font-size:11px;font-weight:700;color:#22c55e">3 of 3</span></div>
+      <div class="row" style="margin-bottom:4px"><span style="font-size:11px;color:#374151">Total revenue</span><span style="font-size:11px;font-weight:700">$702.00</span></div>
+      <div class="row"><span style="font-size:11px;color:#374151">Miles driven</span><span style="font-size:11px;font-weight:700">42 mi</span></div>
+    </div>
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px;width:100%;font-size:11px;color:#15803d;font-weight:600;text-align:left">
+      ✓ 3 invoices generated · Customers notified · Route logged
+    </div>
+  </div>
+</div>
+
+</div>
+<script>
+const LABELS=['Live Map','Crew Detail','Field Update','Route Complete ✓'];
+const scrs=document.querySelectorAll(".scr"),dots=document.querySelectorAll(".dot"),lbl=document.getElementById("slbl");
+let cur=0,stepTimer=null;
+function showStep(n){
+  if(stepTimer){clearTimeout(stepTimer);stepTimer=null;}
+  scrs[cur].classList.remove("active");dots[cur].classList.remove("on");
+  cur=n;scrs[cur].classList.add("active");dots[cur].classList.add("on");
+  lbl.textContent="Step "+(cur+1)+" of "+scrs.length+" · "+LABELS[cur];
+  window.parent.postMessage({step:cur+1,total:scrs.length},"*");
+  if(cur<scrs.length-1){stepTimer=setTimeout(function(){showStep(cur+1);},3800);}
+  else{stepTimer=setTimeout(function(){window.parent.postMessage({tourComplete:true},"*");},3800);}
+}
+showStep(0);
+document.body.addEventListener("click",function(){if(cur<scrs.length-1)showStep(cur+1);});
+</script>
+</body>
+</html>
