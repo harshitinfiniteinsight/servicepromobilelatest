@@ -4,8 +4,11 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Service Pro 911 – Your App Tour</title>
+  <!-- Load Inter from Google Fonts non-blocking so a slow CDN never hangs the page -->
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" onload="this.onload=null;this.rel='stylesheet'"/>
+  <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"/></noscript>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -661,6 +664,7 @@ function goTo(idx) {
   buildNextUp(idx);
   navigatePhone(f.route);
   resetBar();
+  _startFallback();
 }
 
 // Reset bar when a new feature loads
@@ -673,12 +677,24 @@ function resetBar() {
 }
 
 // Advance bar when iframe reports step progress
+let _fallbackTimer = null;
+
+function _startFallback() {
+  clearTimeout(_fallbackTimer);
+  // If iframe posts no messages within 25 s, advance anyway
+  _fallbackTimer = setTimeout(() => {
+    goTo((currentIdx + 1) % featureSet.length);
+  }, 25000);
+}
+
 window.addEventListener('message', (e) => {
   if (!e.data) return;
   const bar   = document.getElementById('auto-bar');
   const label = document.getElementById('bar-label');
 
   if (e.data.step !== undefined && e.data.total !== undefined) {
+    clearTimeout(_fallbackTimer); // iframe is alive — reset watchdog
+    _startFallback();
     const pct = Math.round((e.data.step / e.data.total) * 100);
     bar.style.transition = 'width 0.5s ease';
     bar.style.width = pct + '%';
@@ -686,6 +702,7 @@ window.addEventListener('message', (e) => {
   }
 
   if (e.data.tourComplete) {
+    clearTimeout(_fallbackTimer);
     bar.style.transition = 'width 0.3s ease';
     bar.style.width = '100%';
     label.textContent = 'Next feature…';
