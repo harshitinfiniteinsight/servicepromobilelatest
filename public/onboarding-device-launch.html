@@ -854,6 +854,32 @@ window.addEventListener('message', (e) => {
   }
 });
 
+// ── Hide bottom navigation bar inside iframe when in tablet preview mode ──
+// The iframe loads the mobile app which always renders a fixed bottom nav.
+// In tablet mode the device frame already shows a left sidebar, so the
+// bottom nav must be suppressed.  We inject a tiny <style> on every iframe
+// load so the rule survives React-Router hard-navigations (each feature
+// change causes a full iframe reload via iframe.src = route + '?t=…').
+if (_isTablet) {
+  document.getElementById('app-frame').addEventListener('load', function() {
+    try {
+      var doc = this.contentDocument || this.contentWindow.document;
+      if (!doc.getElementById('ob-tablet-hide-nav')) {
+        var style = doc.createElement('style');
+        style.id = 'ob-tablet-hide-nav';
+        // Hide the fixed bottom nav bar and remove the padding spacer that
+        // MobileLayout adds to prevent content from being obscured by it.
+        style.textContent =
+          'nav.fixed.bottom-0{display:none!important}' +
+          'main.pb-16{padding-bottom:0!important}';
+        doc.head.appendChild(style);
+      }
+    } catch(e) {
+      console.warn('Failed to inject tablet nav styles:', e);
+    }
+  });
+}
+
 // ── Initialise ──
 goTo(0);
 </script>
