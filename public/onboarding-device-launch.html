@@ -675,6 +675,16 @@ function personalise(str) {
   return str.replace(/\{biz\}/g, BIZ_INLINE[bizType]);
 }
 
+function toTitleCase(str) {
+  return str.split(/(\s+)/).map(function(part) {
+    if (/\s/.test(part)) return part;
+    return part.split('-').map(function(w) {
+      if (!w) return w;
+      return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+    }).join('-');
+  }).join('');
+}
+
 // Personalise UI
 document.getElementById('biz-chip').textContent = BIZ_LABELS[bizType] || 'Your App Tour';
 if (bizName) {
@@ -704,7 +714,7 @@ function buildStepList() {
     item.innerHTML = `
       <div class="step-icon-wrap">${ICONS[f.icon]}</div>
       <div class="step-text-wrap">
-        <div class="step-name">${personalise(pitch.title)}</div>
+        <div class="step-name">${toTitleCase(personalise(pitch.title))}</div>
         <div class="step-tag">${i + 1} of ${featureSet.length}</div>
       </div>`;
     item.onclick = () => goTo(i);
@@ -728,7 +738,7 @@ function buildDetailCard(idx) {
         </div>
         <div class="feat-title-wrap">
           <div class="feat-num">Feature ${idx + 1} of ${featureSet.length}</div>
-          <div class="feat-title">${personalise(pitch.title)}</div>
+          <div class="feat-title">${toTitleCase(personalise(pitch.title))}</div>
         </div>
       </div>
       <div class="feat-desc">${pitch.desc}</div>
@@ -756,7 +766,7 @@ function buildNextUp(idx) {
   const pitch   = f.pitch;
   document.getElementById('next-icon').innerHTML =
     `<svg viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[f.icon].replace(/<svg[^>]*>|<\/svg>/g,'')}</svg>`;
-  document.getElementById('next-name').textContent = personalise(pitch.title);
+  document.getElementById('next-name').textContent = toTitleCase(personalise(pitch.title));
 }
 
 // Navigate phone
