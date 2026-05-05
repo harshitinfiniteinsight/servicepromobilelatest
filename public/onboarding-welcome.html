@@ -272,6 +272,26 @@
     }
     .error-msg.show { display: block; }
 
+    /* ── Consent checkbox ── */
+    .consent-label {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .consent-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      min-width: 16px;
+      accent-color: var(--primary);
+      cursor: pointer;
+      margin-top: 1px;
+    }
+
     /* ── Biz type card grid ── */
     .biz-grid {
       display: grid;
@@ -516,6 +536,14 @@
             </div>
           </div>
           <span class="error-msg" id="err-phone">Please enter a valid phone number.</span>
+        </div>
+
+        <!-- Consent checkbox -->
+        <div class="field full" style="margin-top: 4px;">
+          <label class="consent-label" for="consent-sms">
+            <input type="checkbox" id="consent-sms" name="consent_sms" checked />
+            <span>I agree to be contacted via SMS, Email and Phone</span>
+          </label>
         </div>
 
         <!-- 5. Team Size -->
