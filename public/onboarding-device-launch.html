@@ -523,7 +523,7 @@ const ALL_FEATURES = {
     key: 'jobs', icon: 'jobs', route: '/jobs', liveRoute: '/jobs',
     color: '#3b82f6', bg: '#eff6ff',
     pitch: {
-      title: 'Run {biz} jobs from anywhere',
+      title: 'Run {biz} Jobs From Anywhere',
       desc: 'Create, assign, and track every service job from dispatch to completion. Your crew always knows what is next.',
       bullets: ['Create jobs in seconds from the field or office', 'Real-time status for every job on the board', 'Link jobs to invoices and full customer history'],
       tagline: 'Everything your business runs on one job board.',
@@ -543,7 +543,7 @@ const ALL_FEATURES = {
     key: 'teamSync', icon: 'teamSync', route: '/employees/schedule', liveRoute: '/employees/schedule',
     color: '#db2777', bg: '#fdf2f8',
     pitch: {
-      title: 'Sync your {biz} team',
+      title: 'Sync Your {biz} Team',
       desc: 'Coordinate schedules and dispatch so the right person arrives at the right time — without double-booking.',
       bullets: ['Shared crew calendars in one place', 'Drag-and-drop shifts and assignments', 'Instant updates when schedules change'],
       tagline: 'One schedule. Zero double-booking.',
@@ -563,7 +563,7 @@ const ALL_FEATURES = {
     key: 'payments', icon: 'payments', route: '/invoices', liveRoute: '/invoices',
     color: '#16a34a', bg: '#f0fdf4',
     pitch: {
-      title: 'Get paid for {biz} work faster',
+      title: 'Get Paid For {biz} Work Faster',
       desc: 'Invoice and collect on-site or remotely with cards, cash, QR, and payment links — cash flow, simplified.',
       bullets: ['Invoices ready in under a minute', 'Accept card, cash, QR, or SMS payment links', 'Automated reminders for unpaid balances'],
       tagline: 'Money in the bank, not in the inbox.',
@@ -573,7 +573,7 @@ const ALL_FEATURES = {
     key: 'tracking', icon: 'tracking', route: '/employees/tracking', liveRoute: '/employees/tracking',
     color: '#ec4899', bg: '#fdf2f8',
     pitch: {
-      title: 'Live {biz} crew tracking',
+      title: 'Live {biz} Crew Tracking',
       desc: 'See where your field team is, which job they are on, and how the day is progressing — in real time.',
       bullets: ['Live map of your field team', 'Job status tied to each technician', 'End-of-day route and completion summaries'],
       tagline: 'Visibility from the truck to the office.',
@@ -613,7 +613,7 @@ const ALL_FEATURES = {
     key: 'sell', icon: 'sell', route: '/sales/sell-product', liveRoute: '/sales/sell-product',
     color: '#f85520', bg: '#fff3ee',
     pitch: {
-      title: 'Sell products on the spot',
+      title: 'Sell Products On The Spot',
       desc: 'Add parts and products to a cart, apply discounts, then collect payment by card, cash, QR, or SMS link — all from your device.',
       bullets: ['Browse inventory and add to cart in seconds', 'Apply discounts and calculate tax on the fly', 'Collect payment your way: card, cash, QR, or link'],
       tagline: 'Close the sale before you leave the driveway.',
@@ -680,6 +680,8 @@ function toTitleCase(str) {
     if (/\s/.test(part)) return part;
     return part.split('-').map(function(w) {
       if (!w) return w;
+      // Preserve all-uppercase abbreviations (e.g. HVAC)
+      if (w.length > 1 && w === w.toUpperCase()) return w;
       return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
     }).join('-');
   }).join('');
