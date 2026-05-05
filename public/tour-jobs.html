@@ -35,10 +35,21 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
 .success-icon svg{width:32px;height:32px;color:#fff}
 .btn-full{display:block;text-align:center;border-radius:12px;padding:12px;font-size:14px;font-weight:800;color:#fff;background:linear-gradient(135deg,#f85520,#ff7340);box-shadow:0 6px 20px rgba(248,85,32,.35);margin:10px 12px 0}
 
-    /* Tablet-responsive: wider iframe → 2-column card grid */
-    @media (min-width: 460px) {
+    /* Landscape tablet responsive (device frame is 736px wide, 516px tall) */
+    @media (min-width: 500px) {
+      body { height: 516px; }
+      /* 2-col card layout for wider frame */
       .prod-grid { grid-template-columns: repeat(3, 1fr) !important; }
-      .nav-grid  { grid-template-columns: repeat(6, 1fr) !important; }
+      /* Stat rows: more space per cell */
+      .stat-row { font-size: 110%; }
+      /* Don't use 100vh - clip to tablet height */
+      .screens { max-height: calc(516px - 90px); }
+    }
+    @media (min-width: 680px) {
+      /* Very wide: show 2-col content layout where possible */
+      .list { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .list .card { margin: 0; }
+      .prod-grid { grid-template-columns: repeat(4, 1fr) !important; }
     }
 </style>
 </head>

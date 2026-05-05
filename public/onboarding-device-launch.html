@@ -176,30 +176,65 @@
       position: relative;
       flex-shrink: 0;
     }
-    /* Tablet frame overrides */
+
+    /* ── TABLET: landscape frame ── */
     .device-frame.tablet {
-      width: 520px;
-      height: 700px;
-      border-radius: 28px;
-      padding: 16px;
+      width: 800px;
+      height: 540px;
+      border-radius: 20px;
+      padding: 12px;
     }
+    /* Camera dot on right side for landscape tablet */
     .device-frame.tablet .notch {
-      width: 14px;
-      height: 14px;
+      width: 10px; height: 10px;
       border-radius: 50%;
-      top: 50%;
-      left: 10px;
+      top: 50%; left: auto; right: 4px;
       transform: translateY(-50%);
     }
     .device-frame.tablet .device-screen {
-      border-radius: 16px;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: row;
+      overflow: hidden;
     }
-    /* Widen the stage grid when tablet is shown */
+    /* Tablet sidebar inside the device screen */
+    .tablet-sidebar {
+      display: none;
+      width: 64px;
+      background: #0f172a;
+      flex-direction: column;
+      align-items: center;
+      padding: 14px 0 10px;
+      gap: 4px;
+      flex-shrink: 0;
+    }
+    .device-frame.tablet .tablet-sidebar { display: flex; }
+    .device-frame.tablet iframe { flex: 1; width: auto; border-radius: 0; }
+
+    .tab-brand {
+      width: 34px; height: 34px; border-radius: 10px;
+      background: linear-gradient(135deg, #f85520, #ff7340);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 11px; font-weight: 800;
+      margin-bottom: 12px; flex-shrink: 0;
+    }
+    .tab-nav-item {
+      width: 44px; height: 44px; border-radius: 12px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 3px; cursor: pointer; transition: background .2s; flex-shrink: 0;
+    }
+    .tab-nav-item svg { width: 20px; height: 20px; color: #64748b; }
+    .tab-nav-item span { font-size: 8px; font-weight: 600; color: #64748b; }
+    .tab-nav-item.active { background: rgba(248,85,32,.15); }
+    .tab-nav-item.active svg { color: #f85520; }
+    .tab-nav-item.active span { color: #f85520; }
+    .tab-nav-item:hover:not(.active) { background: rgba(255,255,255,.06); }
+    .tab-nav-sep { width: 32px; height: 1px; background: rgba(255,255,255,.08); margin: 4px 0; }
+
+    /* Widen the outer stage when tablet frame is active */
     .stage.tablet-stage {
-      grid-template-columns: 240px 1fr 300px;
-    }
-    @media (max-width: 1160px) {
-      .stage.tablet-stage { grid-template-columns: 200px 1fr 260px; }
+      grid-template-columns: 220px 1fr 280px;
+      max-width: 1400px;
     }
     .notch {
       position: absolute; top: 7px; left: 50%;
@@ -365,11 +400,40 @@
       </div>
     </div>
 
-    <!-- CENTER: phone -->
+    <!-- CENTER: phone / tablet -->
     <div class="phone-col">
-      <div class="device-frame">
-        <div class="notch"></div>
+      <div class="device-frame" id="device-frame">
+        <div class="notch" id="device-notch"></div>
         <div class="device-screen">
+          <!-- Tablet sidebar (hidden on mobile, shown on tablet) -->
+          <div class="tablet-sidebar" id="tablet-sidebar">
+            <div class="tab-brand">SP</div>
+            <div class="tab-nav-item active" id="tab-jobs">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/><line x1="2" y1="11" x2="22" y2="11"/></svg>
+              <span>Jobs</span>
+            </div>
+            <div class="tab-nav-item" id="tab-customers">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/></svg>
+              <span>Clients</span>
+            </div>
+            <div class="tab-nav-item" id="tab-invoices">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+              <span>Pay</span>
+            </div>
+            <div class="tab-nav-item" id="tab-calendar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+              <span>Book</span>
+            </div>
+            <div class="tab-nav-sep"></div>
+            <div class="tab-nav-item" id="tab-reports">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+              <span>Reports</span>
+            </div>
+            <div class="tab-nav-item" id="tab-more">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="5" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="12" cy="19" r="1"/></svg>
+              <span>More</span>
+            </div>
+          </div>
           <iframe id="app-frame" title="Service Pro 911 App"></iframe>
         </div>
       </div>
@@ -408,22 +472,36 @@ localStorage.setItem('userType', 'merchant');
 localStorage.removeItem('currentEmployeeId');
 
 // ── Device mode (phone vs tablet) ──
-(function() {
-  const params = new URLSearchParams(window.location.search);
-  const device = (params.get('device') || localStorage.getItem('ob_device') || 'mobile').toLowerCase();
-  if (device === 'tablet') {
-    document.querySelector('.device-frame').classList.add('tablet');
-    document.querySelector('.stage').classList.add('tablet-stage');
-    // Show "tablet" chip in top bar
-    const chip = document.getElementById('biz-chip');
-    if (chip) {
-      const deviceChip = document.createElement('span');
-      deviceChip.style.cssText = 'background:#e0e7ff;border:1px solid #c7d2fe;color:#4338ca;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-left:6px';
-      deviceChip.textContent = 'Tablet';
-      chip.parentElement.insertBefore(deviceChip, chip.nextSibling);
-    }
+const _deviceParam = (new URLSearchParams(window.location.search).get('device') || localStorage.getItem('ob_device') || 'mobile').toLowerCase();
+const _isTablet = _deviceParam === 'tablet';
+
+if (_isTablet) {
+  document.getElementById('device-frame').classList.add('tablet');
+  document.querySelector('.stage').classList.add('tablet-stage');
+  // Show "Tablet" chip
+  const chip = document.getElementById('biz-chip');
+  if (chip) {
+    const tc = document.createElement('span');
+    tc.style.cssText = 'background:#e0e7ff;border:1px solid #c7d2fe;color:#4338ca;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-left:6px';
+    tc.textContent = 'Tablet';
+    chip.parentElement.insertBefore(tc, chip.nextSibling);
   }
-})();
+}
+
+// Sync sidebar active tab to the current feature
+const TAB_MAP = {
+  jobs: 'tab-jobs', customers: 'tab-customers', teamSync: 'tab-customers',
+  documents: 'tab-invoices', payments: 'tab-invoices', sell: 'tab-invoices',
+  tracking: 'tab-customers', appointments: 'tab-calendar',
+  accounting: 'tab-reports', inventory: 'tab-more',
+};
+function syncSidebarTab(featureKey) {
+  if (!_isTablet) return;
+  document.querySelectorAll('.tab-nav-item').forEach(el => el.classList.remove('active'));
+  const tabId = TAB_MAP[featureKey] || 'tab-jobs';
+  const el = document.getElementById(tabId);
+  if (el) el.classList.add('active');
+}
 
 // ── SVG icon library ──
 const ICONS = {
@@ -708,6 +786,7 @@ function goTo(idx) {
   navigatePhone(f.route);
   resetBar();
   _startFallback();
+  syncSidebarTab(f.key);
 }
 
 // Reset bar when a new feature loads
