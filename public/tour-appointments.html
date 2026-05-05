@@ -25,6 +25,12 @@ body{font-family:'Inter',sans-serif;background:#f9fafb;color:#1a1a1a;height:100v
 .btn{flex:1;border:1px solid #e5e7eb;background:#f9fafb;border-radius:8px;padding:6px;font-size:10px;font-weight:700;color:#374151;text-align:center}
 .btn-p{background:#fff3ee;border-color:#ffd4c4;color:#f85520}
 .success-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;text-align:center;padding:24px}
+
+    /* Tablet-responsive: wider iframe → 2-column card grid */
+    @media (min-width: 460px) {
+      .prod-grid { grid-template-columns: repeat(3, 1fr) !important; }
+      .nav-grid  { grid-template-columns: repeat(6, 1fr) !important; }
+    }
 </style>
 </head>
 <body>

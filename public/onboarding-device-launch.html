@@ -164,7 +164,7 @@
     }
     .auto-bar-label { font-size: 10px; color: var(--muted); font-weight: 500; white-space: nowrap; }
 
-    /* ── CENTER: phone ── */
+    /* ── CENTER: phone / tablet ── */
     .phone-col { display: flex; justify-content: center; align-items: flex-start; }
     .device-frame {
       background: #111827;
@@ -175,6 +175,31 @@
       box-shadow: 0 24px 70px rgba(0,0,0,.22), 0 6px 18px rgba(0,0,0,.12);
       position: relative;
       flex-shrink: 0;
+    }
+    /* Tablet frame overrides */
+    .device-frame.tablet {
+      width: 520px;
+      height: 700px;
+      border-radius: 28px;
+      padding: 16px;
+    }
+    .device-frame.tablet .notch {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      top: 50%;
+      left: 10px;
+      transform: translateY(-50%);
+    }
+    .device-frame.tablet .device-screen {
+      border-radius: 16px;
+    }
+    /* Widen the stage grid when tablet is shown */
+    .stage.tablet-stage {
+      grid-template-columns: 240px 1fr 300px;
+    }
+    @media (max-width: 1160px) {
+      .stage.tablet-stage { grid-template-columns: 200px 1fr 260px; }
     }
     .notch {
       position: absolute; top: 7px; left: 50%;
@@ -381,6 +406,24 @@
 localStorage.setItem('isAuthenticated', 'true');
 localStorage.setItem('userType', 'merchant');
 localStorage.removeItem('currentEmployeeId');
+
+// ── Device mode (phone vs tablet) ──
+(function() {
+  const params = new URLSearchParams(window.location.search);
+  const device = (params.get('device') || localStorage.getItem('ob_device') || 'mobile').toLowerCase();
+  if (device === 'tablet') {
+    document.querySelector('.device-frame').classList.add('tablet');
+    document.querySelector('.stage').classList.add('tablet-stage');
+    // Show "tablet" chip in top bar
+    const chip = document.getElementById('biz-chip');
+    if (chip) {
+      const deviceChip = document.createElement('span');
+      deviceChip.style.cssText = 'background:#e0e7ff;border:1px solid #c7d2fe;color:#4338ca;border-radius:999px;padding:5px 10px;font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;margin-left:6px';
+      deviceChip.textContent = 'Tablet';
+      chip.parentElement.insertBefore(deviceChip, chip.nextSibling);
+    }
+  }
+})();
 
 // ── SVG icon library ──
 const ICONS = {
