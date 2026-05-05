@@ -679,6 +679,7 @@ function toTitleCase(str) {
   return str.split(/(\s+)/).map(function(part) {
     if (/\s/.test(part)) return part;
     return part.split('-').map(function(w) {
+      if (!w) return w;
       return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
     }).join('-');
   }).join('');
