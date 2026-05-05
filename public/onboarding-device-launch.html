@@ -520,7 +520,7 @@ const ICONS = {
 // ── Figma-aligned feature copy (single pitch; {biz} personalised) ──
 const ALL_FEATURES = {
   jobs: {
-    key: 'jobs', icon: 'jobs', route: '/tour-jobs.html', liveRoute: '/jobs',
+    key: 'jobs', icon: 'jobs', route: '/jobs', liveRoute: '/jobs',
     color: '#3b82f6', bg: '#eff6ff',
     pitch: {
       title: 'Run {biz} jobs from anywhere',
@@ -530,7 +530,7 @@ const ALL_FEATURES = {
     },
   },
   customers: {
-    key: 'customers', icon: 'customers', route: '/tour-customers.html', liveRoute: '/customers',
+    key: 'customers', icon: 'customers', route: '/customers', liveRoute: '/customers',
     color: '#0891b2', bg: '#ecfeff',
     pitch: {
       title: '{biz} customers in one place',
@@ -540,7 +540,7 @@ const ALL_FEATURES = {
     },
   },
   teamSync: {
-    key: 'teamSync', icon: 'teamSync', route: '/tour-teamsync.html', liveRoute: '/employees/schedule',
+    key: 'teamSync', icon: 'teamSync', route: '/employees/schedule', liveRoute: '/employees/schedule',
     color: '#db2777', bg: '#fdf2f8',
     pitch: {
       title: 'Sync your {biz} team',
@@ -550,7 +550,7 @@ const ALL_FEATURES = {
     },
   },
   documents: {
-    key: 'documents', icon: 'documents', route: '/tour-documents.html', liveRoute: '/agreements',
+    key: 'documents', icon: 'documents', route: '/agreements', liveRoute: '/agreements',
     color: '#7c3aed', bg: '#f5f3ff',
     pitch: {
       title: '{biz} agreements and e-sign',
@@ -560,7 +560,7 @@ const ALL_FEATURES = {
     },
   },
   payments: {
-    key: 'payments', icon: 'payments', route: '/tour-payments.html', liveRoute: '/invoices',
+    key: 'payments', icon: 'payments', route: '/invoices', liveRoute: '/invoices',
     color: '#16a34a', bg: '#f0fdf4',
     pitch: {
       title: 'Get paid for {biz} work faster',
@@ -570,7 +570,7 @@ const ALL_FEATURES = {
     },
   },
   tracking: {
-    key: 'tracking', icon: 'tracking', route: '/tour-tracking.html', liveRoute: '/employees/tracking',
+    key: 'tracking', icon: 'tracking', route: '/employees/tracking', liveRoute: '/employees/tracking',
     color: '#ec4899', bg: '#fdf2f8',
     pitch: {
       title: 'Live {biz} crew tracking',
@@ -580,7 +580,7 @@ const ALL_FEATURES = {
     },
   },
   appointments: {
-    key: 'appointments', icon: 'appointments', route: '/tour-appointments.html', liveRoute: '/appointments/manage',
+    key: 'appointments', icon: 'appointments', route: '/appointments/manage', liveRoute: '/appointments/manage',
     color: '#d97706', bg: '#fffbeb',
     pitch: {
       title: '{biz} appointments and bookings',
@@ -590,7 +590,7 @@ const ALL_FEATURES = {
     },
   },
   accounting: {
-    key: 'accounting', icon: 'accounting', route: '/tour-accounting.html', liveRoute: '/reports',
+    key: 'accounting', icon: 'accounting', route: '/reports', liveRoute: '/reports',
     color: '#6366f1', bg: '#eef2ff',
     pitch: {
       title: '{biz} revenue and reports',
@@ -600,7 +600,7 @@ const ALL_FEATURES = {
     },
   },
   inventory: {
-    key: 'inventory', icon: 'inventory', route: '/tour-inventory.html', liveRoute: '/inventory',
+    key: 'inventory', icon: 'inventory', route: '/inventory', liveRoute: '/inventory',
     color: '#f59e0b', bg: '#fffbeb',
     pitch: {
       title: '{biz} parts and inventory',
@@ -610,7 +610,7 @@ const ALL_FEATURES = {
     },
   },
   sell: {
-    key: 'sell', icon: 'sell', route: '/tour-sell.html', liveRoute: '/sales/sell-product',
+    key: 'sell', icon: 'sell', route: '/sales/sell-product', liveRoute: '/sales/sell-product',
     color: '#f85520', bg: '#fff3ee',
     pitch: {
       title: 'Sell products on the spot',
@@ -742,12 +742,6 @@ function buildDetailCard(idx) {
           </div>`).join('')}
       </div>
       <div class="feat-tagline">${pitch.tagline}</div>
-      <a class="btn-live"
-         href="/mobile-version.html?route=${encodeURIComponent(f.liveRoute)}&label=${encodeURIComponent(personalise(pitch.title))}"
-         target="_blank" rel="noopener">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
-        See live in app
-      </a>
       <div class="feat-badge" style="background:#fff3ee;color:#f85520">
         <svg viewBox="0 0 24 24" fill="none" stroke="#f85520" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
         Included in your plan
@@ -795,7 +789,23 @@ function resetBar() {
   const label = document.getElementById('bar-label');
   bar.style.transition = 'none';
   bar.style.width = '0%';
-  label.textContent = 'Step 1 of 4';
+  label.textContent = 'Next in 8s';
+  // Animate bar over 8s to match fallback timer
+  setTimeout(() => {
+    bar.style.transition = 'width 8s linear';
+    bar.style.width = '100%';
+  }, 50);
+  // Countdown label
+  let secs = 8;
+  const tick = setInterval(() => {
+    secs--;
+    if (secs > 0) {
+      label.textContent = `Next in ${secs}s`;
+    } else {
+      label.textContent = 'Loading…';
+      clearInterval(tick);
+    }
+  }, 1000);
 }
 
 // Advance bar when iframe reports step progress
@@ -806,7 +816,7 @@ function _startFallback() {
   // If iframe posts no messages within 25 s, advance anyway
   _fallbackTimer = setTimeout(() => {
     goTo((currentIdx + 1) % featureSet.length);
-  }, 25000);
+  }, 8000);
 }
 
 window.addEventListener('message', (e) => {
