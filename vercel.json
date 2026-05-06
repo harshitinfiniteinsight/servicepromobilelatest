@@ -13,6 +13,10 @@
       "destination": "/landing-page-onboarding.html"
     },
     {
+      "source": "/onboarding",
+      "destination": "/onboarding-welcome.html"
+    },
+    {
       "source": "/onboarding-welcome",
       "destination": "/onboarding-welcome.html"
     },
