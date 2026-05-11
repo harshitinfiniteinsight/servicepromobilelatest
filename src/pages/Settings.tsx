@@ -34,21 +34,36 @@ import {
   ChevronRight,
   MessageSquare,
   X,
-  Receipt
+  Receipt,
+  Bell
 } from "lucide-react";
 import { showSuccessToast } from "@/utils/toast";
+import { getUnreadCount } from "@/services/notificationService";
 
 const Settings = () => {
   const navigate = useNavigate();
   const [showFeedbackSettingsModal, setShowFeedbackSettingsModal] = useState(false);
   const [autoSendFeedback, setAutoSendFeedback] = useState(false);
-  
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+
   // Load saved feedback setting from localStorage
   useEffect(() => {
     const savedSetting = localStorage.getItem("autoSendFeedback");
     if (savedSetting !== null) {
       setAutoSendFeedback(savedSetting === "true");
     }
+  }, []);
+
+  // Load unread notification count
+  useEffect(() => {
+    const update = () => setUnreadNotificationCount(getUnreadCount());
+    update();
+    window.addEventListener("notificationCreated", update);
+    window.addEventListener("notificationUpdated", update);
+    return () => {
+      window.removeEventListener("notificationCreated", update);
+      window.removeEventListener("notificationUpdated", update);
+    };
   }, []);
 
   // Get user role
@@ -139,6 +154,13 @@ const Settings = () => {
       ],
     },
     {
+      id: "notifications",
+      title: "Notifications",
+      icon: Bell,
+      route: "/notifications",
+      hasSubmenu: false,
+    },
+    {
       id: "settings",
       title: "Settings",
       icon: SettingsIcon,
@@ -222,6 +244,7 @@ const Settings = () => {
       inventory: "bg-indigo-100 text-indigo-500",
       employees: "bg-teal-100 text-teal-500",
       reports: "bg-amber-100 text-amber-500",
+      notifications: "bg-red-100 text-red-500",
       settings: "bg-gray-100 text-gray-500",
     };
     return colorMap[id] || "bg-primary/10 text-primary";
@@ -301,6 +324,11 @@ const Settings = () => {
                         <Icon className="h-5 w-5" />
                       </div>
                       <span className="font-medium text-gray-800">{item.title}</span>
+                      {item.id === "notifications" && unreadNotificationCount > 0 && (
+                        <span className="inline-flex items-center justify-center h-5 min-w-[20px] px-1.5 text-[10px] font-bold bg-red-500 text-white rounded-full">
+                          {unreadNotificationCount > 99 ? "99+" : unreadNotificationCount}
+                        </span>
+                      )}
                     </div>
                     <ChevronRight className="h-5 w-5 text-gray-400" />
                   </button>

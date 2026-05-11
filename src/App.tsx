@@ -45,6 +45,7 @@ import Discounts from "./pages/Discounts";
 import LowInventoryAlertSettings from "./pages/LowInventoryAlertSettings";
 import ManageAppointments from "./pages/ManageAppointments";
 import AddAppointment from "./pages/AddAppointment";
+import AppointmentDetails from "./pages/AppointmentDetails";
 import Reports from "./pages/Reports";
 import InvoiceReport from "./pages/InvoiceReport";
 import EstimateReport from "./pages/EstimateReport";
@@ -64,6 +65,7 @@ import ConfigureCardReader from "./pages/ConfigureCardReader";
 import ScanForDevices from "./pages/ScanForDevices";
 import MyCardReaders from "./pages/MyCardReaders";
 import Walkthrough from "./pages/Walkthrough";
+import Notifications from "./pages/Notifications";
 import NotFound from "./pages/NotFound";
 import CustomerSelection from "./pages/CustomerSelection";
 import CheckoutSummary from "./pages/CheckoutSummary";
@@ -101,6 +103,7 @@ const AppContent = () => {
             <Route path="/appointments/manage" element={<ManageAppointments />} />
             <Route path="/appointments/add" element={<AddAppointment mode="create" />} />
             <Route path="/appointments/new" element={<AddAppointment mode="create" />} />
+            <Route path="/appointments/:id" element={<AppointmentDetails />} />
             <Route path="/appointments/:id/edit" element={<AddAppointment mode="edit" />} />
             <Route path="/invoices" element={<Invoices />} />
             <Route path="/invoices/:id/edit" element={<AddInvoice />} />
@@ -154,6 +157,7 @@ const AppContent = () => {
             <Route path="/settings/language" element={<ChangeLanguage />} />
             <Route path="/settings/help" element={<Help />} />
             <Route path="/settings/help/app-benefits" element={<AppBenefits />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MobileLayout>

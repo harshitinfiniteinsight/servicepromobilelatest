@@ -6,7 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
-import { getUnreadCount, getNotifications, markNotificationRead, type Notification } from "@/services/notificationService";
+import { getUnreadCount, getNotifications, markNotificationRead, seedMockNotifications, type Notification } from "@/services/notificationService";
+import NotificationBell from "@/components/notifications/NotificationBell";
 import { convertToJob } from "@/services/jobConversionService";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -105,6 +106,8 @@ const Index = () => {
     } else if (userType === "employee") {
       // Redirect employees to employee dashboard
       navigate("/employee-dashboard", { replace: true });
+    } else {
+      seedMockNotifications();
     }
   }, [navigate]);
 
@@ -412,113 +415,7 @@ const Index = () => {
               Hello {userName}!
             </span>
             {/* Notification Bell Icon */}
-            <div className="relative">
-              <DropdownMenu open={notificationDropdownOpen} onOpenChange={setNotificationDropdownOpen}>
-                <DropdownMenuTrigger asChild>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    className="h-8 w-8 p-0 shrink-0 touch-target relative"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                    }}
-                    aria-label="Notifications"
-                  >
-                    <Bell className="h-4 w-4 text-gray-700" />
-                    {/* Unread notification badge */}
-                    {unreadNotificationCount > 0 && (
-                      <span className="absolute -top-1 -right-1 h-5 w-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
-                        {unreadNotificationCount > 99 ? '99+' : unreadNotificationCount}
-                      </span>
-                    )}
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-72 rounded-xl border border-gray-200 bg-white shadow-lg p-2 max-h-[400px] overflow-y-auto"
-                  sideOffset={4}
-                >
-                  {notifications.length === 0 ? (
-                    <div className="px-3 py-6 text-center">
-                      <Bell className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-sm font-medium text-gray-900 mb-1">No notifications</p>
-                      <p className="text-xs text-gray-500">You're all caught up!</p>
-                    </div>
-                  ) : (
-                    <>
-                      {notifications.map((notification) => {
-                        const IconComponent = getNotificationIcon(notification);
-                        return (
-                          <DropdownMenuItem
-                            key={notification.id}
-                            onSelect={(e) => {
-                              e.preventDefault();
-                              handleNotificationClick(notification);
-                            }}
-                            className={cn(
-                              "flex items-start rounded-lg px-3 py-2.5 transition-colors cursor-pointer hover:bg-gray-100 focus:bg-gray-100",
-                              !notification.isRead && "bg-orange-50/50"
-                            )}
-                          >
-                            <div className="flex items-start gap-3 w-full">
-                              {/* Icon */}
-                              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center mt-0.5">
-                                <IconComponent className="h-4 w-4" />
-                              </div>
-
-                              {/* Content */}
-                              <div className="flex-1 min-w-0">
-                                <p className={cn(
-                                  "text-sm font-semibold mb-0.5 truncate",
-                                  notification.isRead ? "text-gray-700" : "text-gray-900"
-                                )}>
-                                  {notification.message}
-                                </p>
-                                <p className="text-xs text-gray-500 mb-1">
-                                  {formatTimeAgo(notification.createdAt)}
-                                </p>
-                                {notification.type === "payment" && (
-                                  <Button
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={(e) => handleConvertToJob(notification, e)}
-                                    disabled={convertingJobId === notification.id}
-                                    className="h-6 px-2 text-xs border-orange-300 text-orange-600 hover:bg-orange-50 hover:border-orange-400 disabled:opacity-50 mt-1"
-                                  >
-                                    {convertingJobId === notification.id ? (
-                                      <>
-                                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                                        Converting...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Briefcase className="h-3 w-3 mr-1" />
-                                        Convert to Job
-                                      </>
-                                    )}
-                                  </Button>
-                                )}
-                              </div>
-                            </div>
-                          </DropdownMenuItem>
-                        );
-                      })}
-                      <DropdownMenuSeparator className="my-1.5 bg-gray-200" />
-                      <DropdownMenuItem
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setNotificationDropdownOpen(false);
-                          toast.info("View all notifications feature coming soon");
-                        }}
-                        className="flex items-center rounded-lg px-3 py-2.5 text-sm font-medium transition-colors cursor-pointer hover:bg-gray-100 focus:bg-gray-100 min-h-[44px]"
-                      >
-                        <span className="w-full text-center">View all notifications</span>
-                      </DropdownMenuItem>
-                    </>
-                  )}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
+            <NotificationBell />
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button size="sm" variant="ghost" className="h-8 w-8 p-0 shrink-0" onClick={(e) => e.stopPropagation()}>
