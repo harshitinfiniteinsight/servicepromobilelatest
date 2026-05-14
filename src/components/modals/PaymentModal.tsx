@@ -232,9 +232,29 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     onClose();
   };
 
+  const anySubModalOpen =
+    showCardDetailsModal ||
+    showACHPaymentDetailsModal ||
+    showCashPaymentModal ||
+    showTapToPayModal ||
+    showNoReaderModal ||
+    showACHSetupModal;
+
   return (
     <>
-      <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal && !showNoReaderModal && !showACHSetupModal} onOpenChange={onClose}>
+      <Dialog
+        open={isOpen && !anySubModalOpen}
+        onOpenChange={(open) => {
+          // Only propagate close when the user intentionally closes the modal,
+          // not when the dialog hides itself to give way to a sub-modal.
+          // Without this guard the DismissableLayer fires onFocusOutside when
+          // focus moves into the newly-opened sub-modal and incorrectly calls
+          // onClose(), which unmounts the entire PaymentModal tree.
+          if (!open && !anySubModalOpen) {
+            onClose();
+          }
+        }}
+      >
         <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden [&>div]:p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">
             Service Pro911 - Payment

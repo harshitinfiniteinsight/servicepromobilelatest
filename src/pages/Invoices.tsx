@@ -335,7 +335,11 @@ const Invoices = () => {
 
   const handlePaymentModalClose = () => {
     setShowPaymentModal(false);
-    setSelectedInvoice(null);
+    // Do NOT clear selectedInvoice here. Clearing it would unmount the
+    // PaymentModal component, which also destroys any sub-modal (card details,
+    // cash, ACH, etc.) that is currently in the process of opening. The
+    // invoice reference is cleared after a successful payment inside
+    // handlePaymentMethodSelect, or when the user picks a new invoice.
   };
 
   const handlePayCash = (invoiceId: string) => {
