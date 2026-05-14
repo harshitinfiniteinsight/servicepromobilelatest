@@ -298,9 +298,9 @@ const TapToPayScreen = ({
 
       <style>{`
         @keyframes pop {
-          0% { transform: scale(0) opacity 0; }
+          0% { transform: scale(0); opacity: 0; }
           50% { transform: scale(1.2); }
-          100% { transform: scale(1) opacity 1; }
+          100% { transform: scale(1); opacity: 1; }
         }
         .animate-pop {
           animation: pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
