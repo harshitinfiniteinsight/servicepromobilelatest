@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, Lock } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
@@ -35,11 +35,32 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
   const [showNoReaderModal, setShowNoReaderModal] = useState(false);
   const [showACHSetupModal, setShowACHSetupModal] = useState(false);
   const [paymentAmountInput, setPaymentAmountInput] = useState(amount.toFixed(2));
+  // Ref set synchronously when handlePaymentMethodClick routes to a sub-modal.
+  // This acts as an immediate guard in onOpenChange before the React re-render
+  // (with the updated anySubModalOpen state) has had a chance to commit.
+  const openingSubModalRef = useRef(false);
+
+  const anySubModalOpen =
+    showCardDetailsModal ||
+    showACHPaymentDetailsModal ||
+    showCashPaymentModal ||
+    showTapToPayModal ||
+    showNoReaderModal ||
+    showACHSetupModal;
 
   useEffect(() => {
     if (!isOpen) return;
     setPaymentAmountInput(amount.toFixed(2));
   }, [isOpen, amount]);
+
+  // Once anySubModalOpen becomes true (after the re-render that follows a
+  // payment-option click), the state-based guard in onOpenChange is sufficient
+  // on its own. Reset the ref so it doesn't block legitimate closes later.
+  useEffect(() => {
+    if (anySubModalOpen) {
+      openingSubModalRef.current = false;
+    }
+  }, [anySubModalOpen]);
 
   // Calculate minimum amount payable for agreements
   const minimumAmountPayable = (() => {
@@ -119,17 +140,21 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
       const currentConnectedReaderId = localStorage.getItem("currentConnectedReaderId");
       if (!currentConnectedReaderId) {
         // No reader connected - show no reader modal
+        openingSubModalRef.current = true;
         setShowNoReaderModal(true);
       } else {
         // Reader is connected - show Tap to Pay modal
+        openingSubModalRef.current = true;
         setShowTapToPayModal(true);
       }
     } else if (methodId === "enter-card") {
       // Show card details modal instead of closing
+      openingSubModalRef.current = true;
       setShowCardDetailsModal(true);
     } else if (methodId === "ach") {
       // Flow A: ACH is configured - show payment flow
       // Flow B: ACH is NOT configured - show setup slider
+      openingSubModalRef.current = true;
       if (achConfigured) {
         // ACH is set up - open payment details modal
         setShowACHPaymentDetailsModal(true);
@@ -139,6 +164,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
       }
     } else if (methodId === "cash") {
       // Show cash payment modal instead of closing
+      openingSubModalRef.current = true;
       setShowCashPaymentModal(true);
     } else {
       if (onPaymentMethodSelect) {
@@ -232,25 +258,26 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     onClose();
   };
 
-  const anySubModalOpen =
-    showCardDetailsModal ||
-    showACHPaymentDetailsModal ||
-    showCashPaymentModal ||
-    showTapToPayModal ||
-    showNoReaderModal ||
-    showACHSetupModal;
-
   return (
     <>
       <Dialog
         open={isOpen && !anySubModalOpen}
         onOpenChange={(open) => {
-          // Only propagate close when the user intentionally closes the modal,
-          // not when the dialog hides itself to give way to a sub-modal.
-          // Without this guard the DismissableLayer fires onFocusOutside when
-          // focus moves into the newly-opened sub-modal and incorrectly calls
-          // onClose(), which unmounts the entire PaymentModal tree.
-          if (!open && !anySubModalOpen) {
+          // Only propagate close when the user intentionally closes the modal
+          // (ESC key, overlay click), not when the dialog hides itself to give
+          // way to a sub-modal.
+          //
+          // Two guards are used for defence-in-depth:
+          //  1. openingSubModalRef (ref) – checked first because it is set
+          //     synchronously inside handlePaymentMethodClick, covering the
+          //     brief window before the React re-render commits.
+          //  2. anySubModalOpen (state) – true once React has re-rendered
+          //     after a payment-option click; resets the ref via useEffect.
+          //
+          // Without these guards the DismissableLayer fires onFocusOutside
+          // when focus moves into the newly-opened sub-modal and incorrectly
+          // calls onClose(), which unmounts the entire PaymentModal tree.
+          if (!open && !openingSubModalRef.current && !anySubModalOpen) {
             onClose();
           }
         }}
