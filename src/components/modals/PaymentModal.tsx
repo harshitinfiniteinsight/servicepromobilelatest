@@ -89,6 +89,7 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
   const parsedPaymentAmount = parseFloat(paymentAmountInput);
   const isPaymentAmountValid =
     !isPartialPaymentFlow ||
+    (amount === 0) ||
     (!Number.isNaN(parsedPaymentAmount) && parsedPaymentAmount >= minPayableAmount && parsedPaymentAmount <= maxPayableAmount);
   const effectivePaymentAmount = isPartialPaymentFlow
     ? (Number.isNaN(parsedPaymentAmount) ? maxPayableAmount : parsedPaymentAmount)
