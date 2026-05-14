@@ -36,8 +36,10 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
   const [showACHSetupModal, setShowACHSetupModal] = useState(false);
   const [paymentAmountInput, setPaymentAmountInput] = useState(amount.toFixed(2));
   // Ref set synchronously when handlePaymentMethodClick routes to a sub-modal.
-  // This acts as an immediate guard in onOpenChange before the React re-render
-  // (with the updated anySubModalOpen state) has had a chance to commit.
+  // This prevents a race condition: onOpenChange can fire (via Radix
+  // DismissableLayer's focus-outside detection) before the React re-render that
+  // sets anySubModalOpen=true has committed, which would otherwise call onClose()
+  // and unmount the entire PaymentModal tree prematurely.
   const openingSubModalRef = useRef(false);
 
   const anySubModalOpen =
@@ -55,7 +57,9 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
 
   // Once anySubModalOpen becomes true (after the re-render that follows a
   // payment-option click), the state-based guard in onOpenChange is sufficient
-  // on its own. Reset the ref so it doesn't block legitimate closes later.
+  // on its own. Reset the ref so it does not block legitimate closes that come
+  // later — such as when the user presses ESC or taps outside after a sub-modal
+  // has already closed and the payment options are visible again.
   useEffect(() => {
     if (anySubModalOpen) {
       openingSubModalRef.current = false;
