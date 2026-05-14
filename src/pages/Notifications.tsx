@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatDistanceToNow } from "date-fns";
 import MobileHeader from "@/components/layout/MobileHeader";
@@ -26,6 +26,7 @@ import {
   X,
   CheckCheck,
   Inbox,
+  SlidersHorizontal,
 } from "lucide-react";
 
 // ─── Tab config ────────────────────────────────────────────────────────────────
@@ -76,6 +77,11 @@ const Notifications = () => {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<Tab>("All");
   const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showDateFilter, setShowDateFilter] = useState(false);
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [appliedStart, setAppliedStart] = useState("");
+  const [appliedEnd, setAppliedEnd] = useState("");
 
   const load = useCallback(() => {
     setNotifications(getNotifications());
@@ -91,11 +97,60 @@ const Notifications = () => {
     };
   }, [load]);
 
-  // Filter by active tab
-  const filtered = notifications.filter((n) => {
-    if (activeTab === "All") return true;
-    return n.module === activeTab;
-  });
+  const MAX_SHOWN = 50;
+  const dateFilterActive = Boolean(appliedStart || appliedEnd);
+
+  // Memoized filtered list (tab + date range)
+  const filtered = useMemo(() => {
+    let list = notifications.slice(0, MAX_SHOWN);
+    if (activeTab !== "All") {
+      list = list.filter((n) => n.module === activeTab);
+    }
+    if (appliedStart) {
+      const from = new Date(appliedStart);
+      from.setHours(0, 0, 0, 0);
+      list = list.filter((n) => new Date(n.createdAt) >= from);
+    }
+    if (appliedEnd) {
+      const to = new Date(appliedEnd);
+      to.setHours(23, 59, 59, 999);
+      list = list.filter((n) => new Date(n.createdAt) <= to);
+    }
+    return list;
+  }, [notifications, activeTab, appliedStart, appliedEnd]);
+
+  const handleApplyFilter = () => {
+    setAppliedStart(startDate);
+    setAppliedEnd(endDate);
+    setShowDateFilter(false);
+  };
+
+  const handleClearFilter = () => {
+    setStartDate("");
+    setEndDate("");
+    setAppliedStart("");
+    setAppliedEnd("");
+    setShowDateFilter(false);
+  };
+
+  const formatDateLabel = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    } catch { return iso; }
+  };
+
+  const countLabel = useMemo(() => {
+    if (dateFilterActive && appliedStart && appliedEnd) {
+      return `Showing ${filtered.length} notification${filtered.length !== 1 ? "s" : ""} from ${formatDateLabel(appliedStart)} – ${formatDateLabel(appliedEnd)}`;
+    }
+    if (dateFilterActive && appliedStart) {
+      return `Showing ${filtered.length} notification${filtered.length !== 1 ? "s" : ""} from ${formatDateLabel(appliedStart)}`;
+    }
+    if (dateFilterActive && appliedEnd) {
+      return `Showing ${filtered.length} notification${filtered.length !== 1 ? "s" : ""} up to ${formatDateLabel(appliedEnd)}`;
+    }
+    return `Showing last ${Math.min(notifications.length, MAX_SHOWN)} recent notifications`;
+  }, [filtered.length, dateFilterActive, appliedStart, appliedEnd, notifications.length]);
 
   // Unread counts per tab
   const unreadByTab = (tab: Tab) => {
@@ -149,11 +204,13 @@ const Notifications = () => {
         }
       />
 
-      {/* Category Tabs */}
+      {/* Category Tabs + Filter button */}
       <div
-        className="flex gap-2 overflow-x-auto px-4 pb-2 scrollbar-hide border-b border-gray-200 bg-white"
+        className="bg-white border-b border-gray-200"
         style={{ paddingTop: "calc(3rem + env(safe-area-inset-top) + 0.5rem)" }}
       >
+        <div className="flex items-center gap-2 px-4 pb-2">
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide flex-1">
         {TABS.map((tab) => {
           const count = unreadByTab(tab);
           const isActive = activeTab === tab;
@@ -180,8 +237,92 @@ const Notifications = () => {
                 </span>
               )}
             </button>
-          );
-        })}
+            );
+          })}
+          </div>
+
+          {/* Filter toggle button */}
+          <button
+            onClick={() => setShowDateFilter((v) => !v)}
+            aria-label="Date filter"
+            className={cn(
+              "flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-full text-xs font-semibold border transition-all",
+              dateFilterActive
+                ? "bg-primary text-white border-primary shadow-sm"
+                : showDateFilter
+                ? "bg-gray-100 text-gray-700 border-gray-300"
+                : "bg-white text-gray-600 border-gray-200 hover:bg-gray-50"
+            )}
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            {dateFilterActive ? "Filtered" : "Filter"}
+          </button>
+        </div>
+
+        {/* Date range filter panel */}
+        {showDateFilter && (
+          <div className="px-4 pb-3 pt-1 flex flex-col gap-2 bg-white border-t border-gray-100">
+            <div className="flex gap-2">
+              <div className="flex-1">
+                <label className="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">From</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  max={endDate || undefined}
+                  className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-2 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+              <div className="flex-1">
+                <label className="block text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">To</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate || undefined}
+                  className="w-full text-xs border border-gray-200 rounded-lg px-2.5 py-2 text-gray-700 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary/40"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={handleApplyFilter}
+                disabled={!startDate && !endDate}
+                className="flex-1 py-2 rounded-lg bg-primary text-white text-xs font-semibold disabled:opacity-40 transition-opacity"
+              >
+                Apply Filter
+              </button>
+              {dateFilterActive && (
+                <button
+                  onClick={handleClearFilter}
+                  className="flex-1 py-2 rounded-lg border border-gray-300 text-gray-600 text-xs font-semibold hover:bg-gray-50 transition-colors"
+                >
+                  Clear Filter
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Dashboard settings info banner */}
+      <div className="px-4 py-2.5 bg-gray-50 border-b border-gray-100">
+        <p className="text-xs text-gray-500 leading-relaxed">
+          To manage notification settings, go to{" "}
+          <a
+            href="https://universell.com/dashboard"
+            className="text-primary font-medium underline-offset-2 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 rounded"
+            style={{ minHeight: "44px", display: "inline" }}
+          >
+            Universell Dashboard
+          </a>
+          .
+        </p>
+      </div>
+
+      {/* Count label */}
+      <div className="px-4 py-1.5 bg-gray-50">
+        <p className="text-[11px] text-gray-400 font-medium">{countLabel}</p>
       </div>
 
       {/* Notification List */}
@@ -193,7 +334,11 @@ const Notifications = () => {
             </div>
             <p className="text-sm font-semibold text-gray-500">No notifications</p>
             <p className="text-xs text-gray-400">
-              {activeTab === "All" ? "You're all caught up!" : `No ${activeTab} notifications`}
+              {dateFilterActive
+                ? "No notifications found for selected dates"
+                : activeTab === "All"
+                ? "You're all caught up!"
+                : `No ${activeTab} notifications`}
             </p>
           </div>
         ) : (

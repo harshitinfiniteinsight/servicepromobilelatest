@@ -1,13 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, Lock } from "lucide-react";
+import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, Lock, Wifi, WifiOff } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import EnterCardDetailsModal from "./EnterCardDetailsModal";
 import EnterACHPaymentDetailsModal from "./EnterACHPaymentDetailsModal";
 import CashPaymentModal from "./CashPaymentModal";
-import TapToPayModal from "./TapToPayModal";
+import TapToPayScreen from "./TapToPayScreen";
 import ACHSetupSliderModal from "./ACHSetupSliderModal";
 import { useACHConfiguration } from "@/hooks/useACHConfiguration";
 
@@ -35,6 +35,14 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
   const [showNoReaderModal, setShowNoReaderModal] = useState(false);
   const [showACHSetupModal, setShowACHSetupModal] = useState(false);
   const [paymentAmountInput, setPaymentAmountInput] = useState(amount.toFixed(2));
+  const [cardReaderConnected, setCardReaderConnected] = useState(
+    () => Boolean(localStorage.getItem("currentConnectedReaderId"))
+  );
+
+  const handleConnectReader = () => {
+    onClose();
+    navigate("/settings/configure-card-reader");
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -115,15 +123,8 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
     }
 
     if (methodId === "tap-to-pay") {
-      // Check if card reader is connected
-      const currentConnectedReaderId = localStorage.getItem("currentConnectedReaderId");
-      if (!currentConnectedReaderId) {
-        // No reader connected - show no reader modal
-        setShowNoReaderModal(true);
-      } else {
-        // Reader is connected - show Tap to Pay modal
-        setShowTapToPayModal(true);
-      }
+      // Open Tap to Pay screen directly
+      setShowTapToPayModal(true);
     } else if (methodId === "enter-card") {
       // Show card details modal instead of closing
       setShowCardDetailsModal(true);
@@ -316,6 +317,41 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
             {/* Payment Options */}
             <div className="space-y-3 sm:space-y-4 w-full">
               <h3 className="text-base sm:text-lg font-bold text-gray-900 text-center px-6 sm:px-8">Payment Options</h3>
+
+              {/* Card Reader Connection Section */}
+              <div className="px-6 sm:px-8">
+                <div className={`rounded-xl border px-4 py-3.5 flex flex-col gap-3 ${
+                  cardReaderConnected
+                    ? "bg-green-50 border-green-200"
+                    : "bg-gray-50 border-gray-200"
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      cardReaderConnected ? "bg-green-100" : "bg-gray-200"
+                    }`}>
+                      {cardReaderConnected
+                        ? <Wifi className="h-4 w-4 text-green-600" />
+                        : <WifiOff className="h-4 w-4 text-gray-500" />}
+                    </div>
+                    <p className={`text-xs leading-relaxed ${
+                      cardReaderConnected ? "text-green-800" : "text-gray-600"
+                    }`}>
+                      {cardReaderConnected
+                        ? "Card reader is connected and ready to accept payments."
+                        : "Card reader is not connected. You may plug in a card reader that connects to the audio jack at any time."}
+                    </p>
+                  </div>
+                  {!cardReaderConnected && (
+                    <button
+                      onClick={handleConnectReader}
+                      className="w-full py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 active:bg-orange-700 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
+                    >
+                      Connect
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="w-full px-10 sm:px-12 pb-6 box-border">
                 <div className="grid grid-cols-2 gap-4 sm:gap-5 w-full box-border">
                   {paymentOptions.map((option) => {
@@ -387,11 +423,10 @@ const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityTy
         onPaymentComplete={handleCashPaymentComplete}
       />
 
-      {/* Tap to Pay Modal */}
-      <TapToPayModal
+      {/* Tap to Pay Screen */}
+      <TapToPayScreen
         isOpen={showTapToPayModal}
         onClose={handleTapToPayClose}
-        onBack={handleTapToPayBack}
         amount={effectivePaymentAmount}
         onPaymentComplete={handleTapToPayComplete}
       />
