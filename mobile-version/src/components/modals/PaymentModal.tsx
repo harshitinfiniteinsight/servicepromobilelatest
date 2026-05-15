@@ -1,46 +1,21 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, ChevronDown } from "lucide-react";
+import { ArrowLeft, X, Zap, CreditCard, Building2, DollarSign, Lock, Wifi, WifiOff } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Badge } from "@/components/ui/badge";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
 import EnterCardDetailsModal from "./EnterCardDetailsModal";
 import EnterACHPaymentDetailsModal from "./EnterACHPaymentDetailsModal";
 import CashPaymentModal from "./CashPaymentModal";
-import TapToPayModal from "./TapToPayModal";
+import TapToPayScreen from "./TapToPayScreen";
 import ACHSetupSliderModal from "./ACHSetupSliderModal";
-import PaymentMethodSetupModal from "./PaymentMethodSetupModal";
-import { usePaymentConfiguration, type PaymentMethodKey } from "@/hooks/usePaymentConfiguration";
-import type { Invoice } from "@/services/invoiceService";
-
-export type PaymentDocumentType = "invoice" | "estimate" | "agreement";
-
-export interface PaymentLinkedDocument {
-  id: string;
-  type: PaymentDocumentType;
-  amount: number;
-  status?: string;
-  paidAmount?: number;
-  displayId?: string;
-}
-
-export interface PaymentMethodSelectionPayload {
-  invoiceIds?: string[];
-  selectedDocuments?: PaymentLinkedDocument[];
-  amount: number;
-}
+import { useACHConfiguration } from "@/hooks/useACHConfiguration";
 
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   amount: number;
-  onPaymentMethodSelect?: (method: string, payload?: PaymentMethodSelectionPayload) => void;
-  linkedDocuments?: PaymentLinkedDocument[];
-  defaultSelectedDocumentKeys?: string[];
-  linkedInvoices?: Invoice[];
-  defaultSelectedInvoiceIds?: string[];
+  onPaymentMethodSelect?: (method: string, amount?: number) => void;
   entityType?: "agreement" | "estimate" | "invoice";
   agreement?: {
     id?: string;
@@ -50,183 +25,29 @@ interface PaymentModalProps {
   };
 }
 
-const PaymentModal = ({
-  isOpen,
-  onClose,
-  amount,
-  onPaymentMethodSelect,
-  linkedDocuments,
-  defaultSelectedDocumentKeys,
-  linkedInvoices,
-  defaultSelectedInvoiceIds,
-  entityType,
-  agreement,
-}: PaymentModalProps) => {
+const PaymentModal = ({ isOpen, onClose, amount, onPaymentMethodSelect, entityType, agreement }: PaymentModalProps) => {
   const navigate = useNavigate();
-  const { getMethodState, setMethodConfigured } = usePaymentConfiguration();
+  const { achConfigured } = useACHConfiguration();
   const [showCardDetailsModal, setShowCardDetailsModal] = useState(false);
   const [showACHPaymentDetailsModal, setShowACHPaymentDetailsModal] = useState(false);
   const [showCashPaymentModal, setShowCashPaymentModal] = useState(false);
   const [showTapToPayModal, setShowTapToPayModal] = useState(false);
   const [showNoReaderModal, setShowNoReaderModal] = useState(false);
-  const [showSetupModal, setShowSetupModal] = useState(false);
-  const [setupMethodKey, setSetupMethodKey] = useState<PaymentMethodKey | null>(null);
-  const [selectedDocumentKeys, setSelectedDocumentKeys] = useState<string[]>([]);
-  const [invoiceDropdownOpen, setInvoiceDropdownOpen] = useState(false);
-
-  const getDocumentSelectionKey = (document: PaymentLinkedDocument) => `${document.type}:${document.id}`;
-
-  const isDocumentPaid = (document: PaymentLinkedDocument) => {
-    const normalizedStatus = (document.status || "").trim().toLowerCase();
-    if (document.type === "invoice") {
-      return normalizedStatus === "paid";
-    }
-    if (document.type === "estimate") {
-      return normalizedStatus === "paid" || normalizedStatus === "converted to invoice";
-    }
-    return normalizedStatus === "paid";
-  };
-
-  const getDocumentRemainingBalance = (document: PaymentLinkedDocument) => {
-    if (document.type !== "invoice") {
-      return Number(document.amount || 0);
-    }
-    const paidAmount = Number(document.paidAmount || 0);
-    const invoiceAmount = Number(document.amount || 0);
-    return Math.max(invoiceAmount - paidAmount, 0);
-  };
-
-  const getDocumentTypeLabel = (type: PaymentDocumentType) => {
-    if (type === "invoice") return "Invoice";
-    if (type === "estimate") return "Estimate";
-    return "Agreement";
-  };
-
-  const mappedLinkedInvoices = useMemo<PaymentLinkedDocument[]>(
-    () =>
-      (linkedInvoices || []).map((invoice) => ({
-        id: invoice.id,
-        type: "invoice",
-        amount: Number(invoice.amount || 0),
-        status: invoice.status,
-        paidAmount: Number(invoice.paidAmount || 0),
-        displayId: invoice.id,
-      })),
-    [linkedInvoices]
+  const [showACHSetupModal, setShowACHSetupModal] = useState(false);
+  const [paymentAmountInput, setPaymentAmountInput] = useState(amount.toFixed(2));
+  const [cardReaderConnected, setCardReaderConnected] = useState(
+    () => Boolean(localStorage.getItem("currentConnectedReaderId"))
   );
 
-  const isJobDocumentSelectionFlow = Array.isArray(linkedDocuments) || Array.isArray(linkedInvoices);
-  const payableLinkedDocuments = useMemo(() => {
-    const uniqueDocuments = new Map<string, PaymentLinkedDocument>();
-
-    (linkedDocuments || []).forEach((document) => {
-      uniqueDocuments.set(getDocumentSelectionKey(document), {
-        ...document,
-        amount: Number(document.amount || 0),
-        paidAmount: Number(document.paidAmount || 0),
-        displayId: document.displayId || document.id,
-      });
-    });
-
-    mappedLinkedInvoices.forEach((document) => {
-      const key = getDocumentSelectionKey(document);
-      if (!uniqueDocuments.has(key)) {
-        uniqueDocuments.set(key, document);
-      }
-    });
-
-    return Array.from(uniqueDocuments.values());
-  }, [linkedDocuments, mappedLinkedInvoices]);
-
-  const selectableLinkedDocuments = useMemo(
-    () => payableLinkedDocuments.filter((document) => !isDocumentPaid(document)),
-    [payableLinkedDocuments]
-  );
+  const handleConnectReader = () => {
+    onClose();
+    navigate("/settings/configure-card-reader");
+  };
 
   useEffect(() => {
     if (!isOpen) return;
-
-    if (payableLinkedDocuments.length === 0) {
-      setSelectedDocumentKeys([]);
-      return;
-    }
-
-    const keysByDocument = selectableLinkedDocuments.map((document) => getDocumentSelectionKey(document));
-    const defaultKeysFromInvoiceIds = (defaultSelectedInvoiceIds || []).map((invoiceId) => `invoice:${invoiceId}`);
-    const mergedDefaultKeys = [
-      ...(defaultSelectedDocumentKeys || []),
-      ...defaultKeysFromInvoiceIds,
-    ];
-    const validDefault = mergedDefaultKeys.filter((key) => keysByDocument.includes(key));
-
-    setSelectedDocumentKeys(validDefault.length > 0 ? Array.from(new Set(validDefault)) : keysByDocument);
-  }, [isOpen, payableLinkedDocuments, selectableLinkedDocuments, defaultSelectedDocumentKeys, defaultSelectedInvoiceIds]);
-
-  const selectedDocumentTotal = useMemo(() => {
-    if (!isJobDocumentSelectionFlow) {
-      return amount;
-    }
-
-    return payableLinkedDocuments
-      .filter((document) => selectedDocumentKeys.includes(getDocumentSelectionKey(document)))
-      .reduce((sum, document) => sum + getDocumentRemainingBalance(document), 0);
-  }, [isJobDocumentSelectionFlow, amount, payableLinkedDocuments, selectedDocumentKeys]);
-
-  const paymentAmount = selectedDocumentTotal;
-
-  const invoiceDropdownLabel = useMemo(() => {
-    if (!isJobDocumentSelectionFlow) {
-      return "Select Invoice/Estimate/Agreement";
-    }
-
-    if (payableLinkedDocuments.length === 0) {
-      return "No linked documents";
-    }
-
-    if (selectableLinkedDocuments.length > 0 && selectedDocumentKeys.length === selectableLinkedDocuments.length) {
-      return `All selected (${selectedDocumentKeys.length})`;
-    }
-
-    if (selectedDocumentKeys.length === 0) {
-      return "Select Invoice/Estimate/Agreement";
-    }
-
-    return `${selectedDocumentKeys.length} selected`;
-  }, [isJobDocumentSelectionFlow, payableLinkedDocuments.length, selectableLinkedDocuments.length, selectedDocumentKeys.length]);
-
-  const selectedDocuments = useMemo(
-    () =>
-      payableLinkedDocuments.filter((document) => selectedDocumentKeys.includes(getDocumentSelectionKey(document))),
-    [payableLinkedDocuments, selectedDocumentKeys]
-  );
-
-  const allSelected = selectableLinkedDocuments.length > 0 && selectedDocumentKeys.length === selectableLinkedDocuments.length;
-
-  const selectionPayload: PaymentMethodSelectionPayload = {
-    invoiceIds: isJobDocumentSelectionFlow
-      ? selectedDocuments
-          .filter((document) => document.type === "invoice")
-          .map((document) => document.id)
-      : undefined,
-    selectedDocuments: isJobDocumentSelectionFlow ? selectedDocuments : undefined,
-    amount: paymentAmount,
-  };
-
-  const toggleDocumentSelection = (documentKey: string, checked: boolean) => {
-    if (checked) {
-      setSelectedDocumentKeys((prev) => Array.from(new Set([...prev, documentKey])));
-      return;
-    }
-    setSelectedDocumentKeys((prev) => prev.filter((key) => key !== documentKey));
-  };
-
-  const toggleSelectAllDocuments = (checked: boolean) => {
-    if (!checked) {
-      setSelectedDocumentKeys([]);
-      return;
-    }
-    setSelectedDocumentKeys(selectableLinkedDocuments.map((document) => getDocumentSelectionKey(document)));
-  };
+    setPaymentAmountInput(amount.toFixed(2));
+  }, [isOpen, amount]);
 
   // Calculate minimum amount payable for agreements
   const minimumAmountPayable = (() => {
@@ -262,92 +83,68 @@ const PaymentModal = ({
     return minimumAmount;
   })();
 
-  const paymentOptions = useMemo(
-    () => [
-      {
-        id: "tap-to-pay",
-        methodKey: "tapToPay" as const,
-        label: "Tap to Pay",
-        setupLabel: "Setup Tap to Pay",
-        icon: Zap,
-      },
-      {
-        id: "enter-card",
-        methodKey: "cardManual" as const,
-        label: "Enter Card Manually",
-        setupLabel: "Setup Card",
-        icon: CreditCard,
-      },
-      {
-        id: "ach",
-        methodKey: "ach" as const,
-        label: "ACH Bank Transfer",
-        setupLabel: "Setup ACH",
-        icon: Building2,
-      },
-      {
-        id: "cash",
-        methodKey: "cash" as const,
-        label: "Pay by Cash",
-        icon: DollarSign,
-      },
-    ],
-    []
-  );
+  const isPartialPaymentFlow = entityType === "agreement" || entityType === "invoice";
+  const maxPayableAmount = Math.max(0, amount);
+  const minPayableAmount = entityType === "agreement" ? Math.max(minimumAmountPayable ?? 0.01, 0.01) : 0.01;
+  const parsedPaymentAmount = parseFloat(paymentAmountInput);
+  const isPaymentAmountValid =
+    !isPartialPaymentFlow ||
+    (amount === 0) ||
+    (!Number.isNaN(parsedPaymentAmount) && parsedPaymentAmount >= minPayableAmount && parsedPaymentAmount <= maxPayableAmount);
+  const effectivePaymentAmount = isPartialPaymentFlow
+    ? (Number.isNaN(parsedPaymentAmount) ? maxPayableAmount : parsedPaymentAmount)
+    : amount;
 
-  const isMethodDisabled = (methodKey: PaymentMethodKey) => {
-    if (methodKey === "cash") {
-      return false;
-    }
-    const methodState = getMethodState(methodKey);
-    return !methodState.enabled || !methodState.configured;
-  };
-
-  const handleSetupClick = (methodKey: PaymentMethodKey) => {
-    // For Tap to Pay, navigate to Payment Methods settings page
-    if (methodKey === "tapToPay") {
-      onClose();
-      navigate("/settings/payment-methods");
-      return;
-    }
-    
-    // For other methods, show the setup modal
-    setSetupMethodKey(methodKey);
-    setShowSetupModal(true);
-  };
+  const paymentOptions = [
+    {
+      id: "tap-to-pay",
+      label: "Tap to Pay",
+      icon: Zap,
+    },
+    {
+      id: "enter-card",
+      label: "Enter Card Manually",
+      icon: CreditCard,
+    },
+    {
+      id: "ach",
+      label: "ACH Bank Transfer",
+      icon: Building2,
+    },
+    {
+      id: "cash",
+      label: "Pay by Cash",
+      icon: DollarSign,
+    },
+  ];
 
   const handlePaymentMethodClick = (methodId: string) => {
-    const option = paymentOptions.find((item) => item.id === methodId);
-    if (option && isMethodDisabled(option.methodKey)) {
-      return;
-    }
-
-    if (isJobDocumentSelectionFlow && selectedDocumentKeys.length === 0) {
+    if (!isPaymentAmountValid) {
       return;
     }
 
     if (methodId === "tap-to-pay") {
-      // Check if card reader is connected
-      const currentConnectedReaderId = localStorage.getItem("currentConnectedReaderId");
-      if (!currentConnectedReaderId) {
-        // No reader connected - show no reader modal
-        setShowNoReaderModal(true);
-      } else {
-        // Reader is connected - show Tap to Pay modal
-        setShowTapToPayModal(true);
-      }
+      // Open Tap to Pay screen directly
+      setShowTapToPayModal(true);
     } else if (methodId === "enter-card") {
       // Show card details modal instead of closing
       setShowCardDetailsModal(true);
     } else if (methodId === "ach") {
-      // ACH is configured - open payment details modal
-      setShowACHPaymentDetailsModal(true);
+      // Flow A: ACH is configured - show payment flow
+      // Flow B: ACH is NOT configured - show setup slider
+      if (achConfigured) {
+        // ACH is set up - open payment details modal
+        setShowACHPaymentDetailsModal(true);
+      } else {
+        // ACH not set up - show setup slider modal
+        setShowACHSetupModal(true);
+      }
     } else if (methodId === "cash") {
       // Show cash payment modal instead of closing
       setShowCashPaymentModal(true);
     } else {
       if (onPaymentMethodSelect) {
-        onPaymentMethodSelect(methodId, selectionPayload);
+        onPaymentMethodSelect(methodId, effectivePaymentAmount);
       }
       onClose();
     }
@@ -366,7 +163,7 @@ const PaymentModal = ({
     setShowCardDetailsModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("enter-card", selectionPayload);
+      onPaymentMethodSelect("enter-card", effectivePaymentAmount);
     }
   };
 
@@ -383,7 +180,7 @@ const PaymentModal = ({
     setShowACHPaymentDetailsModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("ach", selectionPayload);
+      onPaymentMethodSelect("ach", effectivePaymentAmount);
     }
   };
 
@@ -400,7 +197,7 @@ const PaymentModal = ({
     setShowCashPaymentModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("cash", selectionPayload);
+      onPaymentMethodSelect("cash", effectivePaymentAmount);
     }
   };
 
@@ -417,7 +214,7 @@ const PaymentModal = ({
     setShowTapToPayModal(false);
     onClose();
     if (onPaymentMethodSelect) {
-      onPaymentMethodSelect("tap-to-pay", selectionPayload);
+      onPaymentMethodSelect("tap-to-pay", effectivePaymentAmount);
     }
   };
 
@@ -428,39 +225,24 @@ const PaymentModal = ({
     navigate("/settings/configure-card-reader");
   };
 
-  const handleSetupBack = () => {
-    setShowSetupModal(false);
+  const handleACHSetupBack = () => {
+    setShowACHSetupModal(false);
   };
 
-  const handleSetupClose = () => {
-    setShowSetupModal(false);
-  };
-
-  const handleSetupComplete = () => {
-    if (setupMethodKey) {
-      // For card setup, enable both cardManual and tapToPay
-      if (setupMethodKey === "cardManual") {
-        setMethodConfigured("cardManual", true);
-        setMethodConfigured("tapToPay", true);
-      } else if (setupMethodKey === "tapToPay") {
-        setMethodConfigured("cardManual", true);
-        setMethodConfigured("tapToPay", true);
-      } else {
-        setMethodConfigured(setupMethodKey, true);
-      }
-    }
-    setShowSetupModal(false);
+  const handleACHSetupClose = () => {
+    setShowACHSetupModal(false);
+    onClose();
   };
 
   return (
     <>
-      <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal && !showNoReaderModal && !showSetupModal} onOpenChange={onClose}>
+      <Dialog open={isOpen && !showCardDetailsModal && !showACHPaymentDetailsModal && !showCashPaymentModal && !showTapToPayModal && !showNoReaderModal && !showACHSetupModal} onOpenChange={onClose}>
         <DialogContent className="max-w-md w-[calc(100%-2rem)] p-0 gap-0 rounded-2xl max-h-[85vh] overflow-hidden [&>div]:p-0 [&>button]:hidden">
           <DialogTitle className="sr-only">
-            Service Pro 911 - Payment
+            Service Pro911 - Payment
           </DialogTitle>
           <DialogDescription className="sr-only">
-            Payment modal for amount ${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+            Payment modal for amount ${effectivePaymentAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </DialogDescription>
           {/* Orange Header */}
           <div className="bg-orange-500 px-3 py-3 sm:px-4 sm:py-4 flex items-center justify-between safe-top">
@@ -471,7 +253,7 @@ const PaymentModal = ({
             >
               <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5 text-white" />
             </button>
-            <h2 className="text-base sm:text-lg font-semibold text-white px-2 text-center flex-1">Service Pro 911 - Payment</h2>
+            <h2 className="text-base sm:text-lg font-semibold text-white px-2 text-center flex-1">Service Pro911 - Payment</h2>
             <button
               onClick={onClose}
               className="p-1.5 -mr-1.5 rounded-full hover:bg-orange-600 transition-colors touch-target"
@@ -483,101 +265,6 @@ const PaymentModal = ({
 
           {/* Content */}
           <div className="bg-white py-5 sm:py-7 space-y-4 sm:space-y-6 overflow-y-auto safe-bottom overflow-x-hidden">
-            {/* Document Selection Section (Job dashboard payment flow) */}
-            {isJobDocumentSelectionFlow && (
-              <div className="invoice-selection-section px-4 sm:px-6 space-y-3 mb-5 sm:mb-6">
-                <label className="text-sm font-medium text-gray-700">Select Invoice/Estimate/Agreement</label>
-
-                {payableLinkedDocuments.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No linked documents available for payment.</p>
-                ) : (
-                  <Popover open={invoiceDropdownOpen} onOpenChange={setInvoiceDropdownOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        className="w-full min-h-11 h-auto justify-between px-4 py-3 rounded-xl"
-                      >
-                        <span className="truncate">{invoiceDropdownLabel}</span>
-                        <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0 rounded-xl" align="start">
-                      <div className="max-h-64 overflow-y-auto py-1">
-                        <label className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer border-b">
-                          <Checkbox
-                            disabled={selectableLinkedDocuments.length === 0}
-                            checked={allSelected}
-                            onCheckedChange={(checked) => toggleSelectAllDocuments(checked === true)}
-                          />
-                          <span className="text-sm font-medium text-gray-900">Select All</span>
-                        </label>
-
-                        {payableLinkedDocuments.map((document) => {
-                          const documentKey = getDocumentSelectionKey(document);
-                          const remainingBalance = getDocumentRemainingBalance(document);
-                          const isPaidDocument = isDocumentPaid(document);
-                          return (
-                            <label
-                              key={documentKey}
-                              className="flex items-center gap-2 px-4 py-3 hover:bg-gray-50 cursor-pointer"
-                            >
-                              <Checkbox
-                                disabled={isPaidDocument}
-                                checked={selectedDocumentKeys.includes(documentKey)}
-                                onCheckedChange={(checked) => toggleDocumentSelection(documentKey, checked === true)}
-                              />
-                              <div className="min-w-0 flex-1 flex items-center justify-between gap-2">
-                                <span className="text-sm text-gray-900 truncate">
-                                  {document.displayId || document.id} — ${remainingBalance.toFixed(2)}
-                                </span>
-                                <div className="flex items-center gap-1 shrink-0">
-                                  {isPaidDocument && (
-                                    <Badge variant="secondary" className="text-[10px] h-5 px-2">Paid</Badge>
-                                  )}
-                                  <Badge variant="outline" className="text-[10px] h-5 px-2">
-                                    {getDocumentTypeLabel(document.type)}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </PopoverContent>
-                  </Popover>
-                )}
-
-                {payableLinkedDocuments.length > 0 && selectableLinkedDocuments.length === 0 && (
-                  <p className="text-xs text-muted-foreground">All linked documents are already paid.</p>
-                )}
-
-                {selectedDocuments.length > 0 && (
-                  <div className="space-y-2">
-                    {selectedDocuments.map((document) => {
-                      const documentKey = getDocumentSelectionKey(document);
-                      return (
-                        <div
-                          key={documentKey}
-                          className="border rounded-xl px-3 py-2.5 flex items-center justify-between gap-2"
-                        >
-                          <div className="min-w-0">
-                            <p className="text-sm font-semibold text-gray-900 truncate">{document.displayId || document.id}</p>
-                            <p className="text-xs text-gray-600">
-                              ${getDocumentRemainingBalance(document).toFixed(2)}
-                            </p>
-                          </div>
-                          <Badge variant="outline" className="text-[10px] h-5 px-2 shrink-0">
-                            {getDocumentTypeLabel(document.type)}
-                          </Badge>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-              </div>
-            )}
-
             {/* Total Amount Section */}
             <div className="flex flex-col items-center space-y-2 sm:space-y-3 px-6 sm:px-8 mt-2 sm:mt-4">
               <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-orange-100 flex items-center justify-center">
@@ -585,7 +272,7 @@ const PaymentModal = ({
               </div>
               <div className="text-center">
                 <p className="text-xs sm:text-sm text-gray-600 mb-1">Total Amount</p>
-                <p className="text-2xl sm:text-3xl font-bold text-gray-900">${paymentAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                <p className="text-2xl sm:text-3xl font-bold text-gray-900">${amount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 {/* Minimum Amount Payable - Only for Agreements */}
                 {minimumAmountPayable !== null && (
                   <p className="text-xs sm:text-sm text-gray-600 mt-2">
@@ -595,39 +282,107 @@ const PaymentModal = ({
               </div>
             </div>
 
+            {isPartialPaymentFlow && (
+              <div className="px-6 sm:px-8 space-y-1.5">
+                <p className="text-xs sm:text-sm text-gray-600 leading-snug">
+                  {entityType === "agreement" && minimumAmountPayable !== null
+                    ? (
+                      <>
+                        Amount <span className="text-gray-500">(Minimum Payable: ${minimumAmountPayable.toFixed(2)})</span>
+                      </>
+                    )
+                    : "Payment Amount"}
+                </p>
+                <Input
+                  type="number"
+                  min={minPayableAmount}
+                  max={maxPayableAmount}
+                  step="0.01"
+                  value={paymentAmountInput}
+                  onChange={(e) => setPaymentAmountInput(e.target.value)}
+                  className="h-9"
+                  placeholder="0.00"
+                />
+                {!isPaymentAmountValid ? (
+                  <p className="text-xs text-red-500">
+                    Enter an amount between ${minPayableAmount.toFixed(2)} and ${maxPayableAmount.toFixed(2)}.
+                  </p>
+                ) : parsedPaymentAmount > 0 && parsedPaymentAmount < maxPayableAmount ? (
+                  <p className="text-xs text-amber-600">
+                    Partial payment selected. Remaining balance: ${(maxPayableAmount - parsedPaymentAmount).toFixed(2)}
+                  </p>
+                ) : null}
+              </div>
+            )}
+
             {/* Payment Options */}
             <div className="space-y-3 sm:space-y-4 w-full">
               <h3 className="text-base sm:text-lg font-bold text-gray-900 text-center px-6 sm:px-8">Payment Options</h3>
+
+              {/* Card Reader Connection Section */}
+              <div className="px-6 sm:px-8">
+                <div className={`rounded-xl border px-4 py-3.5 flex flex-col gap-3 ${
+                  cardReaderConnected
+                    ? "bg-green-50 border-green-200"
+                    : "bg-gray-50 border-gray-200"
+                }`}>
+                  <div className="flex items-start gap-3">
+                    <div className={`mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      cardReaderConnected ? "bg-green-100" : "bg-gray-200"
+                    }`}>
+                      {cardReaderConnected
+                        ? <Wifi className="h-4 w-4 text-green-600" />
+                        : <WifiOff className="h-4 w-4 text-gray-500" />}
+                    </div>
+                    <p className={`text-xs leading-relaxed ${
+                      cardReaderConnected ? "text-green-800" : "text-gray-600"
+                    }`}>
+                      {cardReaderConnected
+                        ? "Card reader is connected and ready to accept payments."
+                        : "Card reader is not connected. You may plug in a card reader that connects to the audio jack at any time."}
+                    </p>
+                  </div>
+                  {!cardReaderConnected && (
+                    <button
+                      onClick={handleConnectReader}
+                      className="w-full py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 active:bg-orange-700 active:scale-[0.98] text-white text-sm font-semibold shadow-sm transition-all"
+                    >
+                      Connect
+                    </button>
+                  )}
+                </div>
+              </div>
+
               <div className="w-full px-10 sm:px-12 pb-6 box-border">
                 <div className="grid grid-cols-2 gap-4 sm:gap-5 w-full box-border">
                   {paymentOptions.map((option) => {
                     const Icon = option.icon;
-                    const isSelectionDisabled = isJobDocumentSelectionFlow && selectedDocumentKeys.length === 0;
-                    const isDisabled = isMethodDisabled(option.methodKey) || isSelectionDisabled;
+                    const isACHAndNotConfigured = option.id === "ach" && !achConfigured;
+                    const isDisabled = !isPaymentAmountValid;
                     
                     return (
                       <div
                         key={option.id}
                         className={`flex flex-col items-center justify-center p-4 sm:p-6 bg-white border-2 border-gray-200 rounded-xl transition-all touch-target min-h-[100px] sm:min-h-[120px] ${
-                          isDisabled
-                            ? "opacity-60 cursor-not-allowed"
+                          isACHAndNotConfigured || isDisabled
+                            ? ""
                             : "hover:border-orange-500 hover:bg-orange-50 active:scale-95 cursor-pointer"
                         }`}
-                        onClick={() => !isDisabled && handlePaymentMethodClick(option.id)}
-                        aria-disabled={isDisabled}
+                        onClick={() => !isACHAndNotConfigured && !isDisabled && handlePaymentMethodClick(option.id)}
                       >
-                        <Icon className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 sm:mb-3 ${isDisabled ? "text-gray-400" : "text-orange-500"}`} />
-                        <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${isDisabled ? "text-gray-500" : "text-gray-900"}`}>{option.label}</span>
+                        <Icon className={`h-6 w-6 sm:h-8 sm:w-8 mb-2 sm:mb-3 ${isACHAndNotConfigured || isDisabled ? "text-gray-400" : "text-orange-500"}`} />
+                        <span className={`text-xs sm:text-sm font-medium text-center leading-tight ${isACHAndNotConfigured || isDisabled ? "text-gray-500" : "text-gray-900"}`}>{option.label}</span>
                         
-                        {isDisabled && option.methodKey !== "cash" && (
+                        {/* Helper text for ACH when not configured - clickable link */}
+                        {isACHAndNotConfigured && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleSetupClick(option.methodKey);
+                              setShowACHSetupModal(true);
                             }}
                             className="mt-1 text-xs text-orange-500 underline font-medium hover:text-orange-600 active:scale-95"
                           >
-                            {option.setupLabel}
+                            Setup ACH first
                           </button>
                         )}
                       </div>
@@ -645,7 +400,7 @@ const PaymentModal = ({
         isOpen={showCardDetailsModal}
         onClose={handleCardDetailsClose}
         onBack={handleCardDetailsBack}
-        amount={paymentAmount}
+        amount={effectivePaymentAmount}
         onPaymentComplete={handleCardPaymentComplete}
       />
 
@@ -654,7 +409,7 @@ const PaymentModal = ({
         isOpen={showACHPaymentDetailsModal}
         onClose={handleACHPaymentDetailsClose}
         onBack={handleACHPaymentDetailsBack}
-        amount={paymentAmount}
+        amount={effectivePaymentAmount}
         onPaymentComplete={handleACHPaymentComplete}
       />
 
@@ -663,16 +418,17 @@ const PaymentModal = ({
         isOpen={showCashPaymentModal}
         onClose={handleCashPaymentClose}
         onBack={handleCashPaymentBack}
-        amount={paymentAmount}
+        amount={effectivePaymentAmount}
+        showMinimumPayable={entityType === "agreement"}
+        minimumAmount={entityType === "agreement" && minimumAmountPayable !== null ? minimumAmountPayable : undefined}
         onPaymentComplete={handleCashPaymentComplete}
       />
 
-      {/* Tap to Pay Modal */}
-      <TapToPayModal
+      {/* Tap to Pay Screen */}
+      <TapToPayScreen
         isOpen={showTapToPayModal}
         onClose={handleTapToPayClose}
-        onBack={handleTapToPayBack}
-        amount={paymentAmount}
+        amount={effectivePaymentAmount}
         onPaymentComplete={handleTapToPayComplete}
       />
 
@@ -705,33 +461,9 @@ const PaymentModal = ({
 
       {/* ACH Setup Slider Modal */}
       <ACHSetupSliderModal
-        isOpen={showSetupModal && setupMethodKey === "ach"}
-        onClose={handleSetupClose}
-        onBack={handleSetupBack}
-        onSetupComplete={handleSetupComplete}
-        setupType="ach"
-      />
-
-      {/* Card Setup Slider Modal */}
-      <ACHSetupSliderModal
-        isOpen={showSetupModal && (setupMethodKey === "cardManual" || setupMethodKey === "tapToPay")}
-        onClose={handleSetupClose}
-        onBack={handleSetupBack}
-        onSetupComplete={handleSetupComplete}
-        setupType="card"
-      />
-
-      {/* Payment Method Setup Modal (fallback for any other methods) */}
-      <PaymentMethodSetupModal
-        isOpen={showSetupModal && setupMethodKey !== "ach" && setupMethodKey !== "cardManual" && setupMethodKey !== "tapToPay"}
-        onClose={handleSetupClose}
-        onBack={handleSetupBack}
-        methodLabel={
-          setupMethodKey
-            ? paymentOptions.find((option) => option.methodKey === setupMethodKey)?.label || "Payment Method"
-            : "Payment Method"
-        }
-        onSetupComplete={handleSetupComplete}
+        isOpen={showACHSetupModal}
+        onClose={handleACHSetupClose}
+        onBack={handleACHSetupBack}
       />
     </>
   );
