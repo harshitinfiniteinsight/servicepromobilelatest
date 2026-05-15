@@ -47,10 +47,12 @@ const TapToPayScreen = ({
   onPaymentComplete,
 }: TapToPayScreenProps) => {
   const [paymentState, setPaymentState] = useState<PaymentState>("authorizing");
+  const [cancelledPayment, setCancelledPayment] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setPaymentState("authorizing");
+      setCancelledPayment(false);
     }
   }, [isOpen]);
 
@@ -81,8 +83,20 @@ const TapToPayScreen = ({
     }
   };
 
+  const handleAcknowledgeCancelledPayment = () => {
+    setCancelledPayment(false);
+    onClose();
+  };
+
   const handleRetry = () => {
+    setCancelledPayment(false);
     setPaymentState("authorizing");
+  };
+
+  const handleCancelPayment = () => {
+    if (paymentState === "processing") return;
+    setCancelledPayment(true);
+    setPaymentState("failed");
   };
 
   const stateCopy = useMemo(() => {
@@ -110,8 +124,8 @@ const TapToPayScreen = ({
         };
       case "failed":
         return {
-          title: "Payment Failed",
-          subtitle: "Try again or use a different payment method",
+          title: cancelledPayment ? "The transaction couldnot be completed." : "Payment Failed",
+          subtitle: cancelledPayment ? "Tap to pay payment was cancelled" : "Try again or use a different payment method",
           showAmount: false,
           showBrands: false,
         };
@@ -123,7 +137,7 @@ const TapToPayScreen = ({
           showBrands: false,
         };
     }
-  }, [amount, paymentState]);
+  }, [amount, cancelledPayment, paymentState]);
 
   if (!isOpen) return null;
 
@@ -135,22 +149,23 @@ const TapToPayScreen = ({
           paymentState === "authorizing" ? "scale-100 opacity-100" : "scale-100 opacity-100"
         )}
       >
-        {/* Header */}
-        <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-3.5 text-white">
-          <div className="flex items-center gap-3">
-            <Smartphone className="h-5 w-5 flex-shrink-0" />
-            <h2 className="text-base font-semibold leading-none">Pay Now</h2>
-          </div>
+        {!cancelledPayment && (
+          <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-3.5 text-white">
+            <div className="flex items-center gap-3">
+              <Smartphone className="h-5 w-5 flex-shrink-0" />
+              <h2 className="text-base font-semibold leading-none">Pay Now</h2>
+            </div>
 
-          <button
-            onClick={handleClose}
-            disabled={paymentState === "processing"}
-            className="touch-target rounded-full p-2 transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
-            aria-label="Close"
-          >
-            <X className="h-6 w-6" />
-          </button>
-        </div>
+            <button
+              onClick={handleClose}
+              disabled={paymentState === "processing"}
+              className="touch-target rounded-full p-2 transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+              aria-label="Close"
+            >
+              <X className="h-6 w-6" />
+            </button>
+          </div>
+        )}
 
         <div className="flex-1 min-h-0 overflow-hidden">
           {paymentState === "authorizing" ? (
@@ -212,14 +227,16 @@ const TapToPayScreen = ({
                 </div>
               </div>
 
+              {paymentState !== "success" && paymentState !== "failed" && (
               <div className="shrink-0 px-5 pb-5 pt-2">
                 <button
-                  onClick={handleClose}
+                  onClick={handleCancelPayment}
                   className="w-full rounded-2xl border border-gray-300 px-4 py-2.5 text-base font-semibold text-gray-700 transition-colors hover:bg-gray-100 active:bg-gray-200"
                 >
                   Cancel
                 </button>
               </div>
+              )}
             </div>
           )}
         </div>
@@ -235,7 +252,16 @@ const TapToPayScreen = ({
               </button>
             )}
 
-            {paymentState === "failed" && (
+            {paymentState === "failed" && cancelledPayment && (
+              <button
+                onClick={handleAcknowledgeCancelledPayment}
+                className="w-full py-2.5 sm:py-3 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold rounded-xl transition-colors touch-target text-sm sm:text-base"
+              >
+                OK
+              </button>
+            )}
+
+            {paymentState === "failed" && !cancelledPayment && (
               <>
                 <button
                   onClick={handleRetry}
