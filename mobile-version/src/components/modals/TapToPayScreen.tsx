@@ -159,7 +159,6 @@ const TapToPayScreen = ({
             <div className="flex h-full flex-col justify-between px-5 pt-3 pb-0 text-center">
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="flex flex-col items-center space-y-3">
-                  <p className="text-sm font-medium text-gray-500">Hold your card here</p>
 
                   {/* NFC Tap-to-Pay Icon */}
                   <div className="relative flex h-28 w-28 items-center justify-center">
@@ -181,23 +180,26 @@ const TapToPayScreen = ({
                     </div>
                   </div>
 
+                  <div className="space-y-1 text-center">
+                    <p className={cn(
+                      "text-base font-semibold transition-opacity duration-300",
+                      paymentState === "waiting_for_card" && "text-orange-600",
+                      paymentState === "processing" && "text-blue-600",
+                      paymentState !== "waiting_for_card" && paymentState !== "processing" && "text-gray-900"
+                    )}>
+                      {stateCopy.title}
+                    </p>
+
+                    <p className="text-sm text-gray-500">
+                      {stateCopy.subtitle}
+                    </p>
+                  </div>
+
                   {stateCopy.showAmount && (
                     <p className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
                       ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </p>
                   )}
-
-                  <p className={cn(
-                    "text-base font-semibold transition-opacity duration-300",
-                    paymentState === "waiting_for_card" && "text-orange-600",
-                    paymentState === "processing" && "text-blue-600"
-                  )}>
-                    {stateCopy.title}
-                  </p>
-
-                  <p className="text-sm text-gray-600">
-                    {stateCopy.subtitle}
-                  </p>
 
                   {stateCopy.showBrands && (
                     <div className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
