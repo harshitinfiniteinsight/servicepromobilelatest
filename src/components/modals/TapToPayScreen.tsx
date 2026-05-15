@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { X, Smartphone, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -6,60 +6,96 @@ interface TapToPayScreenProps {
   isOpen: boolean;
   onClose: () => void;
   amount: number;
-  readerName?: string;
   onPaymentComplete?: () => void;
 }
 
-type PaymentStatus = "idle" | "scanning" | "processing" | "success" | "failure";
+type PaymentState = "authorizing" | "waiting_for_card" | "processing" | "success" | "failed";
+
+const SupportedBrand = ({ label, className }: { label: string; className: string }) => (
+  <div className={cn("flex items-center justify-center rounded-md px-2.5 py-1 text-[10px] font-bold tracking-wide", className)}>
+    {label}
+  </div>
+);
+
+const NfcRings = ({ active }: { active: boolean }) => (
+  <>
+    <div
+      className={cn(
+        "absolute inset-0 rounded-full border-2 border-orange-300/70",
+        active && "animate-ping"
+      )}
+    />
+    <div
+      className={cn(
+        "absolute inset-4 rounded-full border-2 border-orange-200/90",
+        active && "animate-pulse"
+      )}
+    />
+  </>
+);
+
+const AuthorizingView = () => (
+  <div className="flex h-full flex-col items-center justify-center px-6 py-8 text-center">
+    <div className="flex h-20 w-20 items-center justify-center rounded-full bg-orange-50 shadow-inner">
+      <div className="h-8 w-8 animate-spin rounded-full border-4 border-orange-200 border-t-orange-500" />
+    </div>
+    <p className="mt-6 text-2xl font-semibold tracking-tight text-gray-900">Authorizing</p>
+    <p className="mt-2 text-sm text-gray-500">Please wait while the terminal is preparing the payment.</p>
+  </div>
+);
+
+const NFCIcon = () => (
+  <svg viewBox="0 0 96 96" className="h-20 w-20 sm:h-24 sm:w-24 text-orange-500" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M24 26h48v44H24z" />
+    <path d="M34 38c5-5 11-8 14-8s9 3 14 8" />
+    <path d="M30 32c8-8 16-12 18-12s10 4 18 12" />
+    <path d="M38 48c3-3 6-4 10-4s7 1 10 4" />
+    <path d="M48 54v6" />
+  </svg>
+);
+
+const CardBrands = () => (
+  <div className="flex items-center justify-center gap-2 sm:gap-3">
+    <SupportedBrand label="VISA" className="bg-blue-600 text-white" />
+    <div className="flex items-center gap-0.5">
+      <span className="h-3.5 w-3.5 rounded-full bg-red-500" />
+      <span className="h-3.5 w-3.5 rounded-full bg-orange-500" />
+    </div>
+    <SupportedBrand label="AMEX" className="bg-blue-400 text-white" />
+    <SupportedBrand label="DISC" className="bg-orange-500 text-white" />
+  </div>
+);
 
 const TapToPayScreen = ({
   isOpen,
   onClose,
   amount,
-  readerName = "Card Reader",
   onPaymentComplete,
 }: TapToPayScreenProps) => {
-  const [status, setStatus] = useState<PaymentStatus>("idle");
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [paymentState, setPaymentState] = useState<PaymentState>("authorizing");
 
-  // Cleanup on unmount
   useEffect(() => {
     if (!isOpen) {
-      setStatus("idle");
-      setIsAnimating(false);
+      setPaymentState("authorizing");
     }
   }, [isOpen]);
 
-  // Auto-transition to success after demo (remove in production with real hardware)
   useEffect(() => {
     if (!isOpen) return;
 
-    if (status === "idle") {
-      setIsAnimating(true);
-      const timer = setTimeout(() => {
-        setStatus("scanning");
-        setIsAnimating(false);
-      }, 500);
-      return () => clearTimeout(timer);
+    if (paymentState === "authorizing") {
+      const timer = window.setTimeout(() => {
+        setPaymentState("waiting_for_card");
+      }, 1800);
+
+      return () => window.clearTimeout(timer);
     }
 
-    if (status === "scanning") {
-      const timer = setTimeout(() => {
-        setStatus("processing");
-      }, 3000);
-      return () => clearTimeout(timer);
-    }
-
-    if (status === "processing") {
-      const timer = setTimeout(() => {
-        setStatus("success");
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [isOpen, status]);
+    return undefined;
+  }, [isOpen, paymentState]);
 
   const handleClose = () => {
-    if (status !== "processing") {
+    if (paymentState !== "processing") {
       onClose();
     }
   };
@@ -72,183 +108,148 @@ const TapToPayScreen = ({
   };
 
   const handleRetry = () => {
-    setStatus("idle");
+    setPaymentState("authorizing");
   };
+
+  const stateCopy = useMemo(() => {
+    switch (paymentState) {
+      case "waiting_for_card":
+        return {
+          title: "Hold your card here",
+          subtitle: "Keep your card steady",
+          showAmount: true,
+          showBrands: true,
+        };
+      case "processing":
+        return {
+          title: "Processing payment...",
+          subtitle: "Please wait while we finalize the charge",
+          showAmount: true,
+          showBrands: false,
+        };
+      case "success":
+        return {
+          title: "Payment Successful",
+          subtitle: `$${amount.toFixed(2)} has been charged`,
+          showAmount: false,
+          showBrands: false,
+        };
+      case "failed":
+        return {
+          title: "Payment Failed",
+          subtitle: "Try again or use a different payment method",
+          showAmount: false,
+          showBrands: false,
+        };
+      default:
+        return {
+          title: "",
+          subtitle: "",
+          showAmount: false,
+          showBrands: false,
+        };
+    }
+  }, [amount, paymentState]);
 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center safe-area overflow-hidden">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 safe-area overflow-hidden">
       <div
         className={cn(
-          "bg-white rounded-3xl shadow-2xl w-full sm:max-w-md max-h-[90vh] flex flex-col overflow-hidden",
-          "mx-4 sm:mx-0 transition-all duration-300",
-          isAnimating ? "scale-95 opacity-0" : "scale-100 opacity-100"
+          "flex h-[min(92vh,820px)] w-full max-w-md flex-col overflow-hidden rounded-3xl bg-white shadow-2xl transition-all duration-300",
+          paymentState === "authorizing" ? "scale-100 opacity-100" : "scale-100 opacity-100"
         )}
       >
-        {/* Header - Sticky */}
-        <div className="bg-gradient-to-r from-orange-500 to-orange-600 px-6 py-4 flex items-center justify-between flex-shrink-0">
+        {/* Header */}
+        <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-4 text-white">
           <button
             onClick={handleClose}
-            disabled={status === "processing"}
-            className="p-2 -ml-2 rounded-full hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors touch-target"
+            disabled={paymentState === "processing"}
+            className="touch-target -ml-2 rounded-full p-2 transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
             aria-label="Close"
           >
-            <X className="h-6 w-6 text-white" />
+            <X className="h-6 w-6" />
           </button>
 
           <div className="flex flex-col items-center gap-1 flex-1">
             <div className="flex items-center gap-2">
-              <Smartphone className="h-5 w-5 text-white" />
-              <span className="text-sm font-semibold text-white">Service Pro911</span>
+              <Smartphone className="h-5 w-5" />
+              <span className="text-sm font-semibold">Service Pro911</span>
             </div>
           </div>
 
           <div className="relative w-6 h-6">
-            <Zap className={cn(
-              "h-6 w-6 text-white",
-              status === "scanning" && "animate-pulse"
-            )} />
+            <Zap className={cn("h-6 w-6", paymentState === "waiting_for_card" && "animate-pulse")} />
           </div>
         </div>
 
-        {/* Content - Scrollable */}
-        <div className="flex-1 min-h-0 overflow-y-auto flex flex-col items-center justify-center px-6 py-6 space-y-6">
-          {/* Payment Amount */}
-          <div className="text-center space-y-1">
-            <p className="text-sm font-medium text-gray-500">Payment Amount</p>
-            <p className="text-4xl sm:text-5xl font-bold text-gray-900">
-              ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-            </p>
-          </div>
+        <div className="flex-1 min-h-0 overflow-hidden">
+          {paymentState === "authorizing" ? (
+            <AuthorizingView />
+          ) : (
+            <div className="flex h-full flex-col px-6 py-5 text-center">
+              <div className="flex-1 min-h-0 overflow-y-auto">
+                <div className="flex flex-col items-center">
+                  <p className="mt-1 text-sm font-medium text-gray-500">Hold your card here</p>
 
-          {/* NFC Animation - Responsive size */}
-          <div className="relative w-28 h-28 sm:w-40 sm:h-40 flex items-center justify-center flex-shrink-0">
-            {/* Outer pulse rings */}
-            {status !== "idle" && (
-              <>
-                <div className="absolute inset-0 rounded-full border-2 border-orange-400 animate-ping opacity-75" />
-                <div className="absolute inset-4 rounded-full border-2 border-orange-300 animate-pulse" />
-              </>
-            )}
+                  <div className="relative mt-6 flex h-52 w-52 items-center justify-center sm:h-56 sm:w-56">
+                    <NfcRings active={paymentState === "waiting_for_card" || paymentState === "processing"} />
 
-            {/* Center device illustration */}
-            <div className="relative z-10 flex flex-col items-center gap-2 sm:gap-4">
-              {/* Phone outline */}
-              <div className="w-16 h-28 sm:w-24 sm:h-40 border-3 sm:border-4 border-gray-900 rounded-2xl sm:rounded-3xl flex items-center justify-center bg-gradient-to-b from-gray-50 to-gray-100 shadow-lg relative">
-                {/* Screen */}
-                <div className="w-14 h-24 sm:w-20 sm:h-32 bg-white rounded-xl sm:rounded-2xl flex items-center justify-center relative overflow-hidden">
-                  {/* Notch */}
-                  <div className="absolute top-1.5 sm:top-2 left-1/2 transform -translate-x-1/2 w-8 sm:w-12 h-4 sm:h-6 bg-gray-900 rounded-b-lg" />
+                    <div className="relative z-10 flex items-center justify-center">
+                      <div className="flex h-28 w-20 items-center justify-center rounded-[28px] border-4 border-gray-900 bg-gradient-to-b from-gray-50 to-gray-100 shadow-xl sm:h-32 sm:w-24">
+                        <NFCIcon />
+                      </div>
 
-                  {/* Animated NFC indicator */}
-                  {status !== "idle" && (
-                    <div className="absolute inset-2 flex items-center justify-center">
-                      <svg className="w-8 h-8 sm:w-12 sm:h-12 text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="3" />
-                        <path d="M9 9a3 3 0 0 1 3-3" />
-                        <path d="M15 9a3 3 0 0 0-3-3" />
-                        <path d="M9 15a3 3 0 0 0 3 3" />
-                        <path d="M15 15a3 3 0 0 1-3 3" />
-                      </svg>
+                      <div className="absolute -top-8 right-0 flex h-24 w-16 items-center justify-center rounded-2xl border-2 border-blue-700 bg-gradient-to-br from-blue-400 to-blue-600 shadow-lg rotate-[-12deg] sm:h-28 sm:w-20">
+                        <span className="text-[10px] font-bold tracking-wide text-white">CARD</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {stateCopy.showAmount && (
+                    <p className="mt-2 text-4xl font-bold tracking-tight text-gray-900 sm:text-5xl">
+                      ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </p>
+                  )}
+
+                  <p className={cn(
+                    "mt-4 text-base font-semibold transition-opacity duration-300",
+                    paymentState === "waiting_for_card" && "text-orange-600",
+                    paymentState === "processing" && "text-blue-600"
+                  )}>
+                    {stateCopy.title}
+                  </p>
+
+                  <p className="mt-2 text-sm text-gray-600">
+                    {stateCopy.subtitle}
+                  </p>
+
+                  {stateCopy.showBrands && (
+                    <div className="mt-6 w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Accepted cards</p>
+                      <div className="mt-3">
+                        <CardBrands />
+                      </div>
                     </div>
                   )}
                 </div>
-
-                {/* Home indicator */}
-                <div className="absolute bottom-1 w-8 sm:w-12 h-1 bg-gray-900 rounded-full" />
               </div>
 
-              {/* Card above phone */}
-              <div className="absolute -top-4 sm:-top-6 right-0 w-14 h-24 sm:w-20 sm:h-32 bg-gradient-to-br from-blue-400 to-blue-600 rounded-lg sm:rounded-2xl shadow-lg transform -rotate-12 flex items-center justify-center border-2 border-blue-700">
-                <span className="text-white text-xs font-bold">CARD</span>
-              </div>
-            </div>
-
-            {/* Success checkmark - shown after processing */}
-            {status === "success" && (
-              <div className="absolute inset-0 flex items-center justify-center animate-pop">
-                <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-green-500 flex items-center justify-center shadow-xl">
-                  <svg className="w-10 h-10 sm:w-12 sm:h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                  </svg>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Instruction Text */}
-          <div className="text-center space-y-2">
-            <p className={cn(
-              "text-base sm:text-lg font-semibold transition-colors duration-300",
-              status === "idle" && "text-gray-900",
-              status === "scanning" && "text-orange-600",
-              status === "processing" && "text-blue-600",
-              status === "success" && "text-green-600",
-              status === "failure" && "text-red-600"
-            )}>
-              {status === "idle" && "Ready to scan"}
-              {status === "scanning" && "Waiting for card..."}
-              {status === "processing" && "Processing payment..."}
-              {status === "success" && "Payment Successful!"}
-              {status === "failure" && "Payment Failed"}
-            </p>
-
-            <p className={cn(
-              "text-xs sm:text-sm transition-opacity duration-300",
-              status === "success" || status === "failure" ? "text-gray-500" : "text-gray-600"
-            )}>
-              {status === "idle" && "Hold your card near the contactless area"}
-              {status === "scanning" && "Keep your card steady"}
-              {status === "processing" && "Please wait while we process your payment"}
-              {status === "success" && `$${amount.toFixed(2)} has been charged`}
-              {status === "failure" && "Please try again or use a different payment method"}
-            </p>
-          </div>
-
-          {/* Reader Info */}
-          {status !== "success" && status !== "failure" && (
-            <div className="w-full bg-gray-50 rounded-xl sm:rounded-2xl px-4 py-2.5 border border-gray-200">
-              <div className="flex justify-between items-center">
-                <span className="text-[10px] sm:text-xs font-medium text-gray-500 uppercase tracking-wide">Reader</span>
-                <span className="text-xs sm:text-sm font-semibold text-gray-900">{readerName}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Payment Logos */}
-          {status !== "processing" && (
-            <div className="w-full pt-3 border-t border-gray-200">
-              <p className="text-xs text-gray-500 text-center mb-2.5">Supported Payment Methods</p>
-              <div className="flex items-center justify-center gap-3">
-                {/* Visa */}
-                <div className="w-9 h-5.5 bg-blue-600 rounded flex items-center justify-center">
-                  <span className="text-white text-[7px] font-bold">VISA</span>
-                </div>
-
-                {/* Mastercard */}
-                <div className="w-9 h-5.5 rounded flex items-center justify-center gap-0.5">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                  <div className="w-2.5 h-2.5 rounded-full bg-orange-500" />
-                </div>
-
-                {/* Amex */}
-                <div className="w-9 h-5.5 bg-blue-400 rounded flex items-center justify-center">
-                  <span className="text-white text-[7px] font-bold">AMEX</span>
-                </div>
-
-                {/* Discover */}
-                <div className="w-9 h-5.5 bg-orange-500 rounded flex items-center justify-center">
-                  <span className="text-white text-[7px] font-bold">DIS</span>
-                </div>
+              <div className="shrink-0 pt-4">
+                <button
+                  onClick={handleClose}
+                  className="w-full rounded-2xl border border-gray-300 px-4 py-3 text-base font-semibold text-gray-700 transition-colors hover:bg-gray-100 active:bg-gray-200"
+                >
+                  Cancel
+                </button>
               </div>
             </div>
           )}
         </div>
 
-        {/* Footer - Sticky */}
-        <div className="px-6 py-3.5 sm:py-4 bg-gray-50 border-t border-gray-200 flex gap-3 flex-shrink-0" style={{ paddingBottom: "calc(0.875rem + env(safe-area-inset-bottom))" }}>
-          {status === "success" && (
+        <div className="border-t border-gray-200 bg-gray-50 px-6 py-3.5 sm:py-4 shrink-0" style={{ paddingBottom: "calc(0.875rem + env(safe-area-inset-bottom))" }}>
+          {paymentState === "success" && (
             <button
               onClick={handleDone}
               className="flex-1 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold rounded-xl transition-colors touch-target text-sm sm:text-base"
@@ -257,7 +258,7 @@ const TapToPayScreen = ({
             </button>
           )}
 
-          {status === "failure" && (
+          {paymentState === "failed" && (
             <>
               <button
                 onClick={handleRetry}
@@ -274,38 +275,9 @@ const TapToPayScreen = ({
             </>
           )}
 
-          {(status === "idle" || status === "scanning" || status === "processing") && (
-            <button
-              onClick={handleClose}
-              className="flex-1 py-2.5 sm:py-3 border border-gray-300 hover:bg-gray-100 active:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors touch-target disabled:opacity-50 disabled:cursor-not-allowed text-sm sm:text-base"
-              disabled={status === "processing"}
-            >
-              Cancel
-            </button>
-          )}
-
-          {status === "processing" && (
-            <div className="flex-1 flex items-center justify-center">
-              <div className="flex gap-2">
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <div className="w-2 h-2 bg-orange-500 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
-              </div>
-            </div>
-          )}
+          {(paymentState === "success") && null}
         </div>
       </div>
-
-      <style>{`
-        @keyframes pop {
-          0% { transform: scale(0); opacity: 0; }
-          50% { transform: scale(1.2); }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        .animate-pop {
-          animation: pop 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
-        }
-      `}</style>
     </div>
   );
 };
