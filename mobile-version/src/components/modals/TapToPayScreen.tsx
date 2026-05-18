@@ -103,7 +103,7 @@ const TapToPayScreen = ({
     switch (paymentState) {
       case "waiting_for_card":
         return {
-          title: "Hold your card here",
+          title: "Hold card near NFC reader",
           subtitle: "Keep your card steady",
           showAmount: true,
           showBrands: true,
@@ -175,25 +175,11 @@ const TapToPayScreen = ({
               <div className="flex-1 min-h-0 overflow-y-auto">
                 <div className="flex flex-col items-center space-y-3">
 
-                  {/* NFC Tap-to-Pay Icon */}
-                  <div className="relative flex h-28 w-28 items-center justify-center">
-                    {/* Outer pulse ring - only on active states */}
-                    {(paymentState === "waiting_for_card" || paymentState === "processing") && (
-                      <>
-                        <div className="absolute inset-0 rounded-2xl bg-orange-500/20 animate-pulse" />
-                        <div className="absolute inset-1 rounded-2xl border-2 border-orange-500/30 animate-pulse" />
-                      </>
-                    )}
-                    
-                    {/* Dark rounded square background */}
-                    <div className="relative z-10 flex h-24 w-24 items-center justify-center rounded-2xl bg-gradient-to-br from-gray-800 to-gray-900 shadow-lg">
-                      <img
-                        src="/new-card.jpg"
-                        alt="Tap to Pay"
-                        className="h-16 w-16 object-contain"
-                      />
-                    </div>
-                  </div>
+                  <img
+                    src="/tap-to-pay.png"
+                    alt="Tap to Pay"
+                    className="h-24 w-24 object-contain"
+                  />
 
                   <div className="space-y-1 text-center">
                     <p className={cn(
@@ -208,6 +194,12 @@ const TapToPayScreen = ({
                     <p className="text-sm text-gray-500">
                       {stateCopy.subtitle}
                     </p>
+
+                    {paymentState === "waiting_for_card" && (
+                      <p className="text-xs text-gray-400 text-center px-2 leading-relaxed">
+                        NFC location may vary by device. Please tap near the back/top area of the device where NFC is available.
+                      </p>
+                    )}
                   </div>
 
                   {stateCopy.showAmount && (

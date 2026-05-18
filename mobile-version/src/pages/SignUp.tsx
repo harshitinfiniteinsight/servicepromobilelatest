@@ -28,6 +28,10 @@ const SignUp = () => {
         toast.error("Please fill in all fields");
         return;
       }
+      localStorage.setItem("sp911_show_notification_onboarding", "true");
+      localStorage.removeItem("sp911_notification_onboarding_dismissed");
+      localStorage.removeItem("sp911_notification_onboarding_remind_at");
+      localStorage.setItem("sp911_has_logged_in_before", "true");
       localStorage.setItem("isAuthenticated", "true");
       localStorage.setItem("showWalkthrough", "true");
       toast.success("Account created successfully!");

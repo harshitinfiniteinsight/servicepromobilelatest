@@ -13,10 +13,21 @@ const SignIn = () => {
   const [employeeCode, setEmployeeCode] = useState("");
   const [password, setPassword] = useState("");
 
+  const setFirstLoginOnboardingState = () => {
+    const hasLoggedInBefore = localStorage.getItem("sp911_has_logged_in_before") === "true";
+    if (!hasLoggedInBefore) {
+      localStorage.setItem("sp911_show_notification_onboarding", "true");
+      localStorage.removeItem("sp911_notification_onboarding_dismissed");
+      localStorage.removeItem("sp911_notification_onboarding_remind_at");
+    }
+    localStorage.setItem("sp911_has_logged_in_before", "true");
+  };
+
   const handleSignIn = (e: React.FormEvent) => {
     e.preventDefault();
     if (loginType === "merchant") {
       if (email && password) {
+        setFirstLoginOnboardingState();
         localStorage.setItem("isAuthenticated", "true");
         localStorage.setItem("userType", "merchant");
         localStorage.removeItem("currentEmployeeId");
@@ -27,6 +38,7 @@ const SignIn = () => {
       }
     } else {
       if (employeeCode && password) {
+        setFirstLoginOnboardingState();
         localStorage.setItem("isAuthenticated", "true");
         // Set current employee ID (in real app, this would come from API response)
         // For demo, use employeeCode to determine employee ID
