@@ -142,136 +142,129 @@ const TapToPayScreen = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 safe-area overflow-auto">
-      <div
-        className={cn(
-          "flex max-h-[85vh] w-[90%] max-w-[420px] flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl transition-all duration-300",
-          paymentState === "authorizing" ? "scale-100 opacity-100" : "scale-100 opacity-100"
-        )}
-      >
-        {!cancelledPayment && (
-          <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-3.5 text-white">
-            <div className="flex items-center gap-3">
-              <Smartphone className="h-5 w-5 flex-shrink-0" />
-              <h2 className="text-base font-semibold leading-none">Pay Now</h2>
-            </div>
-
-            <button
-              onClick={handleClose}
-              disabled={paymentState === "processing"}
-              className="touch-target rounded-full p-2 transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
-              aria-label="Close"
-            >
-              <X className="h-6 w-6" />
-            </button>
+    <div className="fixed inset-0 z-50 flex flex-col bg-white overflow-hidden safe-area">
+      {!cancelledPayment && (
+        <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-3.5 text-white">
+          <div className="flex items-center gap-3">
+            <Smartphone className="h-5 w-5 flex-shrink-0" />
+            <h2 className="text-base font-semibold leading-none">Pay Now</h2>
           </div>
-        )}
 
-        <div className="flex-1 min-h-0 overflow-hidden">
-          {paymentState === "authorizing" ? (
-            <AuthorizingView />
-          ) : (
-            <div className="flex h-full flex-col justify-between px-5 pt-3 pb-0 text-center">
-              <div className="flex-1 min-h-0 overflow-y-auto">
-                <div className="flex flex-col items-center space-y-3">
+          <button
+            onClick={handleClose}
+            disabled={paymentState === "processing"}
+            className="touch-target rounded-full p-2 transition-colors hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-50"
+            aria-label="Close"
+          >
+            <X className="h-6 w-6" />
+          </button>
+        </div>
+      )}
 
-                  <img
-                    src="/tap-to-pay.png"
-                    alt="Tap to Pay"
-                    className="h-24 w-24 object-contain"
-                  />
+      <div className="flex-1 min-h-0 overflow-hidden flex flex-col">
+        {paymentState === "authorizing" ? (
+          <AuthorizingView />
+        ) : (
+          <div className="flex h-full flex-col justify-between px-5 pt-3 pb-0 text-center">
+            <div className="flex-1 min-h-0 overflow-y-auto">
+              <div className="flex flex-col items-center space-y-3">
 
-                  <div className="space-y-1 text-center">
-                    <p className={cn(
-                      "text-base font-semibold transition-opacity duration-300",
-                      paymentState === "waiting_for_card" && "text-orange-600",
-                      paymentState === "processing" && "text-blue-600",
-                      paymentState !== "waiting_for_card" && paymentState !== "processing" && "text-gray-900"
-                    )}>
-                      {stateCopy.title}
+                <img
+                  src="/tap-to-pay.png"
+                  alt="Tap to Pay"
+                  className="h-24 w-24 object-contain"
+                />
+
+                <div className="space-y-1 text-center">
+                  <p className={cn(
+                    "text-base font-semibold transition-opacity duration-300",
+                    paymentState === "waiting_for_card" && "text-orange-600",
+                    paymentState === "processing" && "text-blue-600",
+                    paymentState !== "waiting_for_card" && paymentState !== "processing" && "text-gray-900"
+                  )}>
+                    {stateCopy.title}
+                  </p>
+
+                  <p className="text-sm text-gray-500">
+                    {stateCopy.subtitle}
+                  </p>
+
+                  {paymentState === "waiting_for_card" && (
+                    <p className="text-xs text-gray-400 text-center px-2 leading-relaxed">
+                      NFC location may vary by device. Please tap near the back/top area of the device where NFC is available.
                     </p>
-
-                    <p className="text-sm text-gray-500">
-                      {stateCopy.subtitle}
-                    </p>
-
-                    {paymentState === "waiting_for_card" && (
-                      <p className="text-xs text-gray-400 text-center px-2 leading-relaxed">
-                        NFC location may vary by device. Please tap near the back/top area of the device where NFC is available.
-                      </p>
-                    )}
-                  </div>
-
-                  {stateCopy.showAmount && (
-                    <p className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
-                      ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                    </p>
-                  )}
-
-                  {stateCopy.showBrands && (
-                    <div className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Accepted cards</p>
-                      <div className="mt-2.5">
-                        <CardBrands />
-                      </div>
-                    </div>
                   )}
                 </div>
-              </div>
 
-              {paymentState !== "success" && paymentState !== "failed" && (
-              <div className="shrink-0 px-5 pb-5 pt-2">
-                <button
-                  onClick={handleCancelPayment}
-                  className="w-full rounded-2xl border border-gray-300 px-4 py-2.5 text-base font-semibold text-gray-700 transition-colors hover:bg-gray-100 active:bg-gray-200"
-                >
-                  Cancel
-                </button>
+                {stateCopy.showAmount && (
+                  <p className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
+                    ${amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </p>
+                )}
+
+                {stateCopy.showBrands && (
+                  <div className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.18em] text-gray-500">Accepted cards</p>
+                    <div className="mt-2.5">
+                      <CardBrands />
+                    </div>
+                  </div>
+                )}
               </div>
-              )}
             </div>
-          )}
-        </div>
 
-        {(paymentState === "success" || paymentState === "failed") && (
-          <div className="border-t border-gray-200 bg-gray-50 px-6 py-3 sm:py-3.5 shrink-0" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
-            {paymentState === "success" && (
+            {paymentState !== "success" && paymentState !== "failed" && (
+            <div className="shrink-0 px-5 pb-5 pt-2">
               <button
-                onClick={handleDone}
-                className="flex-1 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold rounded-xl transition-colors touch-target text-sm sm:text-base"
+                onClick={handleCancelPayment}
+                className="w-full rounded-2xl border border-gray-300 px-4 py-2.5 text-base font-semibold text-gray-700 transition-colors hover:bg-gray-100 active:bg-gray-200"
               >
-                Done
+                Cancel
               </button>
-            )}
-
-            {paymentState === "failed" && cancelledPayment && (
-              <button
-                onClick={handleAcknowledgeCancelledPayment}
-                className="w-full py-2.5 sm:py-3 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold rounded-xl transition-colors touch-target text-sm sm:text-base"
-              >
-                OK
-              </button>
-            )}
-
-            {paymentState === "failed" && !cancelledPayment && (
-              <>
-                <button
-                  onClick={handleRetry}
-                  className="flex-1 py-2.5 sm:py-3 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold rounded-xl transition-colors touch-target text-sm sm:text-base"
-                >
-                  Try Again
-                </button>
-                <button
-                  onClick={handleClose}
-                  className="flex-1 py-2.5 sm:py-3 border border-gray-300 hover:bg-gray-100 active:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors touch-target text-sm sm:text-base"
-                >
-                  Cancel
-                </button>
-              </>
+            </div>
             )}
           </div>
         )}
       </div>
+
+      {(paymentState === "success" || paymentState === "failed") && (
+        <div className="border-t border-gray-200 bg-gray-50 px-6 py-3 sm:py-3.5 shrink-0" style={{ paddingBottom: "calc(0.75rem + env(safe-area-inset-bottom))" }}>
+          {paymentState === "success" && (
+            <button
+              onClick={handleDone}
+              className="flex-1 py-2.5 sm:py-3 bg-green-600 hover:bg-green-700 active:bg-green-800 text-white font-semibold rounded-xl transition-colors touch-target text-sm sm:text-base"
+            >
+              Done
+            </button>
+          )}
+
+          {paymentState === "failed" && cancelledPayment && (
+            <button
+              onClick={handleAcknowledgeCancelledPayment}
+              className="w-full py-2.5 sm:py-3 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold rounded-xl transition-colors touch-target text-sm sm:text-base"
+            >
+              OK
+            </button>
+          )}
+
+          {paymentState === "failed" && !cancelledPayment && (
+            <>
+              <button
+                onClick={handleRetry}
+                className="flex-1 py-2.5 sm:py-3 bg-orange-500 hover:bg-orange-600 active:bg-orange-700 text-white font-semibold rounded-xl transition-colors touch-target text-sm sm:text-base"
+              >
+                Try Again
+              </button>
+              <button
+                onClick={handleClose}
+                className="flex-1 py-2.5 sm:py-3 border border-gray-300 hover:bg-gray-100 active:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors touch-target text-sm sm:text-base"
+              >
+                Cancel
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };

@@ -142,13 +142,7 @@ const TapToPayScreen = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 py-8 safe-area overflow-auto">
-      <div
-        className={cn(
-          "flex max-h-[85vh] w-[90%] max-w-[420px] flex-col overflow-hidden rounded-[28px] bg-white shadow-2xl transition-all duration-300",
-          paymentState === "authorizing" ? "scale-100 opacity-100" : "scale-100 opacity-100"
-        )}
-      >
+    <div className="fixed inset-0 z-50 flex flex-col bg-white overflow-hidden safe-area">
         {!cancelledPayment && (
           <div className="flex shrink-0 items-center justify-between bg-gradient-to-r from-orange-500 to-orange-600 px-5 py-3.5 text-white">
             <div className="flex items-center gap-3">
@@ -271,7 +265,6 @@ const TapToPayScreen = ({
             )}
           </div>
         )}
-      </div>
     </div>
   );
 };
