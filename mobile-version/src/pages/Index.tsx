@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import DateRangePickerModal from "@/components/modals/DateRangePickerModal";
-import { getUnreadCount, getNotifications, markNotificationRead, type Notification } from "@/services/notificationService";
+import { getUnreadCount, getNotifications, markNotificationRead, seedMockNotifications, type Notification } from "@/services/notificationService";
 import { convertToJob } from "@/services/jobConversionService";
 import { formatDistanceToNow } from "date-fns";
 import {
@@ -106,6 +106,8 @@ const Index = () => {
     } else if (userType === "employee") {
       // Redirect employees to employee dashboard
       navigate("/employee-dashboard", { replace: true });
+    } else {
+      seedMockNotifications();
     }
   }, [navigate]);
 

@@ -35,15 +35,30 @@ import {
   MessageSquare,
   X,
   ListOrdered,
-  Receipt
+  Receipt,
+  Bell
 } from "lucide-react";
 import { showSuccessToast } from "@/utils/toast";
+import { getUnreadCount } from "@/services/notificationService";
 
 const Settings = () => {
   const navigate = useNavigate();
   const [showFeedbackSettingsModal, setShowFeedbackSettingsModal] = useState(false);
   const [autoSendFeedback, setAutoSendFeedback] = useState(false);
-  
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+
+  // Load unread notification count
+  useEffect(() => {
+    const update = () => setUnreadNotificationCount(getUnreadCount());
+    update();
+    window.addEventListener("notificationCreated", update);
+    window.addEventListener("notificationUpdated", update);
+    return () => {
+      window.removeEventListener("notificationCreated", update);
+      window.removeEventListener("notificationUpdated", update);
+    };
+  }, []);
+
   // Load saved feedback setting from localStorage
   useEffect(() => {
     const savedSetting = localStorage.getItem("autoSendFeedback");
@@ -140,6 +155,13 @@ const Settings = () => {
       ],
     },
     {
+      id: "notifications",
+      title: "Notifications",
+      icon: Bell,
+      route: "/notifications",
+      hasSubmenu: false,
+    },
+    {
       id: "settings",
       title: "Settings",
       icon: SettingsIcon,
@@ -223,6 +245,7 @@ const Settings = () => {
       inventory: "bg-indigo-100 text-indigo-500",
       employees: "bg-teal-100 text-teal-500",
       reports: "bg-amber-100 text-amber-500",
+      notifications: "bg-red-100 text-red-500",
       settings: "bg-gray-100 text-gray-500",
     };
     return colorMap[id] || "bg-primary/10 text-primary";

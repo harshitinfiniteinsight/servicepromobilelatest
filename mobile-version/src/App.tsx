@@ -68,6 +68,7 @@ import ConfigureCardReader from "./pages/ConfigureCardReader";
 import ScanForDevices from "./pages/ScanForDevices";
 import MyCardReaders from "./pages/MyCardReaders";
 import Walkthrough from "./pages/Walkthrough";
+import Notifications from "./pages/Notifications";
 import Onboarding from "./pages/Onboarding";
 import OnboardingGallery from "./pages/OnboardingGallery";
 import NotFound from "./pages/NotFound";
@@ -163,6 +164,7 @@ const AppContent = () => {
             <Route path="/settings/language" element={<ChangeLanguage />} />
             <Route path="/settings/help" element={<Help />} />
             <Route path="/settings/help/app-benefits" element={<AppBenefits />} />
+            <Route path="/notifications" element={<Notifications />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </MobileLayout>
