@@ -6,7 +6,9 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import {
   getNotifications,
+  seedMockNotifications,
   markAllNotificationsRead,
+  markAllNotificationsUnread,
   deleteNotification,
   type Notification,
   type NotificationModule,
@@ -88,6 +90,7 @@ const Notifications = () => {
   }, []);
 
   useEffect(() => {
+    seedMockNotifications();
     load();
     window.addEventListener("notificationCreated", load);
     window.addEventListener("notificationUpdated", load);
@@ -163,6 +166,11 @@ const Notifications = () => {
     load();
   };
 
+  const handleMarkAllUnread = () => {
+    markAllNotificationsUnread();
+    load();
+  };
+
   const handleDismiss = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     deleteNotification(id);
@@ -190,15 +198,15 @@ const Notifications = () => {
         title="Notifications"
         showBack
         actions={
-          totalUnread > 0 ? (
+          notifications.length > 0 ? (
             <Button
               variant="outline"
               size="sm"
-              onClick={handleMarkAllRead}
+              onClick={totalUnread > 0 ? handleMarkAllRead : handleMarkAllUnread}
               className="h-8 px-3 text-xs font-semibold border-gray-300 rounded-lg"
             >
               <CheckCheck className="h-3.5 w-3.5 mr-1" />
-              Mark all as read
+              {totalUnread > 0 ? "Mark all as read" : "Mark all as unread"}
             </Button>
           ) : undefined
         }

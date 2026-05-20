@@ -63,7 +63,8 @@ function saveNotifications(notifications: Notification[]): void {
 export function seedMockNotifications(): void {
   if (typeof window === "undefined") return;
   const existing = getNotifications();
-  if (localStorage.getItem(SEED_KEY) && existing.length > 0) return;
+  // Always seed if no notifications exist, even if seed key is set
+  if (existing.length > 0) return;
 
   const now = Date.now();
   const mins = (m: number) => new Date(now - m * 60 * 1000).toISOString();
@@ -439,6 +440,15 @@ export function markNotificationRead(notificationId: string): void {
 export function markAllNotificationsRead(): void {
   const notifications = getNotifications();
   notifications.forEach((n) => { n.isRead = true; });
+  saveNotifications(notifications);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("notificationUpdated"));
+  }
+}
+
+export function markAllNotificationsUnread(): void {
+  const notifications = getNotifications();
+  notifications.forEach((n) => { n.isRead = false; });
   saveNotifications(notifications);
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("notificationUpdated"));

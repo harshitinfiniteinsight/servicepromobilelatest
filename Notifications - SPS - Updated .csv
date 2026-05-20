@@ -1,0 +1,47 @@
+Module,Priority,Condition,Recipients,Title,Short text (dynamic),Actions,Short text,Description (success)
+Estimate,P0,User clicks Create Estimate successfully,AdminEmployee,Estimate Created Successfully,Estimate #{estimateId} has been created for {customerName} by {Emp. Name},View EstimateEdit Estimate,New estimate created,Estimate created successfully and added to the estimate table
+Estimate,P0,User converts estimate to job,AdminEmployee,Estimate Converted to Job,Estimate #{estimateId} converted into Job #{jobId},View Job Details,Estimate converted to job,Job created successfully from estimate
+Estimate,P0,"After payment, estimate is converted to Invoice",AdminEmployee,Estimate Converted to Invoice,Estimate #{estimateId} converted into Invoice {InvoiceID} upon payment,"View Estimate, View Invoice",Estimate converted into Invoice,Estimate {Estimate ID} converted to Invoice {Invoice ID} upon payment
+Estimate,P0,Employee assigned during Convert to Job,Employee,New Job Assigned,You have been assigned to Job #{jobId} for {customerName},View Job,Job assigned successfully,Employee assigned successfully to the job
+Estimate,P0,User assigns estimate to existing job,Employee,Estimate Assigned to Existing Job,Estimate #{estimateId} assigned to Job #{jobId},View Job,Estimate assigned,Estimate linked successfully to existing job
+Estimate,,User sends estimate email,Customer,Estimate Email Sent,Estimate email sent to {customerEmail},View Email,Email sent successfully,Estimate email delivered successfully
+Estimate,P0,User updates estimate,AdminEmployee,Estimate Updated,Estimate #{estimate Id} updated by {emp. name},View Estimate,Estimate Updated,Estimate {Estimate ID} updated successfully
+Estimate,,User deactivates estimate,Admin,Estimate Deactivated,Estimate #{estimate Id} has been deactivated,View Estimate,Estimate deactivated,Estimate deactivated successfully
+Invoice,P0,User clicks Create Invoice successfully,AdminEmployee,Invoice Created Successfully,Invoice #{invoiceId} created for {customerName},View InvoiceEdit Invoice,New invoice created,Invoice created successfully
+Invoice,,Recurring invoice auto-sent on scheduled interval,Customer,Recurring Invoice Sent,Invoice #{invoiceId} automatically sent to {customerEmail},View Invoice,Recurring invoice sent,Scheduled recurring invoice sent successfully
+Invoice,P0,Recurring invoice reaches end date or occurrence limit,Admin,Recurring Invoice Completed,Recurring invoice #{invoiceId} has ended,View Details,Recurring invoice completed,Recurring invoice cycle completed successfully
+Invoice,P0,Payment completed successfully,CustomerAdmin,Payment Successful,Payment received for Invoice #{invoiceId},View Receipt,Payment successful,Invoice payment completed successfully
+Invoice,P0,Invoice converted to job,AdminEmployee,Invoice Converted to Job,Invoice #{invoiceId} converted into Job #{jobId},View Job,Invoice converted to job,Job created successfully from invoice
+Invoice,,User sends invoice email,Customer,Invoice Email Sent,Invoice email sent to {customerEmail},View Email,Invoice email sent,Invoice email delivered successfully
+Invoice,,User sends invoice SMS,Customer,Invoice SMS Sent,Invoice SMS sent to {customerPhone},View SMS,Invoice SMS sent,Invoice SMS delivered successfully
+Invoice,,User updates invoice,AdminEmployee,Invoice Updated,Invoice #{Invoice Id} updated by {emp. name},View Invoice,Invoice Updated,Invoice {Invoice ID} updated successfully
+Invoice,,User deactivates invoice,Admin,Invoice Deactivated,Invoice #{invoiceId} has been deactivated,View Invoice,Invoice deactivated,Invoice deactivated successfully
+Invoice,P0,user refunds the invoice amount,Admin,Refund Initiated,Refund of ${refund amount} initated for Invoice #{Invoice ID},View Invoice,Refund Initiated,Refund against Invoice {Invoice ID} inititaled successfully
+Agreement,P0,User clicks Create Agreement successfully,AdminEmployee,Agreement Created Successfully,Agreement #{agreementId} created for {customerName},"View Agreement, Edit Agreement",New agreement created,Agreement created successfully
+Agreement,P0,User updates agreement,AdminEmployee,Agreement Updated,Agreement #{Agreement Id} updated by {emp. name},View Agreement,Agreement Updated,Agreement {Agreement ID} updated successfully
+Agreement,P0,"After payment, agreement is converted to Invoice",AdminEmployee,Agreement Converted to Invoice,Agreement #{agreement Id} converted into Invoice {InvoiceID} upon payment,"View Agreement, View Invoice",Agreement converted into Invoice,Agreement {Agreement ID} converted to Invoice {Invoice ID} upon payment
+Job,P0,User uploads file/image/document to job,AdminEmployee,Job File Uploaded,File uploaded for Job #{jobId},View Uploads,Job upload completed,File uploaded successfully
+Job,P0,User creates associated new invoice,Admin,New Invoice Associated To Job ID,New invoice associated to Job #{job Id},View Invoice,Associated invoice created,Associated invoice created successfully
+Job,,Payment pending invoice opened,CustomerAdmin,Payment Pending for Invoice,Payment pending for Invoice #{invoiceId} linked to Job #{jobId},Pay Now,Payment pending,Payment option displayed successfully
+Job,P0,User reschedules a job,AdminEmployee,Job Rescheduled,Job #{jobId} rescheduled to {newDate} at {newTime},View Schedule,Job rescheduled,Job schedule updated successfully
+Job,P0,User changes Job status,AdminEmployee,Job status changed,Job status changed to {new job status} for Job #{job Id},View Job Details,,
+Job,,User pays associated invoice,CustomerAdmin,Associated Invoice Paid,Payment received for Invoice #{invoiceId} linked to Job #{jobId},View Receipt,Invoice payment successful,Associated invoice paid successfully
+Appointment,P0,User selects employee for appointment,Employee,Appointment Assigned,You have been assigned Appointment #{appointmentId},View Appointment,Appointment assigned,Employee assigned successfully to appointment
+Appointment,,User selects appointment start date & timing,AdminEmployee,Appointment Date & Time Scheduled,Appointment #{appointmentId} scheduled for {appointmentDate} at {appointmentTime},View Schedule,Appointment scheduled,Appointment date and time saved successfully
+Appointment,,User sets reminder before appointment,Employee,Appointment Reminder Set,Reminder set {reminderTime} before Appointment #{appointmentId},View Reminder,Appointment reminder set,Reminder configured successfully
+Appointment,,User clicks Add Appointment successfully,AdminEmployee,Appointment Created Successfully,Appointment #{appointmentId} created for {customerName},"View Appointment, Edit Appointment",Appointment created,Appointment created successfully
+Employee,,User clicks Create Employee successfully,AdminEmployee,Employee Created Successfully,Employee {employeeName} created successfully,"View Employee, Edit Employee",Employee created,Employee account created successfully
+Employee,,User clicks Deactivate Employee,AdminEmployee,Employee Deactivated,Employee {employeeName} has been deactivated,View Employee,Employee deactivated,Employee deactivated successfully
+Inventory,P0,User creates a new inventory,Admin,New Inventory added,{Inventory Name} has been added to the inventory list,"View Inventory, Edit Inventory",,
+Inventory,,User enables email low inventory alert,Admin,Email Inventory Alert Enabled,Email alerts enabled for low inventory items,View Settings,Email alert enabled,Email inventory alert configured successfully
+Inventory,,User enables SMS low inventory alert,Admin,SMS Inventory Alert Enabled,SMS alerts enabled for low inventory items,View Settings,SMS alert enabled,SMS inventory alert configured successfully
+Inventory,,User sends inventory report through email,Admin,Inventory Report Sent,Inventory report sent to {emailAddress},View Report,Inventory report sent,Inventory report email sent successfully
+Inventory,P0,User saves stock adjustment changes,Admin,Stock Adjusted Successfully,Stock updated for {inventoryName},View Inventory,Stock adjusted,Stock adjusted successfully
+Inventory,,User opens damage goods page,Admin,Damaged Goods Reported,Damaged stock recorded for {inventoryName},View Inventory,Damaged goods updated,Damaged inventory recorded successfully
+Inventory,P0,User assigns equipment to employee,AdminEmployee,Equipment Assigned,Equipment {equipmentName} assigned to {employeeName},View Equipment,Equipment assigned,Equipment assigned successfully
+Inventory,,User unassigns equipment from employee,AdminEmployee,Equipment Unassigned,Equipment {equipmentName} unassigned from {employeeName},View Equipment,Equipment unassigned,Equipment unassigned successfully
+Reports,,User exports report data,Admin,Report Exported,{reportType} report exported successfully,Download Report,Report exported,Report exported successfully
+Settings,P0,User changes password successfully,AdminEmployee,Password Changed Successfully,Password updated successfully for {employeeName},Login Again,Password changed,Password changed successfully
+Settings,,User updates role permissions,Admin,Permissions Updated,Permissions updated for role {roleName},View Permissions,Permissions updated,Role permissions updated successfully
+Settings,,User updates business policies,Admin,Business Policies Updated,Business policies updated successfully,View Policies,Business policies updated,Business policies saved successfully
+Settings,P0,User configures card reader successfully,Admin,Card Reader Configured,Card reader configured successfully,Test Reader,Card reader configured,Card reader setup completed successfully
