@@ -171,6 +171,7 @@ const Settings = () => {
         { label: "Change Password", route: "/settings/change-password", icon: Lock },
         { label: "Permission Settings", route: "/settings/permissions", icon: Shield },
         { label: "Business Policies", route: "/settings/business-policies", icon: Building2 },
+        { label: "Notifications Settings", route: "/settings/notification-settings", icon: Bell },
         { label: "Feedback Settings", route: null, icon: MessageSquare, isModal: true },
         { label: "Payment Settings", route: "/settings/payment-methods", icon: CreditCard },
         { label: "Configure Card Reader", route: "/settings/configure-card-reader", icon: Wallet },
@@ -199,6 +200,7 @@ const Settings = () => {
             const allowedLabels = [
               "Profile",
               "Change Password",
+              "Notifications Settings",
               "Change App Language",
               "Help",
               "Logout"
