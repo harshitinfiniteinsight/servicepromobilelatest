@@ -66,6 +66,7 @@ import ScanForDevices from "./pages/ScanForDevices";
 import MyCardReaders from "./pages/MyCardReaders";
 import Walkthrough from "./pages/Walkthrough";
 import Notifications from "./pages/Notifications";
+import NotificationSettings from "./pages/NotificationSettings";
 import NotFound from "./pages/NotFound";
 import CustomerSelection from "./pages/CustomerSelection";
 import CheckoutSummary from "./pages/CheckoutSummary";
@@ -157,6 +158,7 @@ const AppContent = () => {
             <Route path="/settings/language" element={<ChangeLanguage />} />
             <Route path="/settings/help" element={<Help />} />
             <Route path="/settings/help/app-benefits" element={<AppBenefits />} />
+            <Route path="/settings/notification-settings" element={<NotificationSettings />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
