@@ -11,6 +11,7 @@ import {
   Calendar,
   Users,
   Package,
+  ShoppingCart,
   UserCog,
   BellRing,
   X,
@@ -69,6 +70,17 @@ const CATEGORIES: NotificationCategory[] = [
     ],
   },
   {
+    id: "sell_products",
+    title: "Sell Product",
+    colorBg: "bg-cyan-100",
+    colorText: "text-cyan-700",
+    Icon: ShoppingCart,
+    events: [
+      { id: "sell_product_order_created", title: "Order Created", channels: ["push", "inApp"] },
+      { id: "sell_product_payment_received", title: "Payment Received", channels: ["push", "inApp", "email"] },
+    ],
+  },
+  {
     id: "estimates",
     title: "Estimates",
     colorBg: "bg-blue-100",
@@ -90,6 +102,7 @@ const CATEGORIES: NotificationCategory[] = [
     events: [
       { id: "agreement_created", title: "Agreement Created", channels: ["push", "inApp"] },
       { id: "agreement_updated", title: "Agreement Updated", channels: ["push", "inApp"] },
+      { id: "agreement_to_job", title: "Agreement Converted to Job", channels: ["push", "inApp"] },
       { id: "agreement_to_invoice", title: "Agreement Converted to Invoice", channels: ["push", "inApp"] },
     ],
   },
