@@ -392,7 +392,6 @@ const NotificationSettings = () => {
                               </div>
                               <div className="flex items-center gap-3 flex-shrink-0">
                                 {CHANNEL_META.map(({ key, label }) => {
-                                  if (!ev.channels.includes(key)) return null;
                                   const isActive = evS[key];
                                   return (
                                     <label
